@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Client {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
+  phone     String?
+  email     String?
+  notes     String?
+  units     ClientUnit[]
+  quotes    Quote[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClientUnit {
+  id           Int      @id @default(autoincrement())
+  clientId     Int
+  brand        String
+  model        String
+  powerKw      Float?
+  serialNumber String?
+  installation DateTime?
+  periodMonths Int      @default(12)
+  location     String?
+  notes        String?
+  maintenance  MaintenanceLog[]
+
+  client   Client @relation(fields: [clientId], references: [id])
+}
+
+model MaintenanceLog {
+  id            Int      @id @default(autoincrement())
+  unitId        Int
+  performedDate DateTime
+  description   String?
+  materials     String?
+  costInternal  Int?
+  technicianId  Int?
+  nextDue       DateTime?
+  photos        String?
+
+  unit ClientUnit @relation(fields: [unitId], references: [id])
+}
+
+model Quote {
+  id         Int         @id @default(autoincrement())
+  clientId   Int
+  quoteNo    String      @unique
+  dateIssued DateTime    @default(now())
+  status     String      @default("draft")
+  netTotal   Int?
+  vatAmount  Int?
+  grossTotal Int?
+  profit     Int?
+  terms      String?
+  pdfPath    String?
+
+  client Client      @relation(fields: [clientId], references: [id])
+  items  QuoteItem[]
+}
+
+model QuoteItem {
+  id            Int      @id @default(autoincrement())
+  quoteId       Int
+  name          String
+  basePriceNet  Int
+  profitValue   Int
+  profitType    String
+  finalPriceNet Int
+  qty           Int      @default(1)
+
+  quote Quote @relation(fields: [quoteId], references: [id])
+}
