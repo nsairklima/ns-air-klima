@@ -1,0 +1,23 @@
+{
+  "name": "ns-air-klima",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "latest",
+    "next": "14.0.0",
+    "react": "18.0.0",
+    "react-dom": "18.0.0",
+    "nodemailer": "latest",
+    "pdfkit": "latest"
+  },
+  "devDependencies": {
+    "prisma": "latest",
+    "typescript": "5.0.0"
+  }
+}
