@@ -151,7 +151,14 @@ export default function ClientsPage() {
                 borderRadius: "8px"
               }}
             >
-              <h3 style={{ margin: "0 0 5px 0" }}>{client.name}</h3>
+              <a
+  href={`/clients/${client.id}`}
+  style={{ textDecoration: "none", color: "inherit" }}
+>
+  <h3 style={{ margin: "0 0 5px 0", cursor: "pointer" }}>
+    {client.name}
+  </h3>
+</a>
               {client.phone && <p style={{ margin: 0 }}>📞 {client.phone}</p>}
               {client.email && <p style={{ margin: 0 }}>✉️ {client.email}</p>}
               {client.address && <p style={{ margin: 0 }}>📍 {client.address}</p>}
