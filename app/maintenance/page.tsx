@@ -27,32 +27,24 @@ export default function MaintenancePage() {
 
   useEffect(() => {
     async function load() {
-      if (!unitId) {
-        return;
-      }
-
       const res = await fetch(`/api/maintenance/${unitId}`);
       const data = await res.json();
-
       setLogs(data);
       setLoading(false);
     }
-
-    load();
+    if (unitId) load();
   }, [unitId]);
 
   async function saveLog() {
-    const body = {
-      performedDate,
-      description,
-      materials,
-      costInternal: costInternal ? Number(costInternal) : undefined
-    };
-
     const res = await fetch(`/api/maintenance/${unitId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        performedDate,
+        description,
+        materials,
+        costInternal: costInternal ? Number(costInternal) : null,
+      }),
     });
 
     if (res.ok) {
@@ -65,14 +57,14 @@ export default function MaintenancePage() {
       const refreshed = await fetch(`/api/maintenance/${unitId}`);
       setLogs(await refreshed.json());
     } else {
-      alert("Hiba történt a karbantartás mentésekor.");
+      alert("Hiba történt a mentéskor.");
     }
   }
 
   if (!unitId) {
     return (
       <div style={wrap}>
-        <h2>Nincs unitId megadva.</h2>
+        <h2>Nincs unitId definiálva.</h2>
       </div>
     );
   }
@@ -91,35 +83,35 @@ export default function MaintenancePage() {
 
       {formOpen && (
         <div style={card}>
-          <h3>Új karbantartás felvétele</h3>
+          <h3>Új karbantartás</h3>
 
           <input
-            style={input}
             type="date"
+            style={input}
             value={performedDate}
-            onChange={e => setPerformedDate(e.target.value)}
+            onChange={(e) => setPerformedDate(e.target.value)}
           />
 
           <textarea
             style={textarea}
-            placeholder="Leírás"
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            placeholder="Leírás"
+            onChange={(e) => setDescription(e.target.value)}
           />
 
           <textarea
             style={textarea}
-            placeholder="Felhasznált anyagok"
             value={materials}
-            onChange={e => setMaterials(e.target.value)}
+            placeholder="Felhasznált anyagok"
+            onChange={(e) => setMaterials(e.target.value)}
           />
 
           <input
-            style={input}
             type="number"
-            placeholder="Belső költség (Ft)"
+            style={input}
             value={costInternal}
-            onChange={e => setCostInternal(e.target.value)}
+            placeholder="Belső költség (Ft)"
+            onChange={(e) => setCostInternal(e.target.value)}
           />
 
           <button onClick={saveLog} style={btnSuccess}>
@@ -135,12 +127,20 @@ export default function MaintenancePage() {
           {logs.length === 0 ? (
             <p>Még nincs karbantartás felvéve ehhez a klímához.</p>
           ) : (
-            logs.map(log => (
+            logs.map((log) => (
               <div key={log.id} style={card}>
                 <h3>{log.performedDate.slice(0, 10)}</h3>
                 {log.description && <p>{log.description}</p>}
-                {log.materials && <p><strong>Anyagok:</strong> {log.materials}</p>}
-                {log.costInternal && <p><strong>Költség:</strong> {log.costInternal} Ft</p>}
+                {log.materials && (
+                  <p>
+                    <strong>Anyagok:</strong> {log.materials}
+                  </p>
+                )}
+                {log.costInternal && (
+                  <p>
+                    <strong>Költség:</strong> {log.costInternal} Ft
+                  </p>
+                )}
               </div>
             ))
           )}
@@ -154,7 +154,7 @@ const wrap: React.CSSProperties = {
   padding: "40px",
   maxWidth: "900px",
   margin: "0 auto",
-  fontFamily: "Arial, sans-serif"
+  fontFamily: "Arial, sans-serif",
 };
 
 const card: React.CSSProperties = {
@@ -162,46 +162,43 @@ const card: React.CSSProperties = {
   border: "1px solid #ddd",
   borderRadius: "8px",
   padding: "16px",
-  marginBottom: "12px"
+  marginBottom: "12px",
 };
 
-const input: React.CSSProperties = {
-  width: "100%",
-  padding: "10px",
-  border: "1px solid #ccc",
-  borderRadius: "6px",
-  margin: "5px 0"
-};
-
-const textarea: React.CSSProperties = {
-  width: "100%",
-  padding: "10px",
-  border: "1px solid #ccc",
-  borderRadius: "6px",
-  margin: "5px 0",
-  minHeight: "80px"
-};
-
-const btn: React.CSSProperties = {
+const btn = {
   padding: "8px 14px",
   background: "#eee",
-  borderRadius: "8px",
+  borderRadius: "6px",
   cursor: "pointer",
-  textDecoration: "none",
-  color: "#333",
-  border: "1px solid #ccc"
 };
 
-const btnPrimary: React.CSSProperties = {
+const btnPrimary = {
   ...btn,
   background: "#0d6efd",
   color: "#fff",
-  border: "none"
+  border: "none",
 };
 
-const btnSuccess: React.CSSProperties = {
+const btnSuccess = {
   ...btn,
   background: "#198754",
   color: "#fff",
-  border: "none"
+  border: "none",
+};
+
+const input = {
+  width: "100%",
+  padding: "10px",
+  borderRadius: "6px",
+  border: "1px solid #ccc",
+  marginBottom: "10px",
+};
+
+const textarea = {
+  width: "100%",
+  minHeight: "80px",
+  padding: "10px",
+  borderRadius: "6px",
+  border: "1px solid #ccc",
+  marginBottom: "10px",
 };
