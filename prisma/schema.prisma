@@ -26,6 +26,7 @@ model Client {
   notes     String?
   units     ClientUnit[]
   quotes    Quote[]
+emailNotifications EmailNotifications[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -42,6 +43,8 @@ model ClientUnit {
   location     String?
   notes        String?
   maintenance  MaintenanceLog[]
+
+ emailNotifications EmailNotifications[]
 
   client   Client @relation(fields: [clientId], references: [id])
 }
