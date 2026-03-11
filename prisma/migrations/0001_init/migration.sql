@@ -94,4 +94,4 @@ CREATE INDEX "idx_quote_client"      ON "Quote"("clientId");
 CREATE INDEX "idx_item_quote"        ON "QuoteItem"("quoteId");
 CREATE INDEX "idx_mail_client"       ON "EmailNotifications"("clientId");
 CREATE INDEX "idx_mail_unit"         ON "EmailNotifications"("clientUnitId");
-``
+
