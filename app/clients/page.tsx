@@ -43,7 +43,7 @@ export default function ClientsPage() {
         name,
         phone,
         email,
-        address
+        address,
       }),
     });
 
@@ -61,13 +61,14 @@ export default function ClientsPage() {
   }
 
   return (
-    <div style={{
-      padding: "40px",
-      maxWidth: "900px",
-      margin: "0 auto",
-      fontFamily: "Arial, sans-serif"
-    }}>
-
+    <div
+      style={{
+        padding: "40px",
+        maxWidth: "900px",
+        margin: "0 auto",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
       <h1 style={{ marginBottom: "20px" }}>Ügyfelek</h1>
 
       <button
@@ -79,7 +80,7 @@ export default function ClientsPage() {
           border: "none",
           borderRadius: "6px",
           cursor: "pointer",
-          marginBottom: "20px"
+          marginBottom: "20px",
         }}
       >
         {formOpen ? "Mégse" : "Új ügyfél"}
@@ -87,13 +88,15 @@ export default function ClientsPage() {
 
       {/* Új ügyfél űrlap */}
       {formOpen && (
-        <div style={{
-          background: "#f8f9fa",
-          padding: "20px",
-          borderRadius: "8px",
-          marginBottom: "30px",
-          border: "1px solid #ddd"
-        }}>
+        <div
+          style={{
+            background: "#f8f9fa",
+            padding: "20px",
+            borderRadius: "8px",
+            marginBottom: "30px",
+            border: "1px solid #ddd",
+          }}
+        >
           <h3>Új ügyfél felvétele</h3>
 
           <div style={{ marginTop: "10px" }}>
@@ -122,10 +125,7 @@ export default function ClientsPage() {
               style={inputStyle}
             />
 
-            <button
-              onClick={createClient}
-              style={saveBtn}
-            >
+            <button onClick={createClient} style={saveBtn}>
               Mentés
             </button>
           </div>
@@ -136,29 +136,34 @@ export default function ClientsPage() {
       {loading ? (
         <p>Betöltés...</p>
       ) : (
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "15px"
-        }}>
-          {clients.map(client => (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "15px",
+          }}
+        >
+          {clients.map((client) => (
             <div
               key={client.id}
               style={{
                 padding: "15px",
                 background: "white",
                 border: "1px solid #ddd",
-                borderRadius: "8px"
+                borderRadius: "8px",
               }}
             >
               <a
-  href={`/clients/${client.id}`}
-  style={{ textDecoration: "none", color: "inherit" }}
->
-  <h3 style={{ margin: "0 0 5px 0", cursor: "pointer" }}>
-    {client.name}
-  </h3>
-</a>
+                href={`/clients/${client.id}`}
+                style={{
+                  textDecoration: "none",
+                  color: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                <h3 style={{ margin: "0 0 5px 0" }}>{client.name}</h3>
+              </a>
+
               {client.phone && <p style={{ margin: 0 }}>📞 {client.phone}</p>}
               {client.email && <p style={{ margin: 0 }}>✉️ {client.email}</p>}
               {client.address && <p style={{ margin: 0 }}>📍 {client.address}</p>}
@@ -166,7 +171,6 @@ export default function ClientsPage() {
           ))}
         </div>
       )}
-
     </div>
   );
 }
@@ -177,7 +181,7 @@ const inputStyle: React.CSSProperties = {
   marginBottom: "10px",
   padding: "10px",
   borderRadius: "6px",
-  border: "1px solid #ccc"
+  border: "1px solid #ccc",
 };
 
 const saveBtn: React.CSSProperties = {
@@ -187,5 +191,5 @@ const saveBtn: React.CSSProperties = {
   border: "none",
   borderRadius: "6px",
   cursor: "pointer",
-  marginTop: "10px"
+  marginTop: "10px",
 };
