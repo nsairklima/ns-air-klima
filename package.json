@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma migrate deploy && next build",
     "start": "next start",
     "postinstall": "prisma generate"
   },
@@ -17,18 +17,9 @@
     "resend": "2.1.0",
     "typescript": "5.5.4"
   },
-  
-"devDependencies": {
-  "prisma": "5.10.2",
-  "@types/react": "18.2.37",
-  "@types/node": "20.10.5"
-}
-
-{
-  "scripts": {
-    "dev": "next dev",
-    "build": "prisma migrate deploy && next build",
-    "start": "next start",
-    "postinstall": "prisma generate"
+  "devDependencies": {
+    "prisma": "5.10.2",
+    "@types/react": "18.2.37",
+    "@types/node": "20.10.5"
   }
 }
