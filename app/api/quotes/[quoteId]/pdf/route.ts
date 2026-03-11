@@ -1,3 +1,9 @@
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic'
+
+
+
 import { prisma } from "@/lib/prisma";
 import PDFDocument from "pdfkit";
 import { NextResponse } from "next/server";
