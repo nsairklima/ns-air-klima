@@ -89,15 +89,17 @@ model QuoteItem {
 
   quote Quote @relation(fields: [quoteId], references: [id])
 }
-model EmailNotifications {
-  id              Int      @id @default(autoincrement())
-  clientId        Int
-  clientUnitId    Int
-  notificationType String
-  sentToEmail     String
-  sentAt          DateTime @default(now())
-  status          String
 
-  client   Client     @relation(fields: [clientId], references: [id])
-  unit     ClientUnit @relation(fields: [clientUnitId], references: [id])
+model EmailNotifications {
+  id               Int         @id @default(autoincrement())
+  clientId         Int
+  clientUnitId     Int
+  notificationType String
+  sentToEmail      String
+  sentAt           DateTime    @default(now())
+  status           String
+
+  client           Client      @relation(fields: [clientId], references: [id])
+  unit             ClientUnit  @relation(fields: [clientUnitId], references: [id])
 }
+
