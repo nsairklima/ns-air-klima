@@ -9,14 +9,15 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-  "@prisma/client": "5.10.2",
-  "next": "14.0.0",
-  "react": "18.0.0",
-  "react-dom": "18.0.0",
-  "pdfkit": "latest",
-  "@resend/node": "latest"
-},
-"devDependencies": {
-  "prisma": "5.10.2",
-  "typescript": "5.5.4"
+    "@prisma/client": "5.10.2",
+    "@resend/node": "latest",
+    "next": "14.0.0",
+    "pdfkit": "latest",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "5.5.4"
+  },
+  "devDependencies": {
+    "prisma": "5.10.2"
+  }
 }
