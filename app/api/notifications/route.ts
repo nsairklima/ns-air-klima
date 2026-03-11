@@ -1,10 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-// POST /api/notifications – automatikus értesítések kiküldése
+// POST /api/notifications – automatikus értesítések küldése
 export async function POST() {
   try {
-    // 1) Lekérjük az esedékes vagy hamarosan esedékes karbantartásokat
     const today = new Date();
     const soon = new Date();
     soon.setDate(today.getDate() + 14); // 14 nap múlva esedékes
@@ -22,38 +21,26 @@ export async function POST() {
       }
     });
 
-    // 2) E-mail küldő beállítása
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER, // Gmail felhasználó
-        pass: process.env.EMAIL_PASS  // Gmail app jelszó
-      }
-    });
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // 3) Minden esedékes karbantartásnál küldünk emailt
     for (const item of dueMaintenances) {
       const client = item.unit.client;
 
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
+      await resend.emails.send({
+        from: "NS-AIR KLÍMA <onboarding@resend.dev>",
         to: client.email,
         subject: "Karbantartási értesítés – NS-AIR KLÍMA",
         html: `
           <h2>Tisztelt ${client.name}!</h2>
           <p>Szeretnénk értesíteni, hogy az Ön klímaberendezése hamarosan karbantartást igényel.</p>
           <p><strong>Készülék:</strong> ${item.unit.brand} ${item.unit.model}</p>
-          <p><strong>Esedékes dátum:</strong> ${item.nextDue?.toISOString().substring(0, 10)}</p>
+          <p><strong>Esedékes dátum:</strong> ${item.nextDue?.toISOString().slice(0, 10)}</p>
           <p>Kérem jelezzen vissza időpont egyeztetés miatt.</p>
           <br>
           <p>Üdvözlettel,<br>NS-AIR KLÍMA</p>
         `
-      };
+      });
 
-      // email elküldése
-      await transporter.sendMail(mailOptions);
-
-      // naplózás a database-be
       await prisma.emailNotifications.create({
         data: {
           clientId: client.id,
@@ -73,7 +60,7 @@ export async function POST() {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: "Hiba az értesítések kiküldésekor." },
+      { error: "Hiba az értesítések küldésekor." },
       { status: 500 }
     );
   }
