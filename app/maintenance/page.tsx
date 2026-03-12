@@ -27,19 +27,23 @@ export default function MaintenancePage() {
 
   useEffect(() => {
     async function load() {
-      const res = await fetch(`/api/maintenance/${unitId}`);
-      const data = await res.json();
-      setLogs(data);
-      setLoading(false);
+      try {
+        const res = await fetch(`/api/maintenance?unitId=${unitId}`);
+        const data = await res.json();
+        setLogs(Array.isArray(data) ? data : []);
+      } finally {
+        setLoading(false);
+      }
     }
     if (unitId) load();
   }, [unitId]);
 
   async function saveLog() {
-    const res = await fetch(`/api/maintenance/${unitId}`, {
+    const res = await fetch(`/api/maintenance`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        unitId,
         performedDate,
         description,
         materials,
@@ -54,10 +58,12 @@ export default function MaintenancePage() {
       setMaterials("");
       setCostInternal("");
 
-      const refreshed = await fetch(`/api/maintenance/${unitId}`);
-      setLogs(await refreshed.json());
+      const refreshed = await fetch(`/api/maintenance?unitId=${unitId}`);
+      const data = await refreshed.json();
+      setLogs(Array.isArray(data) ? data : []);
     } else {
-      alert("Hiba történt a mentéskor.");
+      const err = await res.json().catch(() => ({}));
+      alert(err?.error ?? "Hiba történt a mentéskor.");
     }
   }
 
@@ -136,7 +142,7 @@ export default function MaintenancePage() {
                     <strong>Anyagok:</strong> {log.materials}
                   </p>
                 )}
-                {log.costInternal && (
+                {typeof log.costInternal === "number" && (
                   <p>
                     <strong>Költség:</strong> {log.costInternal} Ft
                   </p>
@@ -165,36 +171,36 @@ const card: React.CSSProperties = {
   marginBottom: "12px",
 };
 
-const btn = {
+const btn: React.CSSProperties = {
   padding: "8px 14px",
   background: "#eee",
   borderRadius: "6px",
   cursor: "pointer",
 };
 
-const btnPrimary = {
+const btnPrimary: React.CSSProperties = {
   ...btn,
   background: "#0d6efd",
   color: "#fff",
   border: "none",
 };
 
-const btnSuccess = {
+const btnSuccess: React.CSSProperties = {
   ...btn,
   background: "#198754",
   color: "#fff",
   border: "none",
 };
 
-const input = {
+const input: React.CSSProperties = {
   width: "100%",
   padding: "10px",
   borderRadius: "6px",
-  border: "1px solid #ccc",
+  border: "1px solid "#ccc",
   marginBottom: "10px",
 };
 
-const textarea = {
+const textarea: React.CSSProperties = {
   width: "100%",
   minHeight: "80px",
   padding: "10px",
@@ -202,4 +208,3 @@ const textarea = {
   border: "1px solid #ccc",
   marginBottom: "10px",
 };
-    ez a jelenlegi
