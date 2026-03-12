@@ -1,60 +1,56 @@
 import { prisma } from "@/lib/prisma";
 
-// GET /api/quotes/:quoteId/items – tételsorok listázása
-export async function GET(
-  req: Request,
-  { params }: { params: { quoteId: string } }
-) {
-  try {
-    const items = await prisma.quoteItem.findMany({
-      where: { quoteId: Number(params.quoteId) },
-      orderBy: { id: "asc" }
-    });
+async function recalcTotals(quoteId: number) {
+  const items = await prisma.quoteItem.findMany({ where: { quoteId } });
+  const net = items.reduce((s, i) => s + i.finalPriceNet * i.qty, 0);
+  const vat = Math.round(net * 0.27);
+  const gross = net + vat;
 
-    return Response.json(items);
-  } catch (error) {
-    return Response.json(
-      { error: "Hiba a tételsorok lekérésekor." },
-      { status: 500 }
-    );
-  }
+  await prisma.quote.update({
+    where: { id: quoteId },
+    data: { netTotal: net, vatAmount: vat, grossTotal: gross },
+  });
 }
 
-// POST /api/quotes/:quoteId/items – új tételsor felvétele
-export async function POST(
-  req: Request,
-  { params }: { params: { quoteId: string } }
-) {
+export async function POST(req: Request, { params }: { params: { quoteId: string } }) {
   try {
-    const data = await req.json();
+    const quoteId = Number(params.quoteId);
+    const body = await req.json();
 
-    // profit kiszámolása
-    let profitAmount = 0;
-
-    if (data.profitType === "percent") {
-      profitAmount = Math.round((data.basePriceNet * data.profitValue) / 100);
-    } else if (data.profitType === "amount") {
-      profitAmount = data.profitValue;
+    if (!body.name || !body.basePriceNet || !body.qty) {
+      return Response.json(
+        { error: "Név, nettó ár és mennyiség kötelező." },
+        { status: 400 }
+      );
     }
 
-    const finalPriceNet = data.basePriceNet + profitAmount;
+    const base = Number(body.basePriceNet);
+    const qty = Number(body.qty);
+    const profitValue = Number(body.profitValue ?? 0);
 
-    const created = await prisma.quoteItem.create({
+    const unitFinal =
+      body.profitType === "percent"
+        ? Math.round(base * (1 + profitValue / 100))
+        : base + profitValue;
+
+    const item = await prisma.quoteItem.create({
       data: {
-        quoteId: Number(params.quoteId),
-        name: data.name,
-        basePriceNet: data.basePriceNet,
-        profitValue: data.profitValue,
-        profitType: data.profitType,
-        finalPriceNet,
-        qty: data.qty || 1
-      }
+        quoteId,
+        name: body.name,
+        basePriceNet: base,
+        profitType: body.profitType,
+        profitValue,
+        finalPriceNet: unitFinal,
+        qty,
+      },
     });
 
-    return Response.json(created);
+    await recalcTotals(quoteId);
+
+    return Response.json(item);
   } catch (error) {
     return Response.json(
-      { error: "Hiba a tételsor létrehozásakor." },
+      { error: "Hiba történt tétel mentésekor." },
       { status: 500 }
     );
   }
