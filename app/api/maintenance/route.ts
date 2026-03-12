@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/maintenance  → új karbantartás felvétele
+// POST /api/maintenance → új karbantartás felvétele
 export async function POST(req: Request) {
   try {
     const body = await req.json();
