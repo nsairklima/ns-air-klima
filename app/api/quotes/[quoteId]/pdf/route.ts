@@ -1,11 +1,8 @@
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import PDFDocument from "pdfkit";
-import path from "path";
-import fs from "fs";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export async function GET(
   _req: Request,
@@ -18,67 +15,74 @@ export async function GET(
       where: { id: quoteId },
       include: { items: true, client: true },
     });
+
     if (!quote) {
-      return NextResponse.json({ error: "Ajánlat nem található." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Ajánlat nem található." },
+        { status: 404 }
+      );
     }
 
-    // 1) Saját font betöltése a repóból
-    const fontPath = path.join(
-      process.cwd(),
-      "app/api/quotes/[quoteId]/pdf/fonts/NotoSans-Regular.ttf"
-    );
-    const fontBuffer = fs.readFileSync(fontPath);
+    // PDF létrehozása
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage();
+    const { width } = page.getSize();
 
-    // 2) PDF létrehozása (PDFKit konstruktor HELVETICA-t keres, ezért kell a 2. lépés is – lásd next.config.js)
-    const doc = new PDFDocument({ margin: 40 });
-    const chunks: Buffer[] = [];
-    doc.on("data", (c) => chunks.push(c));
-    doc.on("end", () => {});
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    // 3) Saját font alkalmazása
-    doc.font(fontBuffer);
+    let y = 750;
+    const line = (text: string, size = 12) => {
+      page.drawText(text, {
+        x: 50,
+        y,
+        size,
+        font,
+        color: rgb(0, 0, 0),
+      });
+      y -= size + 8;
+    };
 
-    // --- Tartalom ---
-    doc.fontSize(22).text("ÁRAJÁNLAT", { align: "center" });
-    doc.moveDown();
+    line("ÁRAJÁNLAT", 24);
+    y -= 10;
 
-    doc.fontSize(12).text(`Ügyfél: ${quote.client.name}`);
-    if (quote.client.address) doc.text(`Cím: ${quote.client.address}`);
-    if (quote.client.email) doc.text(`Email: ${quote.client.email}`);
-    if (quote.client.phone) doc.text(`Telefon: ${quote.client.phone}`);
+    line(`Ügyfél: ${quote.client.name}`, 14);
+    if (quote.client.address) line(`Cím: ${quote.client.address}`);
+    if (quote.client.email) line(`Email: ${quote.client.email}`);
+    if (quote.client.phone) line(`Telefon: ${quote.client.phone}`);
 
-    doc.moveDown();
-    doc.text(`Ajánlat száma: ${quote.quoteNo}`);
-    doc.text(`Státusz: ${quote.status}`);
-    doc.moveDown();
+    y -= 10;
 
-    doc.fontSize(14).text("Tételek:", { underline: true });
-    doc.moveDown(0.5);
+    line(`Ajánlat száma: ${quote.quoteNo}`);
+    line(`Státusz: ${quote.status}`);
+    y -= 10;
 
-    quote.items.forEach((item) => {
-      doc
-        .fontSize(12)
-        .text(`${item.name} — ${item.qty} × ${item.finalPriceNet} Ft = ${item.qty * item.finalPriceNet} Ft`);
+    line("Tételek:", 18);
+
+    quote.items.forEach((i) => {
+      line(
+        `${i.name} — ${i.qty} × ${i.finalPriceNet} Ft = ${
+          i.qty * i.finalPriceNet
+        } Ft`
+      );
     });
 
-    doc.moveDown();
-    doc.fontSize(14).text(`Nettó összesen: ${quote.netTotal ?? 0} Ft`);
-    doc.text(`ÁFA: ${quote.vatAmount ?? 0} Ft`);
-    doc.text(`Bruttó: ${quote.grossTotal ?? 0} Ft`);
+    y -= 10;
 
-    doc.end();
+    line(`Nettó összesen: ${quote.netTotal} Ft`, 14);
+    line(`ÁFA: ${quote.vatAmount} Ft`);
+    line(`Bruttó összesen: ${quote.grossTotal} Ft`);
 
-    const pdfBuffer = Buffer.concat(chunks);
+    const pdfBytes = await pdfDoc.save();
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBytes, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename=ajanlat-${quoteId}.pdf`,
       },
     });
-  } catch (error) {
-    console.error("PDF generálás hiba:", error);
+  } catch (e) {
+    console.error(e);
     return NextResponse.json({ error: "PDF generálás hiba." }, { status: 500 });
   }
 }
