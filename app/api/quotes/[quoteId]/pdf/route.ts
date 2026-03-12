@@ -1,85 +1,83 @@
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic'
-
-
-
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import PDFDocument from "pdfkit";
-import { NextResponse } from "next/server";
 
-// GET /api/quotes/:quoteId/pdf
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: { quoteId: string } }
 ) {
   try {
+    const quoteId = Number(params.quoteId);
+
     const quote = await prisma.quote.findUnique({
-      where: { id: Number(params.quoteId) },
-      include: {
-        client: true,
-        items: true
-      }
+      where: { id: quoteId },
+      include: { items: true, client: true },
     });
 
     if (!quote) {
-      return NextResponse.json({ error: "Ajánlat nem található." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Ajánlat nem található." },
+        { status: 404 }
+      );
     }
 
-    // PDF → Buffer
-    const doc = new PDFDocument();
-    const chunks: Uint8Array[] = [];
+    // PDF kit dokumentum
+    const doc = new PDFDocument({ margin: 50 });
 
+    const chunks: any[] = [];
     doc.on("data", (chunk) => chunks.push(chunk));
     doc.on("end", () => {});
 
-    // --- PDF TARTALOM ---
-    doc.fontSize(20).text("NS-AIR KLÍMA AJÁNLAT", { align: "center" });
-    doc.moveDown();
-    doc.fontSize(14).text(`Ajánlatszám: ${quote.quoteNo}`);
-    doc.text(`Dátum: ${quote.dateIssued.toISOString().substring(0, 10)}`);
+    // CÍM
+    doc.fontSize(24).text("ÁRAJÁNLAT", { align: "center" });
     doc.moveDown();
 
-    doc.fontSize(16).text("Ügyfél adatok", { underline: true });
-    doc.fontSize(12);
-    doc.text(`Név: ${quote.client.name}`);
+    // Ügyfél adatok
+    doc.fontSize(14).text(`Ügyfél: ${quote.client.name}`);
     if (quote.client.address) doc.text(`Cím: ${quote.client.address}`);
-    if (quote.client.phone) doc.text(`Telefon: ${quote.client.phone}`);
     if (quote.client.email) doc.text(`Email: ${quote.client.email}`);
+    if (quote.client.phone) doc.text(`Telefon: ${quote.client.phone}`);
+
+    doc.moveDown();
+    doc.text(`Ajánlat száma: ${quote.quoteNo}`);
+    doc.text(`Státusz: ${quote.status}`);
     doc.moveDown();
 
-    doc.fontSize(16).text("Tételek", { underline: true });
-    doc.fontSize(12);
+    // Tételek
+    doc.fontSize(16).text("Tételek:");
+    doc.moveDown(0.5);
+
     quote.items.forEach((item) => {
-      doc.text(`${item.name} – ${item.finalPriceNet} Ft x ${item.qty}`);
+      doc
+        .fontSize(12)
+        .text(
+          `${item.name} – ${item.qty} × ${item.finalPriceNet} Ft = ${
+            item.qty * item.finalPriceNet
+          } Ft`
+        );
     });
 
     doc.moveDown();
-
-    doc.fontSize(16).text("Végösszeg", { underline: true });
-    doc.fontSize(12);
-
-    if (quote.netTotal) doc.text(`Nettó: ${quote.netTotal} Ft`);
-    if (quote.vatAmount) doc.text(`ÁFA: ${quote.vatAmount} Ft`);
-    if (quote.grossTotal) doc.text(`Bruttó: ${quote.grossTotal} Ft`);
+    doc.fontSize(16).text(`Nettó összeg: ${quote.netTotal} Ft`);
+    doc.text(`ÁFA: ${quote.vatAmount} Ft`);
+    doc.text(`Bruttó összeg: ${quote.grossTotal} Ft`);
 
     doc.end();
 
-    // Buffer létrehozása
-    const pdfBuffer = Buffer.concat(chunks);
-
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="ajanlat-${quote.quoteNo}.pdf"`
-      }
+    const pdfBuffer = await new Promise<Buffer>((resolve) => {
+      const final = Buffer.concat(chunks);
+      resolve(final);
     });
 
+    return new NextResponse(pdfBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="ajanlat-${quoteId}.pdf"`,
+      },
+    });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: "PDF generálás hiba." },
-      { status: 500 }
-    );
+    console.error("PDF hiba:", error);
+    return NextResponse.json({ error: "PDF generálás hiba." }, { status: 500 });
   }
 }
