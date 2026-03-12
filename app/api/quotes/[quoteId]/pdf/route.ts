@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import PDFDocument from "pdfkit";
@@ -92,3 +93,4 @@ export async function GET(
     return NextResponse.json({ error: "PDF generálás hiba." }, { status: 500 });
   }
 }
+
