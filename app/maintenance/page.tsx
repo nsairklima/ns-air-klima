@@ -196,7 +196,7 @@ const input: React.CSSProperties = {
   width: "100%",
   padding: "10px",
   borderRadius: "6px",
-  border: "1px solid "#ccc",
+  border: "1px solid #ccc",
   marginBottom: "10px",
 };
 
