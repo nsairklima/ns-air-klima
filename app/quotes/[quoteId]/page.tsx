@@ -15,6 +15,15 @@ export default function QuoteDetailPage() {
   const [profitType, setProfitType] = useState("percent");
   const [profitValue, setProfitValue] = useState("20");
   const [qty, setQty] = useState("1");
+  
+const [sendTo, setSendTo] = useState<string>("");
+useEffect(() => {
+  // ha a lekért quote-ban van ügyfél e-mail, előtöltjük
+  if ((quote as any)?.client?.email) {
+    setSendTo((quote as any).client.email);
+  }
+}, [quote]);
+
 
   async function load() {
     const res = await fetch(`/api/quotes/${quoteId}`);
@@ -74,6 +83,43 @@ export default function QuoteDetailPage() {
       <input placeholder="Profit érték" type="number" value={profitValue} onChange={e => setProfitValue(e.target.value)} />
       <input placeholder="Mennyiség" type="number" value={qty} onChange={e => setQty(e.target.value)} />
       <button onClick={addItem}>Tétel mentése</button>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+  <input
+    type="email"
+    placeholder="Címzett email"
+    value={sendTo}
+    onChange={(e) => setSendTo(e.target.value)}
+    style={{ padding: 8, border: "1px solid #ccc", borderRadius: 6 }}
+  />
+
+  <button
+    onClick={async () => {
+      if (!sendTo) return alert("Adj meg e-mail címet!");
+      const res = await fetch(`/api/quotes/${quoteId}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: sendTo }),
+      });
+      if (res.ok) {
+        alert("E-mail elküldve!");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error ?? "Küldési hiba.");
+      }
+    }}
+    style={{ padding: "8px 12px", background: "#198754", color: "#fff", borderRadius: 6, cursor: "pointer" }}
+  >
+    Küldés emailben
+  </button>
+
+  <a
+    href={`/api/quotes/${quoteId}/pdf`}
+    target="_blank"
+    style={{ padding: "8px 12px", background: "#0d6efd", color: "#fff", borderRadius: 6, textDecoration: "none" }}
+  >
+    PDF megnyitása
+  </a>
+</div>
 
       <h2>Tételek</h2>
       {quote.items.length === 0 && <p>Nincs tétel.</p>}
