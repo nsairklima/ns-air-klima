@@ -1,46 +1,54 @@
 import { prisma } from "@/lib/prisma";
 
-// GET /api/quotes – ajánlatok listázása
-export async function GET() {
+// GET /api/quotes
+export async function GET(req: Request) {
   try {
-    const list = await prisma.quote.findMany({
-      include: {
-        client: true,
-        items: true
-      },
-      orderBy: { id: "desc" }
+    const { searchParams } = new URL(req.url);
+    const clientId = searchParams.get("clientId");
+    const where = clientId ? { clientId: Number(clientId) } : undefined;
+
+    const quotes = await prisma.quote.findMany({
+      where,
+      orderBy: { id: "desc" },
     });
 
-    return Response.json(list);
+    return Response.json(quotes);
   } catch (error) {
     return Response.json(
-      { error: "Hiba az ajánlatok lekérésekor." },
+      { error: "Hiba történt ajánlatok lekérésekor." },
       { status: 500 }
     );
   }
 }
 
-// POST /api/quotes – új ajánlat létrehozása
+// POST /api/quotes
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
+    const body = await req.json();
 
-    // automatikus ajánlatszám generálás
-    const quoteNo = "NS-" + Date.now();
+    if (!body.clientId) {
+      return Response.json(
+        { error: "clientId kötelező" },
+        { status: 400 }
+      );
+    }
 
-    const created = await prisma.quote.create({
+    const quote = await prisma.quote.create({
       data: {
-        clientId: data.clientId,
-        quoteNo,
-        terms: data.terms || "",
-        status: "draft"
-      }
+        clientId: Number(body.clientId),
+        quoteNo: body.quoteNo ?? `Q-${Date.now()}`,
+        status: "draft",
+        netTotal: 0,
+        vatAmount: 0,
+        grossTotal: 0,
+        terms: body.terms ?? null,
+      },
     });
 
-    return Response.json(created);
+    return Response.json(quote);
   } catch (error) {
     return Response.json(
-      { error: "Hiba az új ajánlat létrehozásakor." },
+      { error: "Hiba történt az ajánlat létrehozásakor." },
       { status: 500 }
     );
   }
