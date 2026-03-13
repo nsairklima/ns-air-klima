@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 type Client = {
   id: number;
@@ -51,6 +52,8 @@ export default function ClientDetailPage() {
   const [editPhone, setEditPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
 
+  const searchParams = useSearchParams();
+
   // Betöltés: ügyfél + klímák
   useEffect(() => {
     async function load() {
@@ -77,6 +80,7 @@ export default function ClientDetailPage() {
       setEditEmail(client.email ?? "");
       setEditPhone(client.phone ?? "");
       setEditAddress(client.address ?? "");
+      useEffect(() => { if (client) { … } }, [client]);
     }
   }, [client]);
 
