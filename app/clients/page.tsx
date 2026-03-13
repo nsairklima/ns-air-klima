@@ -13,10 +13,11 @@ type Client = {
 
 export default function ClientsPage() {
   const router = useRouter();
+
   const [list, setList] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"name-asc" | "name-desc">("name-asc");
+  const [sortBy, setSortBy] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     async function load() {
@@ -32,24 +33,29 @@ export default function ClientsPage() {
     let arr = [...list];
 
     // keresés
-    if (search.trim() !== "") {
-      const q = search.toLowerCase();
-      arr = arr.filter((c) =>
-        c.name.toLowerCase().includes(q) ||
-        (c.email?.toLowerCase().includes(q) ?? false) ||
-        (c.phone?.toLowerCase().includes(q) ?? false)
+    const q = search.toLowerCase();
+    if (q.trim() !== "") {
+      arr = arr.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.email?.toLowerCase().includes(q) ?? false) ||
+          (c.phone?.toLowerCase().includes(q) ?? false)
       );
     }
 
-    // rendezés
-    if (sortBy === "name-asc") {
-      arr.sort((a, b) => a.name.localeCompare(b.name));
-    } else {
-      arr.sort((a, b) => b.name.localeCompare(a.name));
-    }
+    // rendezés név szerint
+    arr.sort((a, b) =>
+      sortBy === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name)
+    );
 
     return arr;
   }, [list, search, sortBy]);
+
+  function openClient(id: number) {
+    router.push(`/clients/${id}`);
+  }
 
   return (
     <div style={wrap}>
@@ -58,23 +64,23 @@ export default function ClientsPage() {
       <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
         <input
           style={input}
-          placeholder="Keresés név / email / telefon szerint"
+          placeholder="Keresés (név, email, telefon)"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
         <select
+          style={input}
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as any)}
-          style={input}
         >
-          <option value="name-asc">Név A → Z</option>
-          <option value="name-desc">Név Z → A</option>
+          <option value="asc">Név A → Z</option>
+          <option value="desc">Név Z → A</option>
         </select>
 
         <button
-          onClick={() => router.push("/clients/new")}
           style={btnPrimary}
+          onClick={() => router.push("/clients/new")}
         >
           Új ügyfél
         </button>
@@ -98,22 +104,19 @@ export default function ClientsPage() {
                 {c.address && <div>📍 {c.address}</div>}
               </div>
 
-              <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => router.push(`/clients/${c.id}`)}
-                  style={btn}
-                >
+              <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+                <button style={btn} onClick={() => openClient(c.id)}>
                   Részletek
                 </button>
                 <button
-                  onClick={() => router.push(`/clients/${c.id}?edit=1`)}
                   style={btnSuccess}
+                  onClick={() => router.push(`/clients/${c.id}?edit=1`)}
                 >
                   Szerkesztés
                 </button>
                 <button
-                  onClick={() => router.push(`/quotes?clientId=${c.id}`)}
                   style={btn}
+                  onClick={() => router.push(`/quotes?clientId=${c.id}`)}
                 >
                   Ajánlatok
                 </button>
@@ -144,7 +147,6 @@ const input: React.CSSProperties = {
   padding: "10px",
   borderRadius: "6px",
   border: "1px solid #ccc",
-  width: "100%",
 };
 
 const btn: React.CSSProperties = {
@@ -160,10 +162,12 @@ const btnPrimary: React.CSSProperties = {
   ...btn,
   background: "#0d6efd",
   color: "#fff",
+  border: "none",
 };
 
 const btnSuccess: React.CSSProperties = {
   ...btn,
   background: "#198754",
   color: "#fff",
+  border: "none",
 };
