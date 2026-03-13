@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 type Client = {
@@ -27,7 +26,10 @@ type Unit = {
 export default function ClientDetailPage() {
   const params = useParams<{ clientId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const clientId = Number(params.clientId);
+  const editParam = searchParams.get("edit"); // "1" vagy null
 
   // Alap state-ek
   const [client, setClient] = useState<Client | null>(null);
@@ -52,9 +54,14 @@ export default function ClientDetailPage() {
   const [editPhone, setEditPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
 
-  const searchParams = useSearchParams();
+  /** ===== Segéd: távolítsuk el az ?edit=1 paramot a címből, hogy frissítésnél ne nyíljon újra ===== */
+  function removeEditParam() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("edit");
+    router.replace(url.pathname + (url.search ? url.search : ""), { scroll: false });
+  }
 
-  // Betöltés: ügyfél + klímák
+  /** ===== Betöltés: ügyfél + klímák ===== */
   useEffect(() => {
     async function load() {
       try {
@@ -73,18 +80,24 @@ export default function ClientDetailPage() {
     if (clientId) load();
   }, [clientId]);
 
-  // Ügyféladatok előtöltése a szerkesztő formba
+  /** ===== Ügyféladatok előtöltése a szerkesztő formba ===== */
   useEffect(() => {
     if (client) {
       setEditName(client.name ?? "");
       setEditEmail(client.email ?? "");
       setEditPhone(client.phone ?? "");
       setEditAddress(client.address ?? "");
-      useEffect(() => { if (client) { … } }, [client]);
     }
   }, [client]);
 
-  // Új klíma mentése
+  /** ===== Automatikus form-nyitás ?edit=1 esetén ===== */
+  useEffect(() => {
+    if (editParam === "1") {
+      setEditOpen(true);
+    }
+  }, [editParam]);
+
+  /** ===== Új klíma mentése ===== */
   async function createUnit() {
     const body = {
       clientId,
@@ -123,10 +136,10 @@ export default function ClientDetailPage() {
     }
   }
 
-  // Ügyfél módosítása (EZ HIÁNYZOTT → ettől volt a build error)
+  /** ===== Ügyfél módosítása ===== */
   async function saveClient() {
     const res = await fetch(`/api/clients/${clientId}`, {
-      method: "PATCH", // a te route-odban PATCH-el bővítettük
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: editName,
@@ -140,6 +153,7 @@ export default function ClientDetailPage() {
       const refreshed = await fetch(`/api/clients/${clientId}`);
       setClient(await refreshed.json());
       setEditOpen(false);
+      removeEditParam();
     } else {
       alert("Hiba az ügyfél mentésekor.");
     }
@@ -179,7 +193,14 @@ export default function ClientDetailPage() {
 
       {/* ÜGYFÉL ADATOK SZERKESZTÉSE */}
       <button
-        onClick={() => setEditOpen(!editOpen)}
+        onClick={() => {
+          if (editOpen) {
+            setEditOpen(false);
+            removeEditParam();
+          } else {
+            setEditOpen(true);
+          }
+        }}
         style={{ ...btnPrimary, marginBottom: 20 }}
       >
         {editOpen ? "Mégse" : "Ügyfél adatok szerkesztése"}
@@ -332,7 +353,7 @@ const wrap: React.CSSProperties = {
 
 const card: React.CSSProperties = {
   background: "#fff",
-  border: "1px solid #ddd",
+  border: "1px solid "#ddd",
   borderRadius: "10px",
   padding: "16px",
 };
