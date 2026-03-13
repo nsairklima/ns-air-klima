@@ -1,24 +1,37 @@
+export const runtime = "nodejs";
+
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// PATCH /api/quotes/:quoteId/status
 export async function PATCH(
   req: Request,
   { params }: { params: { quoteId: string } }
 ) {
   try {
-    const data = await req.json();
+    const id = Number(params.quoteId);
+    const body = await req.json();
+
+    // engedélyezett státuszok
+    const allowedStatuses = ["draft", "sent", "accepted", "rejected"];
+    if (!allowedStatuses.includes(body.status)) {
+      return NextResponse.json(
+        { error: "Érvénytelen státusz." },
+        { status: 400 }
+      );
+    }
 
     const updated = await prisma.quote.update({
-      where: { id: Number(params.quoteId) },
+      where: { id },
       data: {
-        status: data.status
-      }
+        status: body.status,
+      },
     });
 
-    return Response.json(updated);
-  } catch (error) {
-    return Response.json(
-      { error: "Hiba az ajánlat státusz módosításakor." },
+    return NextResponse.json(updated);
+  } catch (err) {
+    console.error("STATUS API error:", err);
+    return NextResponse.json(
+      { error: "Hiba a státusz frissítésekor." },
       { status: 500 }
     );
   }
