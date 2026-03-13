@@ -42,7 +42,19 @@ export default function ClientDetailPage() {
   const [periodMonths, setPeriodMonths] = useState<string>("12");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
-
+const [editOpen, setEditOpen] = useState(false);
+const [editName, setEditName] = useState("");
+const [editEmail, setEditEmail] = useState("");
+const [editPhone, setEditPhone] = useState("");
+const [editAddress, setEditAddress] = useState("");
+  useEffect(() => {
+  if (client) {
+    setEditName(client.name ?? "");
+    setEditEmail(client.email ?? "");
+    setEditPhone(client.phone ?? "");
+    setEditAddress(client.address ?? "");
+  }
+}, [client]);
   // Betöltés: ügyfél + klímák
   useEffect(() => {
     async function load() {
@@ -81,7 +93,27 @@ export default function ClientDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+async function saveClient() {
+  const res = await fetch(`/api/clients/${clientId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: editName,
+      email: editEmail,
+      phone: editPhone,
+      address: editAddress,
+    }),
+  });
 
+  if (res.ok) {
+    const refreshed = await fetch(`/api/clients/${clientId}`);
+    setClient(await refreshed.json());
+    setEditOpen(false);
+  } else {
+    alert("Hiba az ügyfél mentésekor.");
+  }
+}
+    
     if (res.ok) {
       // ürítjük a formot és frissítjük a listát
       setBrand("");
@@ -132,6 +164,102 @@ export default function ClientDetailPage() {
         {client.email && <div>✉️ {client.email}</div>}
         {client.address && <div>📍 {client.address}</div>}
       </div>
+{/* ÜGYFÉL ADATOK SZERKESZTÉSE */}
+<button
+  onClick={() => setEditOpen(!editOpen)}
+  style={{ ...btnPrimary, marginBottom: 20 }}
+>
+  {editOpen ? "Mégse" : "Ügyfél adatok szerkesztése"}
+</button>
+
+{editOpen && (
+  <div style={card}>
+    <h3 style={{ marginTop: 0 }}>Ügyfél adatainak módosítása</h3>
+
+    <input
+      style={input}
+      placeholder="Név"
+      value={editName}
+      onChange={(e) => setEditName(e.target.value)}
+    />
+
+    <input
+      style={input}
+      placeholder="E-mail"
+      value={editEmail}
+      onChange={(e) => setEditEmail(e.target.value)}
+    />
+
+    <input
+      style={input}
+      placeholder="Telefon"
+      value={editPhone}
+      onChange={(e) => setEditPhone(e.target.value)}
+    />
+
+    <input
+      style={input}
+      placeholder="Cím"
+      value={editAddress}
+      onChange={(e) => setEditAddress(e.target.value)}
+    />
+
+    <button
+      onClick={saveClient}
+      style={{ ...btnSuccess, marginTop: 10 }}
+    >
+      Mentés
+    </button>
+  </div>
+)}
+      {/* Ügyfél szerkesztése */}
+<button
+  onClick={() => setEditOpen(!editOpen)}
+  style={{ ...btnPrimary, marginBottom: 20 }}
+>
+  {editOpen ? "Mégse" : "Ügyfél adatok szerkesztése"}
+</button>
+
+{editOpen && (
+  <div style={card}>
+    <h3>Ügyfél adatainak módosítása</h3>
+
+    <input
+      style={input}
+      placeholder="Név"
+      value={editName}
+      onChange={(e) => setEditName(e.target.value)}
+    />
+
+    <input
+      style={input}
+      placeholder="E-mail"
+      value={editEmail}
+      onChange={(e) => setEditEmail(e.target.value)}
+    />
+
+    <input
+      style={input}
+      placeholder="Telefon"
+      value={editPhone}
+      onChange={(e) => setEditPhone(e.target.value)}
+    />
+
+    <input
+      style={input}
+      placeholder="Cím"
+      value={editAddress}
+      onChange={(e) => setEditAddress(e.target.value)}
+    />
+
+    <button
+      onClick={saveClient}
+      style={{ ...btnSuccess, marginTop: 10 }}
+    >
+      Mentés
+    </button>
+  </div>
+)}
 
       <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>Klímák</h2>
