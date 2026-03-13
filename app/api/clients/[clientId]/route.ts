@@ -60,4 +60,28 @@ export async function DELETE(
     return Response.json({ error: "Hiba ügyfél törlésekor." }, { status: 500 });
   }
 }
-``
+import { prisma } from "@/lib/prisma";
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: { clientId: string } }
+) {
+  try {
+    const id = Number(params.clientId);
+    const body = await req.json();
+
+    const updated = await prisma.client.update({
+      where: { id },
+      data: {
+        name: body.name ?? undefined,
+        email: body.email ?? undefined,
+        phone: body.phone ?? undefined,
+        address: body.address ?? undefined,
+      },
+    });
+
+    return Response.json(updated);
+  } catch (e) {
+    return Response.json({ error: "Hiba az ügyfél frissítésénél." }, { status: 500 });
+  }
+}
