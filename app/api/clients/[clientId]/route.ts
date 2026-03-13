@@ -60,7 +60,7 @@ export async function DELETE(
     return Response.json({ error: "Hiba ügyfél törlésekor." }, { status: 500 });
   }
 }
-import { prisma } from "@/lib/prisma";
+
 
 export async function PATCH(
   req: Request,
