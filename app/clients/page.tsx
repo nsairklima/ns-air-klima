@@ -1,172 +1,123 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
-interface Client {
+type Client = {
   id: number;
   name: string;
   email?: string;
   phone?: string;
   address?: string;
-}
+};
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const router = useRouter();
+  const [list, setList] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formOpen, setFormOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"name-asc" | "name-desc">("name-asc");
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-
-  // BETÖLTÉS
   useEffect(() => {
     async function load() {
-      try {
-        const res = await fetch("/api/clients");
-        const data = await res.json();
-        setClients(data);
-      } finally {
-        setLoading(false);
-      }
+      const res = await fetch("/api/clients");
+      const data = await res.json();
+      setList(Array.isArray(data) ? data : []);
+      setLoading(false);
     }
     load();
   }, []);
 
-  // ÚJ ÜGYFÉL FELVÉTELE
-  async function createClient() {
-    const res = await fetch("/api/clients", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        phone,
-        email,
-        address,
-      }),
-    });
+  const filtered = useMemo(() => {
+    let arr = [...list];
 
-    if (res.ok) {
-      setName("");
-      setPhone("");
-      setEmail("");
-      setAddress("");
-      setFormOpen(false);
-      const updated = await fetch("/api/clients");
-      setClients(await updated.json());
-    } else {
-      alert("Hiba az ügyfél mentésekor.");
+    // keresés
+    if (search.trim() !== "") {
+      const q = search.toLowerCase();
+      arr = arr.filter((c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.email?.toLowerCase().includes(q) ?? false) ||
+        (c.phone?.toLowerCase().includes(q) ?? false)
+      );
     }
-  }
+
+    // rendezés
+    if (sortBy === "name-asc") {
+      arr.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      arr.sort((a, b) => b.name.localeCompare(a.name));
+    }
+
+    return arr;
+  }, [list, search, sortBy]);
 
   return (
-    <div
-      style={{
-        padding: "40px",
-        maxWidth: "900px",
-        margin: "0 auto",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <h1 style={{ marginBottom: "20px" }}>Ügyfelek</h1>
+    <div style={wrap}>
+      <h1>Ügyfelek</h1>
 
-      <button
-        onClick={() => setFormOpen(!formOpen)}
-        style={{
-          padding: "10px 20px",
-          background: "#0d6efd",
-          color: "white",
-          border: "none",
-          borderRadius: "6px",
-          cursor: "pointer",
-          marginBottom: "20px",
-        }}
-      >
-        {formOpen ? "Mégse" : "Új ügyfél"}
-      </button>
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        <input
+          style={input}
+          placeholder="Keresés név / email / telefon szerint"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
 
-      {/* Új ügyfél űrlap */}
-      {formOpen && (
-        <div
-          style={{
-            background: "#f8f9fa",
-            padding: "20px",
-            borderRadius: "8px",
-            marginBottom: "30px",
-            border: "1px solid #ddd",
-          }}
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+          style={input}
         >
-          <h3>Új ügyfél felvétele</h3>
+          <option value="name-asc">Név A → Z</option>
+          <option value="name-desc">Név Z → A</option>
+        </select>
 
-          <div style={{ marginTop: "10px" }}>
-            <input
-              placeholder="Név *"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={inputStyle}
-            />
-            <input
-              placeholder="Telefon"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              style={inputStyle}
-            />
-            <input
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={inputStyle}
-            />
-            <input
-              placeholder="Cím"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              style={inputStyle}
-            />
+        <button
+          onClick={() => router.push("/clients/new")}
+          style={btnPrimary}
+        >
+          Új ügyfél
+        </button>
+      </div>
 
-            <button onClick={createClient} style={saveBtn}>
-              Mentés
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ÜGYFELEK LISTA */}
       {loading ? (
-        <p>Betöltés...</p>
+        <p>Betöltés…</p>
+      ) : filtered.length === 0 ? (
+        <p>Nincs találat.</p>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "15px",
-          }}
-        >
-          {clients.map((client) => (
-            <div
-              key={client.id}
-              style={{
-                padding: "15px",
-                background: "white",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-              }}
-            >
-              <a
-                href={`/clients/${client.id}`}
-                style={{
-                  textDecoration: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                }}
-              >
-                <h3 style={{ margin: "0 0 5px 0" }}>{client.name}</h3>
-              </a>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {filtered.map((c) => (
+            <div key={c.id} style={card}>
+              <div style={{ fontSize: 18, fontWeight: 600 }}>
+                {c.name}
+              </div>
 
-              {client.phone && <p style={{ margin: 0 }}>📞 {client.phone}</p>}
-              {client.email && <p style={{ margin: 0 }}>✉️ {client.email}</p>}
-              {client.address && <p style={{ margin: 0 }}>📍 {client.address}</p>}
+              <div style={{ opacity: 0.7, marginTop: 4 }}>
+                {c.phone && <div>📞 {c.phone}</div>}
+                {c.email && <div>✉️ {c.email}</div>}
+                {c.address && <div>📍 {c.address}</div>}
+              </div>
+
+              <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => router.push(`/clients/${c.id}`)}
+                  style={btn}
+                >
+                  Részletek
+                </button>
+                <button
+                  onClick={() => router.push(`/clients/${c.id}?edit=1`)}
+                  style={btnSuccess}
+                >
+                  Szerkesztés
+                </button>
+                <button
+                  onClick={() => router.push(`/quotes?clientId=${c.id}`)}
+                  style={btn}
+                >
+                  Ajánlatok
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -175,21 +126,44 @@ export default function ClientsPage() {
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  marginBottom: "10px",
+const wrap: React.CSSProperties = {
+  padding: "40px",
+  maxWidth: "900px",
+  margin: "0 auto",
+  fontFamily: "Arial, sans-serif",
+};
+
+const card: React.CSSProperties = {
+  background: "#fff",
+  border: "1px solid #ddd",
+  borderRadius: "10px",
+  padding: "16px",
+};
+
+const input: React.CSSProperties = {
   padding: "10px",
   borderRadius: "6px",
   border: "1px solid #ccc",
+  width: "100%",
 };
 
-const saveBtn: React.CSSProperties = {
-  padding: "10px 20px",
-  background: "#198754",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
+const btn: React.CSSProperties = {
+  padding: "8px 14px",
+  background: "#f1f3f5",
+  color: "#333",
+  border: "1px solid #ddd",
+  borderRadius: "8px",
   cursor: "pointer",
-  marginTop: "10px",
+};
+
+const btnPrimary: React.CSSProperties = {
+  ...btn,
+  background: "#0d6efd",
+  color: "#fff",
+};
+
+const btnSuccess: React.CSSProperties = {
+  ...btn,
+  background: "#198754",
+  color: "#fff",
 };
