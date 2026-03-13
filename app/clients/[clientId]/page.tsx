@@ -353,7 +353,7 @@ const wrap: React.CSSProperties = {
 
 const card: React.CSSProperties = {
   background: "#fff",
-  border: "1px solid "#ddd",
+ border: "1px solid #ddd",
   borderRadius: "10px",
   padding: "16px",
 };
