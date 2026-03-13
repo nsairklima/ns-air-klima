@@ -17,7 +17,7 @@ type Unit = {
   model: string;
   powerKw?: number;
   serialNumber?: string;
-  installation?: string; // ISO dátum string
+  installation?: string; // ISO dátum (YYYY-MM-DD)
   periodMonths?: number;
   location?: string;
   notes?: string;
@@ -28,12 +28,13 @@ export default function ClientDetailPage() {
   const router = useRouter();
   const clientId = Number(params.clientId);
 
+  // Alap state-ek
   const [client, setClient] = useState<Client | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formOpen, setFormOpen] = useState(false);
 
-  // Új klíma űrlap mezők
+  // Új klíma form
+  const [formOpen, setFormOpen] = useState(false);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [powerKw, setPowerKw] = useState<string>("");
@@ -42,19 +43,14 @@ export default function ClientDetailPage() {
   const [periodMonths, setPeriodMonths] = useState<string>("12");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
-const [editOpen, setEditOpen] = useState(false);
-const [editName, setEditName] = useState("");
-const [editEmail, setEditEmail] = useState("");
-const [editPhone, setEditPhone] = useState("");
-const [editAddress, setEditAddress] = useState("");
-  useEffect(() => {
-  if (client) {
-    setEditName(client.name ?? "");
-    setEditEmail(client.email ?? "");
-    setEditPhone(client.phone ?? "");
-    setEditAddress(client.address ?? "");
-  }
-}, [client]);
+
+  // Ügyfél szerkesztő form
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+
   // Betöltés: ügyfél + klímák
   useEffect(() => {
     async function load() {
@@ -65,9 +61,8 @@ const [editAddress, setEditAddress] = useState("");
         ]);
         const clientData = await clientRes.json();
         const unitsData = await unitsRes.json();
-
-        setClient(clientData);
-        setUnits(unitsData);
+        setClient(clientData ?? null);
+        setUnits(Array.isArray(unitsData) ? unitsData : []);
       } finally {
         setLoading(false);
       }
@@ -75,6 +70,17 @@ const [editAddress, setEditAddress] = useState("");
     if (clientId) load();
   }, [clientId]);
 
+  // Ügyféladatok előtöltése a szerkesztő formba
+  useEffect(() => {
+    if (client) {
+      setEditName(client.name ?? "");
+      setEditEmail(client.email ?? "");
+      setEditPhone(client.phone ?? "");
+      setEditAddress(client.address ?? "");
+    }
+  }, [client]);
+
+  // Új klíma mentése
   async function createUnit() {
     const body = {
       clientId,
@@ -93,27 +99,7 @@ const [editAddress, setEditAddress] = useState("");
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-async function saveClient() {
-  const res = await fetch(`/api/clients/${clientId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: editName,
-      email: editEmail,
-      phone: editPhone,
-      address: editAddress,
-    }),
-  });
 
-  if (res.ok) {
-    const refreshed = await fetch(`/api/clients/${clientId}`);
-    setClient(await refreshed.json());
-    setEditOpen(false);
-  } else {
-    alert("Hiba az ügyfél mentésekor.");
-  }
-}
-    
     if (res.ok) {
       // ürítjük a formot és frissítjük a listát
       setBrand("");
@@ -130,6 +116,28 @@ async function saveClient() {
       setUnits(await unitsRes.json());
     } else {
       alert("Hiba történt a klíma mentésekor.");
+    }
+  }
+
+  // Ügyfél módosítása (EZ HIÁNYZOTT → ettől volt a build error)
+  async function saveClient() {
+    const res = await fetch(`/api/clients/${clientId}`, {
+      method: "PATCH", // a te route-odban PATCH-el bővítettük
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editName,
+        email: editEmail,
+        phone: editPhone,
+        address: editAddress,
+      }),
+    });
+
+    if (res.ok) {
+      const refreshed = await fetch(`/api/clients/${clientId}`);
+      setClient(await refreshed.json());
+      setEditOpen(false);
+    } else {
+      alert("Hiba az ügyfél mentésekor.");
     }
   }
 
@@ -164,104 +172,52 @@ async function saveClient() {
         {client.email && <div>✉️ {client.email}</div>}
         {client.address && <div>📍 {client.address}</div>}
       </div>
-{/* ÜGYFÉL ADATOK SZERKESZTÉSE */}
-<button
-  onClick={() => setEditOpen(!editOpen)}
-  style={{ ...btnPrimary, marginBottom: 20 }}
->
-  {editOpen ? "Mégse" : "Ügyfél adatok szerkesztése"}
-</button>
 
-{editOpen && (
-  <div style={card}>
-    <h3 style={{ marginTop: 0 }}>Ügyfél adatainak módosítása</h3>
+      {/* ÜGYFÉL ADATOK SZERKESZTÉSE */}
+      <button
+        onClick={() => setEditOpen(!editOpen)}
+        style={{ ...btnPrimary, marginBottom: 20 }}
+      >
+        {editOpen ? "Mégse" : "Ügyfél adatok szerkesztése"}
+      </button>
 
-    <input
-      style={input}
-      placeholder="Név"
-      value={editName}
-      onChange={(e) => setEditName(e.target.value)}
-    />
+      {editOpen && (
+        <div style={card}>
+          <h3 style={{ marginTop: 0 }}>Ügyfél adatainak módosítása</h3>
 
-    <input
-      style={input}
-      placeholder="E-mail"
-      value={editEmail}
-      onChange={(e) => setEditEmail(e.target.value)}
-    />
+          <input
+            style={input}
+            placeholder="Név"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+          />
+          <input
+            style={input}
+            placeholder="E-mail"
+            value={editEmail}
+            onChange={(e) => setEditEmail(e.target.value)}
+          />
+          <input
+            style={input}
+            placeholder="Telefon"
+            value={editPhone}
+            onChange={(e) => setEditPhone(e.target.value)}
+          />
+          <input
+            style={input}
+            placeholder="Cím"
+            value={editAddress}
+            onChange={(e) => setEditAddress(e.target.value)}
+          />
 
-    <input
-      style={input}
-      placeholder="Telefon"
-      value={editPhone}
-      onChange={(e) => setEditPhone(e.target.value)}
-    />
+          <button onClick={saveClient} style={{ ...btnSuccess, marginTop: 10 }}>
+            Mentés
+          </button>
+        </div>
+      )}
 
-    <input
-      style={input}
-      placeholder="Cím"
-      value={editAddress}
-      onChange={(e) => setEditAddress(e.target.value)}
-    />
-
-    <button
-      onClick={saveClient}
-      style={{ ...btnSuccess, marginTop: 10 }}
-    >
-      Mentés
-    </button>
-  </div>
-)}
-      {/* Ügyfél szerkesztése */}
-<button
-  onClick={() => setEditOpen(!editOpen)}
-  style={{ ...btnPrimary, marginBottom: 20 }}
->
-  {editOpen ? "Mégse" : "Ügyfél adatok szerkesztése"}
-</button>
-
-{editOpen && (
-  <div style={card}>
-    <h3>Ügyfél adatainak módosítása</h3>
-
-    <input
-      style={input}
-      placeholder="Név"
-      value={editName}
-      onChange={(e) => setEditName(e.target.value)}
-    />
-
-    <input
-      style={input}
-      placeholder="E-mail"
-      value={editEmail}
-      onChange={(e) => setEditEmail(e.target.value)}
-    />
-
-    <input
-      style={input}
-      placeholder="Telefon"
-      value={editPhone}
-      onChange={(e) => setEditPhone(e.target.value)}
-    />
-
-    <input
-      style={input}
-      placeholder="Cím"
-      value={editAddress}
-      onChange={(e) => setEditAddress(e.target.value)}
-    />
-
-    <button
-      onClick={saveClient}
-      style={{ ...btnSuccess, marginTop: 10 }}
-    >
-      Mentés
-    </button>
-  </div>
-)}
-
-      <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 16 }}>
+      {/* KLÍMÁK */}
+      <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 16, marginTop: 24 }}>
         <h2 style={{ margin: 0 }}>Klímák</h2>
         <button onClick={() => setFormOpen(!formOpen)} style={btnPrimary}>
           {formOpen ? "Mégse" : "Új klíma"}
@@ -313,7 +269,6 @@ async function saveClient() {
         </div>
       )}
 
-      {/* KLÍMÁK LISTA */}
       {units.length === 0 ? (
         <p>Még nincs felvett klíma ennél az ügyfélnél.</p>
       ) : (
@@ -338,7 +293,6 @@ async function saveClient() {
                 </div>
 
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  {/* Később: karbantartás részletek oldal */}
                   <a
                     href={`/maintenance?unitId=${u.id}`}
                     style={btn}
@@ -346,7 +300,6 @@ async function saveClient() {
                   >
                     Karbantartás
                   </a>
-                  {/* Később: ajánlat indítása ehhez a készülékhez */}
                   <a
                     href={`/quotes?clientId=${clientId}`}
                     style={btn}
@@ -363,6 +316,8 @@ async function saveClient() {
     </div>
   );
 }
+
+/* ---- Stílusok ---- */
 
 const wrap: React.CSSProperties = {
   padding: "40px",
@@ -383,6 +338,7 @@ const input: React.CSSProperties = {
   borderRadius: "6px",
   border: "1px solid #ccc",
   width: "100%",
+  marginBottom: 8,
 };
 
 const btn: React.CSSProperties = {
