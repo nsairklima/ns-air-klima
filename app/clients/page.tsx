@@ -32,7 +32,7 @@ export default function ClientsPage() {
   const filtered = useMemo(() => {
     let arr = [...list];
 
-    // keresés
+    // Keresés
     const q = search.toLowerCase();
     if (q.trim() !== "") {
       arr = arr.filter(
@@ -43,7 +43,7 @@ export default function ClientsPage() {
       );
     }
 
-    // rendezés név szerint
+    // Rendezés név szerint
     arr.sort((a, b) =>
       sortBy === "asc"
         ? a.name.localeCompare(b.name)
@@ -108,12 +108,14 @@ export default function ClientsPage() {
                 <button style={btn} onClick={() => openClient(c.id)}>
                   Részletek
                 </button>
+
                 <button
                   style={btnSuccess}
                   onClick={() => router.push(`/clients/${c.id}?edit=1`)}
                 >
                   Szerkesztés
                 </button>
+
                 <button
                   style={btn}
                   onClick={() => router.push(`/quotes?clientId=${c.id}`)}
@@ -147,6 +149,7 @@ const input: React.CSSProperties = {
   padding: "10px",
   borderRadius: "6px",
   border: "1px solid #ccc",
+  width: "100%",
 };
 
 const btn: React.CSSProperties = {
