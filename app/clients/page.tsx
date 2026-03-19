@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 type Client = {
   id: number;
@@ -12,165 +11,164 @@ type Client = {
 };
 
 export default function ClientsPage() {
-  const router = useRouter();
-
-  const [list, setList] = useState<Client[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"asc" | "desc">("asc");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadClients() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/clients", { cache: "no-store" });
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Váratlan válasz.");
+      setClients(data);
+    } catch (e: any) {
+      setError(e?.message || "Hiba történt a lekéréskor.");
+    }
+    setLoading(false);
+  }
 
   useEffect(() => {
-    async function load() {
-      const res = await fetch("/api/clients");
-      const data = await res.json();
-      setList(Array.isArray(data) ? data : []);
-      setLoading(false);
-    }
-    load();
+    loadClients();
   }, []);
 
-  const filtered = useMemo(() => {
-    let arr = [...list];
-
-    // Keresés
-    const q = search.toLowerCase();
-    if (q.trim() !== "") {
-      arr = arr.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          (c.email?.toLowerCase().includes(q) ?? false) ||
-          (c.phone?.toLowerCase().includes(q) ?? false)
-      );
+  async function addClient(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) {
+      alert("A név kötelező.");
+      return;
     }
-
-    // Rendezés név szerint
-    arr.sort((a, b) =>
-      sortBy === "asc"
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name)
-    );
-
-    return arr;
-  }, [list, search, sortBy]);
-
-  function openClient(id: number) {
-    router.push(`/clients/${id}`);
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, phone, address }),
+      });
+      if (!res.ok) throw new Error("Mentési hiba.");
+      setName("");
+      setEmail("");
+      setPhone("");
+      setAddress("");
+      await loadClients();
+    } catch (e: any) {
+      setError(e?.message || "Hiba történt mentés közben.");
+    }
+    setSaving(false);
   }
 
   return (
-    <div style={wrap}>
+    <div style={{ padding: 32, fontFamily: "Arial, sans-serif" }}>
       <h1>Ügyfelek</h1>
 
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+      {/* Új ügyfél űrlap */}
+      <form
+        onSubmit={addClient}
+        style={{
+          display: "grid",
+          gap: 8,
+          maxWidth: 520,
+          padding: 16,
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          marginBottom: 24,
+          background: "#fafafa",
+        }}
+      >
+        <h3 style={{ margin: 0 }}>Új ügyfél felvétele</h3>
         <input
-          style={input}
-          placeholder="Keresés (név, email, telefon)"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Név (kötelező)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={inputStyle}
         />
-
-        <select
-          style={input}
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
-        >
-          <option value="asc">Név A → Z</option>
-          <option value="desc">Név Z → A</option>
-        </select>
-
-        <button
-          style={btnPrimary}
-          onClick={() => router.push("/clients/new")}
-        >
-          Új ügyfél
+        <input
+          placeholder="E-mail (opcionális)"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={inputStyle}
+        />
+        <input
+          placeholder="Telefon (opcionális)"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          style={inputStyle}
+        />
+        <input
+          placeholder="Cím (opcionális)"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          style={inputStyle}
+        />
+        <button disabled={saving} style={btnPrimary}>
+          {saving ? "Mentés..." : "Ügyfél mentése"}
         </button>
-      </div>
+      </form>
 
-      {loading ? (
-        <p>Betöltés…</p>
-      ) : filtered.length === 0 ? (
-        <p>Nincs találat.</p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {filtered.map((c) => (
-            <div key={c.id} style={card}>
-              <div style={{ fontSize: 18, fontWeight: 600 }}>
-                {c.name}
-              </div>
-
-              <div style={{ opacity: 0.7, marginTop: 4 }}>
-                {c.phone && <div>📞 {c.phone}</div>}
-                {c.email && <div>✉️ {c.email}</div>}
-                {c.address && <div>📍 {c.address}</div>}
-              </div>
-
-              <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-                <button style={btn} onClick={() => openClient(c.id)}>
-                  Részletek
-                </button>
-
-                <button
-                  style={btnSuccess}
-                  onClick={() => router.push(`/clients/${c.id}?edit=1`)}
-                >
-                  Szerkesztés
-                </button>
-
-                <button
-                  style={btn}
-                  onClick={() => router.push(`/quotes?clientId=${c.id}`)}
-                >
-                  Ajánlatok
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Lista / hiba / üres állapot */}
+      {loading && <p>Betöltés...</p>}
+      {error && (
+        <p style={{ color: "crimson" }}>
+          Hiba: {error} — frissítsd az oldalt.
+        </p>
       )}
+      {!loading && !error && clients.length === 0 && <p>Még nincs ügyfél.</p>}
+
+      {/* Ügyfélkártyák */}
+      <div style={{ display: "grid", gap: 12 }}>
+        {clients.map((c) => (
+          <div
+            key={c.id}
+            style={{
+              border: "1px solid #e5e5e5",
+              borderRadius: 8,
+              padding: 12,
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <strong>#{c.id} — {c.name}</strong>
+              <a
+                href={`/clients/${c.id}`}
+                style={{ color: "#4DA3FF", textDecoration: "none" }}
+                title="Részletek"
+              >
+                Részletek →
+              </a>
+            </div>
+            <div style={{ fontSize: 14, color: "#444" }}>
+              {c.email && <div>E-mail: {c.email}</div>}
+              {c.phone && <div>Telefon: {c.phone}</div>}
+              {c.address && <div>Cím: {c.address}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-const wrap: React.CSSProperties = {
-  padding: "40px",
-  maxWidth: "900px",
-  margin: "0 auto",
-  fontFamily: "Arial, sans-serif",
-};
-
-const card: React.CSSProperties = {
-  background: "#fff",
+const inputStyle: React.CSSProperties = {
+  padding: "10px 12px",
   border: "1px solid #ddd",
-  borderRadius: "10px",
-  padding: "16px",
-};
-
-const input: React.CSSProperties = {
-  padding: "10px",
-  borderRadius: "6px",
-  border: "1px solid #ccc",
-  width: "100%",
-};
-
-const btn: React.CSSProperties = {
-  padding: "8px 14px",
-  background: "#f1f3f5",
-  color: "#333",
-  border: "1px solid #ddd",
-  borderRadius: "8px",
-  cursor: "pointer",
+  borderRadius: 6,
 };
 
 const btnPrimary: React.CSSProperties = {
-  ...btn,
-  background: "#0d6efd",
+  background: "#4DA3FF",
   color: "#fff",
   border: "none",
+  borderRadius: 6,
+  padding: "10px 14px",
+  cursor: "pointer",
+  width: 180,
 };
-
-const btnSuccess: React.CSSProperties = {
-  ...btn,
-  background: "#198754",
-  color: "#fff",
-  border: "none",
-};
+``
