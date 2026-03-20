@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma migrate resolve --rolled-back 0002_quotes && prisma migrate deploy && next build",
+    "build": "prisma migrate resolve --applied 0002_quotes && prisma migrate deploy && next build",
     "start": "next start",
     "postinstall": "prisma generate"
   },
