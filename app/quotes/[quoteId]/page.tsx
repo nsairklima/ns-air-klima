@@ -1,134 +1,145 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-export default function QuoteDetailPage() {
-  const params = useParams<{ quoteId: string }>();
-  const quoteId = Number(params.quoteId);
+type Quote = {
+  id: number;
+  title?: string | null;
+  status: "draft" | "sent" | "accepted" | "rejected";
+  terms?: string | null;
+  netTotal: number; vatAmount: number; grossTotal: number;
+  client: { id: number; name: string };
+  items: QuoteItem[];
+};
+type QuoteItem = {
+  id: number; description: string; quantity: number; unit?: string | null;
+  unitPriceNet: number; vatRate: number; lineNet: number; lineVat: number; lineGross: number;
+};
 
-  const [quote, setQuote] = useState<any>(null);
+export default function QuoteDetailPage() {
+  const { quoteId } = useParams<{ quoteId: string }>();
+  const id = Number(quoteId);
+
+  const [q, setQ] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [name, setName] = useState("");
-  const [basePrice, setBasePrice] = useState("");
-  const [profitType, setProfitType] = useState("percent");
-  const [profitValue, setProfitValue] = useState("20");
-  const [qty, setQty] = useState("1");
-  
-const [sendTo, setSendTo] = useState<string>("");
-useEffect(() => {
-  // ha a lekért quote-ban van ügyfél e-mail, előtöltjük
-  if ((quote as any)?.client?.email) {
-    setSendTo((quote as any).client.email);
-  }
-}, [quote]);
-
+  // új tétel űrlap
+  const [description, setDescription] = useState("");
+  const [quantity, setQuantity] = useState("1");
+  const [unit, setUnit] = useState("");
+  const [unitPriceNet, setUnitPriceNet] = useState("");
+  const [vatRate, setVatRate] = useState("27");
+  const [saving, setSaving] = useState(false);
 
   async function load() {
-    const res = await fetch(`/api/quotes/${quoteId}`);
-    const data = await res.json();
-    setQuote(data);
+    setLoading(true);
+    const res = await fetch(`/api/quotes/${id}`, { cache: "no-store" });
+    if (!res.ok) { setQ(null); setLoading(false); return; }
+    setQ(await res.json());
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [id]);
 
-  async function addItem() {
-    const res = await fetch(`/api/quotes/${quoteId}/items`, {
+  async function addItem(e: React.FormEvent) {
+    e.preventDefault();
+    if (!description.trim()) { alert("Leírás kötelező."); return; }
+    if (!unitPriceNet) { alert("Nettó egységár kötelező."); return; }
+    setSaving(true);
+    const res = await fetch(`/api/quotes/${id}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name,
-        basePriceNet: Number(basePrice),
-        profitType,
-        profitValue: Number(profitValue),
-        qty: Number(qty),
+        description: description.trim(),
+        quantity: quantity ? Number(quantity) : 1,
+        unit: unit || null,
+        unitPriceNet: Number(unitPriceNet),
+        vatRate: vatRate ? Number(vatRate) : 27,
       }),
     });
-
-    if (res.ok) {
-      await load();
-      setName("");
-      setBasePrice("");
-      setProfitValue("20");
-      setQty("1");
-    } else {
-      alert("Hiba történt a mentéskor!");
-    }
+    setSaving(false);
+    if (!res.ok) { alert("Tétel mentése sikertelen."); return; }
+    setDescription(""); setQuantity("1"); setUnit(""); setUnitPriceNet(""); setVatRate("27");
+    await load();
   }
 
-  if (loading) return <p>Betöltés...</p>;
-  if (!quote) return <p>Ajánlat nem található.</p>;
+  async function setStatus(status: Quote["status"]) {
+    await fetch(`/api/quotes/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    await load();
+  }
+
+  if (loading) return <div style={wrap}><p>Betöltés…</p></div>;
+  if (!q) return <div style={wrap}><p>Ajánlat nem található.</p></div>;
 
   return (
-    <div style={{ padding: 40, maxWidth: 900, margin: "0 auto" }}>
-      <h1>{quote.quoteNo}</h1>
+    <div style={wrap}>
+      /quotes← Vissza az ajánlatokhoz</a>
+      <h1 style={{ marginTop: 12 }}>Ajánlat #{q.id}</h1>
+      <div style={{ color: "#444" }}>
+        Ügyfél: <strong>{q.client?.name || `#${q.id}`}</strong>
+      </div>
 
-      <p>
-        Nettó: {quote.netTotal} Ft · Bruttó: {quote.grossTotal} Ft  
-        <br/>
-        <a href={`/api/quotes/${quoteId}/pdf`} target="_blank">
-          PDF megnyitása
-        </a>
-      </p>
+      <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+        <button onClick={() => setStatus("draft")} style={btn("draft", q.status)}>Piszkozat</button>
+        <button onClick={() => setStatus("sent")} style={btn("sent", q.status)}>Elküldve</button>
+        <button onClick={() => setStatus("accepted")} style={btn("accepted", q.status)}>Elfogadva</button>
+        <button onClick={() => setStatus("rejected")} style={btn("rejected", q.status)}>Elutasítva</button>
+        <a href={`/api/quotes/${q.id}/pdf`} target="_blank" style={{ marginLeft: "auto", color: "#4DA3FF", textDecoration: "none" }}>PDF megnyitása →</a>
+      </div>
 
-      <h2>Új tétel</h2>
-      <input placeholder="Név" value={name} onChange={e => setName(e.target.value)} />
-      <input placeholder="Nettó ár" type="number" value={basePrice} onChange={e => setBasePrice(e.target.value)} />
-      <select value={profitType} onChange={e => setProfitType(e.target.value)}>
-        <option value="percent">Profit %</option>
-        <option value="amount">Profit Ft</option>
-      </select>
-      <input placeholder="Profit érték" type="number" value={profitValue} onChange={e => setProfitValue(e.target.value)} />
-      <input placeholder="Mennyiség" type="number" value={qty} onChange={e => setQty(e.target.value)} />
-      <button onClick={addItem}>Tétel mentése</button>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-  <input
-    type="email"
-    placeholder="Címzett email"
-    value={sendTo}
-    onChange={(e) => setSendTo(e.target.value)}
-    style={{ padding: 8, border: "1px solid #ccc", borderRadius: 6 }}
-  />
+      <h2 style={{ marginTop: 24 }}>Tételek</h2>
+      {q.items.length === 0 && <p>Még nincs tétel.</p>}
+      <div style={{ display: "grid", gap: 8 }}>
+        {q.items.map(it => (
+          <div key={it.id} style={card}>
+            <div><strong>{it.description}</strong> {it.unit ? `(${it.unit})` : ""}</div>
+            <div style={{ color: "#444", fontSize: 14 }}>
+              {it.quantity} × {it.unitPriceNet.toLocaleString("hu-HU")} Ft (ÁFA {it.vatRate}%)
+            </div>
+            <div style={{ marginTop: 6 }}>
+              Nettó: {it.lineNet.toLocaleString("hu-HU")} Ft • ÁFA: {it.lineVat.toLocaleString("hu-HU")} Ft • Bruttó: {it.lineGross.toLocaleString("hu-HU")} Ft
+            </div>
+          </div>
+        ))}
+      </div>
 
-  <button
-    onClick={async () => {
-      if (!sendTo) return alert("Adj meg e-mail címet!");
-      const res = await fetch(`/api/quotes/${quoteId}/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: sendTo }),
-      });
-      if (res.ok) {
-        alert("E-mail elküldve!");
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err?.error ?? "Küldési hiba.");
-      }
-    }}
-    style={{ padding: "8px 12px", background: "#198754", color: "#fff", borderRadius: 6, cursor: "pointer" }}
-  >
-    Küldés emailben
-  </button>
+      <h3 style={{ marginTop: 16 }}>Új tétel</h3>
+      <form onSubmit={addItem} style={form}>
+        <input placeholder="Leírás*" value={description} onChange={(e)=>setDescription(e.target.value)} style={input} />
+        <input placeholder="Mennyiség" type="number" step="0.001" value={quantity} onChange={(e)=>setQuantity(e.target.value)} style={input} />
+        <input placeholder="Egység (pl. db)" value={unit} onChange={(e)=>setUnit(e.target.value)} style={input} />
+        <input placeholder="Nettó egységár*" type="number" step="0.01" value={unitPriceNet} onChange={(e)=>setUnitPriceNet(e.target.value)} style={input} />
+        <input placeholder="ÁFA %" type="number" step="0.1" value={vatRate} onChange={(e)=>setVatRate(e.target.value)} style={input} />
+        <button disabled={saving} style={btnPrimary}>{saving ? "Mentés…" : "Tétel hozzáadása"}</button>
+      </form>
 
-  <a
-    href={`/api/quotes/${quoteId}/pdf`}
-    target="_blank"
-    style={{ padding: "8px 12px", background: "#0d6efd", color: "#fff", borderRadius: 6, textDecoration: "none" }}
-  >
-    PDF megnyitása
-  </a>
-</div>
-
-      <h2>Tételek</h2>
-      {quote.items.length === 0 && <p>Nincs tétel.</p>}
-      {quote.items.map((it: any) => (
-        <div key={it.id} style={{ marginBottom: 10, padding: 10, border: "1px solid #ddd" }}>
-          <strong>{it.name}</strong><br/>
-          {it.qty} × {it.finalPriceNet} Ft = {it.qty * it.finalPriceNet} Ft
-        </div>
-      ))}
+      <h2>Összesítés</h2>
+      <div style={card}>
+        Nettó: <strong>{q.netTotal.toLocaleString("hu-HU")} Ft</strong> &nbsp;•&nbsp;
+        ÁFA: <strong>{q.vatAmount.toLocaleString("hu-HU")} Ft</strong> &nbsp;•&nbsp;
+        Bruttó: <strong>{q.grossTotal.toLocaleString("hu-HU")} Ft</strong>
+      </div>
     </div>
   );
+}
+
+const wrap: React.CSSProperties = { padding: 24, fontFamily: "Arial, sans-serif", maxWidth: 1000, margin: "0 auto" };
+const card: React.CSSProperties = { border: "1px solid #e5e5e5", borderRadius: 8, padding: 12, background: "#fafafa" };
+const form: React.CSSProperties = { display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto", gap: 8, alignItems: "center", ...card };
+const input: React.CSSProperties = { padding: "10px 12px", border: "1px solid #ddd", borderRadius: 6 };
+const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", border: "none", borderRadius: 6, padding: "10px 14px", cursor: "pointer" };
+
+function btn(target: Quote["status"], current: Quote["status"]): React.CSSProperties {
+  const is = target === current;
+  const base: React.CSSProperties = { padding: "8px 12px", borderRadius: 6, border: "1px solid #ddd", cursor: "pointer", background: "#fff" };
+  if (!is) return base;
+  if (current === "draft")    return { ...base, background: "#f2f2f2" };
+  if (current === "sent")     return { ...base, background: "#fff7d1" };
+  if (current === "accepted") return { ...base, background: "#e9f9ee" };
+  return { ...base, background: "#ffe5e5" };
 }
