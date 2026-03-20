@@ -1,38 +1,38 @@
 import { prisma } from "@/lib/prisma";
 
-// GET /api/maintenance?unitId=123 → adott klíma naplójának listája
-export async function GET(request: Request) {
+// GET /api/maintenance?unitId=123
+export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const unitId = searchParams.get("unitId");
-    const where = unitId ? { unitId: Number(unitId) } : undefined;
+    const { searchParams } = new URL(req.url);
+    const unitIdParam = searchParams.get("unitId");
+    if (!unitIdParam) {
+      return Response.json({ error: "Hiányzó unitId paraméter." }, { status: 400 });
+    }
+    const unitId = Number(unitIdParam);
 
-    const list = await prisma.maintenanceLog.findMany({
-      where,
-      orderBy: { performedDate: "desc" },
+    const logs = await prisma.maintenanceLog.findMany({
+      where: { clientUnitId: unitId },
+      orderBy: { performedAt: "desc" },
     });
 
-    return Response.json(list);
-  } catch (error) {
-    console.error("GET /api/maintenance error:", error);
+    return Response.json(logs);
+  } catch (_err) {
     return Response.json(
-      { error: "Hiba történt a karbantartások lekérésekor." },
+      { error: "Hiba történt a karbantartások lekérdezésekor." },
       { status: 500 }
     );
   }
 }
 
-// POST /api/maintenance → új karbantartás felvétele
-
+// POST /api/maintenance
+// Body elfogadja: performedAt VAGY performedDate (YYYY-MM-DD), notes (opcionális)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const unitId = Number(body.unitId);
 
-    // Elfogadjuk bármelyik kulcsot:
-    const performedStrRaw =
-      (body.performedAt ?? body.performedDate ?? "").toString().trim();
-
+    // Elfogadunk két kulcsnevet is a dátumra: performedAt vagy performedDate
+    const performedStrRaw = String(body.performedAt ?? body.performedDate ?? "").trim();
     const notes = body.notes ? String(body.notes) : null;
 
     if (!unitId || !performedStrRaw) {
@@ -50,7 +50,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Dátum parse (YYYY-MM-DD)
     const performedAt = new Date(performedStrRaw);
     if (isNaN(performedAt.getTime())) {
       return Response.json(
@@ -64,28 +63,30 @@ export async function POST(req: Request) {
 
     const created = await prisma.maintenanceLog.create({
       data: {
-        clientUnitId: unitId, // ha nálad a mező neve 'unitId', akkor ezt írd át arra
-        performedAt,          // ha a sémádban 'performedDate' a mező neve, írd át arra
+        clientUnitId: unitId,
+        performedAt,
         nextDue,
         notes,
       },
     });
 
     return Response.json(created, { status: 201 });
-  } catch (err) {
+  } catch (_err) {
     return Response.json(
       { error: "Hiba történt a karbantartás mentésekor." },
       { status: 500 }
     );
-
-    });
-
-    return Response.json(created);
-  } catch (error) {
-    console.error("POST /api/maintenance error:", error);
-    return Response.json(
-      { error: "Hiba történt új karbantartás létrehozásakor." },
-      { status: 500 }
-    );
   }
 }
+
+function addMonths(date: Date, months: number) {
+  const d = new Date(date.getTime());
+  const targetMonth = d.getMonth() + months;
+  d.setMonth(targetMonth);
+  // hónapvégi korrekció (pl. jan 31 + 1 hó)
+  if (d.getMonth() !== (targetMonth % 12 + 12) % 12) {
+    d.setDate(0);
+  }
+  return d;
+}
+``
