@@ -1,4 +1,128 @@
-"use client";    }
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+
+type Client = {
+  id: number;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+};
+
+type Unit = {
+  id: number;
+  clientId: number;
+  brand: string;
+  model: string;
+  powerKw?: number | null;
+  serialNumber?: string | null;
+  installation?: string | null; // ISO dátum string
+  periodMonths: number;
+  location?: string | null;
+  notes?: string | null;
+};
+
+export default function ClientDetailPage() {
+  const params = useParams<{ clientId: string }>();
+  const clientId = Number(params.clientId);
+
+  const [client, setClient] = useState<Client | null>(null);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Ügyfél szerkesztő állapotok
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [savingClient, setSavingClient] = useState(false);
+
+  // Új klíma űrlap mezők
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [powerKw, setPowerKw] = useState<string>("");
+  const [serialNumber, setSerialNumber] = useState("");
+  const [installation, setInstallation] = useState("");
+  const [periodMonths, setPeriodMonths] = useState<string>("12");
+  const [location, setLocation] = useState("");
+  const [notes, setNotes] = useState("");
+  const [savingUnit, setSavingUnit] = useState(false);
+
+  async function load() {
+    if (!Number.isFinite(clientId)) return;
+    setLoading(true);
+    setErr(null);
+    try {
+      // Ügyfél adatok
+      const resClient = await fetch(`/api/clients/${clientId}`, { cache: "no-store" });
+      if (!resClient.ok) throw new Error("Ügyfél lekérési hiba.");
+      const clientData: Client = await resClient.json();
+
+      // Klímák listája ennél az ügyfélnél
+      const resUnits = await fetch(`/api/client-units?clientId=${clientId}`, { cache: "no-store" });
+      if (!resUnits.ok) throw new Error("Klíma lista lekérési hiba.");
+      const unitsData: Unit[] = await resUnits.json();
+
+      setClient(clientData);
+      setUnits(Array.isArray(unitsData) ? unitsData : []);
+
+      // Szerkesztő mezők előtöltése
+      setEditName(clientData.name || "");
+      setEditEmail(clientData.email || "");
+      setEditPhone(clientData.phone || "");
+      setEditAddress(clientData.address || "");
+    } catch (e: any) {
+      setErr(e?.message || "Ismeretlen hiba történt.");
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  async function saveClient(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editName.trim()) {
+      alert("A név kötelező.");
+      return;
+    }
+    setSavingClient(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editName.trim(),
+          email: editEmail.trim(),
+          phone: editPhone.trim(),
+          address: editAddress.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error("Mentés sikertelen: " + t);
+      }
+      const updated: Client = await res.json();
+      setClient(updated);
+      setEditOpen(false);
+    } catch (e: any) {
+      alert(e?.message || "Ismeretlen hiba a mentés során.");
+    }
+    setSavingClient(false);
+  }
+
+  async function addUnit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!brand.trim() || !model.trim()) {
+      alert("A gyártó és a modell megadása kötelező.");
+      return;
+    }
     setSavingUnit(true);
     try {
       const res = await fetch("/api/client-units", {
@@ -219,124 +343,3 @@ const btnSecondary: React.CSSProperties = {
   cursor: "pointer",
 };
 ``
-
-import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-
-type Client = {
-  id: number;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-};
-
-type Unit = {
-  id: number;
-  clientId: number;
-  brand: string;
-  model: string;
-  powerKw?: number | null;
-  serialNumber?: string | null;
-  installation?: string | null; // ISO dátum string
-  periodMonths: number;
-  location?: string | null;
-  notes?: string | null;
-};
-
-export default function ClientDetailPage() {
-  const params = useParams<{ clientId: string }>();
-  const clientId = Number(params.clientId);
-
-  const [client, setClient] = useState<Client | null>(null);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  // Ügyfél szerkesztő állapotok
-  const [editOpen, setEditOpen] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editEmail, setEditEmail] = useState("");
-  const [editPhone, setEditPhone] = useState("");
-  const [editAddress, setEditAddress] = useState("");
-  const [savingClient, setSavingClient] = useState(false);
-
-  // Új klíma űrlap mezők
-  const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
-  const [powerKw, setPowerKw] = useState<string>("");
-  const [serialNumber, setSerialNumber] = useState("");
-  const [installation, setInstallation] = useState("");
-  const [periodMonths, setPeriodMonths] = useState<string>("12");
-  const [location, setLocation] = useState("");
-  const [notes, setNotes] = useState("");
-  const [savingUnit, setSavingUnit] = useState(false);
-
-  async function load() {
-    if (!Number.isFinite(clientId)) return;
-    setLoading(true);
-    setErr(null);
-    try {
-      const resClient = await fetch(`/api/clients/${clientId}`, { cache: "no-store" });
-      if (!resClient.ok) throw new Error("Ügyfél lekérési hiba.");
-      const clientData: Client = await resClient.json();
-
-      const resUnits = await fetch(`/api/client-units?clientId=${clientId}`, { cache: "no-store" });
-      if (!resUnits.ok) throw new Error("Klíma lista lekérési hiba.");
-      const unitsData: Unit[] = await resUnits.json();
-
-      setClient(clientData);
-      setUnits(Array.isArray(unitsData) ? unitsData : []);
-
-      // Szerkesztő mezők előtöltése
-      setEditName(clientData.name || "");
-      setEditEmail(clientData.email || "");
-      setEditPhone(clientData.phone || "");
-      setEditAddress(clientData.address || "");
-    } catch (e: any) {
-      setErr(e?.message || "Ismeretlen hiba történt.");
-    }
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
-
-  async function saveClient(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editName.trim()) {
-      alert("A név kötelező.");
-      return;
-    }
-    setSavingClient(true);
-    try {
-      const res = await fetch(`/api/clients/${clientId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editName.trim(),
-          email: editEmail.trim(),
-          phone: editPhone.trim(),
-          address: editAddress.trim(),
-        }),
-      });
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error("Mentés sikertelen: " + t);
-      }
-      const updated: Client = await res.json();
-      setClient(updated);
-      setEditOpen(false);
-    } catch (e: any) {
-      alert(e?.message || "Ismeretlen hiba a mentés során.");
-    }
-    setSavingClient(false);
-  }
-
-  async function addUnit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!brand.trim() || !model.trim()) {
-      alert("A gyártó és a modell megadása kötelező.");
-      return;
