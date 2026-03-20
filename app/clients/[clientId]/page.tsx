@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
 type Client = {
   id: number;
   name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
 };
 
 type Unit = {
@@ -25,7 +25,6 @@ type Unit = {
 };
 
 export default function ClientDetailPage() {
-  const router = useRouter();
   const params = useParams<{ clientId: string }>();
   const clientId = Number(params.clientId);
 
@@ -33,6 +32,14 @@ export default function ClientDetailPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+
+  // Ügyfél szerkesztő állapotok
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [savingClient, setSavingClient] = useState(false);
 
   // Új klíma űrlap mezők
   const [brand, setBrand] = useState("");
@@ -51,22 +58,23 @@ export default function ClientDetailPage() {
     setErr(null);
     try {
       // Ügyfél adatok
-      const resClient = await fetch(`/api/clients/${clientId}`, {
-        cache: "no-store",
-      });
+      const resClient = await fetch(`/api/clients/${clientId}`, { cache: "no-store" });
       if (!resClient.ok) throw new Error("Ügyfél lekérési hiba.");
-      const clientData = await resClient.json();
+      const clientData: Client = await resClient.json();
 
       // Klímák listája ennél az ügyfélnél
-      const resUnits = await fetch(
-        `/api/client-units?clientId=${clientId}`,
-        { cache: "no-store" }
-      );
+      const resUnits = await fetch(`/api/client-units?clientId=${clientId}`, { cache: "no-store" });
       if (!resUnits.ok) throw new Error("Klíma lista lekérési hiba.");
-      const unitsData = await resUnits.json();
+      const unitsData: Unit[] = await resUnits.json();
 
       setClient(clientData);
       setUnits(Array.isArray(unitsData) ? unitsData : []);
+
+      // Szerkesztő mezők előtöltése
+      setEditName(clientData.name || "");
+      setEditEmail(clientData.email || "");
+      setEditPhone(clientData.phone || "");
+      setEditAddress(clientData.address || "");
     } catch (e: any) {
       setErr(e?.message || "Ismeretlen hiba történt.");
     }
@@ -77,6 +85,37 @@ export default function ClientDetailPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
+
+  async function saveClient(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editName.trim()) {
+      alert("A név kötelező.");
+      return;
+    }
+    setSavingClient(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editName.trim(),
+          email: editEmail.trim(),
+          phone: editPhone.trim(),
+          address: editAddress.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error("Mentés sikertelen: " + t);
+      }
+      const updated: Client = await res.json();
+      setClient(updated);
+      setEditOpen(false);
+    } catch (e: any) {
+      alert(e?.message || "Ismeretlen hiba a mentés során.");
+    }
+    setSavingClient(false);
+  }
 
   async function addUnit(e: React.FormEvent) {
     e.preventDefault();
@@ -103,19 +142,12 @@ export default function ClientDetailPage() {
       });
       if (!res.ok) {
         const t = await res.text();
-        throw new Error("Mentés sikertelen: " + t);
+        throw new Error("Klíma mentés sikertelen: " + t);
       }
-      // Mezők törlése, lista frissítés
-      setBrand("");
-      setModel("");
-      setPowerKw("");
-      setSerialNumber("");
-      setInstallation("");
-      setPeriodMonths("12");
-      setLocation("");
-      setNotes("");
+      // Mezők reset + lista frissítés
+      setBrand(""); setModel(""); setPowerKw(""); setSerialNumber("");
+      setInstallation(""); setPeriodMonths("12"); setLocation(""); setNotes("");
       await load();
-      // görgetés a lista tetejére
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e: any) {
       alert(e?.message || "Ismeretlen hiba az új klíma mentése közben.");
@@ -133,12 +165,59 @@ export default function ClientDetailPage() {
       {!loading && !client && <p>Ügyfél nem található.</p>}
 
       {client && (
-        <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
+        <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
           <div><strong>#{client.id}</strong></div>
           <div><strong>Név:</strong> {client.name}</div>
           {client.email && <div><strong>E‑mail:</strong> {client.email}</div>}
           {client.phone && <div><strong>Telefon:</strong> {client.phone}</div>}
           {client.address && <div><strong>Cím:</strong> {client.address}</div>}
+
+          <div style={{ marginTop: 8 }}>
+            <button
+              onClick={() => setEditOpen((v) => !v)}
+              style={btnSecondary}
+            >
+              {editOpen ? "Mégse" : "Szerkesztés"}
+            </button>
+          </div>
+
+          {editOpen && (
+            <form
+              onSubmit={saveClient}
+              style={{
+                display: "grid",
+                gap: 10,
+                maxWidth: 700,
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                padding: 16,
+                background: "#fff",
+              }}
+            >
+              <h3 style={{ margin: 0 }}>Ügyfél szerkesztése</h3>
+              <label>Név*<br />
+                <input value={editName} onChange={(e) => setEditName(e.target.value)} style={inputStyle} />
+              </label>
+              <label>E‑mail<br />
+                <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} style={inputStyle} />
+              </label>
+              <label>Telefon<br />
+                <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} style={inputStyle} />
+              </label>
+              <label>Cím<br />
+                <input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} style={inputStyle} />
+              </label>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button disabled={savingClient} style={btnPrimary}>
+                  {savingClient ? "Mentés..." : "Mentés"}
+                </button>
+                <button type="button" onClick={() => setEditOpen(false)} style={btnSecondary}>
+                  Mégse
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       )}
 
@@ -168,7 +247,6 @@ export default function ClientDetailPage() {
                 >
                   Karbantartások →
                 </a>
-                {/* (Később) Ajánlatkészítő link is tehető ide */}
               </div>
             </div>
             <div style={{ fontSize: 14, color: "#444" }}>
@@ -257,5 +335,14 @@ const btnPrimary: React.CSSProperties = {
   padding: "10px 14px",
   cursor: "pointer",
   width: 180,
+};
+
+const btnSecondary: React.CSSProperties = {
+  background: "#EEE",
+  color: "#333",
+  border: "1px solid #DDD",
+  borderRadius: 6,
+  padding: "10px 14px",
+  cursor: "pointer",
 };
 ``
