@@ -25,15 +25,34 @@ export async function GET(req: Request) {
 }
 
 // POST /api/maintenance
-// Body elfogadja: performedDate VAGY performedAt (YYYY-MM-DD), notes (opcionális)
+// Body elfogadja: performedDate VAGY performedAt (YYYY-MM-DD)
+// Opcionális: description (alias: notes), materials, costInternal, technicianId, photos
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
     const unitId = Number(body.unitId);
 
-    // Elfogadunk két kulcsnevet is a dátumra: performedDate vagy performedAt
+    // Dátum: fogadjuk mindkét néven (compat a korábbi UI-val)
     const performedStrRaw = String(body.performedDate ?? body.performedAt ?? "").trim();
-    const notes = body.notes ? String(body.notes) : null;
+
+    // Mezőtérkép a sémádhoz
+    const description =
+      body.description != null
+        ? String(body.description)
+        : body.notes != null
+        ? String(body.notes)
+        : null;
+    const materials = body.materials != null ? String(body.materials) : null;
+    const costInternal =
+      body.costInternal != null && body.costInternal !== ""
+        ? Number(body.costInternal)
+        : null;
+    const technicianId =
+      body.technicianId != null && body.technicianId !== ""
+        ? Number(body.technicianId)
+        : null;
+    const photos = body.photos != null ? String(body.photos) : null;
 
     if (!unitId || !performedStrRaw) {
       return Response.json(
@@ -50,6 +69,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Dátum parse (YYYY-MM-DD)
     const performedDate = new Date(performedStrRaw);
     if (isNaN(performedDate.getTime())) {
       return Response.json(
@@ -65,8 +85,12 @@ export async function POST(req: Request) {
       data: {
         unitId,
         performedDate,
+        description,   // ← a sémád szerinti mező
+        materials,
+        costInternal,
+        technicianId,
         nextDue,
-        notes,
+        photos,
       },
     });
 
@@ -83,6 +107,7 @@ function addMonths(date: Date, months: number) {
   const d = new Date(date.getTime());
   const targetMonth = d.getMonth() + months;
   d.setMonth(targetMonth);
+  // hónapvégi korrekció (pl. jan 31 + 1 hó)
   if (d.getMonth() !== (targetMonth % 12 + 12) % 12) {
     d.setDate(0);
   }
