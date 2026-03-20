@@ -1,55 +1,50 @@
 import { prisma } from "@/lib/prisma";
 
-// GET /api/quotes
+// GET /api/quotes?clientId=123  – Ajánlatok listája (opcionális szűrés)
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const clientId = searchParams.get("clientId");
-    const where = clientId ? { clientId: Number(clientId) } : undefined;
+    const clientIdParam = searchParams.get("clientId");
+    const where = clientIdParam ? { clientId: Number(clientIdParam) } : undefined;
 
     const quotes = await prisma.quote.findMany({
       where,
       orderBy: { id: "desc" },
+      include: { client: true },
     });
 
     return Response.json(quotes);
-  } catch (error) {
-    return Response.json(
-      { error: "Hiba történt ajánlatok lekérésekor." },
-      { status: 500 }
-    );
+  } catch (e) {
+    return Response.json({ error: "Hiba az ajánlatok lekérdezésekor." }, { status: 500 });
   }
 }
 
-// POST /api/quotes
+// POST /api/quotes  – Ajánlat létrehozása { clientId, title?, terms? }
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const clientId = Number(body.clientId);
+    const title = body.title ? String(body.title) : null;
+    const terms = body.terms ? String(body.terms) : null;
 
-    if (!body.clientId) {
-      return Response.json(
-        { error: "clientId kötelező" },
-        { status: 400 }
-      );
+    if (!clientId) {
+      return Response.json({ error: "A clientId kötelező." }, { status: 400 });
     }
 
-    const quote = await prisma.quote.create({
+    const created = await prisma.quote.create({
       data: {
-        clientId: Number(body.clientId),
-        quoteNo: body.quoteNo ?? `Q-${Date.now()}`,
+        clientId,
+        title,
+        terms,
         status: "draft",
         netTotal: 0,
         vatAmount: 0,
         grossTotal: 0,
-        terms: body.terms ?? null,
       },
     });
 
-    return Response.json(quote);
-  } catch (error) {
-    return Response.json(
-      { error: "Hiba történt az ajánlat létrehozásakor." },
-      { status: 500 }
-    );
+    return Response.json(created, { status: 201 });
+  } catch (e) {
+    return Response.json({ error: "Hiba az ajánlat létrehozásakor." }, { status: 500 });
   }
 }
