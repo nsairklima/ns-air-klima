@@ -60,14 +60,17 @@ export default function MaintenancePage() {
     }
     setSaving(true);
     try {
-      const res = await fetch("/api/maintenance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          unitId,
-          performedAt, // YYYY-MM-DD
-          notes: notes || null,
-        }),
+    
+const res = await fetch("/api/maintenance", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    unitId,
+    performedAt,          // a mi eddigi mezőnevünk
+    performedDate: performedAt, // a backend által várt név is kap értéket
+    notes: notes || null,
+  }),
+
       });
       if (!res.ok) {
         const t = await res.text();
