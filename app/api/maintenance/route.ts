@@ -11,8 +11,8 @@ export async function GET(req: Request) {
     const unitId = Number(unitIdParam);
 
     const logs = await prisma.maintenanceLog.findMany({
-      where: { clientUnitId: unitId },
-      orderBy: { performedAt: "desc" },
+      where: { unitId },
+      orderBy: { performedDate: "desc" },
     });
 
     return Response.json(logs);
@@ -25,14 +25,14 @@ export async function GET(req: Request) {
 }
 
 // POST /api/maintenance
-// Body elfogadja: performedAt VAGY performedDate (YYYY-MM-DD), notes (opcionális)
+// Body elfogadja: performedDate VAGY performedAt (YYYY-MM-DD), notes (opcionális)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const unitId = Number(body.unitId);
 
-    // Elfogadunk két kulcsnevet is a dátumra: performedAt vagy performedDate
-    const performedStrRaw = String(body.performedAt ?? body.performedDate ?? "").trim();
+    // Elfogadunk két kulcsnevet is a dátumra: performedDate vagy performedAt
+    const performedStrRaw = String(body.performedDate ?? body.performedAt ?? "").trim();
     const notes = body.notes ? String(body.notes) : null;
 
     if (!unitId || !performedStrRaw) {
@@ -50,8 +50,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const performedAt = new Date(performedStrRaw);
-    if (isNaN(performedAt.getTime())) {
+    const performedDate = new Date(performedStrRaw);
+    if (isNaN(performedDate.getTime())) {
       return Response.json(
         { error: "A dátum formátuma érvénytelen. (YYYY-MM-DD)" },
         { status: 400 }
@@ -59,12 +59,12 @@ export async function POST(req: Request) {
     }
 
     const months = unit.periodMonths || 12;
-    const nextDue = addMonths(performedAt, months);
+    const nextDue = addMonths(performedDate, months);
 
     const created = await prisma.maintenanceLog.create({
       data: {
-        clientUnitId: unitId,
-        performedAt,
+        unitId,
+        performedDate,
         nextDue,
         notes,
       },
@@ -83,10 +83,8 @@ function addMonths(date: Date, months: number) {
   const d = new Date(date.getTime());
   const targetMonth = d.getMonth() + months;
   d.setMonth(targetMonth);
-  // hónapvégi korrekció (pl. jan 31 + 1 hó)
   if (d.getMonth() !== (targetMonth % 12 + 12) % 12) {
     d.setDate(0);
   }
   return d;
 }
-``
