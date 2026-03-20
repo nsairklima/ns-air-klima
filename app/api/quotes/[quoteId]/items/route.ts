@@ -1,57 +1,63 @@
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
-async function recalcTotals(quoteId: number) {
-  const items = await prisma.quoteItem.findMany({ where: { quoteId } });
-  const net = items.reduce((s, i) => s + i.finalPriceNet * i.qty, 0);
-  const vat = Math.round(net * 0.27);
-  const gross = net + vat;
-
-  await prisma.quote.update({
-    where: { id: quoteId },
-    data: { netTotal: net, vatAmount: vat, grossTotal: gross },
-  });
-}
-
-export async function POST(req: Request, { params }: { params: { quoteId: string } }) {
+// POST /api/quotes/[quoteId]/items
+// Body: { description, quantity, unit?, unitPriceNet, vatRate? (alap 27), costNet? }
+export async function POST(
+  req: Request,
+  { params }: { params: { quoteId: string } }
+) {
   try {
     const quoteId = Number(params.quoteId);
-    const body = await req.json();
+    const b = await req.json();
 
-    if (!body.name || !body.basePriceNet || !body.qty) {
-      return Response.json(
-        { error: "Név, nettó ár és mennyiség kötelező." },
-        { status: 400 }
-      );
-    }
+    const description = String(b.description || "").trim();
+    if (!description) return NextResponse.json({ error: "A tétel leírása kötelező." }, { status: 400 });
 
-    const base = Number(body.basePriceNet);
-    const qty = Number(body.qty);
-    const profitValue = Number(body.profitValue ?? 0);
+    const quantity = b.quantity != null ? Number(b.quantity) : 1;
+    const unit = b.unit ? String(b.unit) : null;
+    const unitPriceNet = b.unitPriceNet != null ? Number(b.unitPriceNet) : 0;
+    const vatRate = b.vatRate != null ? Number(b.vatRate) : 27;
+    const costNet = b.costNet != null && b.costNet !== "" ? Number(b.costNet) : null;
 
-    const unitFinal =
-      body.profitType === "percent"
-        ? Math.round(base * (1 + profitValue / 100))
-        : base + profitValue;
+    const lineNet = round2(quantity * unitPriceNet);
+    const lineVat = round2(lineNet * (vatRate / 100));
+    const lineGross = round2(lineNet + lineVat);
 
-    const item = await prisma.quoteItem.create({
+    const created = await prisma.quoteItem.create({
       data: {
         quoteId,
-        name: body.name,
-        basePriceNet: base,
-        profitType: body.profitType,
-        profitValue,
-        finalPriceNet: unitFinal,
-        qty,
+        description,
+        quantity,
+        unit,
+        unitPriceNet,
+        vatRate,
+        lineNet,
+        lineVat,
+        lineGross,
+        costNet,
+        profitAbs: costNet != null ? round2(lineNet - costNet) : null,
+        profitPct: costNet != null && costNet > 0 ? round2(((lineNet - costNet) / costNet) * 100) : null,
       },
     });
 
-    await recalcTotals(quoteId);
+    // Újraszámoljuk az ajánlat összesítőit
+    const all = await prisma.quoteItem.findMany({ where: { quoteId } });
+    const netTotal = round2(all.reduce((s, it) => s + Number(it.lineNet), 0));
+    const vatAmount = round2(all.reduce((s, it) => s + Number(it.lineVat), 0));
+    const grossTotal = round2(netTotal + vatAmount);
 
-    return Response.json(item);
-  } catch (error) {
-    return Response.json(
-      { error: "Hiba történt tétel mentésekor." },
-      { status: 500 }
-    );
+    await prisma.quote.update({
+      where: { id: quoteId },
+      data: { netTotal, vatAmount, grossTotal },
+    });
+
+    return NextResponse.json(created, { status: 201 });
+  } catch (e) {
+    return NextResponse.json({ error: "Hiba a tétel mentésekor." }, { status: 500 });
   }
+}
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
 }
