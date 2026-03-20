@@ -106,3 +106,52 @@ model EmailNotifications {
   unit             ClientUnit  @relation(fields: [clientUnitId], references: [id])
 }
 
+enum QuoteStatus {
+  draft
+  sent
+  accepted
+  rejected
+}
+
+model Quote {
+  id         Int          @id @default(autoincrement())
+  clientId   Int
+  client     Client       @relation(fields: [clientId], references: [id])
+  title      String?
+  status     QuoteStatus  @default(draft)
+  terms      String?
+
+  // Összegek (nettó/áfa/bruttó) – pénzügyi pontosság miatt Decimal
+  netTotal   Decimal      @default(0)
+  vatAmount  Decimal      @default(0)
+  grossTotal Decimal      @default(0)
+
+  items      QuoteItem[]
+
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model QuoteItem {
+  id            Int      @id @default(autoincrement())
+  quoteId       Int
+  quote         Quote    @relation(fields: [quoteId], references: [id])
+
+  description   String
+  quantity      Decimal  @default(1)   // mennyiség
+  unit          String?                // mértékegység (pl. db, óra)
+  unitPriceNet  Decimal  @default(0)   // nettó egységár
+  vatRate       Decimal  @default(27)  // ÁFA %
+
+  // Sorösszegek – a backend számolja ki mentéskor
+  lineNet       Decimal  @default(0)
+  lineVat       Decimal  @default(0)
+  lineGross     Decimal  @default(0)
+
+  // (opcionális) költség és profit
+  costNet       Decimal?
+  profitAbs     Decimal?
+  profitPct     Decimal?
+
+  createdAt     DateTime @default(now())
+}
