@@ -1,18 +1,43 @@
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
-export async function GET(_req: Request, { params }: { params: { quoteId: string } }) {
+// GET /api/quotes/[quoteId] – Ajánlat + tételek
+export async function GET(
+  _req: Request,
+  { params }: { params: { quoteId: string } }
+) {
   try {
     const id = Number(params.quoteId);
     const quote = await prisma.quote.findUnique({
       where: { id },
-      include: { items: true, client: true },
+      include: { client: true, items: true },
     });
-    if (!quote) return Response.json({ error: "Ajánlat nem található." }, { status: 404 });
-    return Response.json(quote);
-  } catch (error) {
-    return Response.json(
-      { error: "Hiba történt ajánlat lekérésekor." },
-      { status: 500 }
-    );
+    if (!quote) return NextResponse.json({ error: "Nem található." }, { status: 404 });
+    return NextResponse.json(quote);
+  } catch (e) {
+    return NextResponse.json({ error: "Hiba a lekérdezéskor." }, { status: 500 });
+  }
+}
+
+// PATCH /api/quotes/[quoteId] – { title?, terms?, status? }
+export async function PATCH(
+  req: Request,
+  { params }: { params: { quoteId: string } }
+) {
+  try {
+    const id = Number(params.quoteId);
+    const body = await req.json();
+
+    const data: any = {};
+    if (typeof body.title === "string") data.title = body.title;
+    if (typeof body.terms === "string") data.terms = body.terms;
+    if (typeof body.status === "string" && ["draft","sent","accepted","rejected"].includes(body.status)) {
+      data.status = body.status;
+    }
+
+    const updated = await prisma.quote.update({ where: { id }, data });
+    return NextResponse.json(updated);
+  } catch (e) {
+    return NextResponse.json({ error: "Hiba a frissítéskor." }, { status: 500 });
   }
 }
