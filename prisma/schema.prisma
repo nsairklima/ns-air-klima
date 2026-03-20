@@ -63,35 +63,9 @@ model MaintenanceLog {
   unit ClientUnit @relation(fields: [unitId], references: [id])
 }
 
-model Quote {
-  id         Int         @id @default(autoincrement())
-  clientId   Int
-  quoteNo    String      @unique
-  dateIssued DateTime    @default(now())
-  status     String      @default("draft")
-  netTotal   Int?
-  vatAmount  Int?
-  grossTotal Int?
-  profit     Int?
-  terms      String?
-  pdfPath    String?
 
-  client Client      @relation(fields: [clientId], references: [id])
-  items  QuoteItem[]
-}
 
-model QuoteItem {
-  id            Int      @id @default(autoincrement())
-  quoteId       Int
-  name          String
-  basePriceNet  Int
-  profitValue   Int
-  profitType    String
-  finalPriceNet Int
-  qty           Int      @default(1)
 
-  quote Quote @relation(fields: [quoteId], references: [id])
-}
 
 model EmailNotifications {
   id               Int         @id @default(autoincrement())
