@@ -64,12 +64,12 @@ export default function MaintenancePage() {
 const res = await fetch("/api/maintenance", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    unitId,
-    performedAt,          // a mi eddigi mezőnevünk
-    performedDate: performedAt, // a backend által várt név is kap értéket
-    notes: notes || null,
-  }),
+
+body: JSON.stringify({
+  unitId,
+  performedDate: performedAt,  // már csak ezt küldjük
+  description: notes || null,  // egyezik a sémával
+}),
 
       });
       if (!res.ok) {
