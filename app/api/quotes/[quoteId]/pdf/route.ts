@@ -52,9 +52,9 @@ export async function GET(
 
     y -= 10;
 
-    ${quote.quoteNo}`);`
-line(`Ajánlat száma: #${quote.id});
-    line(`Státusz: ${quote.status}`);
+    line(`Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`);
+    line(`Ajánlat száma: #${quote.id}`);
+    line(`Státusz: ${quote.status === 'accepted' ? 'Elfogadva' : 'Folyamatban'}`);
     y -= 10;
 
     line("Tételek:", 18);
