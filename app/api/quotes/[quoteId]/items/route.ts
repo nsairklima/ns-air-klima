@@ -10,12 +10,19 @@ async function updateQuoteTotals(quoteId: number) {
 
 export async function POST(req: Request, { params }: { params: { quoteId: string } }) {
   const data = await req.json();
-  const newItem = await prisma.quoteItem.create({
-    data: {
-      quoteId: Number(params.quoteId),
-      description: data.description,
-      quantity: Number(data.quantity),
-      unit: data.unit,
+ // Részlet az API route.ts fájlból
+const newItem = await prisma.quoteItem.create({
+  data: {
+    quoteId: Number(params.quoteId),
+    description: data.description,
+    quantity: Number(data.quantity),
+    unit: data.unit,
+    costNet: Number(data.basePrice), // A frontend 'basePrice'-t küld, de 'costNet'-be mentjük
+    unitPriceNet: Number(data.unitPriceNet),
+    // ... a többi marad
+  },
+})
+      
       unitPriceNet: Number(data.unitPriceNet), // Eladási nettó
       vatRate: 27,
       lineNet: Number(data.quantity) * Number(data.unitPriceNet),
