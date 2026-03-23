@@ -4,24 +4,27 @@ import { prisma } from "@/lib/prisma";
 
 // GET /api/clients/[Id] – Egy ügyfél adatai
 export async function GET(
-  _req: Request,
-  { params }: { params: { Id: string } }
+  req: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const id = Number(params.Id);
-    const client = await prisma.client.findUnique({ where: { id } });
+    const clientId = Number(params.id);
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      include: {
+        units: true,   // Ezt ellenőrizd, hogy benne van-e!
+        quotes: true,
+      },
+    });
+
     if (!client) {
-      return NextResponse.json(
-        { error: "Ügyfél nem található." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Ügyfél nem található" }, { status: 404 });
     }
+
     return NextResponse.json(client);
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: e?.message || "Ismeretlen hiba." },
-      { status: 500 }
-    );
+  } catch (error) {
+    return NextResponse.json({ error: "Szerver hiba" }, { status: 500 });
   }
 }
 
