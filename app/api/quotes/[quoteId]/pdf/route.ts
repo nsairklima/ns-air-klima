@@ -52,7 +52,8 @@ export async function GET(
 
     y -= 10;
 
-    line(`Ajánlat száma: ${quote.quoteNo}`);
+    ${quote.quoteNo}`);`
+line(`Ajánlat száma: #${quote.id});
     line(`Státusz: ${quote.status}`);
     y -= 10;
 
