@@ -8,18 +8,14 @@ export async function PATCH(
   try {
     const data = await req.json();
     
-    // Frissítés a Prismával
     const updatedItem = await prisma.quoteItem.update({
       where: { id: Number(params.itemId) },
       data: {
-        // Itt volt a hiba: 'name' helyett 'description' kell
-        description: data.description || data.name, 
-        basePriceNet: data.basePriceNet ? Number(data.basePriceNet) : undefined,
-        profitValue: data.profitValue ? Number(data.profitValue) : undefined,
-        profitType: data.profitType, // 'FIXED' vagy 'PERCENT'
+        description: data.description || data.name,
         quantity: data.quantity ? Number(data.quantity) : undefined,
         unitPriceNet: data.unitPriceNet ? Number(data.unitPriceNet) : undefined,
         vatRate: data.vatRate ? Number(data.vatRate) : undefined,
+        // A profit-mezőket ideiglenesen kivettem, mert a Prisma sémád nem ismeri őket
       },
     });
 
