@@ -26,20 +26,24 @@ export default function ClientDetailsPage() {
 
   useEffect(() => { if (Id) loadClientData(); }, [Id]);
 
-  const handleAddUnit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await fetch(`/api/clients/${Id}/units`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brand, model, serialNumber: serial, location }),
-    });
+const handleAddUnit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  // FONTOS: Az URL-nek tartalmaznia kell az ügyfél ID-t!
+  const res = await fetch(`/api/clients/${params.id}/units`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(newUnitData), // brand, model, serialNumber, location
+  });
 
-    if (res.ok) {
-      setBrand(""); setModel(""); setSerial(""); setLocation("");
-      setShowUnitForm(false);
-      loadClientData();
-    }
-  };
+  if (res.ok) {
+    // Ha sikerült, frissítjük a listát vagy ürítjük a formot
+    setNewUnitData({ brand: "", model: "", serialNumber: "", location: "" });
+    fetchClientData(); // Ez újra lekéri az ügyfelet a friss géplistával
+  } else {
+    alert("Hiba történt a mentés során!");
+  }
+};
 
   if (loading) return <div style={{padding: 20}}>Betöltés...</div>;
   if (!client) return <div style={{padding: 20}}>Ügyfél nem található.</div>;
