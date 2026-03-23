@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -15,6 +14,7 @@ type Quote = {
   client: { id: number; name: string };
   items: QuoteItem[];
 };
+
 type QuoteItem = {
   id: number;
   description: string;
@@ -28,7 +28,8 @@ type QuoteItem = {
 };
 
 export default function QuoteDetailPage() {
-  const { quoteId } = useParams<{ quoteId: string }>();
+  const params = useParams();
+  const quoteId = params?.quoteId as string;
   const id = Number(quoteId);
 
   const [q, setQ] = useState<Quote | null>(null);
@@ -106,26 +107,23 @@ export default function QuoteDetailPage() {
   if (loading) return <div style={wrap}><p>Betöltés…</p></div>;
   if (!q) return <div style={wrap}><p>Ajánlat nem található.</p></div>;
 
- 
-return (
-  <div>
-   
-/quotes← Vissza az ajánlatokhoz</a>
-
-      <h1 style={{ marginTop: 12 }}>Ajánlatok</h1>
-
-  </div>
-);
-
-
-
+  return (
+    <div style={wrap}>
+      <a href="/quotes" style={{ color: "#666", textDecoration: "none" }}>← Vissza az ajánlatokhoz</a>
+      
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+        <h1>Ajánlat: {q.id} - {q.client.name}</h1>
+        <div style={{ fontWeight: "bold" }}>Státusz: {q.status}</div>
+      </div>
 
       <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={() => setStatus("draft")} style={statusBtn("draft", q.status)}>Piszkozat</button>
         <button onClick={() => setStatus("sent")} style={statusBtn("sent", q.status)}>Elküldve</button>
         <button onClick={() => setStatus("accepted")} style={statusBtn("accepted", q.status)}>Elfogadva</button>
         <button onClick={() => setStatus("rejected")} style={statusBtn("rejected", q.status)}>Elutasítva</button>
-        <a href={`/api/quotes/${q.id}/pdf`} target="_blank" style={{ marginLeft: "auto", color: "#4DA3FF", textDecoration: "none" }}>PDF megnyitása →</a>
+        <a href={`/api/quotes/${q.id}/pdf`} target="_blank" style={{ marginLeft: "auto", color: "#4DA3FF", textDecoration: "none", fontWeight: "bold" }}>
+          PDF megnyitása →
+        </a>
       </div>
 
       <h2 style={{ marginTop: 24 }}>Tételek</h2>
@@ -144,21 +142,27 @@ return (
         ))}
       </div>
 
-      <h3 style={{ marginTop: 16 }}>Új tétel</h3>
+      <h3 style={{ marginTop: 24 }}>Új tétel hozzáadása</h3>
       <form onSubmit={addItem} style={form}>
         <input placeholder="Leírás*" value={description} onChange={(e)=>setDescription(e.target.value)} style={input} />
-        <input placeholder="Mennyiség" type="number" step="0.001" value={quantity} onChange={(e)=>setQuantity(e.target.value)} style={input} />
-        <input placeholder="Egység (pl. db)" value={unit} onChange={(e)=>setUnit(e.target.value)} style={input} />
-        <input placeholder="Nettó egységár*" type="number" step="0.01" value={unitPriceNet} onChange={(e)=>setUnitPriceNet(e.target.value)} style={input} />
+        <input placeholder="Menny." type="number" step="0.001" value={quantity} onChange={(e)=>setQuantity(e.target.value)} style={input} />
+        <input placeholder="Egység" value={unit} onChange={(e)=>setUnit(e.target.value)} style={input} />
+        <input placeholder="Nettó ár*" type="number" step="0.01" value={unitPriceNet} onChange={(e)=>setUnitPriceNet(e.target.value)} style={input} />
         <input placeholder="ÁFA %" type="number" step="0.1" value={vatRate} onChange={(e)=>setVatRate(e.target.value)} style={input} />
-        <button disabled={saving} style={btnPrimary}>{saving ? "Mentés…" : "Tétel hozzáadása"}</button>
+        <button disabled={saving} style={btnPrimary}>{saving ? "..." : "Hozzáad"}</button>
       </form>
 
-      <h2>Összesítés</h2>
-      <div style={card}>
-        Nettó: <strong>{q.netTotal.toLocaleString("hu-HU")} Ft</strong> &nbsp;•&nbsp;
-        ÁFA: <strong>{q.vatAmount.toLocaleString("hu-HU")} Ft</strong> &nbsp;•&nbsp;
-        Bruttó: <strong>{q.grossTotal.toLocaleString("hu-HU")} Ft</strong>
+      <h2 style={{ marginTop: 32 }}>Összesítés</h2>
+      <div style={{ ...card, background: "#f0f7ff", border: "1px solid #4DA3FF" }}>
+        <div style={{ fontSize: 18 }}>
+          Nettó: <strong>{q.netTotal.toLocaleString("hu-HU")} Ft</strong>
+        </div>
+        <div style={{ fontSize: 18 }}>
+          ÁFA: <strong>{q.vatAmount.toLocaleString("hu-HU")} Ft</strong>
+        </div>
+        <div style={{ fontSize: 22, marginTop: 8, color: "#000" }}>
+          Bruttó: <strong>{q.grossTotal.toLocaleString("hu-HU")} Ft</strong>
+        </div>
       </div>
     </div>
   );
@@ -167,17 +171,16 @@ return (
 /* ---- stílusok ---- */
 const wrap: React.CSSProperties = { padding: 24, fontFamily: "Arial, sans-serif", maxWidth: 1000, margin: "0 auto" };
 const card: React.CSSProperties = { border: "1px solid #e5e5e5", borderRadius: 8, padding: 12, background: "#fafafa" };
-const form: React.CSSProperties = { display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto", gap: 8, alignItems: "center", ...card };
-const input: React.CSSProperties = { padding: "10px 12px", border: "1px solid #ddd", borderRadius: 6 };
-const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", border: "none", borderRadius: 6, padding: "10px 14px", cursor: "pointer" };
+const form: React.CSSProperties = { display: "grid", gridTemplateColumns: "2fr 0.6fr 0.6fr 1fr 0.6fr auto", gap: 8, alignItems: "center", border: "1px solid #ddd", borderRadius: 8, padding: 12 };
+const input: React.CSSProperties = { padding: "10px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%" };
+const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", border: "none", borderRadius: 6, padding: "10px 14px", cursor: "pointer", fontWeight: "bold" };
 
 function statusBtn(target: Quote["status"], current: Quote["status"]): React.CSSProperties {
   const is = target === current;
   const base: React.CSSProperties = { padding: "8px 12px", borderRadius: 6, border: "1px solid #ddd", cursor: "pointer", background: "#fff" };
   if (!is) return base;
-  if (current === "draft")    return { ...base, background: "#f2f2f2" };
-  if (current === "sent")     return { ...base, background: "#fff7d1" };
-  if (current === "accepted") return { ...base, background: "#e9f9ee" };
-  return { ...base, background: "#ffe5e5" };
+  if (current === "draft")    return { ...base, background: "#f2f2f2", fontWeight: "bold" };
+  if (current === "sent")     return { ...base, background: "#fff7d1", fontWeight: "bold", borderColor: "#ffd43b" };
+  if (current === "accepted") return { ...base, background: "#e9f9ee", fontWeight: "bold", borderColor: "#40c057" };
+  return { ...base, background: "#ffe5e5", fontWeight: "bold", borderColor: "#fa5252" };
 }
-``
