@@ -28,6 +28,29 @@ export default function ClientDetailsPage() {
 
 const handleAddUnit = async (e: React.FormEvent) => {
   e.preventDefault();
+
+  const handleDeleteUnit = async (unitId: number) => {
+  if (!confirm("Biztosan törlöd ezt a gépet és az összes hozzá tartozó naplót?")) return;
+
+  const res = await fetch(`/api/clients/${Id}/units/${unitId}`, {
+    method: "DELETE",
+  });
+
+  if (res.ok) {
+    loadClientData(); // Lista frissítése
+  } else {
+    alert("Nem sikerült a törlés.");
+  }
+};
+
+// A renderelésnél (a return részben) a gép kártyáján belülre:
+<button 
+  onClick={() => handleDeleteUnit(unit.id)}
+  style={{ background: "#e74c3c", color: "#fff", border: "none", padding: "8px", borderRadius: 6, cursor: "pointer", marginLeft: 10 }}
+  title="Gép törlése"
+>
+  🗑️
+</button>
   
   // Összeállítjuk az adatokat a meglévő state-ekből
   const payload = {
