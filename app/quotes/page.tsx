@@ -107,16 +107,20 @@ export default function QuoteDetailPage() {
   if (!q) return <div style={wrap}><p>Ajánlat nem található.</p></div>;
 
  
-return (
-  <div style={{ padding: 24, fontFamily: "Arial, sans-serif", maxWidth: 900, margin: "0 auto" }}>
-    <a href="/quotes">
-  ← Vissza az ajánlatokhoz
-</a>
+export default function QuotesPage() {
+  return (
+    <>
+      <a href="/quotes">
+        ← Vissza az ajánlatokhoz
+      </a>
 
-    <h1 style={{ marginTop: 12 }}>Ajánlatok</h1>
+      <h1 style={{ marginTop: 12 }}>Ajánlatok</h1>
 
-    {/* Új ajánlat űrlap – a korábbi űrlapod maradhat változatlanul */}
-    {/* ...itt jön a te form/layout kódod... */}
+      {/* Új ajánlat űrlap – a korábbi űrlapod maradhat változatlanul */}
+      {/* ...itt jön a te form/layout kódod... */}
+    </>
+  );
+}
 
   </div>
 
