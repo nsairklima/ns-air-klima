@@ -134,11 +134,44 @@ export default function QuoteEditPage() {
         <tbody>
           {q?.items.map((it: any) => (
             <tr key={it.id} style={{ borderBottom: "1px solid #eee" }}>
-              <td style={{ padding: 10 }}>{it.description} <br/><small style={{color: "#888"}}>{it.quantity} {it.unit} x {Math.round(it.unitPriceNet).toLocaleString()} Ft nettó</small></td>
-              <td>{Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft</td>
-              <td style={{ textAlign: "right", fontWeight: "bold" }}>{it.lineGross.toLocaleString()} Ft</td>
-              <td style={{ textAlign: "right" }}>
-                <button onClick={() => startEdit(it)} style={{padding: 8, background: "none", border: "none", cursor: "pointer"}}>✏️</button>
+              <td style={{ padding: 12 }}>
+                <div style={{ fontWeight: "bold" }}>{it.description}</div>
+                <small style={{ color: "#888" }}>
+                  {it.quantity} {it.unit} × {Math.round(it.unitPriceNet).toLocaleString()} Ft nettó
+                </small>
+              </td>
+              <td style={{ verticalAlign: "middle" }}>
+                {Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft
+              </td>
+              <td style={{ textAlign: "right", fontWeight: "bold", verticalAlign: "middle" }}>
+                {it.lineGross.toLocaleString()} Ft
+              </td>
+              <td style={{ textAlign: "right", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                {/* SZERKESZTÉS GOMB */}
+                <button 
+                  onClick={() => startEdit(it)} 
+                  style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer", marginRight: 8 }}
+                  title="Szerkesztés"
+                >
+                  ✏️
+                </button>
+                
+                {/* TÖRLÉS GOMB */}
+                <button 
+                  onClick={() => {
+                    if (confirm("Biztosan törlöd ezt a tételt?")) {
+                      fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, { method: "DELETE" })
+                        .then(res => {
+                          if (res.ok) loadQuote();
+                          else alert("Hiba a törlés során");
+                        });
+                    }
+                  }} 
+                  style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer" }}
+                  title="Törlés"
+                >
+                  🗑️
+                </button>
               </td>
             </tr>
           ))}
