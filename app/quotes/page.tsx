@@ -109,11 +109,11 @@ export default function QuoteDetailPage() {
  
 return (
   <div>
-    <a href="/quotes">
-      ← Vissza az ajánlatokhoz
-    </a>
+   
+/quotes← Vissza az ajánlatokhoz</a>
 
-    <h1 style={{ marginTop: 12 }}>Ajánlatok</h1>
+      <h1 style={{ marginTop: 12 }}>Ajánlatok</h1>
+
   </div>
 );
 
