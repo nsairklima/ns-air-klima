@@ -3,150 +3,164 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-type Quote = {
-  id: number;
-  status: "draft" | "sent" | "accepted" | "rejected";
-  netTotal: number;
-  vatAmount: number;
-  grossTotal: number;
-  client: { id: number; name: string };
-  items: QuoteItem[];
-};
-
 type QuoteItem = {
   id: number;
   description: string;
   quantity: number;
-  unit?: string | null;
   unitPriceNet: number;
   vatRate: number;
-  lineNet: number;
-  lineVat: number;
   lineGross: number;
 };
 
-export default function QuoteDetailPage() {
+type Quote = {
+  id: number;
+  status: string;
+  client: { name: string; email: string };
+  items: QuoteItem[];
+  netTotal: number;
+  grossTotal: number;
+};
+
+export default function QuoteEditPage() {
   const params = useParams();
   const quoteId = params?.quoteId;
-  const id = Number(quoteId);
 
   const [q, setQ] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Új tétel űrlap állapotai
-  const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [unit, setUnit] = useState("");
-  const [unitPriceNet, setUnitPriceNet] = useState("");
-  const [vatRate, setVatRate] = useState("27");
-  const [saving, setSaving] = useState(false);
+  // Új tétel mezői (Okos számításhoz)
+  const [desc, setDesc] = useState("");
+  const [qty, setQty] = useState(1);
+  const [basePrice, setBasePrice] = useState<number>(0); // Beszerzési ár
+  const [profitType, setProfitType] = useState<"percent" | "fix">("percent");
+  const [profitValue, setProfitValue] = useState<number>(20); // Alapból 20% haszon
+  const [vat, setVat] = useState(27);
 
-  async function load() {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/quotes/${id}`, { cache: "no-store" });
-      if (!res.ok) throw new Error("Hiba");
-      const data = await res.json();
-      setQ(data);
-    } catch (err) {
-      console.error(err);
-      setQ(null);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const loadQuote = async () => {
+    const res = await fetch(`/api/quotes/${quoteId}`);
+    if (res.ok) setQ(await res.json());
+    setLoading(false);
+  };
 
-  useEffect(() => {
-    if (id) load();
-  }, [id]);
+  useEffect(() => { if (quoteId) loadQuote(); }, [quoteId]);
 
-  async function addItem(e: React.FormEvent) {
+  // KISZÁMOLT ÉRTÉKEK (amit az ügyfél lát)
+  const calculatedUnitPriceNet = profitType === "percent" 
+    ? basePrice * (1 + profitValue / 100) 
+    : basePrice + profitValue;
+  
+  const totalProfit = (calculatedUnitPriceNet - basePrice) * qty;
+
+  const addItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description.trim() || !unitPriceNet) return;
-    setSaving(true);
-    await fetch(`/api/quotes/${id}/items`, {
+    const res = await fetch(`/api/quotes/${quoteId}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        description,
-        quantity: Number(quantity),
-        unit,
-        unitPriceNet: Number(unitPriceNet),
-        vatRate: Number(vatRate),
+        description: desc,
+        quantity: qty,
+        unitPriceNet: calculatedUnitPriceNet,
+        vatRate: vat,
       }),
     });
-    setSaving(false);
-    setDescription("");
-    setUnitPriceNet("");
-    load();
-  }
+    if (res.ok) {
+      setDesc("");
+      setBasePrice(0);
+      loadQuote();
+    }
+  };
 
-  async function setStatus(status: Quote["status"]) {
-    await fetch(`/api/quotes/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    load();
-  }
+  const sendEmail = async () => {
+    alert("E-mail küldése folyamatban...");
+    const res = await fetch(`/api/quotes/${quoteId}/send`, { method: "POST" });
+    if (res.ok) alert("E-mail sikeresen elküldve!");
+    else alert("Hiba történt a küldéskor.");
+  };
 
   if (loading) return <div style={wrap}>Betöltés...</div>;
   if (!q) return <div style={wrap}>Ajánlat nem található.</div>;
 
   return (
     <div style={wrap}>
-      <a href="/quotes" style={{ color: "#666", textDecoration: "none" }}>← Vissza az ajánlatokhoz</a>
-      <h1 style={{ marginTop: 12 }}>Ajánlat #{q.id}</h1>
-      <div style={{ color: "#444" }}>
-        Ügyfél: <strong>{q.client?.name || "Ismeretlen"}</strong>
+      <a href="/quotes" style={{ color: "#666" }}>← Vissza a listához</a>
+      
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20 }}>
+        <h1>Ajánlat: {q.client?.name}</h1>
+        <div style={{ display: "flex", gap: 10 }}>
+          <a href={`/api/quotes/${quoteId}/pdf`} target="_blank" style={btn}>PDF megnyitása</a>
+          <button onClick={sendEmail} style={btnPrimary}>Küldés e-mailben</button>
+        </div>
       </div>
 
-      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => setStatus("draft")} style={statusBtn("draft", q.status)}>Piszkozat</button>
-        <button onClick={() => setStatus("sent")} style={statusBtn("sent", q.status)}>Elküldve</button>
-        <button onClick={() => setStatus("accepted")} style={statusBtn("accepted", q.status)}>Elfogadva</button>
-        <button onClick={() => setStatus("rejected")} style={statusBtn("rejected", q.status)}>Elutasítva</button>
-        <a href={`/api/quotes/${q.id}/pdf`} target="_blank" style={{ marginLeft: "auto", color: "#4DA3FF" }}>PDF megnyitása →</a>
-      </div>
-
-      <h2 style={{ marginTop: 24 }}>Tételek</h2>
-      <div style={{ display: "grid", gap: 8 }}>
-        {q.items.map(it => (
-          <div key={it.id} style={card}>
-            <strong>{it.description}</strong> - {it.lineGross.toLocaleString()} Ft
-          </div>
-        ))}
-      </div>
-
-      <h3 style={{ marginTop: 16 }}>Új tétel</h3>
-      <form onSubmit={addItem} style={form}>
-        <input placeholder="Leírás" value={description} onChange={e => setDescription(e.target.value)} style={input} />
-        <input placeholder="Ár" type="number" value={unitPriceNet} onChange={e => setUnitPriceNet(e.target.value)} style={input} />
-        <button disabled={saving} style={btnPrimary}>Hozzáadás</button>
-      </form>
-
-      <h2 style={{ marginTop: 24 }}>Összesítés</h2>
+      {/* ÚJ TÉTEL FELVÉTELE - OKOS KALKULÁTOR */}
       <div style={card}>
-        <strong>Bruttó összesen: {q.grossTotal.toLocaleString()} Ft</strong>
+        <h3>+ Új tétel hozzáadása (Kalkulátor)</h3>
+        <form onSubmit={addItem} style={{ display: "grid", gap: 10 }}>
+          <input placeholder="Megnevezés (pl. Gree Comfort X 3.5kW)" value={desc} onChange={e => setDesc(e.target.value)} style={input} required />
+          
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={smallLabel}>Beszerzési ár (Nettó Ft)</label>
+              <input type="number" value={basePrice} onChange={e => setBasePrice(Number(e.target.value))} style={input} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={smallLabel}>Haszon típusa</label>
+              <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={input}>
+                <option value="percent">Százalék (%)</option>
+                <option value="fix">Fix összeg (Ft)</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={smallLabel}>Haszon mértéke</label>
+              <input type="number" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={input} />
+            </div>
+          </div>
+
+          <div style={{ background: "#e7f3ff", padding: "10px", borderRadius: "8px", fontSize: "14px" }}>
+            <strong>Összegzés neked:</strong><br />
+            Eladási ár (Nettó): {Math.round(calculatedUnitPriceNet).toLocaleString()} Ft | 
+            Haszon ezen a tételen: <span style={{ color: "green", fontWeight: "bold" }}>{Math.round(totalProfit).toLocaleString()} Ft</span>
+          </div>
+
+          <button type="submit" style={btnSuccess}>Tétel hozzáadása az ajánlathoz</button>
+        </form>
+      </div>
+
+      {/* TÉTELEK LISTÁJA */}
+      <h3 style={{ marginTop: 30 }}>Ajánlat tételei</h3>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 10 }}>
+        <thead>
+          <tr style={{ borderBottom: "2px solid #eee", textAlign: "left" }}>
+            <th style={{ padding: 10 }}>Leírás</th>
+            <th>Menny.</th>
+            <th>Nettó egységár</th>
+            <th>Bruttó érték</th>
+          </tr>
+        </thead>
+        <tbody>
+          {q.items.map(it => (
+            <tr key={it.id} style={{ borderBottom: "1px solid #eee" }}>
+              <td style={{ padding: 10 }}>{it.description}</td>
+              <td>{it.quantity}</td>
+              <td>{it.unitPriceNet.toLocaleString()} Ft</td>
+              <td>{it.lineGross.toLocaleString()} Ft</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={{ marginTop: 20, textAlign: "right", fontSize: "18px" }}>
+        <strong>Bruttó mindösszesen: {q.grossTotal.toLocaleString()} Ft</strong>
       </div>
     </div>
   );
 }
 
-const wrap: React.CSSProperties = { padding: 24, maxWidth: 800, margin: "0 auto", fontFamily: "Arial" };
-const card: React.CSSProperties = { border: "1px solid #ddd", padding: 12, borderRadius: 8, background: "#fafafa" };
-const form: React.CSSProperties = { display: "flex", gap: 8, marginTop: 8 };
-const input: React.CSSProperties = { padding: 8, border: "1px solid #ccc", borderRadius: 4 };
-const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 4, cursor: "pointer" };
-
-function statusBtn(target: string, current: string): React.CSSProperties {
-  return {
-    padding: "6px 12px",
-    borderRadius: 4,
-    border: "1px solid #ccc",
-    background: target === current ? "#eee" : "#fff",
-    cursor: "pointer",
-    fontWeight: target === current ? "bold" : "normal"
-  };
-}
+/* ---- Stílusok ---- */
+const wrap: React.CSSProperties = { padding: 24, maxWidth: 900, margin: "0 auto", fontFamily: "Arial" };
+const card: React.CSSProperties = { background: "#fff", border: "1px solid #ddd", padding: 20, borderRadius: 12, marginTop: 20, boxShadow: "0 2px 4px rgba(0,0,0,0.05)" };
+const input: React.CSSProperties = { width: "100%", padding: "10px", borderRadius: 6, border: "1px solid #ccc", boxSizing: "border-box" };
+const smallLabel: React.CSSProperties = { fontSize: "12px", color: "#666", marginBottom: "4px", display: "block" };
+const btn: React.CSSProperties = { padding: "10px 16px", borderRadius: 8, border: "1px solid #ccc", cursor: "pointer", textDecoration: "none", color: "#333", background: "#fff", display: "inline-block" };
+const btnPrimary: React.CSSProperties = { ...btn, background: "#0070f3", color: "#fff", border: "none" };
+const btnSuccess: React.CSSProperties = { ...btn, background: "#28a745", color: "#fff", border: "none", marginTop: 10 };
