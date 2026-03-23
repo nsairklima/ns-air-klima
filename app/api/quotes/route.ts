@@ -1,50 +1,40 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/quotes?clientId=123  – Ajánlatok listája (opcionális szűrés)
-export async function GET(req: Request) {
+// Összes ajánlat lekérése
+export async function GET() {
   try {
-    const { searchParams } = new URL(req.url);
-    const clientIdParam = searchParams.get("clientId");
-    const where = clientIdParam ? { clientId: Number(clientIdParam) } : undefined;
-
     const quotes = await prisma.quote.findMany({
-      where,
-      orderBy: { id: "desc" },
       include: { client: true },
+      orderBy: { createdAt: "desc" },
     });
-
-    return Response.json(quotes);
-  } catch (e) {
-    return Response.json({ error: "Hiba az ajánlatok lekérdezésekor." }, { status: 500 });
+    return NextResponse.json(quotes);
+  } catch (error) {
+    return NextResponse.json({ error: "Hiba a lekéréskor" }, { status: 500 });
   }
 }
 
-// POST /api/quotes  – Ajánlat létrehozása { clientId, title?, terms? }
+// Új ajánlat létrehozása
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const clientId = Number(body.clientId);
-    const title = body.title ? String(body.title) : null;
-    const terms = body.terms ? String(body.terms) : null;
-
-    if (!clientId) {
-      return Response.json({ error: "A clientId kötelező." }, { status: 400 });
-    }
-
-    const created = await prisma.quote.create({
+    const data = await req.json();
+    
+    // Itt hozzuk létre az alap ajánlatot
+    const newQuote = await prisma.quote.create({
       data: {
-        clientId,
-        title,
-        terms,
-        status: "draft",
+        clientId: Number(data.clientId),
+        status: "draft", // Alapértelmezett státusz: Piszkozat
         netTotal: 0,
         vatAmount: 0,
         grossTotal: 0,
+        // Ha a sémádban van 'title', akkor beírjuk, ha nincs, kihagyjuk
+        ...(data.title && { title: data.title }), 
       },
     });
 
-    return Response.json(created, { status: 201 });
-  } catch (e) {
-    return Response.json({ error: "Hiba az ajánlat létrehozásakor." }, { status: 500 });
+    return NextResponse.json(newQuote);
+  } catch (error) {
+    console.error("Szerver oldali hiba:", error);
+    return NextResponse.json({ error: "Hiba a mentéskor" }, { status: 500 });
   }
 }
