@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link"; // A Link gyorsabb, mint az <a> tag
+import Link from "next/link";
 
 type Client = {
   id: number;
@@ -9,14 +9,14 @@ type Client = {
   email?: string;
   phone?: string;
   address?: string;
+  units?: any[];
 };
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState(""); // Új: keresési állapot
+  const [searchTerm, setSearchTerm] = useState("");
   
-  // Űrlap állapotok
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -24,12 +24,10 @@ export default function ClientsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Kereséssel kombinált betöltés
   async function loadClients(query: string = "") {
     setLoading(true);
     setError(null);
     try {
-      // Az API-nak átadjuk a keresési paramétert
       const res = await fetch(`/api/clients?search=${encodeURIComponent(query)}`, { cache: "no-store" });
       const data = await res.json();
       if (!Array.isArray(data)) throw new Error("Váratlan válasz.");
@@ -40,23 +38,17 @@ export default function ClientsPage() {
     setLoading(false);
   }
 
-  // Figyeljük a searchTerm változását (Debounce technika)
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       loadClients(searchTerm);
-    }, 400); // 0.4 másodperc várakozás gépelés után
-
+    }, 400);
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
   async function addClient(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) {
-      alert("A név kötelező.");
-      return;
-    }
+    if (!name.trim()) return alert("A név kötelező.");
     setSaving(true);
-    setError(null);
     try {
       const res = await fetch("/api/clients", {
         method: "POST",
@@ -64,31 +56,28 @@ export default function ClientsPage() {
         body: JSON.stringify({ name, email, phone, address }),
       });
       if (!res.ok) throw new Error("Mentési hiba.");
-      
-      // Mezők ürítése
       setName(""); setEmail(""); setPhone(""); setAddress("");
-      setSearchTerm(""); // Kereső ürítése, hogy lássuk az új elemet a teljes listában
+      setSearchTerm("");
       await loadClients("");
     } catch (e: any) {
-      setError(e?.message || "Hiba történt mentés közben.");
+      setError(e?.message || "Hiba mentéskor.");
     }
     setSaving(false);
   }
 
   return (
     <div style={{ padding: 32, fontFamily: "Arial, sans-serif", maxWidth: 1000, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h1>Ügyfelek</h1>
-        <Link href="/" style={{ color: "#666", textDecoration: "none" }}>← Vissza a Dashboardra</Link>
+        <Link href="/" style={{ color: "#3498db", textDecoration: "none", fontWeight: "bold" }}>← Dashboard</Link>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, marginTop: 20 }}>
-        
-        {/* BAL OLDAL: Új ügyfél űrlap */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
+        {/* BAL OLDAL: Űrlap */}
         <div>
           <form onSubmit={addClient} style={formStyle}>
-            <h3 style={{ margin: "0 0 10px 0" }}>Új ügyfél felvétele</h3>
-            <input placeholder="Név (kötelező)" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+            <h3 style={{ margin: "0 0 15px 0" }}>Új ügyfél felvétele</h3>
+            <input placeholder="Név" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
             <input placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
             <input placeholder="Telefon" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
             <input placeholder="Cím" value={address} onChange={(e) => setAddress(e.target.value)} style={inputStyle} />
@@ -100,57 +89,41 @@ export default function ClientsPage() {
 
         {/* JOBB OLDAL: Kereső és Lista */}
         <div>
-          <div style={{ marginBottom: 15 }}>
-            <input 
-              type="text"
-              placeholder="🔍 Keresés név vagy cím alapján..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ ...inputStyle, width: "100%", border: "2px solid #4DA3FF" }}
-            />
-          </div>
+          <input 
+            type="text"
+            placeholder="🔍 Keresés..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ ...inputStyle, width: "100%", border: "2px solid #4DA3FF", marginBottom: 15 }}
+          />
 
           {loading && <p>Betöltés...</p>}
-          {error && <p style={{ color: "crimson" }}>Hiba: {error}</p>}
           
           <div style={{ display: "grid", gap: 12 }}>
-            {!loading && clients.length === 0 && <p style={{ color: "#888" }}>Nincs találat.</p>}
             {clients.map((c: any) => {
-  // Megnézzük, van-e sürgős gépe
-  const hasUrgentUnit = c.units?.some((unit: any) => {
-    if (unit.maintenance.length === 0) return true; // Sosem volt tisztítva
-    const lastDate = new Date(unit.maintenance[0].performedDate);
-    const diffDays = Math.ceil(Math.abs(new Date().getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays >= 330;
-  });
+              const hasUrgent = c.units?.some((u: any) => {
+                if (u.maintenance.length === 0) return true;
+                const last = new Date(u.maintenance[0].performedDate);
+                return (Math.ceil(Math.abs(new Date().getTime() - last.getTime()) / (1000*60*60*24))) >= 330;
+              });
 
-  return (
-    <div key={c.id} style={{ 
-      ...cardStyle, 
-      borderLeft: hasUrgentUnit ? "6px solid #e74c3c" : "1px solid #e5e5e5",
-      background: hasUrgentUnit ? "#fffcfc" : "#fff"
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <strong style={{ fontSize: 16 }}>{c.name}</strong>
-            {hasUrgentUnit && (
-              <span style={{ background: "#e74c3c", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: "bold" }}>
-                ESEDÉKES!
-              </span>
-            )}
-          </div>
-          <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>{c.address || "Nincs cím"}</div>
-          <div style={{ fontSize: 11, color: "#999", marginTop: 4 }}>
-            {c.units?.length || 0} regisztrált gép
-          </div>
-        </div>
-        <Link href={`/clients/${c.id}`} style={detailsLink}>
-                    Részletek →
-                  </Link>
+              return (
+                <div key={c.id} style={{ 
+                  ...cardStyle, 
+                  borderLeft: hasUrgent ? "6px solid #e74c3c" : "1px solid #ddd" 
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontWeight: "bold" }}>
+                        {c.name} {hasUrgent && "⚠️"}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#666" }}>{c.address}</div>
+                    </div>
+                    <Link href={`/clients/${c.id}`} style={detailsLink}>Részletek →</Link>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -158,51 +131,8 @@ export default function ClientsPage() {
   );
 }
 
-// Stílusok (kicsit pofásabbá tettem)
-const inputStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  border: "1px solid #ddd",
-  borderRadius: 6,
-  marginBottom: 8,
-  display: "block",
-  width: "100%"
-};
-
-const formStyle: React.CSSProperties = {
-  padding: 20,
-  border: "1px solid #ddd",
-  borderRadius: 12,
-  background: "#fafafa",
-  position: "sticky",
-  top: 20
-};
-
-const cardStyle: React.CSSProperties = {
-  border: "1px solid #e5e5e5",
-  borderRadius: 10,
-  padding: "15px",
-  background: "#fff",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.03)"
-};
-
-const btnPrimary: React.CSSProperties = {
-  background: "#4DA3FF",
-  color: "#fff",
-  border: "none",
-  borderRadius: 6,
-  padding: "12px",
-  cursor: "pointer",
-  fontWeight: "bold",
-  width: "100%",
-  marginTop: 10
-};
-
-const detailsLink: React.CSSProperties = {
-  color: "#4DA3FF",
-  textDecoration: "none",
-  fontSize: 14,
-  fontWeight: "bold",
-  background: "#f0f7ff",
-  padding: "5px 10px",
-  borderRadius: 6
-};
+const inputStyle = { padding: "10px", borderRadius: 6, border: "1px solid #ddd", marginBottom: 8, display: "block", width: "100%" as const };
+const formStyle = { padding: 20, border: "1px solid #ddd", borderRadius: 12, background: "#fafafa" };
+const cardStyle = { padding: 15, background: "#fff", borderRadius: 10, boxShadow: "0 2px 4px rgba(0,0,0,0.05)" };
+const btnPrimary = { background: "#4DA3FF", color: "#fff", border: "none", borderRadius: 6, padding: "12px", cursor: "pointer", width: "100%" as const, fontWeight: "bold" as const };
+const detailsLink = { color: "#4DA3FF", textDecoration: "none", fontSize: 13, fontWeight: "bold" as const };
