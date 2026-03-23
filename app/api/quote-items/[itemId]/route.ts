@@ -1,83 +1,45 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/quote-items/:itemId – egy tételsor lekérése
-export async function GET(
-  req: Request,
-  { params }: { params: { itemId: string } }
-) {
-  try {
-    const item = await prisma.quoteItem.findUnique({
-      where: { id: Number(params.itemId) }
-    });
-
-    if (!item) {
-      return Response.json({ error: "A tétel nem található." }, { status: 404 });
-    }
-
-    return Response.json(item);
-  } catch (error) {
-    return Response.json(
-      { error: "Hiba a tételsor lekérésekor." },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT /api/quote-items/:itemId – tételsor módosítása
-export async function PUT(
+export async function PATCH(
   req: Request,
   { params }: { params: { itemId: string } }
 ) {
   try {
     const data = await req.json();
-
-    // új profit számolás
-    let profitAmount = 0;
-
-    if (data.profitType === "percent") {
-      profitAmount = Math.round((data.basePriceNet * data.profitValue) / 100);
-    } else if (data.profitType === "amount") {
-      profitAmount = data.profitValue;
-    }
-
-    const finalPriceNet = data.basePriceNet + profitAmount;
-
-    const updated = await prisma.quoteItem.update({
+    
+    // Frissítés a Prismával
+    const updatedItem = await prisma.quoteItem.update({
       where: { id: Number(params.itemId) },
       data: {
-        name: data.name,
-        basePriceNet: data.basePriceNet,
-        profitValue: data.profitValue,
-        profitType: data.profitType,
-        finalPriceNet,
-        qty: data.qty
-      }
+        // Itt volt a hiba: 'name' helyett 'description' kell
+        description: data.description || data.name, 
+        basePriceNet: data.basePriceNet ? Number(data.basePriceNet) : undefined,
+        profitValue: data.profitValue ? Number(data.profitValue) : undefined,
+        profitType: data.profitType, // 'FIXED' vagy 'PERCENT'
+        quantity: data.quantity ? Number(data.quantity) : undefined,
+        unitPriceNet: data.unitPriceNet ? Number(data.unitPriceNet) : undefined,
+        vatRate: data.vatRate ? Number(data.vatRate) : undefined,
+      },
     });
 
-    return Response.json(updated);
+    return NextResponse.json(updatedItem);
   } catch (error) {
-    return Response.json(
-      { error: "Hiba a tételsor módosításakor." },
-      { status: 500 }
-    );
+    console.error("Hiba a tétel frissítésekor:", error);
+    return NextResponse.json({ error: "Sikertelen frissítés" }, { status: 500 });
   }
 }
 
-// DELETE /api/quote-items/:itemId – törlés
 export async function DELETE(
   req: Request,
   { params }: { params: { itemId: string } }
 ) {
   try {
     await prisma.quoteItem.delete({
-      where: { id: Number(params.itemId) }
+      where: { id: Number(params.itemId) },
     });
-
-    return Response.json({ message: "Tételsor törölve." });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    return Response.json(
-      { error: "Hiba a tételsor törlésekor." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Sikertelen törlés" }, { status: 500 });
   }
 }
