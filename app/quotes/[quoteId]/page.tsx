@@ -53,12 +53,19 @@ export default function QuoteEditPage() {
     setEditingId(null); setDesc(""); setBasePriceNet(0); loadQuote();
   };
 
-  const startEdit = (it: any) => {
+ const startEdit = (it: any) => {
     setEditingId(it.id);
     setDesc(it.description);
     setQty(it.quantity);
     setUnit(it.unit);
-    setBasePriceNet(Math.round(Number(it.unitPriceNet) / 1.2)); // Visszaszámolt alap
+    
+    // Visszaszámoljuk a nettó egységárat, hogy a kalkulátor pontos legyen
+    // Mivel a hasznot bruttóban adod meg, itt a rögzített nettó árból indulunk ki
+    const currentNet = Number(it.unitPriceNet);
+    setBasePriceNet(Math.round(currentNet * 0.8)); // Alapértelmezett 20%-os beszerzési ár becslés
+    setProfitType("fix");
+    setProfitValue(Math.round((currentNet * 1.27) - (currentNet * 0.8 * 1.27)));
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
