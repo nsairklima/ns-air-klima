@@ -115,14 +115,37 @@ export default function ClientsPage() {
           
           <div style={{ display: "grid", gap: 12 }}>
             {!loading && clients.length === 0 && <p style={{ color: "#888" }}>Nincs találat.</p>}
-            {clients.map((c) => (
-              <div key={c.id} style={cardStyle}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div>
-                    <strong style={{ fontSize: 16 }}>{c.name}</strong>
-                    <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>{c.address || "Nincs cím"}</div>
-                  </div>
-                  <Link href={`/clients/${c.id}`} style={detailsLink}>
+            {clients.map((c: any) => {
+  // Megnézzük, van-e sürgős gépe
+  const hasUrgentUnit = c.units?.some((unit: any) => {
+    if (unit.maintenance.length === 0) return true; // Sosem volt tisztítva
+    const lastDate = new Date(unit.maintenance[0].performedDate);
+    const diffDays = Math.ceil(Math.abs(new Date().getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays >= 330;
+  });
+
+  return (
+    <div key={c.id} style={{ 
+      ...cardStyle, 
+      borderLeft: hasUrgentUnit ? "6px solid #e74c3c" : "1px solid #e5e5e5",
+      background: hasUrgentUnit ? "#fffcfc" : "#fff"
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <strong style={{ fontSize: 16 }}>{c.name}</strong>
+            {hasUrgentUnit && (
+              <span style={{ background: "#e74c3c", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: "bold" }}>
+                ESEDÉKES!
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>{c.address || "Nincs cím"}</div>
+          <div style={{ fontSize: 11, color: "#999", marginTop: 4 }}>
+            {c.units?.length || 0} regisztrált gép
+          </div>
+        </div>
+        <Link href={`/clients/${c.id}`} style={detailsLink}>
                     Részletek →
                   </Link>
                 </div>
