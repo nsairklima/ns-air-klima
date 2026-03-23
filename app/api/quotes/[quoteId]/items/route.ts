@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// ÚJ TÉTEL VAGY MÓDOSÍTÁS UTÁNI ÖSSZESÍTŐ SZÁMOLÁS
 async function updateQuoteTotals(quoteId: number) {
   const allItems = await prisma.quoteItem.findMany({ where: { quoteId } });
   const netTotal = allItems.reduce((sum, item) => sum + Number(item.lineNet), 0);
@@ -16,6 +15,7 @@ async function updateQuoteTotals(quoteId: number) {
 export async function POST(req: Request, { params }: { params: { quoteId: string } }) {
   const data = await req.json();
   const quoteId = Number(params.quoteId);
+  
   const newItem = await prisma.quoteItem.create({
     data: {
       quoteId,
@@ -23,16 +23,15 @@ export async function POST(req: Request, { params }: { params: { quoteId: string
       quantity: Number(data.quantity),
       unit: data.unit,
       unitPriceNet: Number(data.unitPriceNet),
-      vatRate: Number(data.vatRate),
+      vatRate: 27,
       lineNet: Number(data.quantity) * Number(data.unitPriceNet),
-      lineGross: Number(data.quantity) * Number(data.unitPriceNet) * (1 + Number(data.vatRate) / 100),
+      lineGross: Math.round(Number(data.quantity) * Number(data.unitPriceNet) * 1.27),
     },
   });
   await updateQuoteTotals(quoteId);
   return NextResponse.json(newItem);
 }
 
-// ÚJ: TÉTEL FRISSÍTÉSE
 export async function PATCH(req: Request, { params }: { params: { quoteId: string } }) {
   const data = await req.json();
   const updatedItem = await prisma.quoteItem.update({
@@ -42,9 +41,8 @@ export async function PATCH(req: Request, { params }: { params: { quoteId: strin
       quantity: Number(data.quantity),
       unit: data.unit,
       unitPriceNet: Number(data.unitPriceNet),
-      vatRate: Number(data.vatRate),
       lineNet: Number(data.quantity) * Number(data.unitPriceNet),
-      lineGross: Number(data.quantity) * Number(data.unitPriceNet) * (1 + Number(data.vatRate) / 100),
+      lineGross: Math.round(Number(data.quantity) * Number(data.unitPriceNet) * 1.27),
     },
   });
   await updateQuoteTotals(Number(params.quoteId));
