@@ -19,6 +19,7 @@ export async function GET(
 
     return NextResponse.json(unit);
   } catch (error) {
+    console.error("Hiba a gép lekérésekor:", error);
     return NextResponse.json({ error: "Szerver hiba" }, { status: 500 });
   }
 }
