@@ -29,19 +29,33 @@ export default function ClientDetailsPage() {
 const handleAddUnit = async (e: React.FormEvent) => {
   e.preventDefault();
   
-  // FONTOS: Az URL-nek tartalmaznia kell az ügyfél ID-t!
-  const res = await fetch(`/api/clients/${params.id}/units`, {
+  // Összeállítjuk az adatokat a meglévő state-ekből
+  const payload = {
+    brand: brand,
+    model: model,
+    serialNumber: serial, // Nálad 'serial' az állapot neve, de az adatbázis 'serialNumber'-t vár
+    location: location
+  };
+
+  const res = await fetch(`/api/clients/${Id}/units`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newUnitData), // brand, model, serialNumber, location
+    body: JSON.stringify(payload), 
   });
 
   if (res.ok) {
-    // Ha sikerült, frissítjük a listát vagy ürítjük a formot
-    setNewUnitData({ brand: "", model: "", serialNumber: "", location: "" });
-    fetchClientData(); // Ez újra lekéri az ügyfelet a friss géplistával
+    // Mezők ürítése
+    setBrand("");
+    setModel("");
+    setSerial("");
+    setLocation("");
+    setShowUnitForm(false);
+    
+    // Újratöltjük az adatokat, hogy megjelenjen az új gép
+    loadClientData(); 
   } else {
-    alert("Hiba történt a mentés során!");
+    const errorData = await res.json();
+    alert("Hiba történt: " + (errorData.error || "Ismeretlen hiba"));
   }
 };
 
