@@ -1,89 +1,92 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import PDFDocument from "pdfkit";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: { quoteId: string } }
 ) {
   try {
-    const quoteId = Number(params.quoteId);
-
+    const id = Number(params.quoteId);
     const quote = await prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: { items: true, client: true },
+      where: { id },
+      include: {
+        client: true,
+        items: true,
+      },
     });
 
     if (!quote) {
-      return NextResponse.json(
-        { error: "Ajánlat nem található." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Ajánlat nem található" }, { status: 404 });
     }
 
     // PDF létrehozása
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage();
-    const { width } = page.getSize();
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks: any[] = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
 
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    // Fejléc
+    doc.fontSize(20).text("ÁRAJÁNLAT", { align: "center" });
+    doc.moveDown();
 
-    let y = 750;
+    let y = 100;
     const line = (text: string, size = 12) => {
-      page.drawText(text, {
-        x: 50,
-        y,
-        size,
-        font,
-        color: rgb(0, 0, 0),
-      });
-      y -= size + 8;
+      doc.fontSize(size).text(text, 50, y);
+      y += size + 5;
     };
 
-    line("ÁRAJÁNLAT", 24);
-    y -= 10;
-
-    line(`Ügyfél: ${quote.client.name}`, 14);
-    if (quote.client.address) line(`Cím: ${quote.client.address}`);
-    if (quote.client.email) line(`Email: ${quote.client.email}`);
-    if (quote.client.phone) line(`Telefon: ${quote.client.phone}`);
-
-    y -= 10;
-
+    // Alapadatok
     line(`Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`);
+    // JAVÍTÁS: quoteNo helyett id-t használunk
     line(`Ajánlat száma: #${quote.id}`);
     line(`Státusz: ${quote.status === 'accepted' ? 'Elfogadva' : 'Folyamatban'}`);
-    y -= 10;
+    y += 10;
 
-    line("Tételek:", 18);
+    // Ügyfél adatok
+    line("Ügyfél adatai:", 14);
+    line(`Név: ${quote.client.name}`);
+    line(`Cím: ${quote.client.address || "-"}`);
+    line(`Telefon: ${quote.client.phone || "-"}`);
+    y += 20;
 
-    quote.items.forEach((i) => {
-      line(
-        `${i.name} — ${i.qty} × ${i.finalPriceNet} Ft = ${
-          i.qty * i.finalPriceNet
-        } Ft`
-      );
+    // Tételek táblázat fejléce
+    line("Tételek:", 14);
+    doc.rect(50, y, 500, 20).fill("#f0f0f0");
+    doc.fillColor("#000").fontSize(10).text("Leírás", 60, y + 5);
+    doc.text("Menny.", 300, y + 5);
+    doc.text("Egységár", 380, y + 5);
+    doc.text("Összesen", 460, y + 5);
+    y += 25;
+
+    // Tételek listázása
+    quote.items.forEach((item) => {
+      doc.fontSize(10).text(item.description, 60, y);
+      doc.text(`${item.quantity} ${item.unit || "db"}`, 300, y);
+      doc.text(`${item.unitPriceNet.toLocaleString()} Ft`, 380, y);
+      doc.text(`${item.lineGross.toLocaleString()} Ft`, 460, y);
+      y += 15;
     });
 
-    y -= 10;
+    y += 20;
+    // Összesítő
+    doc.rect(350, y, 200, 40).stroke();
+    doc.fontSize(12).text(`Nettó: ${quote.netTotal.toLocaleString()} Ft`, 360, y + 5);
+    doc.fontSize(14).text(`BRUTTÓ: ${quote.grossTotal.toLocaleString()} Ft`, 360, y + 20);
 
-    line(`Nettó összesen: ${quote.netTotal} Ft`, 14);
-    line(`ÁFA: ${quote.vatAmount} Ft`);
-    line(`Bruttó összesen: ${quote.grossTotal} Ft`);
+    doc.end();
 
-    const pdfBytes = await pdfDoc.save();
+    const pdfBuffer = await new Promise<Buffer>((resolve) => {
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+    });
 
-    return new NextResponse(pdfBytes, {
-      status: 200,
+    return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename=ajanlat-${quoteId}.pdf`,
+        "Content-Disposition": `attachment; filename=ajanlat_${quote.id}.pdf`,
       },
     });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "PDF generálás hiba." }, { status: 500 });
+  } catch (error) {
+    console.error("PDF hiba:", error);
+    return NextResponse.json({ error: "PDF generálási hiba" }, { status: 500 });
   }
 }
