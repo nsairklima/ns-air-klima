@@ -7,17 +7,15 @@ type QuoteItem = {
   id: number;
   description: string;
   quantity: number;
+  unit: string;
   unitPriceNet: number;
-  vatRate: number;
   lineGross: number;
 };
 
 type Quote = {
   id: number;
-  status: string;
-  client: { name: string; email: string };
+  client: { name: string };
   items: QuoteItem[];
-  netTotal: number;
   grossTotal: number;
 };
 
@@ -28,13 +26,13 @@ export default function QuoteEditPage() {
   const [q, setQ] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Új tétel mezői a kalkulátorhoz
+  // Új tétel mezők
   const [desc, setDesc] = useState("");
   const [qty, setQty] = useState(1);
-  const [basePrice, setBasePrice] = useState<number>(0); 
+  const [unit, setUnit] = useState("db"); // ÚJ: egység (db, m, szett)
+  const [basePrice, setBasePrice] = useState(0);
   const [profitType, setProfitType] = useState<"percent" | "fix">("percent");
-  const [profitValue, setProfitValue] = useState<number>(20); 
-  const [vat, setVat] = useState(27);
+  const [profitValue, setProfitValue] = useState(20);
 
   const loadQuote = async () => {
     const res = await fetch(`/api/quotes/${quoteId}`);
@@ -44,120 +42,94 @@ export default function QuoteEditPage() {
 
   useEffect(() => { if (quoteId) loadQuote(); }, [quoteId]);
 
-  // AUTOMATIKUS SZÁMÍTÁSOK
   const calculatedUnitPriceNet = profitType === "percent" 
     ? basePrice * (1 + profitValue / 100) 
     : basePrice + profitValue;
-  
-  const lineProfit = (calculatedUnitPriceNet - basePrice) * qty;
 
   const addItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch(`/api/quotes/${quoteId}/items`, {
+    await fetch(`/api/quotes/${quoteId}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         description: desc,
         quantity: qty,
+        unit: unit,
         unitPriceNet: Math.round(calculatedUnitPriceNet),
-        vatRate: vat,
+        vatRate: 27,
       }),
     });
-    if (res.ok) {
-      setDesc("");
-      setBasePrice(0);
-      loadQuote();
-    }
+    setDesc(""); setBasePrice(0); loadQuote();
   };
 
-  const sendEmail = async () => {
-    if (!confirm("Biztosan elküldöd az ajánlatot az ügyfélnek?")) return;
-    const res = await fetch(`/api/quotes/${quoteId}/send`, { method: "POST" });
-    if (res.ok) alert("E-mail sikeresen elküldve!");
-    else alert("Hiba történt a küldéskor.");
+  const deleteItem = async (itemId: number) => {
+    if (!confirm("Biztosan törlöd ezt a tételt?")) return;
+    const res = await fetch(`/api/quotes/${quoteId}/items?id=${itemId}`, { method: "DELETE" });
+    if (res.ok) loadQuote();
   };
 
-  if (loading) return <div style={{ padding: 20 }}>Betöltés...</div>;
-  if (!q) return <div style={{ padding: 20 }}>Ajánlat nem található.</div>;
+  if (loading) return <div style={{padding:20}}>Betöltés...</div>;
+  if (!q) return <div style={{padding:20}}>Nincs meg az ajánlat.</div>;
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: "0 auto", fontFamily: "Arial" }}>
-      <a href="/quotes" style={{ color: "#666", textDecoration: "none" }}>← Vissza az összes ajánlathoz</a>
-      
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20 }}>
-        <h1>Ajánlat: {q.client?.name}</h1>
-        <div style={{ display: "flex", gap: 10 }}>
-          <a href={`/api/quotes/${quoteId}/pdf`} target="_blank" style={btnStyle}>PDF megtekintése</a>
-          <button onClick={sendEmail} style={btnPrimary}>E-mail küldése</button>
-        </div>
-      </div>
+      <h1>{q.client?.name} ajánlata</h1>
 
-      {/* KALKULÁTOR KÁRTYA */}
-      <div style={{ background: "#f8f9fa", border: "1px solid #ddd", padding: 20, borderRadius: 12, marginTop: 20 }}>
-        <h3 style={{ marginTop: 0 }}>+ Új tétel kalkulátor</h3>
-        <form onSubmit={addItem} style={{ display: "grid", gap: 12 }}>
-          <input placeholder="Tétel leírása (pl. Gree Pulse 3.5kW)" value={desc} onChange={e => setDesc(e.target.value)} style={inputStyle} required />
+      <div style={{ background: "#f4f4f4", padding: 20, borderRadius: 12 }}>
+        <h3>+ Új tétel</h3>
+        <form onSubmit={addItem} style={{ display: "grid", gap: 10 }}>
+          <input placeholder="Leírás" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
           
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <div style={{ flex: "1 1 150px" }}>
-              <label style={labelStyle}>Beszerzési ár (Nettó Ft)</label>
-              <input type="number" value={basePrice} onChange={e => setBasePrice(Number(e.target.value))} style={inputStyle} />
-            </div>
-            <div style={{ flex: "1 1 150px" }}>
-              <label style={labelStyle}>Haszon típusa</label>
-              <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={inputStyle}>
-                <option value="percent">Százalék (%)</option>
-                <option value="fix">Fix összeg (Ft)</option>
-              </select>
-            </div>
-            <div style={{ flex: "1 1 150px" }}>
-              <label style={labelStyle}>Haszon mértéke</label>
-              <input type="number" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={inputStyle} />
-            </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <input type="number" placeholder="Menny." value={qty} onChange={e => setQty(Number(e.target.value))} style={{...inputS, width: 80}} />
+            <select value={unit} onChange={e => setUnit(e.target.value)} style={{...inputS, width: 100}}>
+              <option value="db">db</option>
+              <option value="m">m</option>
+              <option value="szett">szett</option>
+              <option value="pár">pár</option>
+              <option value="óra">óra</option>
+            </select>
+            <input type="number" placeholder="Beszerzési ár" value={basePrice} onChange={e => setBasePrice(Number(e.target.value))} style={inputS} />
+            <input type="number" placeholder="Haszon" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={{...inputS, width: 100}} />
+            <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{...inputS, width: 80}}>
+              <option value="percent">%</option>
+              <option value="fix">Ft</option>
+            </select>
           </div>
-
-          <div style={{ background: "#e1f5fe", padding: 12, borderRadius: 8, border: "1px solid #b3e5fc" }}>
-            <span style={{ fontSize: "14px", color: "#0277bd" }}>
-              <strong>Admin infó:</strong> Eladási nettó: <strong>{Math.round(calculatedUnitPriceNet).toLocaleString()} Ft</strong> | 
-              Várható profit: <strong style={{ color: "#2e7d32" }}>{Math.round(lineProfit).toLocaleString()} Ft</strong>
-            </span>
-          </div>
-
-          <button type="submit" style={btnSuccess}>Tétel hozzáadása</button>
+          <button type="submit" style={{ background: "#28a745", color: "#fff", padding: 10, border: "none", borderRadius: 8, cursor: "pointer" }}>
+            Hozzáadás
+          </button>
         </form>
       </div>
 
-      {/* TÁBLÁZAT */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 30 }}>
+      <table style={{ width: "100%", marginTop: 20, borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ borderBottom: "2px solid #333", textAlign: "left" }}>
-            <th style={{ padding: 10 }}>Megnevezés</th>
+          <tr style={{ borderBottom: "2px solid #ddd", textAlign: "left" }}>
+            <th style={{ padding: 10 }}>Tétel</th>
             <th>Menny.</th>
             <th>Nettó egységár</th>
-            <th style={{ textAlign: "right" }}>Bruttó</th>
+            <th>Bruttó összesen</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           {q.items.map(it => (
             <tr key={it.id} style={{ borderBottom: "1px solid #eee" }}>
               <td style={{ padding: 10 }}>{it.description}</td>
-              <td>{it.quantity} db</td>
+              <td>{it.quantity} {it.unit}</td>
               <td>{it.unitPriceNet.toLocaleString()} Ft</td>
-              <td style={{ textAlign: "right" }}>{it.lineGross.toLocaleString()} Ft</td>
+              <td>{it.lineGross.toLocaleString()} Ft</td>
+              <td>
+                <button onClick={() => deleteItem(it.id)} style={{ background: "none", border: "none", color: "red", cursor: "pointer", fontSize: 18 }}>🗑️</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
-
-      <div style={{ marginTop: 30, textAlign: "right" }}>
-        <p style={{ fontSize: "18px", fontWeight: "bold" }}>Fizetendő bruttó: {q.grossTotal.toLocaleString()} Ft</p>
-      </div>
+      
+      <h2 style={{ textAlign: "right", marginTop: 20 }}>Összesen: {q.grossTotal.toLocaleString()} Ft</h2>
     </div>
   );
 }
 
-const inputStyle = { width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #ccc", boxSizing: "border-box" as const };
-const labelStyle = { fontSize: "12px", color: "#666", display: "block", marginBottom: 4 };
-const btnStyle = { padding: "10px 16px", borderRadius: 8, border: "1px solid #ccc", background: "#fff", cursor: "pointer", textDecoration: "none", color: "#000", fontSize: "14px" };
-const btnPrimary = { ...btnStyle, background: "#0070f3", color: "#fff", border: "none" };
-const btnSuccess = { ...btnStyle, background: "#28a745", color: "#fff", border: "none", fontWeight: "bold" };
+const inputS = { padding: "10px", borderRadius: 8, border: "1px solid #ccc" };
