@@ -65,15 +65,23 @@ export default function QuoteEditPage() {
     setProfitType("fix");
   };
 
-  const startEdit = (it: any) => {
+const startEdit = (it: any) => {
     setEditingId(it.id);
     setDesc(it.description);
-    setQty(it.quantity);
-    setUnit(it.unit);
-    // Szerkesztésnél az elmentett nettót rakjuk be alapnak, 0 haszonnal indítunk
-    setBasePriceNet(Math.round(it.unitPriceNet)); 
-    setProfitValue(0);
+    setQty(Number(it.quantity));
+    setUnit(it.unit || "db");
+    
+    // Itt a lényeg: A costNet-et használjuk, ami az adatbázisban van!
+    // Ha az valamiért üres, akkor használjuk a nettó egységárat.
+    const savedBasePrice = it.costNet ? Number(it.costNet) : Number(it.unitPriceNet);
+    setBasePriceNet(savedBasePrice);
+    
+    // Haszon beállítása:
+    // Szerkesztéskor fix 0 Ft hasznot állítunk be alapból, 
+    // így a Bázis ár + 0 haszon = pontosan az elmentett ár lesz.
+    setProfitValue(0); 
     setProfitType("fix");
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
