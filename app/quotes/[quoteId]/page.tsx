@@ -9,6 +9,7 @@ export default function QuoteEditPage() {
   const [q, setQ] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Kalkulátor állapotok
   const [editingId, setEditingId] = useState<number | null>(null);
   const [desc, setDesc] = useState("");
   const [qty, setQty] = useState(1);
@@ -25,12 +26,18 @@ export default function QuoteEditPage() {
 
   useEffect(() => { if (quoteId) loadQuote(); }, [quoteId]);
 
-  // KISZÁMÍTOTT ELADÁSI ÁRAK
-  const currentBaseGross = basePriceNet * 1.27;
-  const currentSellGross = profitType === "percent" 
-    ? currentBaseGross * (1 + profitValue / 100) 
-    : currentBaseGross + profitValue;
-  const currentSellNet = currentSellGross / 1.27;
+  // --- PRECIZ MATEK ---
+  const basePriceGross = basePriceNet * 1.27;
+  
+  let sellPriceGross = 0;
+  if (profitType === "percent") {
+    sellPriceGross = basePriceGross * (1 + (profitValue / 100));
+  } else {
+    sellPriceGross = basePriceGross + profitValue;
+  }
+
+  const sellPriceNet = sellPriceGross / 1.27;
+  const totalLineGross = sellPriceGross * qty;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +49,7 @@ export default function QuoteEditPage() {
         description: desc,
         quantity: qty,
         unit,
-        unitPriceNet: Math.round(currentSellNet),
+        unitPriceNet: Math.round(sellPriceNet),
       }),
     });
     resetForm();
@@ -55,6 +62,7 @@ export default function QuoteEditPage() {
     setQty(1);
     setBasePriceNet(0);
     setProfitValue(0);
+    setProfitType("fix");
   };
 
   const startEdit = (it: any) => {
@@ -62,10 +70,9 @@ export default function QuoteEditPage() {
     setDesc(it.description);
     setQty(it.quantity);
     setUnit(it.unit);
-    // Itt a trükk: a már elmentett nettó árat rakjuk be beszerzési árnak, 
-    // és a hasznot 0-ra állítjuk, így pontosan az elmentett összeg jelenik meg!
-    setBasePriceNet(it.unitPriceNet); 
-    setProfitValue(0); 
+    // Szerkesztésnél az elmentett nettót rakjuk be alapnak, 0 haszonnal indítunk
+    setBasePriceNet(Math.round(it.unitPriceNet)); 
+    setProfitValue(0);
     setProfitType("fix");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -74,112 +81,109 @@ export default function QuoteEditPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial" }}>
-      <h1 style={{color: editingId ? "#e67e22" : "#2c3e50"}}>
-        {editingId ? "Tétel pontosítása" : `Ajánlat: ${q?.client?.name}`}
-      </h1>
+      <div style={{display: "flex", justifyContent: "space-between", marginBottom: 20}}>
+         <a href="/quotes" style={{color: "#666", textDecoration: "none"}}>← Vissza</a>
+         <h2 style={{margin: 0}}>{q?.client?.name} ajánlata</h2>
+      </div>
 
-      <div style={{ background: editingId ? "#fffdfa" : "#f8f9fa", padding: 25, borderRadius: 15, border: editingId ? "2px solid #e67e22" : "1px solid #ddd" }}>
+      {/* OKOS KALKULÁTOR PANEL */}
+      <div style={{ background: editingId ? "#fff9f0" : "#f8f9fa", padding: 25, borderRadius: 15, border: "1px solid #ddd", boxShadow: "0 4px 6px rgba(0,0,0,0.05)" }}>
+        <h3 style={{marginTop: 0, color: editingId ? "#e67e22" : "#333"}}>
+            {editingId ? "Tétel szerkesztése" : "Új tétel hozzáadása"}
+        </h3>
+        
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
-          <input placeholder="Tétel leírása..." value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
+          <input placeholder="Megnevezés (pl. Gree Pulse 3.5kW)" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
           
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <div style={{flex: 1}}>
-              <label style={labS}>Menny. és egység</label>
+            <div style={{flex: 1, minWidth: "120px"}}>
+              <label style={labS}>Mennyiség</label>
               <div style={{display: "flex", gap: 5}}>
                 <input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} style={inputS} />
                 <select value={unit} onChange={e => setUnit(e.target.value)} style={inputS}>
                   <option value="db">db</option>
                   <option value="m">m</option>
                   <option value="szett">szett</option>
+                  <option value="óra">óra</option>
                 </select>
               </div>
             </div>
 
-            <div style={{flex: 1.5}}>
-              <label style={labS}>Bázis ár (Nettó Ft)</label>
+            <div style={{flex: 1.5, minWidth: "180px"}}>
+              <label style={labS}>Nettó Beszerzési Ár (Ft)</label>
               <input type="number" value={basePriceNet} onChange={e => setBasePriceNet(Number(e.target.value))} style={inputS} />
             </div>
 
-            <div style={{flex: 1.5}}>
-              <label style={labS}>Extra haszon (Bruttó Ft)</label>
-              <input type="number" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={inputS} />
+            <div style={{flex: 1.5, minWidth: "180px"}}>
+              <label style={labS}>Haszon (Bruttóban)</label>
+              <div style={{display: "flex", gap: 5}}>
+                <input type="number" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={inputS} />
+                <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{...inputS, width: "80px"}}>
+                  <option value="fix">Ft</option>
+                  <option value="percent">%</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <div style={{ background: "#f0f7ff", padding: 15, borderRadius: 10, border: "1px solid #cce3f5" }}>
-            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-              <span>Ügyfél által látott <strong>Bruttó egységár:</strong></span>
-              <strong style={{fontSize: "20px"}}>{Math.round(currentSellGross).toLocaleString()} Ft</strong>
+          {/* EREDMÉNY KIJELZŐ */}
+          <div style={{ background: "#e1f5fe", padding: 15, borderRadius: 10, border: "1px solid #b3e5fc", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <span style={{fontSize: "12px", color: "#0277bd", fontWeight: "bold", textTransform: "uppercase"}}>Ügyfél ára (Bruttó):</span><br/>
+              <strong style={{fontSize: "24px", color: "#01579b"}}>{Math.round(sellPriceGross).toLocaleString()} Ft / {unit}</strong>
+            </div>
+            <div style={{textAlign: "right"}}>
+               <span style={{fontSize: "12px", color: "#0277bd"}}>Sor összesen (Bruttó):</span><br/>
+               <strong style={{fontSize: "20px"}}>{Math.round(totalLineGross).toLocaleString()} Ft</strong>
             </div>
           </div>
 
           <div style={{display: "flex", gap: 10}}>
-            <button type="submit" style={{ flex: 2, background: editingId ? "#e67e22" : "#27ae60", color: "#fff", padding: 15, border: "none", borderRadius: 10, cursor: "pointer", fontWeight: "bold" }}>
-              {editingId ? "MÓDOSÍTÁSOK MENTÉSE" : "HOZZÁADÁS"}
+            <button type="submit" style={{ flex: 2, background: editingId ? "#e67e22" : "#27ae60", color: "#fff", padding: "15px", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: "bold", fontSize: "16px" }}>
+              {editingId ? "MÓDOSÍTÁS MENTÉSE" : "TÉTEL HOZZÁADÁSA"}
             </button>
-            {editingId && <button onClick={resetForm} type="button" style={{flex: 1, borderRadius: 10, border: "1px solid #ccc"}}>Mégse</button>}
+            {editingId && <button onClick={resetForm} type="button" style={{flex: 1, borderRadius: 10, border: "1px solid #ccc", background: "#fff"}}>Mégse</button>}
           </div>
         </form>
       </div>
 
-      <table style={{ width: "100%", marginTop: 30, borderCollapse: "collapse" }}>
+      {/* TÁBLÁZAT */}
+      <table style={{ width: "100%", marginTop: 40, borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ borderBottom: "2px solid #333", textAlign: "left" }}>
-            <th style={{ padding: 10 }}>Leírás</th>
-            <th>Egységár (Bruttó)</th>
-            <th style={{ textAlign: "right" }}>Összesen (Bruttó)</th>
-            <th></th>
+            <th style={{ padding: "12px 10px" }}>Tétel leírása</th>
+            <th>Menny.</th>
+            <th>Bruttó egységár</th>
+            <th style={{ textAlign: "right" }}>Bruttó összesen</th>
+            <th style={{ textAlign: "right" }}>Műveletek</th>
           </tr>
         </thead>
         <tbody>
           {q?.items.map((it: any) => (
             <tr key={it.id} style={{ borderBottom: "1px solid #eee" }}>
-              <td style={{ padding: 12 }}>
-                <div style={{ fontWeight: "bold" }}>{it.description}</div>
-                <small style={{ color: "#888" }}>
-                  {it.quantity} {it.unit} × {Math.round(it.unitPriceNet).toLocaleString()} Ft nettó
-                </small>
+              <td style={{ padding: "15px 10px" }}>
+                <div style={{fontWeight: "bold"}}>{it.description}</div>
+                <small style={{color: "#888"}}>{Math.round(it.unitPriceNet).toLocaleString()} Ft nettó / {it.unit}</small>
               </td>
-              <td style={{ verticalAlign: "middle" }}>
-                {Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft
-              </td>
-              <td style={{ textAlign: "right", fontWeight: "bold", verticalAlign: "middle" }}>
-                {it.lineGross.toLocaleString()} Ft
-              </td>
-              <td style={{ textAlign: "right", verticalAlign: "middle", whiteSpace: "nowrap" }}>
-                {/* SZERKESZTÉS GOMB */}
-                <button 
-                  onClick={() => startEdit(it)} 
-                  style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer", marginRight: 8 }}
-                  title="Szerkesztés"
-                >
-                  ✏️
-                </button>
-                
-                {/* TÖRLÉS GOMB */}
-                <button 
-                  onClick={() => {
-                    if (confirm("Biztosan törlöd ezt a tételt?")) {
-                      fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, { method: "DELETE" })
-                        .then(res => {
-                          if (res.ok) loadQuote();
-                          else alert("Hiba a törlés során");
-                        });
-                    }
-                  }} 
-                  style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer" }}
-                  title="Törlés"
-                >
-                  🗑️
-                </button>
+              <td>{it.quantity} {it.unit}</td>
+              <td>{Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft</td>
+              <td style={{ textAlign: "right", fontWeight: "bold" }}>{it.lineGross.toLocaleString()} Ft</td>
+              <td style={{ textAlign: "right" }}>
+                <button onClick={() => startEdit(it)} style={{background: "#f39c12", color: "white", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer", marginRight: 5}}>✏️</button>
+                <button onClick={() => { if(confirm("Törlöd?")) fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote) }} style={{background: "#e74c3c", color: "white", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer"}}>🗑️</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      <div style={{marginTop: 30, borderTop: "3px solid #333", paddingTop: 20, textAlign: "right"}}>
+        <span style={{fontSize: "18px"}}>Végösszeg:</span><br/>
+        <strong style={{fontSize: "32px"}}>{q?.grossTotal.toLocaleString()} Ft</strong>
+      </div>
     </div>
   );
 }
 
-const inputS = { width: "100%", padding: "12px", borderRadius: 8, border: "1px solid #ccc", boxSizing: "border-box" as const };
-const labS = { fontSize: "11px", fontWeight: "bold", marginBottom: 4, display: "block", color: "#7f8c8d", textTransform: "uppercase" as const };
+const inputS = { width: "100%", padding: "12px", borderRadius: 8, border: "1px solid #ccc", boxSizing: "border-box" as const, fontSize: "16px" };
+const labS = { fontSize: "12px", fontWeight: "bold", marginBottom: 5, display: "block", color: "#555" };
