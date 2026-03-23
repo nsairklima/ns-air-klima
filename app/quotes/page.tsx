@@ -109,9 +109,9 @@ export default function QuoteDetailPage() {
  
 return (
   <div style={{ padding: 24, fontFamily: "Arial, sans-serif", maxWidth: 900, margin: "0 auto" }}>
-    /quotes
-      ← Vissza az ajánlatokhoz
-    </a>
+    <a href="/quotes">
+  ← Vissza az ajánlatokhoz
+</a>
 
     <h1 style={{ marginTop: 12 }}>Ajánlatok</h1>
 
