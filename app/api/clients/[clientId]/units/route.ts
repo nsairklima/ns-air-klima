@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: Request,
-  { params }: { params: { clientId: string } } // Itt most clientId-t használunk
+  { params }: { params: { clientId: string } } // Itt clientId-t várunk
 ) {
   try {
-    const cId = Number(params.clientId); // Itt is clientId-t olvasunk ki
+    const cId = Number(params.clientId); // Itt is clientId-t használunk
     const data = await req.json();
 
     const newUnit = await prisma.clientUnit.create({
@@ -23,7 +23,7 @@ export async function POST(
 
     return NextResponse.json(newUnit);
   } catch (error) {
-    console.error("Hiba:", error);
+    console.error("API Hiba:", error);
     return NextResponse.json({ error: "Hiba a mentéskor" }, { status: 500 });
   }
 }
@@ -39,6 +39,6 @@ export async function GET(
     });
     return NextResponse.json(units);
   } catch (error) {
-    return NextResponse.json({ error: "Hiba" }, { status: 500 });
+    return NextResponse.json({ error: "Hiba a lekéréskor" }, { status: 500 });
   }
 }
