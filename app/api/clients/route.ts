@@ -11,14 +11,23 @@ export async function GET(req: Request) {
         OR: [
           { name: { contains: query, mode: 'insensitive' } },
           { address: { contains: query, mode: 'insensitive' } },
-          { phone: { contains: query, mode: 'insensitive' } },
         ]
       } : {},
+      include: {
+        units: {
+          include: {
+            maintenance: {
+              orderBy: { performedDate: "desc" },
+              take: 1
+            }
+          }
+        }
+      },
       orderBy: { name: "asc" },
     });
 
     return NextResponse.json(clients);
   } catch (error) {
-    return NextResponse.json({ error: "Hiba a kereséskor" }, { status: 500 });
+    return NextResponse.json({ error: "Hiba" }, { status: 500 });
   }
 }
