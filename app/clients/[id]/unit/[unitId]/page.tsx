@@ -16,15 +16,23 @@ export default function UnitMaintenancePage() {
   const [desc, setDesc] = useState("Általános tisztítás, fertőtlenítés");
   const [performedDate, setPerformedDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const loadData = async () => {
+ const loadData = async () => {
+  try {
+    // Ellenőrizd, hogy az elérési út pontosan ez-e az API-hoz:
     const res = await fetch(`/api/clients/${clientId}/units/${unitId}`);
     if (res.ok) {
       const data = await res.json();
       setUnit(data);
       setLogs(data.maintenance || []);
+    } else {
+      console.error("Hiba a letöltéskor:", await res.text());
     }
+  } catch (err) {
+    console.error("Hálózati hiba:", err);
+  } finally {
     setLoading(false);
-  };
+  }
+};
 
   useEffect(() => { if (unitId) loadData(); }, [unitId]);
 
