@@ -2,13 +2,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/clients/[clientId] – Egy ügyfél adatai
+// GET /api/clients/[Id] – Egy ügyfél adatai
 export async function GET(
   _req: Request,
-  { params }: { params: { clientId: string } }
+  { params }: { params: { Id: string } }
 ) {
   try {
-    const id = Number(params.clientId);
+    const id = Number(params.Id);
     const client = await prisma.client.findUnique({ where: { id } });
     if (!client) {
       return NextResponse.json(
@@ -25,13 +25,13 @@ export async function GET(
   }
 }
 
-// PATCH /api/clients/[clientId] – Ügyfél frissítése (név, email, telefon, cím)
+// PATCH /api/clients/[Id] – Ügyfél frissítése (név, email, telefon, cím)
 export async function PATCH(
   req: Request,
-  { params }: { params: { clientId: string } }
+  { params }: { params: { Id: string } }
 ) {
   try {
-    const id = Number(params.clientId);
+    const id = Number(params.Id);
     const body = await req.json();
 
     const name = (body.name || "").trim();
@@ -57,9 +57,9 @@ export async function PATCH(
   }
 }
 
-// (Opcionális) DELETE /api/clients/[clientId]
-// export async function DELETE(_req: Request, { params }: { params: { clientId: string } }) {
-//   const id = Number(params.clientId);
+// (Opcionális) DELETE /api/clients/[Id]
+// export async function DELETE(_req: Request, { params }: { params: { Id: string } }) {
+//   const id = Number(params.Id);
 //   await prisma.client.delete({ where: { id } });
 //   return NextResponse.json({ ok: true });
 // }
