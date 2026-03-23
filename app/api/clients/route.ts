@@ -1,34 +1,24 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/clients – összes ügyfél listázása
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get("search");
+
     const clients = await prisma.client.findMany({
-      orderBy: { id: "desc" }
-    });
-    return Response.json(clients);
-  } catch (error) {
-    return Response.json({ error: "Hiba történt ügyfelek lekérésekor." }, { status: 500 });
-  }
-}
-
-// POST /api/clients – új ügyfél létrehozása
-export async function POST(req: Request) {
-  try {
-    const data = await req.json();
-
-    const newClient = await prisma.client.create({
-      data: {
-        name: data.name,
-        address: data.address,
-        phone: data.phone,
-        email: data.email,
-        notes: data.notes || ""
-      }
+      where: query ? {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { address: { contains: query, mode: 'insensitive' } },
+          { phone: { contains: query, mode: 'insensitive' } },
+        ]
+      } : {},
+      orderBy: { name: "asc" },
     });
 
-    return Response.json(newClient);
+    return NextResponse.json(clients);
   } catch (error) {
-    return Response.json({ error: "Hiba új ügyfél létrehozásakor." }, { status: 500 });
+    return NextResponse.json({ error: "Hiba a kereséskor" }, { status: 500 });
   }
 }
