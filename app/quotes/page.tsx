@@ -174,3 +174,4 @@ function statusBtn(target: Quote["status"], current: Quote["status"]): React.CSS
   if (current === "accepted") return { ...base, background: "#e9f9ee" };
   return { ...base, background: "#ffe5e5" };
 }
+``
