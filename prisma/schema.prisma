@@ -112,20 +112,20 @@ model QuoteItem {
   quote         Quote    @relation(fields: [quoteId], references: [id])
 
   description   String
-  quantity      Decimal  @default(1)   // mennyiség
-  unit          String?                // mértékegység (pl. db, óra)
-  unitPriceNet  Decimal  @default(0)   // nettó egységár
-  vatRate       Decimal  @default(27)  // ÁFA %
+  quantity      Decimal  @default(1)
+  unit          String?  
+  unitPriceNet  Decimal  @default(0) // Ez az eladási nettó
+  vatRate       Decimal  @default(27)
 
-  // Sorösszegek – a backend számolja ki mentéskor
+  // Sorösszegek
   lineNet       Decimal  @default(0)
   lineVat       Decimal  @default(0)
   lineGross     Decimal  @default(0)
 
-  // (opcionális) költség és profit
-  costNet       Decimal?
-  profitAbs     Decimal?
-  profitPct     Decimal?
+  // IDE ILLESZD BE / ELLENŐRIZD:
+  costNet       Decimal? @default(0) // <--- Ez lesz a "Beszerzési ár"
+  profitAbs     Decimal? @default(0) // <--- Ez a "Fix haszon"
+  profitPct     Decimal? @default(0) // <--- Ez a "%-os haszon"
 
   createdAt     DateTime @default(now())
 }
