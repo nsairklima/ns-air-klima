@@ -4,28 +4,29 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: Request,
-  { params }: { params: { clientId: string } } // Itt clientId-t várunk
+  { params }: { params: { id: string } }
 ) {
   try {
-    const cId = Number(params.clientId); // Itt is clientId-t használunk
+    const clientId = Number(params.id); // Itt vesszük át az URL-ből az ügyfél ID-t
     const data = await req.json();
 
+    // Itt történik a mentés a Prisma-val
     const newUnit = await prisma.clientUnit.create({
       data: {
-        clientId: cId,
+        clientId: clientId,
         brand: data.brand,
         model: data.model,
         serialNumber: data.serialNumber,
         location: data.location,
-        periodMonths: 12, 
+        periodMonths: 12, // Alapértelmezett 1 év
         installation: new Date(),
       },
     });
 
     return NextResponse.json(newUnit);
   } catch (error) {
-    console.error("API Hiba:", error);
-    return NextResponse.json({ error: "Hiba a mentéskor" }, { status: 500 });
+    console.error("Hiba a gép mentésekor:", error);
+    return NextResponse.json({ error: "Nem sikerült a gép mentése" }, { status: 500 });
   }
 }
 
