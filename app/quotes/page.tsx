@@ -106,13 +106,20 @@ export default function QuoteDetailPage() {
   if (loading) return <div style={wrap}><p>Betöltés…</p></div>;
   if (!q) return <div style={wrap}><p>Ajánlat nem található.</p></div>;
 
-  return (
-    <div style={wrap}>
-      /quotes← Vissza az ajánlatokhoz</a>
-      <h1 style={{ marginTop: 12 }}>Ajánlat #{q.id}</h1>
-      <div style={{ color: "#444" }}>
-        Ügyfél: <strong>{q.client?.name || `#${q.id}`}</strong>
-      </div>
+ 
+return (
+  <div style={{ padding: 24, fontFamily: "Arial, sans-serif", maxWidth: 900, margin: "0 auto" }}>
+    /quotes
+      ← Vissza az ajánlatokhoz
+    </a>
+
+    <h1 style={{ marginTop: 12 }}>Ajánlatok</h1>
+
+    {/* Új ajánlat űrlap – a korábbi űrlapod maradhat változatlanul */}
+    {/* ...itt jön a te form/layout kódod... */}
+
+  </div>
+
 
       <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={() => setStatus("draft")} style={statusBtn("draft", q.status)}>Piszkozat</button>
