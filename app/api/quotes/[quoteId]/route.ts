@@ -12,8 +12,8 @@ export async function GET(
         client: true,
         items: {
           orderBy: {
-            id: 'asc' // Ez garantálja, hogy a létrehozás sorrendjében maradnak!
-          }
+            id: 'asc'}// Ez garantálja, hogy a létrehozás sorrendjében maradnak!
+          
         },
       },
     });
