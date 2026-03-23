@@ -14,7 +14,7 @@ export async function POST(
         quoteId,
         description: data.description,
         quantity: Number(data.quantity),
-        unit: data.unit || "db", // Itt mentjük az egységet (db, m, stb.)
+        unit: data.unit || "db",
         unitPriceNet: Number(data.unitPriceNet),
         vatRate: Number(data.vatRate),
         lineNet: Number(data.quantity) * Number(data.unitPriceNet),
@@ -22,10 +22,10 @@ export async function POST(
       },
     });
 
-    // Frissítsük az ajánlat összesítőit is
+    // Összesítés újraszámolása - itt volt a hiba, javítva Number() használatával
     const allItems = await prisma.quoteItem.findMany({ where: { quoteId } });
-    const netTotal = allItems.reduce((sum, item) => sum + item.lineNet, 0);
-    const grossTotal = allItems.reduce((sum, item) => sum + item.lineGross, 0);
+    const netTotal = allItems.reduce((sum, item) => sum + Number(item.lineNet), 0);
+    const grossTotal = allItems.reduce((sum, item) => sum + Number(item.lineGross), 0);
 
     await prisma.quote.update({
       where: { id: quoteId },
@@ -34,11 +34,11 @@ export async function POST(
 
     return NextResponse.json(newItem);
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: "Hiba a tétel mentésekor" }, { status: 500 });
   }
 }
 
-// TÉTEL TÖRLÉSE
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -48,11 +48,12 @@ export async function DELETE(req: Request) {
       where: { id },
     });
 
-    // Újra kell számolni az összesítőt a törlés után
     const quoteId = deletedItem.quoteId;
     const allItems = await prisma.quoteItem.findMany({ where: { quoteId } });
-    const netTotal = allItems.reduce((sum, item) => sum + item.lineNet, 0);
-    const grossTotal = allItems.reduce((sum, item) => sum + item.lineGross, 0);
+    
+    // Törlés utáni újraszámolás javítása
+    const netTotal = allItems.reduce((sum, item) => sum + Number(item.lineNet), 0);
+    const grossTotal = allItems.reduce((sum, item) => sum + Number(item.lineGross), 0);
 
     await prisma.quote.update({
       where: { id: quoteId },
@@ -61,6 +62,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: "Hiba a törléskor" }, { status: 500 });
   }
 }
