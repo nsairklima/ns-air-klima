@@ -7,20 +7,21 @@ export async function POST(
 ) {
   try {
     const data = await req.json();
-    const unitId = Number(params.unitId);
+    const uId = Number(params.unitId);
 
     const newLog = await prisma.maintenanceLog.create({
       data: {
-        unitId: unitId,
+        unitId: uId,
         performedDate: new Date(data.performedDate),
         description: data.description,
-        // Kiszámoljuk a következő esedékességet (alapértelmezett +12 hónap)
+        // Kiszámoljuk a következő esedékességet (+12 hónap)
         nextDue: new Date(new Date(data.performedDate).setFullYear(new Date(data.performedDate).getFullYear() + 1))
       },
     });
 
     return NextResponse.json(newLog);
   } catch (error) {
-    return NextResponse.json({ error: "Hiba a mentéskor" }, { status: 500 });
+    console.error("Hiba a mentéskor:", error);
+    return NextResponse.json({ error: "Nem sikerült menteni a bejegyzést" }, { status: 500 });
   }
 }
