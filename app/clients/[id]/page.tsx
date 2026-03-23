@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 
 export default function ClientDetailsPage() {
   const params = useParams();
-  const clientId = params?.id;
+  const Id = params?.id;
 
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -19,16 +19,16 @@ export default function ClientDetailsPage() {
   const [location, setLocation] = useState(""); // pl. Nappali, Hálószoba
 
   const loadClientData = async () => {
-    const res = await fetch(`/api/clients/${clientId}`);
+    const res = await fetch(`/api/clients/${Id}`);
     if (res.ok) setClient(await res.json());
     setLoading(false);
   };
 
-  useEffect(() => { if (clientId) loadClientData(); }, [clientId]);
+  useEffect(() => { if (Id) loadClientData(); }, [Id]);
 
   const handleAddUnit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch(`/api/clients/${clientId}/units`, {
+    const res = await fetch(`/api/clients/${Id}/units`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ brand, model, serialNumber: serial, location }),
@@ -88,7 +88,7 @@ export default function ClientDetailsPage() {
               <div style={{ color: "#888", fontSize: 12 }}>S/N: {unit.serialNumber || "-"}</div>
             </div>
             <button 
-              onClick={() => window.location.href = `/clients/${clientId}/unit/${unit.id}`}
+              onClick={() => window.location.href = `/clients/${Id}/unit/${unit.id}`}
               style={{ background: "#3498db", color: "#fff", border: "none", padding: "8px 15px", borderRadius: 6, cursor: "pointer" }}
             >
               Karbantartás Napló →
