@@ -1,21 +1,30 @@
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-// GET /api/quotes/[quoteId] – Ajánlat + tételek
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: { quoteId: string } }
 ) {
   try {
-    const id = Number(params.quoteId);
     const quote = await prisma.quote.findUnique({
-      where: { id },
-      include: { client: true, items: true },
+      where: { id: Number(params.quoteId) },
+      include: {
+        client: true,
+        items: {
+          orderBy: {
+            id: 'asc' // Ez garantálja, hogy a létrehozás sorrendjében maradnak!
+          }
+        },
+      },
     });
-    if (!quote) return NextResponse.json({ error: "Nem található." }, { status: 404 });
+
+    if (!quote) {
+      return NextResponse.json({ error: "Ajánlat nem található" }, { status: 404 });
+    }
+
     return NextResponse.json(quote);
-  } catch (e) {
-    return NextResponse.json({ error: "Hiba a lekérdezéskor." }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: "Hiba a lekéréskor" }, { status: 500 });
   }
 }
 
