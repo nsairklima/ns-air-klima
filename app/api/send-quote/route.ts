@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       secure: true, 
       auth: {
         user: "info@nsairklima.hu",
-        pass: process.env.EMAIL_PASS, // Ezt fogja beolvasni a Vercel beállításaiból
+        pass: process.env.EMAIL_PASS,
       },
     });
 
@@ -20,20 +20,19 @@ export async function POST(req: Request) {
       to: email,
       subject: `Árajánlat - NS-AIR KLÍMA - #${quoteId}`,
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
           <h2 style="color: #3498db;">Tisztelt ${customerName}!</h2>
-          <p>Köszönjük megkeresését! Mellékelten küldjük a kért árajánlatot.</p>
-          <hr />
-          <p><strong>Ajánlat azonosító:</strong> #${quoteId}/2026</p>
-          <p><strong>Végösszeg:</strong> ${totalAmount.toLocaleString()} Ft</p>
-          <hr />
-          <p>Az ajánlat megtekintéséhez kattintson az alábbi gombra:</p>
-          <a href="https://nsairklima.hu/quotes/${quoteId}/print" 
-             style="display: inline-block; background: #3498db; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-             AJÁNLAT MEGTEKINTÉSE
-          </a>
-          <br /><br />
-          <p>Üdvözlettel,<br /><strong>NS-AIR KLÍMA</strong></p>
+          <p>Köszönjük megtisztelő megkeresését!</p>
+          <p>Az Ön részére elkészített árajánlatot az alábbi gombra kattintva tekintheti meg és töltheti le:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="https://nsairklima.vercel.app/quotes/${quoteId}/print" 
+               style="background: #3498db; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+               AJÁNLAT MEGTEKINTÉSE
+            </a>
+          </div>
+          <p><strong>Ajánlat összege:</strong> ${totalAmount.toLocaleString()} Ft</p>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p style="font-size: 12px; color: #7f8c8d;">Üdvözlettel,<br><strong>NS-AIR KLÍMA</strong><br>+36 70 312 1825</p>
         </div>
       `,
     };
