@@ -175,6 +175,15 @@ export default function QuoteEditPage() {
       <div style={{textAlign: "right", marginTop: 20, fontSize: 24, fontWeight: "bold"}}>
         Végösszeg: {Number(q.grossTotal).toLocaleString()} Ft
       </div>
+      {/* ÚJ: Nyomtatás gomb a végösszeg alatt */}
+<div style={{ marginTop: 30, display: "flex", justifyContent: "flex-end", gap: 15 }}>
+  <button 
+    onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')}
+    style={{ background: "#34495e", color: "#fff", padding: "12px 25px", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: "bold" }}
+  >
+    📄 HIVATALOS AJÁNLAT GENERÁLÁSA (PDF)
+  </button>
+</div>
     </div>
   );
 }
