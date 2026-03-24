@@ -16,7 +16,7 @@ export default function QuotePrintPage() {
     }
   }, [quoteId]);
 
-  if (!q) return <div style={{padding: 20}}>Ajánlat betöltése...</div>;
+  if (!q) return <div style={{padding: 20, fontFamily: "sans-serif"}}>Ajánlat betöltése...</div>;
 
   return (
     <div className="print-wrapper">
@@ -28,11 +28,12 @@ export default function QuotePrintPage() {
           <p style={{ margin: 0, fontSize: 14 }}>Kelt: {new Date().toLocaleDateString('hu-HU')}</p>
         </div>
         <div style={{ textAlign: "right" }}>
-          <img src="/ns-logo.png" alt="NS-AIR KLÍMA" style={{ height: 80, marginBottom: 10 }} />
-          <div style={{ fontSize: 13, lineHeight: "1.5", color: "#2c3e50" }}>
+          <img src="/ns-logo.png" alt="NS-AIR KLÍMA" style={{ height: 85, marginBottom: 10 }} />
+          <div style={{ fontSize: 12, lineHeight: "1.6", color: "#2c3e50" }}>
             <strong style={{ fontSize: 16 }}>NS-AIR KLÍMA</strong><br />
             9143 Enese, Külsőréti dűlő 12.<br />
             Adószám: 66362740-1-28<br />
+            Web: <strong>www.nsairklima.hu</strong><br />
             Email: <strong>info@nsairklima.hu</strong><br />
             Tel: <strong>+36 70 312 1825</strong>
           </div>
