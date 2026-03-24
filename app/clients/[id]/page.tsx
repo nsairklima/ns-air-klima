@@ -24,18 +24,24 @@ export default function ClientDetailsPage() {
   const [location, setLocation] = useState("");
 
   const loadClientData = async () => {
-    const res = await fetch(`/api/clients/${Id}`, { cache: "no-store" });
-    if (res.ok) {
-      const data = await res.json();
-      setClient(data);
-      setEditClientData({
-        name: data.name,
-        email: data.email || "",
-        phone: data.phone || "",
-        address: data.address || ""
-      });
+    try {
+      // Hozzáadtam egy hibakezelést és ellenőrzést
+      const res = await fetch(`/api/clients/${Id}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setClient(data);
+        setEditClientData({
+          name: data.name,
+          email: data.email || "",
+          phone: data.phone || "",
+          address: data.address || ""
+        });
+      }
+    } catch (err) {
+      console.error("Hiba az adatok betöltésekor:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => { if (Id) loadClientData(); }, [Id]);
@@ -74,13 +80,19 @@ export default function ClientDetailsPage() {
     }
   };
 
+  // JAVÍTOTT: Most már bevárja a választ, és csak utána frissíti a felületet!
   const handleSetStatus = async (unitId: number, newStatus: string) => {
-    await fetch(`/api/clients/${Id}/units/${unitId}`, {
+    const res = await fetch(`/api/clients/${Id}/units/${unitId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
-    loadClientData();
+    
+    if (res.ok) {
+      await loadClientData(); // Fontos: megvárjuk, amíg az új adat megérkezik
+    } else {
+      alert("Hiba történt a státusz frissítésekor.");
+    }
   };
 
   const startEditUnit = (unit: any) => {
@@ -100,26 +112,22 @@ export default function ClientDetailsPage() {
 
   const handleDeleteUnit = async (unitId: number) => {
     if (!confirm("Törlöd ezt a gépet?")) return;
-    await fetch(`/api/clients/${Id}/units/${unitId}`, { method: "DELETE" });
-    loadClientData();
+    const res = await fetch(`/api/clients/${Id}/units/${unitId}`, { method: "DELETE" });
+    if (res.ok) loadClientData();
   };
 
   // --- ÁRAJÁNLAT TÖRLÉSE ---
   const handleDeleteQuote = async (quoteId: number) => {
-  if (!confirm("Biztosan törlöd ezt az árajánlatot?")) return;
-  
-  // Fontos: Az URL-nek egyeznie kell a backend fájlszerkezetével!
-  const res = await fetch(`/api/quotes/${quoteId}`, {
-    method: "DELETE",
-  });
+    if (!confirm("Biztosan törlöd ezt az árajánlatot?")) return;
+    const res = await fetch(`/api/quotes/${quoteId}`, { method: "DELETE" });
 
-  if (res.ok) {
-    loadClientData(); // Frissítés a törlés után
-  } else {
-    const errorData = await res.json();
-    alert("Hiba: " + (errorData.error || "Ismeretlen hiba történt"));
-  }
-};
+    if (res.ok) {
+      loadClientData();
+    } else {
+      const errorData = await res.json();
+      alert("Hiba: " + (errorData.error || "Ismeretlen hiba történt"));
+    }
+  };
 
   if (loading) return <div style={{padding: 20}}>Betöltés...</div>;
   if (!client) return <div style={{padding: 20}}>Ügyfél nem található.</div>;
@@ -216,6 +224,7 @@ export default function ClientDetailsPage() {
                 </div>
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
+                {/* JAVÍTOTT FELTÉTEL: Ha a státusz nem INSTALLED, akkor mutatjuk a gombot */}
                 {unit.status !== "INSTALLED" && (
                   <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={btnGreenSmall}>✅ Telepítés kész</button>
                 )}
@@ -261,18 +270,15 @@ export default function ClientDetailsPage() {
   );
 }
 
-/* --- STÍLUSOK --- */
+// Stílus konstansok változatlanul...
 const navBtn = { padding: "8px 15px", borderRadius: "8px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontWeight: "bold" as const };
 const inputS = { width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", outline: "none" };
-
 const btnBlueHeader = { background: "#eef6fc", color: "#3498db", border: "1px solid #3498db", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
 const btnDelete = { background: "#fff1f0", color: "#e74c3c", border: "1px solid #ffa39e", padding: "10px 15px", borderRadius: "10px", cursor: "pointer", fontSize: "18px" };
 const btnCancel = { background: "#eee", color: "#666", border: "1px solid #ccc", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
-
 const btnGreen = { background: "#27ae60", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
 const unitCard = { padding: "16px", border: "1px solid #eee", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" };
 const quoteCard = { padding: "15px", border: "1px solid #e1e8ed", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fcfdff" };
-
 const btnBlueSmall = { background: "#3498db", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" as const };
 const btnGreenSmall = { background: "#2ecc71", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" as const };
 const btnOrangeSmall = { background: "#f39c12", color: "#fff", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" };
