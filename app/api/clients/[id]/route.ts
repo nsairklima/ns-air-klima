@@ -36,6 +36,37 @@ export async function GET(
   }
 }
 
+// ÜGYFÉL SZERKESZTÉSE (MÓDOSÍTÁS)
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const clientId = parseInt(params.id);
+    if (isNaN(clientId)) {
+      return NextResponse.json({ error: "Érvénytelen azonosító" }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const { name, email, phone, address } = body;
+
+    const updatedClient = await prisma.client.update({
+      where: { id: clientId },
+      data: {
+        name,
+        email,
+        phone,
+        address
+      },
+    });
+
+    return NextResponse.json(updatedClient);
+  } catch (error: any) {
+    console.error("Hiba az ügyfél frissítésekor:", error);
+    return NextResponse.json({ error: "Hiba a mentés során: " + error.message }, { status: 500 });
+  }
+}
+
 // ÜGYFÉL TÖRLÉSE
 export async function DELETE(
   req: Request,
