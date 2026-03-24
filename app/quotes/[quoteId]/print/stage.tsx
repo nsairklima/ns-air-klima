@@ -3,111 +3,113 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-export default function PrintQuotePage() {
+export default function QuotePrintPage() {
   const params = useParams();
-  const quoteId = params?.quoteId; // A mappád neve alapján quoteId
-  const [quote, setQuote] = useState<any>(null);
+  const quoteId = params?.quoteId;
+  const [q, setQ] = useState<any>(null);
 
   useEffect(() => {
     if (quoteId) {
       fetch(`/api/quotes/${quoteId}`)
         .then(res => res.json())
-        .then(data => setQuote(data));
+        .then(data => setQ(data));
     }
   }, [quoteId]);
 
-  if (!quote) return <div style={{padding: 20}}>Ajánlat betöltése...</div>;
+  if (!q) return <div style={{padding: 20}}>Betöltés...</div>;
 
   return (
-    <div className="print-container">
-      {/* FEJLÉC ÉS LOGÓ */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="print-wrapper">
+      {/* FEJLÉC */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 40 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 32, color: "#2c3e50" }}>ÁRAJÁNLAT</h1>
-          <p style={{ color: "#7f8c8d" }}>Azonosító: #{quote.id}</p>
+          <h1 style={{ margin: 0, color: "#2c3e50", fontSize: 32 }}>ÁRAJÁNLAT</h1>
+          <p style={{ color: "#7f8c8d" }}>Azonosító: #{q.id}/2026</p>
+          <p>Kelt: {new Date().toLocaleDateString('hu-HU')}</p>
         </div>
         <div style={{ textAlign: "right" }}>
-          <img src="/logo.png" alt="Logo" style={{ height: 60, marginBottom: 10 }} />
+          <img src="/ns-logo.png" alt="Logo" style={{ height: 60, marginBottom: 10 }} />
           <div style={{ fontSize: 14 }}>
             <strong>NS Air Klíma</strong><br />
-            Telepítés • Karbantartás • Javítás<br />
-            nsairklima.vercel.app
+            nsairklima.vercel.app<br />
+            Email: info@nsair.hu
           </div>
         </div>
       </div>
 
-      <hr style={{ margin: "30px 0", border: "1px solid #eee" }} />
-
-      {/* ÜGYFÉL ADATOK */}
-      <div style={{ marginBottom: 40 }}>
-        <h4 style={{ color: "#7f8c8d", margin: "0 0 10px 0" }}>Vevő adatai:</h4>
-        <div style={{ fontSize: 18, fontWeight: "bold" }}>{quote.client?.name}</div>
-        <div>{quote.client?.address}</div>
-        <div>{quote.client?.phone}</div>
+      {/* ÜGYFÉL */}
+      <div style={{ marginBottom: 40, padding: 20, background: "#f8f9fa", borderRadius: 10 }}>
+        <small style={{ color: "#7f8c8d", textTransform: "uppercase" }}>Ügyfél adatai:</small>
+        <div style={{ fontSize: 18, fontWeight: "bold", marginTop: 5 }}>{q.client?.name}</div>
+        <div>{q.client?.address || "Nincs megadott cím"}</div>
+        <div>{q.client?.phone || ""}</div>
       </div>
 
-      {/* TÉTELEK */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 30 }}>
+      {/* TÁBLÁZAT */}
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
-            <th style={thS}>Leírás / Megnevezés</th>
-            <th style={{ ...thS, textAlign: "center" }}>Mennyiség</th>
-            <th style={{ ...thS, textAlign: "right" }}>Egységár</th>
-            <th style={{ ...thS, textAlign: "right" }}>Összeg</th>
+          <tr style={{ borderBottom: "2px solid #2c3e50", textAlign: "left" }}>
+            <th style={cellS}>Megnevezés</th>
+            <th style={cellS}>Mennyiség</th>
+            <th style={{ ...cellS, textAlign: "right" }}>Bruttó egységár</th>
+            <th style={{ ...cellS, textAlign: "right" }}>Összesen</th>
           </tr>
         </thead>
         <tbody>
-          {quote.items?.map((item: any, i: number) => (
-            <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
-              <td style={tdS}>{item.description}</td>
-              <td style={{ ...tdS, textAlign: "center" }}>{item.quantity} db</td>
-              <td style={{ ...tdS, textAlign: "right" }}>{item.price?.toLocaleString()} Ft</td>
-              <td style={{ ...tdS, textAlign: "right", fontWeight: "bold" }}>
-                {(item.quantity * item.price)?.toLocaleString()} Ft
+          {q.items.map((it: any) => (
+            <tr key={it.id} style={{ borderBottom: "1px solid #eee" }}>
+              <td style={cellS}><strong>{it.description}</strong></td>
+              <td style={cellS}>{it.quantity} {it.unit}</td>
+              <td style={{ ...cellS, textAlign: "right" }}>
+                {Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft
+              </td>
+              <td style={{ ...cellS, textAlign: "right", fontWeight: "bold" }}>
+                {Math.round(it.unitPriceNet * 1.27 * it.quantity).toLocaleString()} Ft
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* ÖSSZESÍTÉS */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
-        <div style={{ width: 250, background: "#f8f9fa", padding: 20, borderRadius: 8 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 20, fontWeight: "bold" }}>
-            <span>Összesen:</span>
-            <span>{quote.totalAmount?.toLocaleString()} Ft</span>
-          </div>
+      {/* VÉGÖSSZEG */}
+      <div style={{ marginTop: 30, textAlign: "right" }}>
+        <div style={{ display: "inline-block", borderTop: "3px solid #2c3e50", paddingTop: 10 }}>
+          <span style={{ fontSize: 18 }}>Fizetendő bruttó végösszeg:</span><br />
+          <strong style={{ fontSize: 28 }}>{Number(q.grossTotal).toLocaleString()} Ft</strong>
         </div>
       </div>
 
-      <div style={{ marginTop: 50, fontSize: 12, color: "#95a5a6", fontStyle: "italic" }}>
-        Az árajánlat 30 napig érvényes. Köszönjük a megkeresést!
+      {/* LÁBLÉC */}
+      <div style={{ marginTop: 80, fontSize: 12, color: "#7f8c8d", borderTop: "1px solid #eee", paddingTop: 20 }}>
+        <p>Az ajánlat 30 napig érvényes. A feltüntetett árak a 27%-os ÁFA-t tartalmazzák.</p>
       </div>
 
-      {/* NYOMTATÁS GOMB (PDF GENERÁLÁS) */}
+      {/* FIX GOMB (CSAK KÉPERNYŐN) */}
       <button onClick={() => window.print()} className="no-print" style={printBtnS}>
-        📥 Mentés PDF-ként
+        📥 NYOMTATÁS / MENTÉS PDF-KÉNT
       </button>
 
-      <style jsx>{`
-        .print-container {
-          padding: 60px;
-          max-width: 900px;
-          margin: 0 auto;
-          background: white;
-          min-height: 297mm;
-          font-family: Arial, sans-serif;
+      <style jsx global>{`
+        @media screen {
+          body { background: #e0e0e0; padding: 40px 0; }
+          .print-wrapper { 
+            background: white; 
+            padding: 60px; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            min-height: 297mm;
+          }
         }
         @media print {
-          .no-print { display: none; }
-          body { padding: 0; margin: 0; }
-          .print-container { padding: 40px; box-shadow: none; width: 100%; }
+          .no-print { display: none !important; }
+          .print-wrapper { padding: 0; margin: 0; width: 100%; }
+          body { background: white; }
         }
       `}</style>
     </div>
   );
 }
 
-const thS = { padding: "12px", borderBottom: "2px solid #34495e" };
-const tdS = { padding: "12px" };
-const printBtnS = { position: "fixed" as const, bottom: 30, right: 30, background: "#27ae60", color: "#fff", border: "none", padding: "15px 30px", borderRadius: 50, cursor: "pointer", fontSize: 16, fontWeight: "bold", boxShadow: "0 4px 15px rgba(0,0,0,0.2)" };
+const cellS = { padding: "15px 10px" };
+const printBtnS = { position: "fixed" as const, bottom: 30, right: 30, background: "#27ae60", color: "#fff", border: "none", padding: "15px 30px", borderRadius: 50, fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 15px rgba(0,0,0,0.3)" };
