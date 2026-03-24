@@ -37,14 +37,15 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { performedDate, description, nextServiceDate } = body;
+    const { performedDate, description, nextDue } = body; // A frontendről is nextDue-t várunk
 
     const updatedLog = await prisma.maintenanceLog.update({
       where: { id },
       data: {
         performedDate: performedDate ? new Date(performedDate) : undefined,
         description: description,
-        nextServiceDate: nextServiceDate === null ? null : (nextServiceDate ? new Date(nextServiceDate) : undefined),
+        // A sémád szerint a mező neve: nextDue
+        nextDue: nextDue === null ? null : (nextDue ? new Date(nextDue) : undefined),
       },
     });
 
