@@ -106,14 +106,20 @@ export default function ClientDetailsPage() {
 
   // --- ÁRAJÁNLAT TÖRLÉSE ---
   const handleDeleteQuote = async (quoteId: number) => {
-    if (!confirm("Biztosan törlöd ezt az árajánlatot és minden tételét?")) return;
-    const res = await fetch(`/api/quotes/${quoteId}`, { method: "DELETE" });
-    if (res.ok) {
-      loadClientData();
-    } else {
-      alert("Hiba történt a törlés során. Ellenőrizd a backend logokat!");
-    }
-  };
+  if (!confirm("Biztosan törlöd ezt az árajánlatot?")) return;
+  
+  // Fontos: Az URL-nek egyeznie kell a backend fájlszerkezetével!
+  const res = await fetch(`/api/quotes/${quoteId}`, {
+    method: "DELETE",
+  });
+
+  if (res.ok) {
+    loadClientData(); // Frissítés a törlés után
+  } else {
+    const errorData = await res.json();
+    alert("Hiba: " + (errorData.error || "Ismeretlen hiba történt"));
+  }
+};
 
   if (loading) return <div style={{padding: 20}}>Betöltés...</div>;
   if (!client) return <div style={{padding: 20}}>Ügyfél nem található.</div>;
