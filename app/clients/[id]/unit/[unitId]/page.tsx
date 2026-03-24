@@ -3,137 +3,126 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-export default function UnitMaintenancePage() {
+export default function UnitDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const clientId = params?.id;
-  const unitId = params?.unitId;
+  const { id: clientId, unitId } = params;
 
   const [unit, setUnit] = useState<any>(null);
-  const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Állapotok
-  const [desc, setDesc] = useState("Általános tisztítás, fertőtlenítés");
-  const [performedDate, setPerformedDate] = useState(new Date().toISOString().split('T')[0]);
+  // Karbantartás form állapotok
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
-  const [editDesc, setEditDesc] = useState("");
-  const [editDate, setEditDate] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [desc, setDesc] = useState("");
+  const [nextDate, setNextDate] = useState("");
 
   const loadData = async () => {
-    try {
-      // cache: "no-store" kényszeríti a friss adatokat
-      const res = await fetch(`/api/clients/${clientId}/units/${unitId}`, { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        setUnit(data);
-        setLogs(data.maintenance || []);
-      }
-    } catch (err) {
-      console.error("Hiba:", err);
-    } finally {
-      setLoading(false);
-    }
+    const res = await fetch(`/api/clients/${clientId}/units/${unitId}`);
+    if (res.ok) setUnit(await res.json());
+    setLoading(false);
   };
 
-  useEffect(() => { if (unitId) loadData(); }, [unitId]);
+  useEffect(() => { loadData(); }, [unitId]);
 
-  // --- TÖRLÉS JAVÍTVA ---
-const handleDeleteLog = async (logId: number) => {
-  if (!confirm("Biztosan törlöd ezt a karbantartást?")) return;
-
-  try {
-    const res = await fetch(`/api/clients/${clientId}/units/${unitId}/maintenance`, { 
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: logId }) // Itt küldjük el az ID-t!
-    });
-
-    if (res.ok) {
-      await loadData(); // Frissítés
-    } else {
-      const errorData = await res.json();
-      alert("Szerver hiba: " + errorData.error);
-    }
-  } catch (err) {
-    console.error("Hiba:", err);
-    alert("Hálózati hiba történt.");
-  }
-};
-
-  // --- MÓDOSÍTÁS MENTÉSE ---
-  const handleUpdateLog = async (logId: number) => {
-    const res = await fetch(`/api/clients/${clientId}/units/${unitId}/maintenance`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: logId, description: editDesc, performedDate: editDate }),
-    });
-
-    if (res.ok) {
-      setEditingLogId(null);
-      await loadData();
-    }
-  };
-
-  const handleAddLog = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch(`/api/clients/${clientId}/units/${unitId}/maintenance`, {
-      method: "POST",
+    
+    // Ha van editingLogId, akkor PATCH (módosítás), ha nincs, akkor POST (új)
+    const method = editingLogId ? "PATCH" : "POST";
+    const url = editingLogId 
+      ? `/api/maintenance/${editingLogId}` 
+      : `/api/clients/${clientId}/units/${unitId}/maintenance`;
+
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: desc, performedDate }),
+      body: JSON.stringify({
+        performedDate: date,
+        description: desc,
+        nextServiceDate: nextDate || null,
+      }),
     });
+
     if (res.ok) {
-      setDesc("Általános tisztítás, fertőtlenítés");
-      await loadData();
+      resetForm();
+      loadData();
     }
+  };
+
+  const startEdit = (log: any) => {
+    setEditingLogId(log.id);
+    setDate(new Date(log.performedDate).toISOString().split("T")[0]);
+    setDesc(log.description);
+    setNextDate(log.nextServiceDate ? new Date(log.nextServiceDate).toISOString().split("T")[0] : "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const resetForm = () => {
+    setEditingLogId(null);
+    setDesc("");
+    setNextDate("");
+    setDate(new Date().toISOString().split("T")[0]);
+  };
+
+  const handleDelete = async (logId: number) => {
+    if (!confirm("Biztosan törlöd ezt a bejegyzést?")) return;
+    const res = await fetch(`/api/maintenance/${logId}`, { method: "DELETE" });
+    if (res.ok) loadData();
   };
 
   if (loading) return <div style={{ padding: 20 }}>Betöltés...</div>;
 
   return (
     <div style={{ padding: 24, maxWidth: 800, margin: "0 auto", fontFamily: "Arial" }}>
-      <div style={{ display: "flex", gap: 10, marginBottom: 25 }}>
-        <button onClick={() => router.push(`/clients/${clientId}`)} style={navBtn}>⬅️ Vissza</button>
-        <button onClick={() => router.push("/")} style={{ ...navBtn, background: "#f8f9fa", color: "#333" }}>🏠 Főoldal</button>
-      </div>
+      <button onClick={() => router.push(`/clients/${clientId}`)} style={navBtn}>⬅️ Vissza a gép listához</button>
 
-      <div style={{ background: "#2c3e50", color: "#fff", padding: 20, borderRadius: 12, marginBottom: 30 }}>
-        <h1>{unit?.brand} {unit?.model}</h1>
-        <p>Helyszín: {unit?.location} | S/N: {unit?.serialNumber}</p>
-      </div>
+      <h1 style={{ color: "#2c3e50", marginTop: 20 }}>❄️ {unit.brand} {unit.model}</h1>
+      <p style={{ color: "#666" }}>Helyszín: {unit.location} | S/N: {unit.serialNumber}</p>
 
-      <section style={{ marginBottom: 40, background: "#f9f9f9", padding: 20, borderRadius: 12, border: "1px solid #eee" }}>
-        <h3>🛠️ Új karbantartás</h3>
-        <form onSubmit={handleAddLog} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <input type="date" value={performedDate} onChange={e => setPerformedDate(e.target.value)} style={inputS} />
-          <input placeholder="Leírás..." value={desc} onChange={e => setDesc(e.target.value)} style={{ ...inputS, flex: 2 }} />
-          <button type="submit" style={{ background: "#27ae60", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer" }}>Mentés</button>
+      {/* KARBANTARTÁS FORM */}
+      <div style={{ background: editingLogId ? "#fff3e0" : "#f8f9fa", padding: 20, borderRadius: 12, border: "1px solid #ddd", marginBottom: 30 }}>
+        <h3 style={{ marginTop: 0 }}>{editingLogId ? "✏️ Bejegyzés szerkesztése" : "➕ Új karbantartás rögzítése"}</h3>
+        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labS}>Dátum</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputS} required />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labS}>Következő esedékesség</label>
+              <input type="date" value={nextDate} onChange={e => setNextDate(e.target.value)} style={inputS} />
+            </div>
+          </div>
+          <div>
+            <label style={labS}>Elvégzett munka leírása</label>
+            <textarea value={desc} onChange={e => setDesc(e.target.value)} style={{ ...inputS, height: 80 }} required />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" style={saveBtn}>{editingLogId ? "MÓDOSÍTÁS MENTÉSE" : "RÖGZÍTÉS"}</button>
+            {editingLogId && <button type="button" onClick={resetForm} style={cancelBtn}>Mégse</button>}
+          </div>
         </form>
-      </section>
+      </div>
 
-      <h3>📜 Napló</h3>
-      <div style={{ display: "grid", gap: 12 }}>
-        {logs.map((log: any) => (
-          <div key={log.id} style={cardStyle}>
-            {editingLogId === log.id ? (
-              <div style={{ display: "flex", gap: 10, width: "100%" }}>
-                <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={inputS} />
-                <input value={editDesc} onChange={e => setEditDesc(e.target.value)} style={{ ...inputS, flex: 1 }} />
-                <button onClick={() => handleUpdateLog(log.id)} style={okBtn}>OK</button>
-                <button onClick={() => setEditingLogId(null)} style={cancelBtn}>X</button>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <div style={{ fontWeight: "bold" }}>{new Date(log.performedDate).toLocaleDateString('hu-HU')}</div>
-                  <div>{log.description}</div>
+      {/* NAPLÓ LISTA */}
+      <h3>Karbantartási napló</h3>
+      <div style={{ display: "grid", gap: 15 }}>
+        {unit.maintenance?.map((log: any) => (
+          <div key={log.id} style={logCard}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: "bold", fontSize: 16 }}>{new Date(log.performedDate).toLocaleDateString("hu-HU")}</div>
+              <div style={{ margin: "5px 0", color: "#444" }}>{log.description}</div>
+              {log.nextServiceDate && (
+                <div style={{ fontSize: 13, color: "#e67e22", fontWeight: "bold" }}>
+                  📅 Következő: {new Date(log.nextServiceDate).toLocaleDateString("hu-HU")}
                 </div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => { setEditingLogId(log.id); setEditDesc(log.description); setEditDate(new Date(log.performedDate).toISOString().split('T')[0]); }} style={iconBtn}>✏️</button>
-                  <button onClick={() => handleDeleteLog(log.id)} style={{...iconBtn, color: 'red'}}>🗑️</button>
-                </div>
-              </>
-            )}
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => startEdit(log)} style={iconBtn}>✏️</button>
+              <button onClick={() => handleDelete(log.id)} style={{ ...iconBtn, color: "#e74c3c" }}>🗑️</button>
+            </div>
           </div>
         ))}
       </div>
@@ -141,9 +130,11 @@ const handleDeleteLog = async (logId: number) => {
   );
 }
 
-const navBtn = { padding: "8px 16px", borderRadius: "8px", border: "1px solid #ddd", cursor: "pointer", fontWeight: "bold" as const };
-const inputS = { padding: "10px", borderRadius: 6, border: "1px solid #ccc" };
-const cardStyle = { borderLeft: "5px solid #3498db", padding: "15px", background: "#fff", boxShadow: "0 2px 5px rgba(0,0,0,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" };
-const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "16px" };
-const okBtn = { background: "#2ecc71", color: "#fff", border: "none", padding: "5px 10px", borderRadius: 6, cursor: "pointer" };
-const cancelBtn = { background: "#95a5a6", color: "#fff", border: "none", padding: "5px 10px", borderRadius: 6, cursor: "pointer" };
+/* --- STÍLUSOK --- */
+const navBtn = { padding: "8px 15px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer" };
+const inputS = { width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #ccc", fontFamily: "inherit" };
+const labS = { fontSize: 12, fontWeight: "bold", color: "#666", marginBottom: 5, display: "block" };
+const saveBtn = { background: "#2ecc71", color: "#fff", border: "none", padding: "12px 25px", borderRadius: 8, cursor: "pointer", fontWeight: "bold", flex: 1 };
+const cancelBtn = { background: "#bdc3c7", color: "#fff", border: "none", padding: "12px 25px", borderRadius: 8, cursor: "pointer" };
+const logCard = { padding: 15, border: "1px solid #eee", borderRadius: 10, background: "#fff", display: "flex", justifyContent: "space-between", alignItems: "flex-start", boxShadow: "0 2px 5px rgba(0,0,0,0.05)" };
+const iconBtn = { background: "#f8f9fa", border: "1px solid #ddd", borderRadius: 6, padding: "5px 10px", cursor: "pointer" };
