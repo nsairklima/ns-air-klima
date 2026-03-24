@@ -45,6 +45,22 @@ export default function ClientsPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
+  // --- ÜGYFÉL TÖRLÉSE A LISTÁBÓL ---
+  async function handleDelete(id: number, clientName: string) {
+    if (!confirm(`⚠️ BIZTOSAN TÖRÖLNI AKAROD: ${clientName}?\nMinden hozzá tartozó gép és ajánlat is törlődni fog!`)) return;
+    
+    try {
+      const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        loadClients(searchTerm);
+      } else {
+        alert("Hiba történt a törlés során.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   async function addClient(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return alert("A név kötelező.");
@@ -85,6 +101,7 @@ export default function ClientsPage() {
               {saving ? "Mentés..." : "Ügyfél mentése"}
             </button>
           </form>
+          {error && <p style={{ color: "red", marginTop: 10 }}>{error}</p>}
         </div>
 
         {/* JOBB OLDAL: Kereső és Lista */}
@@ -117,13 +134,23 @@ export default function ClientsPage() {
                       <div style={{ fontWeight: "bold" }}>
                         {c.name} {hasUrgent && "⚠️"}
                       </div>
-                      <div style={{ fontSize: 12, color: "#666" }}>{c.address}</div>
+                      <div style={{ fontSize: 12, color: "#666" }}>{c.address || "Nincs cím"}</div>
                     </div>
-                    <Link href={`/clients/${c.id}`} style={detailsLink}>Részletek →</Link>
+                    <div style={{ display: "flex", gap: 15, alignItems: "center" }}>
+                      <Link href={`/clients/${c.id}`} style={detailsLink}>Részletek →</Link>
+                      <button 
+                        onClick={() => handleDelete(c.id, c.name)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#e74c3c", fontSize: 16 }}
+                        title="Ügyfél törlése"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
             })}
+            {!loading && clients.length === 0 && <p style={{ color: "#999" }}>Nincs találat.</p>}
           </div>
         </div>
       </div>
