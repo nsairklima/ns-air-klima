@@ -18,7 +18,7 @@ export async function GET(
       include: {
         client: true,
         items: {
-          orderBy: { id: 'asc' } // Sorrendtartás
+          orderBy: { id: 'asc' } // Sorrendtartás a szerkesztéshez
         },
       },
     });
@@ -40,9 +40,12 @@ export async function PATCH(
 ) {
   try {
     const id = Number(params.quoteId);
-    const body = await req.json();
+    if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
 
+    const body = await req.json();
     const data: any = {};
+
+    // Csak azokat a mezőket frissítjük, amik megérkeztek a kérésben
     if (typeof body.title === "string") data.title = body.title;
     if (typeof body.terms === "string") data.terms = body.terms;
     if (typeof body.status === "string" && ["draft","sent","accepted","rejected"].includes(body.status)) {
@@ -56,11 +59,12 @@ export async function PATCH(
     
     return NextResponse.json(updated);
   } catch (e) {
+    console.error("PATCH hiba:", e);
     return NextResponse.json({ error: "Hiba a frissítéskor." }, { status: 500 });
   }
 }
 
-// AJÁNLAT TÖRLÉSE - EZ HIÁNYZOTT!
+// AJÁNLAT TÖRLÉSE (Tranzakcióval a tételekkel együtt)
 export async function DELETE(
   req: Request,
   { params }: { params: { quoteId: string } }
@@ -72,7 +76,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Érvénytelen azonosító" }, { status: 400 });
     }
 
-    // Tranzakció: Előbb a tételeket (items) töröljük, utána az ajánlatot
+    // Tranzakció: Biztosítjuk, hogy vagy minden törlődik, vagy semmi
     await prisma.$transaction([
       prisma.quoteItem.deleteMany({
         where: { quoteId: id }
