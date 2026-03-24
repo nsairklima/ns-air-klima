@@ -104,6 +104,17 @@ export default function ClientDetailsPage() {
     loadClientData();
   };
 
+  // --- ÁRAJÁNLAT TÖRLÉSE ---
+  const handleDeleteQuote = async (quoteId: number) => {
+    if (!confirm("Biztosan törlöd ezt az árajánlatot és minden tételét?")) return;
+    const res = await fetch(`/api/quotes/${quoteId}`, { method: "DELETE" });
+    if (res.ok) {
+      loadClientData();
+    } else {
+      alert("Hiba történt a törlés során. Ellenőrizd a backend logokat!");
+    }
+  };
+
   if (loading) return <div style={{padding: 20}}>Betöltés...</div>;
   if (!client) return <div style={{padding: 20}}>Ügyfél nem található.</div>;
 
@@ -228,7 +239,10 @@ export default function ClientDetailsPage() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
                   <div style={{ fontWeight: "bold", fontSize: "16px" }}>{Number(quote.grossTotal).toLocaleString()} Ft</div>
-                  <button onClick={() => router.push(`/quotes/${quote.id}`)} style={btnOrangeSmall}>✏️</button>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button onClick={() => router.push(`/quotes/${quote.id}`)} style={btnOrangeSmall} title="Szerkesztés">✏️</button>
+                    <button onClick={() => handleDeleteQuote(quote.id)} style={btnRedSmall} title="Törlés">🗑️</button>
+                  </div>
                 </div>
               </div>
             ))
@@ -245,17 +259,14 @@ export default function ClientDetailsPage() {
 const navBtn = { padding: "8px 15px", borderRadius: "8px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontWeight: "bold" as const };
 const inputS = { width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", outline: "none" };
 
-// Header gombok
 const btnBlueHeader = { background: "#eef6fc", color: "#3498db", border: "1px solid #3498db", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
 const btnDelete = { background: "#fff1f0", color: "#e74c3c", border: "1px solid #ffa39e", padding: "10px 15px", borderRadius: "10px", cursor: "pointer", fontSize: "18px" };
 const btnCancel = { background: "#eee", color: "#666", border: "1px solid #ccc", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
 
-// Általános gombok
 const btnGreen = { background: "#27ae60", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
 const unitCard = { padding: "16px", border: "1px solid #eee", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" };
 const quoteCard = { padding: "15px", border: "1px solid #e1e8ed", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fcfdff" };
 
-// Kis gombok
 const btnBlueSmall = { background: "#3498db", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" as const };
 const btnGreenSmall = { background: "#2ecc71", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" as const };
 const btnOrangeSmall = { background: "#f39c12", color: "#fff", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" };
