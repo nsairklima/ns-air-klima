@@ -11,6 +11,11 @@ export default function ClientDetailsPage() {
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
+  // Szerkesztési állapotok
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({ name: "", email: "", phone: "", address: "" });
+
+  // Egység (gép) állapotok
   const [showUnitForm, setShowUnitForm] = useState(false);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
@@ -19,15 +24,43 @@ export default function ClientDetailsPage() {
 
   const loadClientData = async () => {
     const res = await fetch(`/api/clients/${Id}`, { cache: "no-store" });
-    if (res.ok) setClient(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      setClient(data);
+      setEditData({
+        name: data.name,
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address || ""
+      });
+    }
     setLoading(false);
   };
 
   useEffect(() => { if (Id) loadClientData(); }, [Id]);
 
+  // Ügyfél módosítása
+  const handleUpdateClient = async () => {
+    try {
+      const res = await fetch(`/api/clients/${Id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editData),
+      });
+
+      if (res.ok) {
+        setIsEditing(false);
+        await loadClientData();
+      } else {
+        alert("Hiba történt a mentés során.");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleDeleteClient = async () => {
     if (!confirm("⚠️ FIGYELEM! Biztosan törölni akarod ezt az ügyfelet? Minden gép, karbantartás és árajánlat is törlődni fog!")) return;
-    
     try {
       const res = await fetch(`/api/clients/${Id}`, { method: "DELETE" });
       if (res.ok) {
@@ -87,19 +120,38 @@ export default function ClientDetailsPage() {
         </button>
       </div>
 
-      {/* ÜGYFÉL INFÓ */}
-      <div style={{ borderBottom: "2px solid #eee", paddingBottom: 20, marginBottom: 30, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <h1 style={{ margin: 0, color: "#2c3e50" }}>{client.name}</h1>
-          <p style={{ margin: "10px 0 0 0" }}>📞 {client.phone} | ✉️ {client.email}</p>
-          <p style={{ margin: "5px 0 0 0", color: "#666" }}>🏠 {client.address}</p>
+      {/* ÜGYFÉL INFÓ SZERKESZTHETŐ MÓDBAN */}
+      <div style={{ borderBottom: "2px solid #eee", paddingBottom: 25, marginBottom: 30, display: "flex", justifyContent: "space-between", alignItems: "flex-start", background: isEditing ? "#fff9f0" : "transparent", padding: isEditing ? "20px" : "0 0 20px 0", borderRadius: "12px" }}>
+        <div style={{ flex: 1 }}>
+          {!isEditing ? (
+            <>
+              <h1 style={{ margin: 0, color: "#2c3e50" }}>{client.name}</h1>
+              <p style={{ margin: "10px 0 0 0", fontSize: "16px" }}>📞 {client.phone || "Nincs telefon"} | ✉️ {client.email || "Nincs email"}</p>
+              <p style={{ margin: "5px 0 0 0", color: "#666" }}>🏠 {client.address || "Nincs cím megadva"}</p>
+            </>
+          ) : (
+            <div style={{ display: "grid", gap: "10px", maxWidth: "400px" }}>
+              <input style={inputS} value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} placeholder="Név" />
+              <input style={inputS} value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} placeholder="Telefon" />
+              <input style={inputS} value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} placeholder="Email" />
+              <input style={inputS} value={editData.address} onChange={e => setEditData({...editData, address: e.target.value})} placeholder="Cím" />
+            </div>
+          )}
         </div>
-        <button 
-          onClick={handleDeleteClient}
-          style={{ background: "#fff", color: "#e74c3c", border: "1px solid #e74c3c", padding: "10px 15px", borderRadius: 8, cursor: "pointer", fontWeight: "bold" }}
-        >
-          🗑️ Ügyfél törlése
-        </button>
+        
+        <div style={{ display: "flex", gap: "10px" }}>
+          {!isEditing ? (
+            <>
+              <button onClick={() => setIsEditing(true)} style={editBtn}>✏️ Szerkesztés</button>
+              <button onClick={handleDeleteClient} style={deleteBtnOutline}>🗑️ Törlés</button>
+            </>
+          ) : (
+            <>
+              <button onClick={handleUpdateClient} style={saveBtn}>✅ Mentés</button>
+              <button onClick={() => setIsEditing(false)} style={cancelBtn}>Mégse</button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* EGYSÉGEK */}
@@ -166,7 +218,6 @@ export default function ClientDetailsPage() {
                   <div style={{ fontWeight: "800", color: "#2c3e50", marginRight: 10 }}>
                     {Number(quote.grossTotal).toLocaleString()} Ft
                   </div>
-                  {/* SZERKESZTÉS GOMB */}
                   <button 
                     onClick={() => router.push(`/quotes/${quote.id}`)}
                     style={{ background: "#f39c12", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer", fontWeight: "bold" }}
@@ -174,14 +225,12 @@ export default function ClientDetailsPage() {
                   >
                     ✏️
                   </button>
-                  {/* MEGNYITÁS GOMB */}
                   <button 
                     onClick={() => window.open(`/quotes/${quote.id}/print`, '_blank')}
                     style={{ background: "#fff", color: "#3498db", border: "1px solid #3498db", padding: "8px 15px", borderRadius: 6, cursor: "pointer", fontWeight: "bold" }}
                   >
                     📄 PDF
                   </button>
-                  {/* TÖRLÉS GOMB */}
                   <button 
                     onClick={() => handleDeleteQuote(quote.id)}
                     style={{ background: "#fff", color: "#e74c3c", border: "1px solid #e74c3c", padding: "8px 12px", borderRadius: 6, cursor: "pointer" }}
@@ -198,5 +247,11 @@ export default function ClientDetailsPage() {
   );
 }
 
+/* --- STÍLUSOK --- */
 const navBtn: React.CSSProperties = { padding: "8px 16px", borderRadius: "8px", border: "1px solid #ddd", background: "#fff", color: "#555", cursor: "pointer", fontSize: "14px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "5px" };
 const inputS = { width: "100%", padding: "10px", borderRadius: 6, border: "1px solid #ccc", boxSizing: "border-box" as "border-box" };
+
+const editBtn = { background: "#3498db", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer", fontWeight: "bold" as const };
+const saveBtn = { background: "#27ae60", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer", fontWeight: "bold" as const };
+const cancelBtn = { background: "#95a5a6", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer", fontWeight: "bold" as const };
+const deleteBtnOutline = { background: "#fff", color: "#e74c3c", border: "1px solid #e74c3c", padding: "10px 15px", borderRadius: 8, cursor: "pointer", fontWeight: "bold" as const };
