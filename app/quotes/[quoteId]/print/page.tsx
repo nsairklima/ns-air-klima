@@ -70,7 +70,7 @@ export default function QuotePrintPage() {
         </div>
       </div>
 
-      {/* 4. TÉTELEK TÁBLÁZAT - Sűrített sorokkal */}
+      {/* 4. TÉTELEK TÁBLÁZAT */}
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: "12.5px" }}>
         <thead>
           <tr style={{ borderBottom: `2px solid ${brandBlue}`, textAlign: "left" }}>
@@ -98,8 +98,8 @@ export default function QuotePrintPage() {
         </tbody>
       </table>
 
-      {/* 5. ÖSSZESÍTÉS */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 30 }}>
+      {/* 5. ÖSSZESÍTÉS - Most már "margin-top: auto"-val, hogy alulra kerüljön */}
+      <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
         <div style={{ width: "280px", padding: "10px", border: `1.5px solid ${brandBlue}`, borderRadius: "8px", background: "#fcfdff" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 13, fontWeight: "600", color: brandDark }}>Fizetendő bruttó:</span>
@@ -109,7 +109,7 @@ export default function QuotePrintPage() {
       </div>
 
       {/* 6. ZÁRÓ SZÖVEG */}
-      <div style={{ marginTop: "auto", borderTop: "1px solid #eee", paddingTop: 15, fontSize: "11.5px" }}>
+      <div style={{ borderTop: "1px solid #eee", paddingTop: 15, fontSize: "11.5px" }}>
         <p style={{ fontWeight: "bold", color: brandBlue, marginBottom: 5, fontSize: "12px" }}>
           Köszönjük, hogy minket választott!
         </p>
@@ -136,14 +136,22 @@ export default function QuotePrintPage() {
             max-width: 800px; 
             margin: 0 auto; 
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            min-height: 290mm;
+            min-height: 290mm; /* Fix A4-es magasság közeli érték */
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* Ez teszi lehetővé a margin-top: auto használatát */
           }
         }
         @media print {
           .no-print { display: none !important; }
-          .print-wrapper { padding: 0; margin: 0; width: 100%; box-shadow: none; min-height: auto; }
+          .print-wrapper { 
+            padding: 0; 
+            margin: 0; 
+            width: 100%; 
+            box-shadow: none; 
+            min-height: 280mm; /* Nyomtatáskor is kényszerítjük a magasságot */
+            display: flex;
+            flex-direction: column;
+          }
           body { background: white; }
           * { -webkit-print-color-adjust: exact; }
         }
@@ -153,6 +161,6 @@ export default function QuotePrintPage() {
   );
 }
 
-const cellS = { padding: "8px 6px" }; // Jelentősen csökkentett belső margó
+const cellS = { padding: "8px 6px" };
 const labelStyle = { display: "block", color: "#bdc3c7", fontWeight: "bold" as const, textTransform: "uppercase" as const, fontSize: "9px", letterSpacing: "0.5px", marginBottom: "4px" };
 const printBtnS = (color: string) => ({ position: "fixed" as const, bottom: "30px", right: "30px", background: color, color: "#fff", border: "none", padding: "12px 24px", borderRadius: "50px", fontWeight: "bold" as const, cursor: "pointer", boxShadow: "0 5px 15px rgba(0,0,0,0.2)", fontSize: "14px", zIndex: 1000 });
