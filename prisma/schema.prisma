@@ -43,7 +43,7 @@ model ClientUnit {
   location      String?
   notes         String?
   
-  // EZT AZ EGY SORT ADD HOZZÁ (vagy írd felül a blokkot):
+  // EZT ADD HOZZÁ:
   status        String            @default("PENDING") 
 
   maintenance   MaintenanceLog[]
