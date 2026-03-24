@@ -32,21 +32,23 @@ emailNotifications EmailNotifications[]
 }
 
 model ClientUnit {
-  id           Int      @id @default(autoincrement())
-  clientId     Int
-  brand        String
-  model        String
-  powerKw      Float?
-  serialNumber String?
-  installation DateTime?
-  periodMonths Int      @default(12)
-  location     String?
-  notes        String?
-  maintenance  MaintenanceLog[]
+  id            Int               @id @default(autoincrement())
+  clientId      Int
+  brand         String
+  model         String
+  powerKw       Float?
+  serialNumber  String?
+  installation  DateTime?
+  periodMonths  Int               @default(12)
+  location      String?
+  notes         String?
+  
+  // EZT AZ EGY SORT ADD HOZZÁ (vagy írd felül a blokkot):
+  status        String            @default("PENDING") 
 
- emailNotifications EmailNotifications[]
-
-  client   Client @relation(fields: [clientId], references: [id])
+  maintenance   MaintenanceLog[]
+  emailNotifications EmailNotifications[]
+  client        Client @relation(fields: [clientId], references: [id])
 }
 
 model MaintenanceLog {
