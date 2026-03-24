@@ -14,7 +14,7 @@ export default function NewQuotePage() {
   // Adat állapotok
   const [selectedClientId, setSelectedClientId] = useState("");
   const [newClient, setNewClient] = useState({ name: "", email: "", phone: "", address: "" });
-  const [unit, setUnit] = useState({ brand: "", model: "", location: "" });
+  const [unit, setUnit] = useState({ brand: "", model: "", power: "", location: "" }); // Hozzáadva: power
   const [quoteTitle, setQuoteTitle] = useState("");
 
   useEffect(() => {
@@ -27,6 +27,7 @@ export default function NewQuotePage() {
 
     try {
       let clientId: number;
+      let clientName = "";
 
       // 1. Ügyfél kezelése
       if (mode === 'new') {
@@ -38,27 +39,41 @@ export default function NewQuotePage() {
         if (!cRes.ok) throw new Error("Ügyfél hiba");
         const createdClient = await cRes.json();
         clientId = createdClient.id;
+        clientName = newClient.name;
       } else {
         if (!selectedClientId) return alert("Válassz ügyfelet!");
         clientId = Number(selectedClientId);
+        // Megkeressük a nevet a listában a címhez
+        clientName = clients.find(c => c.id === clientId)?.name || "";
       }
 
-      // 2. Gép rögzítése (ha megadtál márkát vagy modellt)
+      // 2. Gép rögzítése
       if (unit.brand || unit.model) {
+        // A model mezőbe fűzzük bele a teljesítményt a Prisma sémától függően, 
+        // vagy ha van külön meződ, akkor küldd külön. Itt most összefűzzük a modellnévvel:
+        const fullModel = unit.power ? `${unit.model} (${unit.power})` : unit.model;
+        
         await fetch(`/api/clients/${clientId}/units`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(unit),
+          body: JSON.stringify({
+            brand: unit.brand,
+            model: fullModel,
+            location: unit.location
+          }),
         });
       }
 
-      // 3. Árajánlat létrehozása
+      // 3. Intelligens cím generálása, ha üres
+      const generatedTitle = quoteTitle || 
+        `${clientName} - ${unit.brand} ${unit.model} ${unit.power ? `(${unit.power})` : ""}`.trim();
+
       const qRes = await fetch("/api/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId,
-          title: quoteTitle || `${unit.brand} ${unit.model}`.trim() || "Új ajánlat",
+          title: generatedTitle,
         }),
       });
 
@@ -105,10 +120,11 @@ export default function NewQuotePage() {
         )}
 
         {/* GÉP RÉSZ */}
-        <h3 style={{ ...sectionTitle, marginTop: 30 }}>❄️ Gép adatai (Ajánlat tárgya)</h3>
+        <h3 style={{ ...sectionTitle, marginTop: 30 }}>❄️ Gép adatai</h3>
         <div style={grid}>
           <input style={input} placeholder="Gyártó (pl. Gree)" value={unit.brand} onChange={e => setUnit({...unit, brand: e.target.value})} />
-          <input style={input} placeholder="Modell (pl. Amber 3.5kW)" value={unit.model} onChange={e => setUnit({...unit, model: e.target.value})} />
+          <input style={input} placeholder="Modell (pl. Amber)" value={unit.model} onChange={e => setUnit({...unit, model: e.target.value})} />
+          <input style={input} placeholder="Teljesítmény (pl. 3.5kW)" value={unit.power} onChange={e => setUnit({...unit, power: e.target.value})} />
           <input style={input} placeholder="Helyszín (pl. Nappali)" value={unit.location} onChange={e => setUnit({...unit, location: e.target.value})} />
         </div>
 
@@ -116,19 +132,23 @@ export default function NewQuotePage() {
         <h3 style={{ ...sectionTitle, marginTop: 30 }}>📝 Ajánlat címe</h3>
         <input 
           style={input} 
-          placeholder="Hagyd üresen, ha a gép nevét szeretnéd címnek" 
+          placeholder="Hagyja üresen az automatikus névhez" 
           value={quoteTitle} 
           onChange={e => setQuoteTitle(e.target.value)} 
         />
+        <p style={{ fontSize: 12, color: "#95a5a6", marginTop: -5 }}>
+            Példa: {newClient.name || "Ügyfél"} - {unit.brand || "Márka"} {unit.model || "Típus"} {unit.power ? `(${unit.power})` : ""}
+        </p>
 
         <button type="submit" disabled={loading} style={btnPrimary}>
-          {loading ? "Mentés..." : "Minden mentése és tételek hozzáadása →"}
+          {loading ? "Mentés..." : "Ajánlat létrehozása →"}
         </button>
       </form>
     </div>
   );
 }
 
+// ... (stílusok maradnak a régiek)
 const wrap: React.CSSProperties = { padding: 24, maxWidth: 700, margin: "0 auto", fontFamily: "Arial" };
 const tabContainer = { display: "flex", gap: 20, marginBottom: 20 };
 const tabBtn = { background: "none", border: "none", padding: "10px", cursor: "pointer", fontWeight: "bold" as const };
