@@ -7,10 +7,12 @@ export default function QuotePrintPage() {
   const params = useParams();
   const quoteId = params?.quoteId;
   const [q, setQ] = useState<any>(null);
+  const [sending, setSending] = useState(false);
 
   const brandBlue = "#3498db"; 
   const brandDark = "#2c3e50";
   const brandRed = "#e74c3c";
+  const brandGreen = "#2ecc71";
 
   useEffect(() => {
     if (quoteId) {
@@ -19,6 +21,38 @@ export default function QuotePrintPage() {
         .then(data => setQ(data));
     }
   }, [quoteId]);
+
+  const handleSendEmail = async () => {
+    if (!q?.client?.email) {
+      alert("Hiba: Nincs megadva az ügyfél e-mail címe!");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const res = await fetch('/api/send-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: q.client.email,
+          customerName: q.client.name,
+          quoteId: q.id,
+          totalAmount: q.grossTotal
+        }),
+      });
+
+      if (res.ok) {
+        alert("Siker! Az ajánlatot elküldtük az ügyfélnek.");
+      } else {
+        const errorData = await res.json();
+        alert("Hiba történt a küldés során: " + errorData.error);
+      }
+    } catch (err) {
+      alert("Hálózati hiba történt a küldéskor.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   if (!q) return <div style={{padding: 20, fontFamily: "Segoe UI, sans-serif"}}>Ajánlat betöltése...</div>;
 
@@ -70,7 +104,7 @@ export default function QuotePrintPage() {
         </div>
       </div>
 
-      {/* 4. TÉTELEK TÁBLÁZAT - ITT A SZORZÓ! */}
+      {/* 4. TÉTELEK TÁBLÁZAT */}
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: "12.5px" }}>
         <thead>
           <tr style={{ borderBottom: `2px solid ${brandBlue}`, textAlign: "left" }}>
@@ -82,7 +116,6 @@ export default function QuotePrintPage() {
         </thead>
         <tbody>
           {q.items?.map((it: any) => {
-            // Itt kényszerítjük a bruttó (27%-os) megjelenítést
             const brutoUnitPrice = Math.round(Number(it.unitPriceNet) * 1.27);
             const brutoLineTotal = brutoUnitPrice * Number(it.quantity);
             
@@ -129,9 +162,19 @@ export default function QuotePrintPage() {
         </div>
       </div>
 
-      <button onClick={() => window.print()} className="no-print" style={printBtnS(brandBlue)}>
-        📥 MENTÉS
-      </button>
+      {/* GOMBOK - Fixen a képernyő alján */}
+      <div className="no-print" style={{ position: "fixed", bottom: "30px", right: "30px", display: "flex", gap: "15px" }}>
+        <button 
+          onClick={handleSendEmail} 
+          disabled={sending}
+          style={actionBtnS(sending ? "#bdc3c7" : brandGreen)}
+        >
+          {sending ? "⏳ KÜLDÉS..." : "📧 EMAIL KÜLDÉSE"}
+        </button>
+        <button onClick={() => window.print()} style={actionBtnS(brandBlue)}>
+          📥 PDF MENTÉS
+        </button>
+      </div>
 
       <style jsx global>{`
         @media screen {
@@ -161,4 +204,17 @@ export default function QuotePrintPage() {
 
 const cellS = { padding: "8px 6px" };
 const labelStyle = { display: "block", color: "#bdc3c7", fontWeight: "bold" as const, textTransform: "uppercase" as const, fontSize: "9px", letterSpacing: "0.5px", marginBottom: "4px" };
-const printBtnS = (color: string) => ({ position: "fixed" as const, bottom: "30px", right: "30px", background: color, color: "#fff", border: "none", padding: "12px 24px", borderRadius: "50px", fontWeight: "bold" as const, cursor: "pointer", boxShadow: "0 5px 15px rgba(0,0,0,0.2)", fontSize: "14px", zIndex: 1000 });
+
+// Közös gomb stílus függvény
+const actionBtnS = (bgColor: string) => ({
+  background: bgColor,
+  color: "#fff",
+  border: "none",
+  padding: "14px 28px",
+  borderRadius: "50px",
+  fontWeight: "bold" as const,
+  cursor: "pointer",
+  boxShadow: "0 5px 15px rgba(0,0,0,0.2)",
+  fontSize: "14px",
+  transition: "transform 0.2s"
+});
