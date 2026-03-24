@@ -79,7 +79,7 @@ export default function ClientDetailsPage() {
       )}
 
       <div style={{ marginTop: 20, display: "grid", gap: 15 }}>
-        {client.units?.length === 0 && <p style={{color: "#999", italic: "true"}}>Nincs még regisztrált gép.</p>}
+       {client.units?.length === 0 && <p style={{color: "#999", fontStyle: "italic"}}>Nincs még regisztrált gép.</p>}
         {client.units?.map((unit: any) => (
           <div key={unit.id} style={{ padding: 15, border: "1px solid #eee", borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff" }}>
             <div>
