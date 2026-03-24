@@ -78,7 +78,7 @@ export default function QuotePrintPage() {
       </table>
 
       {/* ÖSSZESÍTÉS */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 50 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 40 }}>
         <div style={{ width: "350px", padding: "20px", background: "#f8f9fa", borderRadius: "10px", border: "1px solid #eee" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 18, fontWeight: "600" }}>Fizetendő bruttó:</span>
@@ -89,6 +89,9 @@ export default function QuotePrintPage() {
 
       {/* ZÁRÓ SZÖVEG ÉS ÉRVÉNYESSÉG */}
       <div style={{ marginTop: "auto", borderTop: "1px solid #eee", paddingTop: 30 }}>
+        <p style={{ fontSize: 15, fontWeight: "bold", color: "#1a252f", marginBottom: 10 }}>
+          Köszönjük, hogy minket választott!
+        </p>
         <p style={{ fontSize: 15, lineHeight: "1.6", color: "#2c3e50", marginBottom: 20 }}>
           Árajánlatunkat az Ön igényeinek megfelelően állítottuk össze. Bízunk benne, hogy egyedi árajánlatunk segíteni fogja Önt, hogy a megrendeléshez szükséges döntést meghozza.
         </p>
@@ -143,6 +146,5 @@ const printBtnS = {
   cursor: "pointer", 
   boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
   fontSize: "16px",
-  zIndex: 1000,
-  transition: "transform 0.2s"
+  zIndex: 1000
 };
