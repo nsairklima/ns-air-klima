@@ -46,16 +46,29 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const idFromQuery = searchParams.get("id");
 
-    if (!id) return NextResponse.json({ error: "Hiányzó azonosító" }, { status: 400 });
+    if (!idFromQuery) {
+      return NextResponse.json({ error: "Hiányzó azonosító (ID)" }, { status: 400 });
+    }
 
+    const logId = Number(idFromQuery);
+
+    if (isNaN(logId)) {
+      return NextResponse.json({ error: "Érvénytelen azonosító formátum" }, { status: 400 });
+    }
+
+    // Törlés az adatbázisból
     await prisma.maintenanceLog.delete({
-      where: { id: Number(id) },
+      where: { id: logId },
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: "Hiba a törléskor" }, { status: 500 });
+    return NextResponse.json({ success: true, message: "Bejegyzés törölve" });
+  } catch (error: any) {
+    console.error("Szerver oldali törlési hiba:", error);
+    return NextResponse.json(
+      { error: "Szerver hiba a törléskor: " + error.message }, 
+      { status: 500 }
+    );
   }
 }
