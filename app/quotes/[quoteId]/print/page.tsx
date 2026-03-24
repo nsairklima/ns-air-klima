@@ -8,6 +8,7 @@ export default function QuotePrintPage() {
   const quoteId = params?.quoteId;
   const [q, setQ] = useState<any>(null);
 
+  // NS-AIR KLÍMA arculati színek
   const brandBlue = "#3498db"; 
   const brandDark = "#2c3e50";
   const brandRed = "#e74c3c";
@@ -70,7 +71,7 @@ export default function QuotePrintPage() {
         </div>
       </div>
 
-      {/* 4. TÉTELEK TÁBLÁZAT - Bruttó árakkal */}
+      {/* 4. TÉTELEK TÁBLÁZAT */}
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 30, fontSize: "14px" }}>
         <thead>
           <tr style={{ borderBottom: `2px solid ${brandBlue}`, textAlign: "left" }}>
@@ -94,7 +95,7 @@ export default function QuotePrintPage() {
                 {Math.round(it.unitPriceNet * it.quantity).toLocaleString()} Ft
               </td>
             </tr>
-          </thead>
+          ))}
         </tbody>
       </table>
 
