@@ -1,21 +1,49 @@
-// app/api/quotes/[quoteId]/route.ts
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function DELETE(
+// --- AJÁNLAT LEKÉRÉSE (Szerkesztéshez kell) ---
+export async function GET(
   req: Request,
   { params }: { params: { quoteId: string } }
 ) {
   try {
-    // A params.quoteId-t számmá alakítjuk
     const id = parseInt(params.quoteId);
 
     if (isNaN(id)) {
       return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
     }
 
-    // Tranzakció: először a tételek, aztán az ajánlat
+    const quote = await prisma.quote.findUnique({
+      where: { id: id },
+      include: {
+        items: true, // Beletesszük a tételeket is
+        client: true, // Opcionális: az ügyfél adatait is láthatjuk
+      },
+    });
+
+    if (!quote) {
+      return NextResponse.json({ error: "Az ajánlat nem található." }, { status: 404 });
+    }
+
+    return NextResponse.json(quote);
+  } catch (error) {
+    console.error("Lekérdezési hiba:", error);
+    return NextResponse.json({ error: "Hiba az adatok lekérésekor." }, { status: 500 });
+  }
+}
+
+// --- AJÁNLAT TÖRLÉSE (Már megírtad, tranzakcióval) ---
+export async function DELETE(
+  req: Request,
+  { params }: { params: { quoteId: string } }
+) {
+  try {
+    const id = parseInt(params.quoteId);
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
+    }
+
     await prisma.$transaction([
       prisma.quoteItem.deleteMany({
         where: { quoteId: id },
