@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/maintenance/[id]  – Egy karbantartás lekérdezése ID alapján
+// GET /api/maintenance/[id] – Egy karbantartás lekérdezése ID alapján
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
@@ -25,7 +25,40 @@ export async function GET(
   }
 }
 
-// (Opcionális) Törlés ID alapján
+// PATCH /api/maintenance/[id] – Karbantartási bejegyzés módosítása
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = Number(params.id);
+    if (!Number.isFinite(id)) {
+      return NextResponse.json({ error: "Érvénytelen id." }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const { performedDate, description, nextServiceDate } = body;
+
+    const updatedLog = await prisma.maintenanceLog.update({
+      where: { id },
+      data: {
+        performedDate: performedDate ? new Date(performedDate) : undefined,
+        description: description,
+        nextServiceDate: nextServiceDate === null ? null : (nextServiceDate ? new Date(nextServiceDate) : undefined),
+      },
+    });
+
+    return NextResponse.json(updatedLog);
+  } catch (e: any) {
+    console.error("Hiba a karbantartás frissítésekor:", e);
+    return NextResponse.json(
+      { error: e?.message || "Nem sikerült a módosítás." },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/maintenance/[id] – Törlés ID alapján
 export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }
