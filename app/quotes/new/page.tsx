@@ -61,8 +61,17 @@ export default function NewQuotePage() {
 
   return (
     <div style={wrap}>
-      <a href="/quotes" style={{ color: "#666", textDecoration: "none" }}>← Mégse</a>
-      <h1 style={{ marginTop: 12 }}>Új ajánlat indítása</h1>
+      {/* --- EGYSÉGES NAVIGÁCIÓ --- */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 25 }}>
+        <button onClick={() => router.back()} style={navBtn}>
+          ⬅️ Mégse / Vissza
+        </button>
+        <button onClick={() => router.push("/")} style={{ ...navBtn, background: "#f8f9fa", color: "#333" }}>
+          🏠 Főoldal
+        </button>
+      </div>
+
+      <h1 style={{ marginTop: 12, color: "#2c3e50" }}>Új ajánlat indítása</h1>
 
       <form onSubmit={handleSubmit} style={formCard}>
         <div style={formGroup}>
@@ -93,39 +102,60 @@ export default function NewQuotePage() {
         </div>
 
         <button type="submit" disabled={loading} style={btnPrimary}>
-          {loading ? "Létrehozás..." : "Ajánlat létrehozása és szerkesztése"}
+          {loading ? "Létrehozás..." : "Ajánlat létrehozása és szerkesztése →"}
         </button>
       </form>
     </div>
   );
 }
 
-/* ---- Stílusok ---- */
-const wrap: React.CSSProperties = { padding: 24, maxWidth: 600, margin: "0 auto", fontFamily: "Arial" };
-const formCard: React.CSSProperties = { 
-  background: "#f9f9f9", 
-  padding: 24, 
-  borderRadius: 12, 
+/* ---- STÍLUSOK ---- */
+const navBtn: React.CSSProperties = {
+  padding: "8px 16px",
+  borderRadius: "8px",
   border: "1px solid #ddd",
+  background: "#fff",
+  color: "#555",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: "bold",
+  display: "flex",
+  alignItems: "center",
+  gap: "5px"
+};
+
+const wrap: React.CSSProperties = { padding: 24, maxWidth: 600, margin: "0 auto", fontFamily: "Arial" };
+
+const formCard: React.CSSProperties = { 
+  background: "#fcfcfc", 
+  padding: 30, 
+  borderRadius: 15, 
+  border: "1px solid #eee",
+  boxShadow: "0 4px 15px rgba(0,0,0,0.05)",
   marginTop: 20 
 };
-const formGroup: React.CSSProperties = { marginBottom: 16 };
-const label: React.CSSProperties = { display: "block", marginBottom: 6, fontWeight: "bold", fontSize: 14 };
+
+const formGroup: React.CSSProperties = { marginBottom: 20 };
+const label: React.CSSProperties = { display: "block", marginBottom: 8, fontWeight: "bold", fontSize: 14, color: "#555" };
+
 const input: React.CSSProperties = { 
   width: "100%", 
-  padding: "10px", 
-  borderRadius: 6, 
+  padding: "12px", 
+  borderRadius: 8, 
   border: "1px solid #ccc",
-  fontSize: 16 
+  fontSize: 16,
+  boxSizing: "border-box"
 };
+
 const btnPrimary: React.CSSProperties = { 
   width: "100%", 
-  background: "#0070f3", 
+  background: "#2c3e50", 
   color: "#fff", 
   border: "none", 
-  padding: "12px", 
-  borderRadius: 6, 
+  padding: "15px", 
+  borderRadius: 10, 
   fontWeight: "bold", 
   cursor: "pointer",
-  fontSize: 16
+  fontSize: 16,
+  transition: "0.2s"
 };
