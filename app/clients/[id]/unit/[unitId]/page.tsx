@@ -39,22 +39,21 @@ export default function UnitMaintenancePage() {
   useEffect(() => { if (unitId) loadData(); }, [unitId]);
 
   // --- TÖRLÉS JAVÍTVA ---
-  const handleDeleteLog = async (logId: number) => {
-    if (!confirm("Biztosan törlöd ezt a bejegyzést?")) return;
-    try {
-      const res = await fetch(`/api/clients/${clientId}/units/${unitId}/maintenance?id=${logId}`, { 
-        method: "DELETE" 
-      });
-      if (res.ok) {
-        // Fontos: megvárjuk a frissítést!
-        await loadData(); 
-      } else {
-        alert("Hiba történt a törlés során a szerveren.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+ const handleDeleteLog = async (logId: number) => {
+  if (!confirm("Biztosan törlöd?")) return;
+  
+  // A végén a ?id=${logId} rész a kulcs!
+  const res = await fetch(`/api/clients/${clientId}/units/${unitId}/maintenance?id=${logId}`, { 
+    method: "DELETE" 
+  });
+
+  if (res.ok) {
+    await loadData(); // Frissítés
+  } else {
+    const errorData = await res.json();
+    alert("Hiba: " + (errorData.error || "Ismeretlen hiba"));
+  }
+};
 
   // --- MÓDOSÍTÁS MENTÉSE ---
   const handleUpdateLog = async (logId: number) => {
