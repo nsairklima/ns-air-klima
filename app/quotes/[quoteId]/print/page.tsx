@@ -11,11 +11,10 @@ export default function QuotePrintPage() {
   // NS-AIR KLÍMA arculati színek
   const brandBlue = "#3498db"; 
   const brandDark = "#2c3e50";
-  const brandRed = "#e74c3c"; // A logóból származó piros
+  const brandRed = "#e74c3c";
 
   useEffect(() => {
     if (quoteId) {
-      // Itt a valódi API hívás történik az ajánlat adataival
       fetch(`/api/quotes/${quoteId}`)
         .then(res => res.json())
         .then(data => setQ(data));
@@ -26,7 +25,7 @@ export default function QuotePrintPage() {
 
   return (
     <div className="print-wrapper">
-      {/* 1. FEJLÉC: Cím és Logó */}
+      {/* 1. FEJLÉC */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 15, alignItems: "center" }}>
         <div>
           <h1 style={{ margin: 0, color: brandDark, fontSize: 30, fontWeight: "800", letterSpacing: "-1px" }}>ÁRAJÁNLAT</h1>
@@ -36,24 +35,21 @@ export default function QuotePrintPage() {
           </div>
         </div>
         <div>
-          {/* A logó elérhetősége a public mappában: /ns-logo.png */}
           <img src="/ns-logo.png" alt="NS-AIR KLÍMA" style={{ height: 75 }} />
         </div>
       </div>
 
-      {/* 2. MÁRKASZÍNŰ DÍSZÍTŐ SÁV (Kompakt és Nyomtatóbarát) */}
+      {/* 2. DÍSZÍTŐ SÁV */}
       <div style={{ display: "flex", marginBottom: 25 }}>
         <div style={{ flex: 3, height: "6px", background: brandBlue, borderRadius: "3px 0 0 3px" }}></div>
         <div style={{ flex: 7, height: "6px", background: "#eee", borderRadius: "0 3px 3px 0" }}></div>
       </div>
 
-      {/* 3. ADATOK ELRENDEZÉSE: Kompakt, kétoszlopos nézet */}
+      {/* 3. ADATOK ELRENDEZÉSE */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, marginBottom: 40, borderBottom: "1px solid #f2f2f2", paddingBottom: 20 }}>
-        {/* BAL OLDAL: Kiállító (NS-AIR KLÍMA) */}
         <div>
           <small style={labelStyle}>Kiállító</small>
           <div style={{ fontSize: 13, lineHeight: "1.6", color: brandDark }}>
-            {/* A cégnév frissítve a logó szerinti piros KLÍMA szóval */}
             <strong style={{ fontSize: 17, display: "block", marginBottom: 4 }}>
               <span style={{ color: brandBlue }}>NS-AIR</span>
               <span style={{ color: brandRed, marginLeft: 6 }}>KLÍMA</span>
@@ -66,7 +62,6 @@ export default function QuotePrintPage() {
           </div>
         </div>
 
-        {/* JOBB OLDAL: Megrendelő (Ügyfél) */}
         <div style={{ textAlign: "right" }}>
           <small style={labelStyle}>Megrendelő</small>
           <div style={{ fontSize: 13, lineHeight: "1.6", color: brandDark }}>
@@ -84,7 +79,7 @@ export default function QuotePrintPage() {
           <tr style={{ borderBottom: `2px solid ${brandBlue}`, textAlign: "left" }}>
             <th style={{ ...cellS, color: brandDark }}>Megnevezés</th>
             <th style={{ ...cellS, width: "80px", textAlign: "center", color: brandDark }}>Menny.</th>
-            <th style={{ ...cellS, textAlign: "right", width: "130px", color: brandDark }}>Bruttó egységár</th>
+            <th style={{ ...cellS, textAlign: "right", width: "130px", color: brandDark }}>Egységár</th>
             <th style={{ ...cellS, textAlign: "right", width: "130px", color: brandBlue }}>Összesen</th>
           </tr>
         </thead>
@@ -96,27 +91,27 @@ export default function QuotePrintPage() {
               </td>
               <td style={{ ...cellS, textAlign: "center" }}>{it.quantity} {it.unit}</td>
               <td style={{ ...cellS, textAlign: "right" }}>
-                {Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft
+                {Math.round(it.unitPriceNet).toLocaleString()} Ft
               </td>
               <td style={{ ...cellS, textAlign: "right", fontWeight: "bold", color: brandDark }}>
-                {Math.round(it.unitPriceNet * 1.27 * it.quantity).toLocaleString()} Ft
+                {Math.round(it.unitPriceNet * it.quantity).toLocaleString()} Ft
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* 5. ÖSSZESÍTÉS: Kiemelt kék kerettel */}
+      {/* 5. ÖSSZESÍTÉS */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 50 }}>
         <div style={{ width: "320px", padding: "15px", border: `2px solid ${brandBlue}`, borderRadius: "10px", background: "#fcfdff" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 16, fontWeight: "600", color: brandDark }}>Fizetendő bruttó:</span>
+            <span style={{ fontSize: 16, fontWeight: "600", color: brandDark }}>Fizetendő végösszeg:</span>
             <span style={{ fontSize: 22, fontWeight: "800", color: brandBlue }}>{Number(q.grossTotal).toLocaleString()} Ft</span>
           </div>
         </div>
       </div>
 
-      {/* 6. ZÁRÓ SZÖVEG */}
+      {/* 6. ZÁRÓ SZÖVEG ÉS ADÓMENTESSÉG */}
       <div style={{ marginTop: "auto", borderTop: "1px solid #eee", paddingTop: 30, fontSize: "14px" }}>
         <p style={{ fontWeight: "bold", color: brandBlue, marginBottom: 10 }}>
           Köszönjük, hogy minket választott!
@@ -126,17 +121,16 @@ export default function QuotePrintPage() {
         </p>
         
         <div style={{ padding: "12px", borderLeft: `4px solid ${brandBlue}`, background: "#f8fbff", fontSize: 13, color: "#444" }}>
-          <strong>Érvényesség:</strong> Ez az árajánlat a kiállítástól számított <strong>7 napig</strong> érvényes.
-          <br />Az árak a 27% ÁFA-t tartalmazzák.
+          <p style={{ margin: "0 0 5px 0" }}><strong>Érvényesség:</strong> Ez az árajánlat a kiállítástól számított <strong>7 napig</strong> érvényes.</p>
+          <p style={{ margin: 0 }}><strong>Megjegyzés:</strong> Az ajánlat készítője alanyi adómentes, ezért a végösszeget az Áfa mértéke nem befolyásolja.</p>
         </div>
       </div>
 
-      {/* 7. NYOMTATÁS GOMB (CSAK KÉPERNYŐN) */}
+      {/* 7. NYOMTATÁS GOMB */}
       <button onClick={() => window.print()} className="no-print" style={printBtnS(brandBlue)}>
         📥 AJÁNLAT MENTÉSE (PDF)
       </button>
 
-      {/* Globális és lokális stílusok */}
       <style jsx global>{`
         @media screen {
           body { background: #525659; padding: 40px 0; }
@@ -163,29 +157,6 @@ export default function QuotePrintPage() {
   );
 }
 
-// Stílus konstansok
 const cellS = { padding: "18px 10px" };
-const labelStyle = { 
-  display: "block", 
-  color: "#95a5a6", 
-  fontWeight: "bold" as const, 
-  textTransform: "uppercase" as const, 
-  fontSize: "10px", 
-  letterSpacing: "1px", 
-  marginBottom: "8px" 
-};
-const printBtnS = (color: string) => ({ 
-  position: "fixed" as const, 
-  bottom: "30px", 
-  right: "30px", 
-  background: color, 
-  color: "#fff", 
-  border: "none", 
-  padding: "18px 36px", 
-  borderRadius: "50px", 
-  fontWeight: "bold" as const, 
-  cursor: "pointer", 
-  boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
-  fontSize: "16px",
-  zIndex: 1000
-});
+const labelStyle = { display: "block", color: "#95a5a6", fontWeight: "bold" as const, textTransform: "uppercase" as const, fontSize: "10px", letterSpacing: "1px", marginBottom: "8px" };
+const printBtnS = (color: string) => ({ position: "fixed" as const, bottom: "30px", right: "30px", background: color, color: "#fff", border: "none", padding: "18px 36px", borderRadius: "50px", fontWeight: "bold" as const, cursor: "pointer", boxShadow: "0 10px 25px rgba(0,0,0,0.3)", fontSize: "16px", zIndex: 1000 });
