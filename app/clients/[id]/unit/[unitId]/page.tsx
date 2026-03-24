@@ -39,19 +39,24 @@ export default function UnitMaintenancePage() {
   useEffect(() => { if (unitId) loadData(); }, [unitId]);
 
   // --- TÖRLÉS JAVÍTVA ---
- const handleDeleteLog = async (logId: number) => {
-  if (!confirm("Biztosan törlöd?")) return;
-  
-  // A végén a ?id=${logId} rész a kulcs!
-  const res = await fetch(`/api/clients/${clientId}/units/${unitId}/maintenance?id=${logId}`, { 
-    method: "DELETE" 
-  });
+const handleDeleteLog = async (logId: number) => {
+  if (!confirm("Biztosan törlöd ezt a karbantartást?")) return;
 
-  if (res.ok) {
-    await loadData(); // Frissítés
-  } else {
-    const errorData = await res.json();
-    alert("Hiba: " + (errorData.error || "Ismeretlen hiba"));
+  try {
+    // FONTOS: Az URL végén ott kell lennie a ?id= résznek!
+    const res = await fetch(
+      `/api/clients/${clientId}/units/${unitId}/maintenance?id=${logId}`, 
+      { method: "DELETE" }
+    );
+
+    if (res.ok) {
+      await loadData(); // Lista frissítése
+    } else {
+      const errorData = await res.json();
+      alert("Hiba: " + errorData.error);
+    }
+  } catch (err) {
+    console.error("Hálózati hiba:", err);
   }
 };
 
