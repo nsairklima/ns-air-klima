@@ -16,49 +16,56 @@ export default function QuotePrintPage() {
     }
   }, [quoteId]);
 
-  if (!q) return <div style={{padding: 20}}>Betöltés...</div>;
+  if (!q) return <div style={{padding: 20}}>Ajánlat betöltése...</div>;
 
   return (
     <div className="print-wrapper">
       {/* FEJLÉC */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 40 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 40, alignItems: "flex-start" }}>
         <div>
-          <h1 style={{ margin: 0, color: "#2c3e50", fontSize: 32 }}>ÁRAJÁNLAT</h1>
-          <p style={{ color: "#7f8c8d" }}>Azonosító: #{q.id}/2026</p>
-          <p>Kelt: {new Date().toLocaleDateString('hu-HU')}</p>
+          <h1 style={{ margin: 0, color: "#1a252f", fontSize: 32, letterSpacing: "-1px" }}>ÁRAJÁNLAT</h1>
+          <p style={{ color: "#7f8c8d", margin: "5px 0" }}>Azonosító: #{q.id}/2026</p>
+          <p style={{ margin: 0 }}>Kelt: {new Date().toLocaleDateString('hu-HU')}</p>
         </div>
         <div style={{ textAlign: "right" }}>
-          <img src="/ns-logo.png" alt="Logo" style={{ height: 60, marginBottom: 10 }} />
-          <div style={{ fontSize: 14 }}>
+          {/* A logó elérhetősége a public mappában: /ns-logo.png */}
+          <img src="/ns-logo.png" alt="NS Air Klíma" style={{ height: 70, marginBottom: 10 }} />
+          <div style={{ fontSize: 14, lineHeight: "1.4" }}>
             <strong>NS Air Klíma</strong><br />
-            nsairklima.vercel.app<br />
-            Email: info@nsair.hu
+            Klímaszerelés és Karbantartás<br />
+            Email: <strong>info@nsairklima.hu</strong>
           </div>
         </div>
       </div>
 
-      {/* ÜGYFÉL */}
-      <div style={{ marginBottom: 40, padding: 20, background: "#f8f9fa", borderRadius: 10 }}>
-        <small style={{ color: "#7f8c8d", textTransform: "uppercase" }}>Ügyfél adatai:</small>
-        <div style={{ fontSize: 18, fontWeight: "bold", marginTop: 5 }}>{q.client?.name}</div>
-        <div>{q.client?.address || "Nincs megadott cím"}</div>
-        <div>{q.client?.phone || ""}</div>
+      <div style={{ height: "2px", background: "#1a252f", marginBottom: 30 }}></div>
+
+      {/* ÜGYFÉL ADATOK */}
+      <div style={{ marginBottom: 40, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={{ padding: "15px", border: "1px solid #eee", borderRadius: 8 }}>
+          <small style={{ color: "#7f8c8d", fontWeight: "bold", textTransform: "uppercase", fontSize: 10 }}>Ajánlatot kapja:</small>
+          <div style={{ fontSize: 18, fontWeight: "bold", marginTop: 5 }}>{q.client?.name}</div>
+          <div style={{ marginTop: 5 }}>{q.client?.address || "Cím nincs megadva"}</div>
+          <div>{q.client?.phone}</div>
+        </div>
       </div>
 
-      {/* TÁBLÁZAT */}
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      {/* TÉTELEK TÁBLÁZAT */}
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 30 }}>
         <thead>
-          <tr style={{ borderBottom: "2px solid #2c3e50", textAlign: "left" }}>
+          <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
             <th style={cellS}>Megnevezés</th>
-            <th style={cellS}>Mennyiség</th>
-            <th style={{ ...cellS, textAlign: "right" }}>Bruttó egységár</th>
-            <th style={{ ...cellS, textAlign: "right" }}>Összesen</th>
+            <th style={{ ...cellS, width: "100px" }}>Menny.</th>
+            <th style={{ ...cellS, textAlign: "right", width: "140px" }}>Bruttó egységár</th>
+            <th style={{ ...cellS, textAlign: "right", width: "140px" }}>Összesen</th>
           </tr>
         </thead>
         <tbody>
-          {q.items.map((it: any) => (
+          {q.items?.map((it: any) => (
             <tr key={it.id} style={{ borderBottom: "1px solid #eee" }}>
-              <td style={cellS}><strong>{it.description}</strong></td>
+              <td style={cellS}>
+                <div style={{ fontWeight: "bold" }}>{it.description}</div>
+              </td>
               <td style={cellS}>{it.quantity} {it.unit}</td>
               <td style={{ ...cellS, textAlign: "right" }}>
                 {Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft
@@ -71,45 +78,64 @@ export default function QuotePrintPage() {
         </tbody>
       </table>
 
-      {/* VÉGÖSSZEG */}
-      <div style={{ marginTop: 30, textAlign: "right" }}>
-        <div style={{ display: "inline-block", borderTop: "3px solid #2c3e50", paddingTop: 10 }}>
-          <span style={{ fontSize: 18 }}>Fizetendő bruttó végösszeg:</span><br />
-          <strong style={{ fontSize: 28 }}>{Number(q.grossTotal).toLocaleString()} Ft</strong>
+      {/* ÖSSZESÍTÉS */}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ width: "300px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "2px solid #1a252f" }}>
+            <span style={{ fontSize: 18 }}>Fizetendő bruttó:</span>
+            <span style={{ fontSize: 22, fontWeight: "bold" }}>{Number(q.grossTotal).toLocaleString()} Ft</span>
+          </div>
         </div>
       </div>
 
-      {/* LÁBLÉC */}
-      <div style={{ marginTop: 80, fontSize: 12, color: "#7f8c8d", borderTop: "1px solid #eee", paddingTop: 20 }}>
-        <p>Az ajánlat 30 napig érvényes. A feltüntetett árak a 27%-os ÁFA-t tartalmazzák.</p>
+      {/* JOGI ÉS EGYÉB INFÓ */}
+      <div style={{ marginTop: 60, padding: "20px", background: "#fcfcfc", borderRadius: 8, fontSize: 12, color: "#666", border: "1px solid #f0f0f0" }}>
+        <p style={{ margin: "0 0 5px 0" }}>• Az árak tartalmazzák a 27% ÁFA-t.</p>
+        <p style={{ margin: "0 0 5px 0" }}>• Az ajánlat érvényessége: 30 nap.</p>
+        <p style={{ margin: "0" }}>• Köszönjük, hogy minket választott!</p>
       </div>
 
-      {/* FIX GOMB (CSAK KÉPERNYŐN) */}
+      {/* NYOMTATÁS GOMB (CSAK KÉPERNYŐN) */}
       <button onClick={() => window.print()} className="no-print" style={printBtnS}>
-        📥 NYOMTATÁS / MENTÉS PDF-KÉNT
+        📥 AJÁNLAT MENTÉSE (PDF)
       </button>
 
       <style jsx global>{`
         @media screen {
-          body { background: #e0e0e0; padding: 40px 0; }
+          body { background: #525659; padding: 40px 0; }
           .print-wrapper { 
             background: white; 
-            padding: 60px; 
-            max-width: 800px; 
+            padding: 70px; 
+            max-width: 850px; 
             margin: 0 auto; 
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
             min-height: 297mm;
           }
         }
         @media print {
           .no-print { display: none !important; }
-          .print-wrapper { padding: 0; margin: 0; width: 100%; }
+          .print-wrapper { padding: 0; margin: 0; width: 100%; box-shadow: none; }
           body { background: white; }
         }
+        * { font-family: 'Segoe UI', Arial, sans-serif; box-sizing: border-box; }
       `}</style>
     </div>
   );
 }
 
-const cellS = { padding: "15px 10px" };
-const printBtnS = { position: "fixed" as const, bottom: 30, right: 30, background: "#27ae60", color: "#fff", border: "none", padding: "15px 30px", borderRadius: 50, fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 15px rgba(0,0,0,0.3)" };
+const cellS = { padding: "15px 10px", fontSize: "14px" };
+const printBtnS = { 
+  position: "fixed" as const, 
+  bottom: "30px", 
+  right: "30px", 
+  background: "#27ae60", 
+  color: "#fff", 
+  border: "none", 
+  padding: "16px 32px", 
+  borderRadius: "50px", 
+  fontWeight: "bold" as const, 
+  cursor: "pointer", 
+  boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+  fontSize: "16px",
+  zIndex: 1000
+};
