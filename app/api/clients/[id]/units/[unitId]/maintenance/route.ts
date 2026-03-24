@@ -45,22 +45,12 @@ export async function PATCH(req: Request) {
 // KARBANTARTÁS TÖRLÉSE
 export async function DELETE(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    // 1. Megpróbáljuk kiszedni az URL-ből (?id=...)
-    let id = searchParams.get("id");
-
-    // 2. Ha ott nincs, megpróbáljuk a biztonság kedvéért a JSON body-ból is
-    if (!id) {
-      try {
-        const body = await req.json();
-        id = body.id;
-      } catch (e) {
-        // Ha nincs body, nem baj, megyünk tovább
-      }
-    }
+    // Megpróbáljuk kiolvasni a JSON-t a kérés testéből
+    const body = await req.json();
+    const id = body.id;
 
     if (!id) {
-      return NextResponse.json({ error: "Hiányzó azonosító (ID)" }, { status: 400 });
+      return NextResponse.json({ error: "Nincs megadva törlendő azonosító" }, { status: 400 });
     }
 
     await prisma.maintenanceLog.delete({
@@ -70,6 +60,6 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Törlési hiba:", error);
-    return NextResponse.json({ error: "Szerver hiba törléskor" }, { status: 500 });
+    return NextResponse.json({ error: "Hiba történt a törlés során" }, { status: 500 });
   }
 }
