@@ -42,7 +42,7 @@ export default function QuotePrintPage() {
         <div style={{ flex: 7, height: "4px", background: "#eee", borderRadius: "0 2px 2px 0" }}></div>
       </div>
 
-      {/* 3. ADATOK ELRENDEZÉSE */}
+      {/* 3. ADATOK */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, marginBottom: 20, borderBottom: "1px solid #f2f2f2", paddingBottom: 15 }}>
         <div>
           <small style={labelStyle}>Kiállító</small>
@@ -70,7 +70,7 @@ export default function QuotePrintPage() {
         </div>
       </div>
 
-      {/* 4. TÉTELEK TÁBLÁZAT */}
+      {/* 4. TÉTELEK TÁBLÁZAT - ITT A SZORZÓ! */}
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: "12.5px" }}>
         <thead>
           <tr style={{ borderBottom: `2px solid ${brandBlue}`, textAlign: "left" }}>
@@ -82,9 +82,9 @@ export default function QuotePrintPage() {
         </thead>
         <tbody>
           {q.items?.map((it: any) => {
-            // Itt kényszerítjük, hogy bruttóként kezelje az árat
-            const unitPrice = Number(it.unitPriceNet);
-            const lineTotal = unitPrice * Number(it.quantity);
+            // Itt kényszerítjük a bruttó (27%-os) megjelenítést
+            const brutoUnitPrice = Math.round(Number(it.unitPriceNet) * 1.27);
+            const brutoLineTotal = brutoUnitPrice * Number(it.quantity);
             
             return (
               <tr key={it.id} style={{ borderBottom: "1px solid #f2f2f2" }}>
@@ -93,10 +93,10 @@ export default function QuotePrintPage() {
                 </td>
                 <td style={{ ...cellS, textAlign: "center" }}>{it.quantity} {it.unit}</td>
                 <td style={{ ...cellS, textAlign: "right" }}>
-                  {Math.round(unitPrice).toLocaleString()} Ft
+                  {brutoUnitPrice.toLocaleString()} Ft
                 </td>
                 <td style={{ ...cellS, textAlign: "right", fontWeight: "bold", color: brandDark }}>
-                  {Math.round(lineTotal).toLocaleString()} Ft
+                  {brutoLineTotal.toLocaleString()} Ft
                 </td>
               </tr>
             );
@@ -104,7 +104,7 @@ export default function QuotePrintPage() {
         </tbody>
       </table>
 
-      {/* 5. ÖSSZESÍTÉS - Mindig az oldal alján */}
+      {/* 5. ÖSSZESÍTÉS - MINDIG ALUL */}
       <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
         <div style={{ width: "280px", padding: "10px", border: `1.5px solid ${brandBlue}`, borderRadius: "8px", background: "#fcfdff" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -114,7 +114,7 @@ export default function QuotePrintPage() {
         </div>
       </div>
 
-      {/* 6. ZÁRÓ SZÖVEG */}
+      {/* 6. LÁBLÉC */}
       <div style={{ borderTop: "1px solid #eee", paddingTop: 15, fontSize: "11.5px" }}>
         <p style={{ fontWeight: "bold", color: brandBlue, marginBottom: 5, fontSize: "12px" }}>
           Köszönjük, hogy minket választott!
@@ -149,15 +149,7 @@ export default function QuotePrintPage() {
         }
         @media print {
           .no-print { display: none !important; }
-          .print-wrapper { 
-            padding: 0; 
-            margin: 0; 
-            width: 100%; 
-            box-shadow: none; 
-            min-height: 280mm;
-            display: flex;
-            flex-direction: column;
-          }
+          .print-wrapper { padding: 0; margin: 0; width: 100%; box-shadow: none; min-height: 280mm; display: flex; flex-direction: column; }
           body { background: white; }
           * { -webkit-print-color-adjust: exact; }
         }
