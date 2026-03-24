@@ -43,20 +43,21 @@ const handleDeleteLog = async (logId: number) => {
   if (!confirm("Biztosan törlöd ezt a karbantartást?")) return;
 
   try {
-    // FONTOS: Az URL végén ott kell lennie a ?id= résznek!
-    const res = await fetch(
-      `/api/clients/${clientId}/units/${unitId}/maintenance?id=${logId}`, 
-      { method: "DELETE" }
-    );
+    // Az új, direkt útvonalat hívjuk: /api/maintenance/123
+    const res = await fetch(`/api/maintenance/${logId}`, { 
+      method: "DELETE" 
+    });
 
     if (res.ok) {
-      await loadData(); // Lista frissítése
+      // Sikerült! Frissítjük a listát.
+      await loadData(); 
     } else {
       const errorData = await res.json();
-      alert("Hiba: " + errorData.error);
+      alert("Hiba: " + (errorData.error || "Ismeretlen hiba történt"));
     }
   } catch (err) {
     console.error("Hálózati hiba:", err);
+    alert("Hálózati hiba történt a törlés során.");
   }
 };
 
