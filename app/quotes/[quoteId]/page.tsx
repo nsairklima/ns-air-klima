@@ -38,6 +38,11 @@ export default function QuoteEditPage() {
     : basePriceGross + (Number(profitValue) || 0);
   const sellPriceNet = sellPriceGross / 1.27;
 
+  // Élő összesítők a meglévő tételekből
+  const totalGross = q?.items?.reduce((sum: number, it: any) => sum + Number(it.lineGross), 0) || 0;
+  const totalNet = totalGross / 1.27;
+  const totalTax = totalGross - totalNet;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingId ? "PATCH" : "POST";
@@ -88,16 +93,10 @@ export default function QuoteEditPage() {
       
       {/* --- EGYSÉGES NAVIGÁCIÓ --- */}
       <div style={{ display: "flex", gap: 10, marginBottom: 25 }}>
-        <button 
-          onClick={() => router.push(`/clients/${q.clientId}`)} 
-          style={navBtn}
-        >
+        <button onClick={() => router.push(`/clients/${q.clientId}`)} style={navBtn}>
           ⬅️ Vissza az ügyfélhez
         </button>
-        <button 
-          onClick={() => router.push("/")} 
-          style={{ ...navBtn, background: "#f8f9fa", color: "#333" }}
-        >
+        <button onClick={() => router.push("/")} style={{ ...navBtn, background: "#f8f9fa", color: "#333" }}>
           🏠 Főoldal
         </button>
       </div>
@@ -108,6 +107,7 @@ export default function QuoteEditPage() {
         </h1>
       </div>
 
+      {/* FORM / KALKULÁTOR */}
       <div style={{ background: editingId ? "#fff3e0" : "#f8f9fa", padding: 25, borderRadius: 15, border: "1px solid #ddd" }}>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
           <input placeholder="Megnevezés (pl. Gree Pulse 3.5kW klíma)" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
@@ -155,13 +155,14 @@ export default function QuoteEditPage() {
         </form>
       </div>
 
+      {/* TÉTEL LISTA */}
       <table style={{ width: "100%", marginTop: 30, borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ borderBottom: "2px solid #333", textAlign: "left", background: "#eee" }}>
             <th style={{ padding: 12 }}>Megnevezés</th>
             <th>Menny.</th>
             <th>Bruttó egység</th>
-            <th style={{ textAlign: "right" }}>Összesen</th>
+            <th style={{ textAlign: "right" }}>Összesen (Bruttó)</th>
             <th style={{ textAlign: "right", paddingRight: 12 }}></th>
           </tr>
         </thead>
@@ -173,7 +174,7 @@ export default function QuoteEditPage() {
                 <small style={{color: "#888"}}>{Math.round(it.unitPriceNet).toLocaleString()} Ft nettó</small>
               </td>
               <td>{it.quantity} {it.unit}</td>
-              <td>{Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft</td>
+              <td style={{fontWeight: "500"}}>{Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft</td>
               <td style={{ textAlign: "right", fontWeight: "bold" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
               <td style={{ textAlign: "right", paddingRight: 12 }}>
                 <button onClick={() => startEdit(it)} style={{background: "none", border: "none", cursor: "pointer", fontSize: 18}}>✏️</button>
@@ -184,9 +185,22 @@ export default function QuoteEditPage() {
         </tbody>
       </table>
       
-      <div style={{textAlign: "right", marginTop: 25, fontSize: 26, fontWeight: "bold", color: "#2c3e50"}}>
-        <span style={{fontSize: 16, fontWeight: "normal", color: "#666"}}>Végösszeg: </span>
-        {Number(q.grossTotal).toLocaleString()} Ft
+      {/* --- RÉSZLETES ÖSSZESÍTŐ BLOKK --- */}
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ background: "#fcfcfc", border: "1px solid #eee", padding: 20, borderRadius: 12, minWidth: 300 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, color: "#666" }}>
+            <span>Összesen Nettó:</span>
+            <span>{Math.round(totalNet).toLocaleString()} Ft</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, color: "#e74c3c", fontSize: 14 }}>
+            <span>ÁFA (27%):</span>
+            <span>{Math.round(totalTax).toLocaleString()} Ft</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #2c3e50", paddingTop: 12 }}>
+            <span style={{ fontWeight: "bold", fontSize: 18 }}>Fizetendő Bruttó:</span>
+            <strong style={{ fontSize: 24, color: "#2c3e50" }}>{totalGross.toLocaleString()} Ft</strong>
+          </div>
+        </div>
       </div>
 
       <div style={{ marginTop: 40, display: "flex", justifyContent: "flex-end", gap: 15 }}>
