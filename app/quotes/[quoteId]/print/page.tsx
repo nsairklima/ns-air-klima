@@ -81,24 +81,30 @@ export default function QuotePrintPage() {
           </tr>
         </thead>
         <tbody>
-          {q.items?.map((it: any) => (
-            <tr key={it.id} style={{ borderBottom: "1px solid #f2f2f2" }}>
-              <td style={cellS}>
-                <div style={{ fontWeight: "600", color: brandDark }}>{it.description}</div>
-              </td>
-              <td style={{ ...cellS, textAlign: "center" }}>{it.quantity} {it.unit}</td>
-              <td style={{ ...cellS, textAlign: "right" }}>
-                {Math.round(it.unitPriceNet).toLocaleString()} Ft
-              </td>
-              <td style={{ ...cellS, textAlign: "right", fontWeight: "bold", color: brandDark }}>
-                {Math.round(it.unitPriceNet * it.quantity).toLocaleString()} Ft
-              </td>
-            </tr>
-          ))}
+          {q.items?.map((it: any) => {
+            // Itt kényszerítjük, hogy bruttóként kezelje az árat
+            const unitPrice = Number(it.unitPriceNet);
+            const lineTotal = unitPrice * Number(it.quantity);
+            
+            return (
+              <tr key={it.id} style={{ borderBottom: "1px solid #f2f2f2" }}>
+                <td style={cellS}>
+                  <div style={{ fontWeight: "600", color: brandDark }}>{it.description}</div>
+                </td>
+                <td style={{ ...cellS, textAlign: "center" }}>{it.quantity} {it.unit}</td>
+                <td style={{ ...cellS, textAlign: "right" }}>
+                  {Math.round(unitPrice).toLocaleString()} Ft
+                </td>
+                <td style={{ ...cellS, textAlign: "right", fontWeight: "bold", color: brandDark }}>
+                  {Math.round(lineTotal).toLocaleString()} Ft
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
-      {/* 5. ÖSSZESÍTÉS - Most már "margin-top: auto"-val, hogy alulra kerüljön */}
+      {/* 5. ÖSSZESÍTÉS - Mindig az oldal alján */}
       <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
         <div style={{ width: "280px", padding: "10px", border: `1.5px solid ${brandBlue}`, borderRadius: "8px", background: "#fcfdff" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -136,9 +142,9 @@ export default function QuotePrintPage() {
             max-width: 800px; 
             margin: 0 auto; 
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            min-height: 290mm; /* Fix A4-es magasság közeli érték */
+            min-height: 290mm;
             display: flex;
-            flex-direction: column; /* Ez teszi lehetővé a margin-top: auto használatát */
+            flex-direction: column;
           }
         }
         @media print {
@@ -148,7 +154,7 @@ export default function QuotePrintPage() {
             margin: 0; 
             width: 100%; 
             box-shadow: none; 
-            min-height: 280mm; /* Nyomtatáskor is kényszerítjük a magasságot */
+            min-height: 280mm;
             display: flex;
             flex-direction: column;
           }
