@@ -1,19 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// AJÁNLAT LEKÉRÉSE
 export async function GET(
   req: Request,
   { params }: { params: { quoteId: string } }
 ) {
   try {
+    const id = Number(params.quoteId);
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: "Érvénytelen azonosító" }, { status: 400 });
+    }
+
     const quote = await prisma.quote.findUnique({
-      where: { id: Number(params.quoteId) },
+      where: { id },
       include: {
         client: true,
         items: {
-          orderBy: {
-            id: 'asc'}// Ez garantálja, hogy a létrehozás sorrendjében maradnak!
-          
+          orderBy: { id: 'asc' } // Sorrendtartás
         },
       },
     });
@@ -28,7 +33,7 @@ export async function GET(
   }
 }
 
-// PATCH /api/quotes/[quoteId] – { title?, terms?, status? }
+// AJÁNLAT FRISSÍTÉSE (Cím, státusz, feltételek)
 export async function PATCH(
   req: Request,
   { params }: { params: { quoteId: string } }
@@ -44,9 +49,42 @@ export async function PATCH(
       data.status = body.status;
     }
 
-    const updated = await prisma.quote.update({ where: { id }, data });
+    const updated = await prisma.quote.update({ 
+      where: { id }, 
+      data 
+    });
+    
     return NextResponse.json(updated);
   } catch (e) {
     return NextResponse.json({ error: "Hiba a frissítéskor." }, { status: 500 });
+  }
+}
+
+// AJÁNLAT TÖRLÉSE - EZ HIÁNYZOTT!
+export async function DELETE(
+  req: Request,
+  { params }: { params: { quoteId: string } }
+) {
+  try {
+    const id = Number(params.quoteId);
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: "Érvénytelen azonosító" }, { status: 400 });
+    }
+
+    // Tranzakció: Előbb a tételeket (items) töröljük, utána az ajánlatot
+    await prisma.$transaction([
+      prisma.quoteItem.deleteMany({
+        where: { quoteId: id }
+      }),
+      prisma.quote.delete({
+        where: { id }
+      })
+    ]);
+
+    return NextResponse.json({ message: "Ajánlat sikeresen törölve." });
+  } catch (error: any) {
+    console.error("Hiba az ajánlat törlésekor:", error);
+    return NextResponse.json({ error: "Hiba a törléskor: " + error.message }, { status: 500 });
   }
 }
