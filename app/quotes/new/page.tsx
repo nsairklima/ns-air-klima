@@ -13,18 +13,15 @@ export default function NewQuotePage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Mód választó: 'existing' (meglévő) vagy 'new' (új)
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
-
-  // Meglévő ügyfél állapota
   const [selectedClientId, setSelectedClientId] = useState("");
 
-  // Új ügyfél állapotai
+  // Új ügyfél állapotai - Most már e-maillel!
   const [newClientName, setNewClientName] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState(""); // ÚJ
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
 
-  // Ajánlat címe
   const [title, setTitle] = useState("");
 
   useEffect(() => {
@@ -46,12 +43,13 @@ export default function NewQuotePage() {
       let clientId: number;
 
       if (mode === 'new') {
-        // 1. Új ügyfél létrehozása
+        // 1. Új ügyfél létrehozása e-mail címmel együtt
         const clientRes = await fetch("/api/clients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: newClientName,
+            email: newClientEmail, // ÚJ
             phone: newClientPhone,
             address: newClientAddress,
           }),
@@ -61,7 +59,6 @@ export default function NewQuotePage() {
         const createdClient = await clientRes.json();
         clientId = createdClient.id;
       } else {
-        // Meglévő ügyfél használata
         if (!selectedClientId) {
           alert("Kérlek válassz egy ügyfelet!");
           setLoading(false);
@@ -70,7 +67,7 @@ export default function NewQuotePage() {
         clientId = Number(selectedClientId);
       }
 
-      // 2. Az árajánlat létrehozása a (régi vagy új) clientId-vel
+      // 2. Az árajánlat létrehozása
       const quoteRes = await fetch("/api/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,12 +80,10 @@ export default function NewQuotePage() {
       if (quoteRes.ok) {
         const newQuote = await quoteRes.json();
         router.push(`/quotes/${newQuote.id}`);
-      } else {
-        alert("Hiba történt az ajánlat mentése során.");
       }
     } catch (error) {
       console.error(error);
-      alert("Hiba történt a folyamat során.");
+      alert("Hiba történt a mentés során.");
     } finally {
       setLoading(false);
     }
@@ -103,7 +98,6 @@ export default function NewQuotePage() {
 
       <h1 style={{ color: "#2c3e50" }}>Új ajánlat indítása</h1>
 
-      {/* MÓD VÁLASZTÓ KAPCSOLÓ */}
       <div style={tabContainer}>
         <button 
           onClick={() => setMode('existing')} 
@@ -136,34 +130,23 @@ export default function NewQuotePage() {
             </select>
           </div>
         ) : (
-          <div style={{ animation: "fadeIn 0.3s" }}>
+          <div>
             <div style={formGroup}>
               <label style={label}>Ügyfél neve *</label>
-              <input 
-                style={input} 
-                placeholder="Pl. Nagy Ervin" 
-                value={newClientName} 
-                onChange={e => setNewClientName(e.target.value)} 
-                required={mode === 'new'}
-              />
+              <input style={input} placeholder="Pl. Kovács János" value={newClientName} onChange={e => setNewClientName(e.target.value)} required={mode === 'new'} />
+            </div>
+            {/* ÚJ EMAIL MEZŐ */}
+            <div style={formGroup}>
+              <label style={label}>E-mail cím</label>
+              <input type="email" style={input} placeholder="pelda@email.hu" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} />
             </div>
             <div style={formGroup}>
               <label style={label}>Telefonszám</label>
-              <input 
-                style={input} 
-                placeholder="06 30 ..." 
-                value={newClientPhone} 
-                onChange={e => setNewClientPhone(e.target.value)} 
-              />
+              <input style={input} placeholder="06 30 ..." value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} />
             </div>
             <div style={formGroup}>
               <label style={label}>Cím (Telepítés helye)</label>
-              <input 
-                style={input} 
-                placeholder="Város, utca, házszám" 
-                value={newClientAddress} 
-                onChange={e => setNewClientAddress(e.target.value)} 
-              />
+              <input style={input} placeholder="Város, utca, házszám" value={newClientAddress} onChange={e => setNewClientAddress(e.target.value)} />
             </div>
           </div>
         )}
@@ -171,24 +154,18 @@ export default function NewQuotePage() {
         <hr style={{ margin: "20px 0", border: "0", borderTop: "1px solid #eee" }} />
 
         <div style={formGroup}>
-          <label style={label}>Ajánlat megnevezése (opcionális)</label>
-          <input
-            style={input}
-            placeholder="pl. Klíma telepítés - Nappali"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+          <label style={label}>Ajánlat megnevezése</label>
+          <input style={input} placeholder="pl. Klíma telepítés - Nappali" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         <button type="submit" disabled={loading} style={btnPrimary}>
-          {loading ? "Folyamatban..." : "Ügyfél mentése és ajánlat szerkesztése →"}
+          {loading ? "Mentés..." : "Ügyfél rögzítése és ajánlat indítása →"}
         </button>
       </form>
     </div>
   );
 }
 
-/* ---- STÍLUSOK ---- */
 const wrap: React.CSSProperties = { padding: 24, maxWidth: 600, margin: "0 auto", fontFamily: "Arial" };
 const tabContainer: React.CSSProperties = { display: "flex", gap: 20, marginBottom: 20, borderBottom: "1px solid #ddd" };
 const tabBtn: React.CSSProperties = { background: "none", border: "none", padding: "10px 5px", cursor: "pointer", fontWeight: "bold", fontSize: 15 };
