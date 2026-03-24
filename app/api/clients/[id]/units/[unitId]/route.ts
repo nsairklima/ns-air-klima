@@ -2,26 +2,30 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GÉP ADATAINAK ÉS KARBANTARTÁSAINAK LEKÉRÉSE
-export async function GET(
+// GÉP ADATAINAK MÓDOSÍTÁSA (JAVÍTOTT)
+export async function PATCH(
   req: Request,
   { params }: { params: { id: string; unitId: string } }
 ) {
   try {
-    const unit = await prisma.clientUnit.findUnique({
+    const body = await req.json();
+    
+    // Ahelyett, hogy csak 4 mezőt emelnénk ki, 
+    // engedjük át a státuszt vagy bármi mást is, ami a body-ban jön.
+    const updatedUnit = await prisma.clientUnit.update({
       where: { id: Number(params.unitId) },
-      include: {
-        maintenance: {
-          orderBy: { performedDate: "desc" }
-        }
-      }
+      data: {
+        ...body // Ez mindent átvesz: brand, model, status, stb.
+      },
     });
 
-    if (!unit) return NextResponse.json({ error: "Gép nem található" }, { status: 404 });
-
-    return NextResponse.json(unit);
-  } catch (error) {
-    console.error("Hiba a gép lekérésekor:", error);
-    return NextResponse.json({ error: "Szerver hiba" }, { status: 500 });
+    return NextResponse.json(updatedUnit);
+  } catch (error: any) {
+    console.error("Hiba a gép frissítésekor:", error);
+    return NextResponse.json(
+      { error: "Hiba a módosítás mentésekor: " + error.message },
+      { status: 500 }
+    );
   }
 }
 
