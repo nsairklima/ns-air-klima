@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// --- GÉP ADATAINAK ÉS KARBANTARTÁSAINAK LEKÉRÉSE ---
 export async function GET(
   req: Request,
   { params }: { params: { id: string; unitId: string } }
@@ -20,38 +19,46 @@ export async function GET(
 
     return NextResponse.json(unit);
   } catch (error) {
-    console.error("Hiba a gép lekérésekor:", error);
     return NextResponse.json({ error: "Szerver hiba" }, { status: 500 });
   }
 }
 
-// --- GÉP ADATAINAK MÓDOSÍTÁSA (JAVÍTOTT, EGYETLEN VERZIÓ) ---
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string; unitId: string } }
 ) {
   try {
     const body = await req.json();
-    
-    // A ...body segítségével a status, brand, model stb. mind bekerül az update-be
+    const unitId = Number(params.unitId);
+
+    if (isNaN(unitId)) {
+      return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
+    }
+
+    // MEZŐK TISZTÍTÁSA: Csak azokat a mezőket küldjük a Prismának, amik kellenek.
+    // Ez megakadályozza, hogy extra mezők (pl. id, clientId) miatt 500-as hiba legyen.
+    const updateData: any = {};
+    if (body.brand) updateData.brand = body.brand;
+    if (body.model) updateData.model = body.model;
+    if (body.serialNumber) updateData.serialNumber = body.serialNumber;
+    if (body.location) updateData.location = body.location;
+    if (body.status) updateData.status = body.status; // Ez a gomb lelke!
+
     const updatedUnit = await prisma.clientUnit.update({
-      where: { id: Number(params.unitId) },
-      data: {
-        ...body 
-      },
+      where: { id: unitId },
+      data: updateData,
     });
 
     return NextResponse.json(updatedUnit);
   } catch (error: any) {
-    console.error("Hiba a gép frissítésekor:", error);
+    console.error("RÉSZLETES HIBA:", error);
     return NextResponse.json(
-      { error: "Hiba a módosítás mentésekor: " + error.message },
+      { error: "Mentési hiba: " + error.message },
       { status: 500 }
     );
   }
 }
 
-// --- GÉP TÖRLÉSE ---
 export async function DELETE(
   req: Request,
   { params }: { params: { id: string; unitId: string } }
@@ -62,7 +69,6 @@ export async function DELETE(
     });
     return NextResponse.json({ message: "Gép törölve" });
   } catch (error) {
-    console.error("Hiba a gép törlésekor:", error);
     return NextResponse.json({ error: "Hiba a törléskor" }, { status: 500 });
   }
 }
