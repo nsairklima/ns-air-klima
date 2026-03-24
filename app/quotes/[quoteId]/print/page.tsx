@@ -8,7 +8,6 @@ export default function QuotePrintPage() {
   const quoteId = params?.quoteId;
   const [q, setQ] = useState<any>(null);
 
-  // NS-AIR KLÍMA arculati színek
   const brandBlue = "#3498db"; 
   const brandDark = "#2c3e50";
   const brandRed = "#e74c3c";
@@ -34,9 +33,7 @@ export default function QuotePrintPage() {
             <span style={{ marginLeft: 20 }}>Kelt: {new Date().toLocaleDateString('hu-HU')}</span>
           </div>
         </div>
-        <div>
-          <img src="/ns-logo.png" alt="NS-AIR KLÍMA" style={{ height: 75 }} />
-        </div>
+        <img src="/ns-logo.png" alt="NS-AIR KLÍMA" style={{ height: 75 }} />
       </div>
 
       {/* 2. DÍSZÍTŐ SÁV */}
@@ -73,14 +70,14 @@ export default function QuotePrintPage() {
         </div>
       </div>
 
-      {/* 4. TÉTELEK TÁBLÁZAT */}
+      {/* 4. TÉTELEK TÁBLÁZAT - Bruttó árakkal */}
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 30, fontSize: "14px" }}>
         <thead>
           <tr style={{ borderBottom: `2px solid ${brandBlue}`, textAlign: "left" }}>
             <th style={{ ...cellS, color: brandDark }}>Megnevezés</th>
             <th style={{ ...cellS, width: "80px", textAlign: "center", color: brandDark }}>Menny.</th>
-            <th style={{ ...cellS, textAlign: "right", width: "130px", color: brandDark }}>Egységár</th>
-            <th style={{ ...cellS, textAlign: "right", width: "130px", color: brandBlue }}>Összesen</th>
+            <th style={{ ...cellS, textAlign: "right", width: "140px", color: brandDark }}>Bruttó egységár</th>
+            <th style={{ ...cellS, textAlign: "right", width: "140px", color: brandBlue }}>Bruttó összesen</th>
           </tr>
         </thead>
         <tbody>
@@ -97,21 +94,21 @@ export default function QuotePrintPage() {
                 {Math.round(it.unitPriceNet * it.quantity).toLocaleString()} Ft
               </td>
             </tr>
-          ))}
+          </thead>
         </tbody>
       </table>
 
       {/* 5. ÖSSZESÍTÉS */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 50 }}>
-        <div style={{ width: "320px", padding: "15px", border: `2px solid ${brandBlue}`, borderRadius: "10px", background: "#fcfdff" }}>
+        <div style={{ width: "340px", padding: "15px", border: `2px solid ${brandBlue}`, borderRadius: "10px", background: "#fcfdff" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 16, fontWeight: "600", color: brandDark }}>Fizetendő végösszeg:</span>
+            <span style={{ fontSize: 16, fontWeight: "600", color: brandDark }}>Fizetendő bruttó:</span>
             <span style={{ fontSize: 22, fontWeight: "800", color: brandBlue }}>{Number(q.grossTotal).toLocaleString()} Ft</span>
           </div>
         </div>
       </div>
 
-      {/* 6. ZÁRÓ SZÖVEG ÉS ADÓMENTESSÉG */}
+      {/* 6. ZÁRÓ SZÖVEG */}
       <div style={{ marginTop: "auto", borderTop: "1px solid #eee", paddingTop: 30, fontSize: "14px" }}>
         <p style={{ fontWeight: "bold", color: brandBlue, marginBottom: 10 }}>
           Köszönjük, hogy minket választott!
