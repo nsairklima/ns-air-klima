@@ -163,18 +163,21 @@ export default function QuotePrintPage() {
       </div>
 
       {/* GOMBOK - Fixen a képernyő alján */}
-      <div className="no-print" style={{ position: "fixed", bottom: "30px", right: "30px", display: "flex", gap: "15px" }}>
-        <button 
-          onClick={handleSendEmail} 
-          disabled={sending}
-          style={actionBtnS(sending ? "#bdc3c7" : brandGreen)}
-        >
-          {sending ? "⏳ KÜLDÉS..." : "📧 EMAIL KÜLDÉSE"}
-        </button>
-        <button onClick={() => window.print()} style={actionBtnS(brandBlue)}>
-          📥 PDF MENTÉS
-        </button>
-      </div>
+     {/* Csak akkor mutatjuk a gombokat, ha NINCS a linkben a "?mode=view" */}
+{typeof window !== 'undefined' && !window.location.search.includes('mode=view') && (
+  <div className="no-print" style={{ position: "fixed", bottom: "30px", right: "30px", display: "flex", gap: "15px", zIndex: 1000 }}>
+    <button 
+      onClick={handleSendEmail} 
+      disabled={sending}
+      style={actionBtnS(sending ? "#bdc3c7" : "#2ecc71")}
+    >
+      {sending ? "⏳ KÜLDÉS..." : "📧 EMAIL KÜLDÉSE"}
+    </button>
+    <button onClick={() => window.print()} style={actionBtnS("#3498db")}>
+      📥 PDF MENTÉS
+    </button>
+  </div>
+)}
 
       <style jsx global>{`
         @media screen {
