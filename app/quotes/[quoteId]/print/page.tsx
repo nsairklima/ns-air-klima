@@ -21,7 +21,7 @@ export default function QuotePrintPage() {
   return (
     <div className="print-wrapper">
       {/* FEJLÉC */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 30, alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 30, alignItems: "flex-start" }}>
         <div>
           <h1 style={{ margin: 0, color: "#1a252f", fontSize: 32, fontWeight: "800" }}>ÁRAJÁNLAT</h1>
           <p style={{ color: "#7f8c8d", margin: "5px 0" }}>Azonosító: #{q.id}/2026</p>
@@ -29,10 +29,12 @@ export default function QuotePrintPage() {
         </div>
         <div style={{ textAlign: "right" }}>
           <img src="/ns-logo.png" alt="NS-AIR KLÍMA" style={{ height: 80, marginBottom: 10 }} />
-          <div style={{ fontSize: 14, lineHeight: "1.4" }}>
-            <strong style={{ fontSize: 18 }}>NS-AIR KLÍMA</strong><br />
-            Klímaszerelés és Karbantartás<br />
-            Email: <strong>info@nsairklima.hu</strong>
+          <div style={{ fontSize: 13, lineHeight: "1.5", color: "#2c3e50" }}>
+            <strong style={{ fontSize: 16 }}>NS-AIR KLÍMA</strong><br />
+            9143 Enese, Külsőréti dűlő 12.<br />
+            Adószám: 66362740-1-28<br />
+            Email: <strong>info@nsairklima.hu</strong><br />
+            Tel: <strong>+36 70 312 1825</strong>
           </div>
         </div>
       </div>
@@ -41,7 +43,7 @@ export default function QuotePrintPage() {
 
       {/* ÜGYFÉL ADATOK */}
       <div style={{ marginBottom: 40 }}>
-        <div style={{ padding: "20px", border: "1px solid #eee", borderRadius: 10, background: "#fcfcfc", width: "fit-content", minWidth: "300px" }}>
+        <div style={{ padding: "20px", border: "1px solid #eee", borderRadius: 10, background: "#fcfcfc", width: "fit-content", minWidth: "320px" }}>
           <small style={{ color: "#7f8c8d", fontWeight: "bold", textTransform: "uppercase", fontSize: 10, letterSpacing: "1px" }}>Ajánlatot kapja:</small>
           <div style={{ fontSize: 20, fontWeight: "bold", marginTop: 8, color: "#2c3e50" }}>{q.client?.name}</div>
           <div style={{ marginTop: 5, fontSize: 15 }}>{q.client?.address || "Cím nincs megadva"}</div>
