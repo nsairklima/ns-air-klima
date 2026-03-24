@@ -25,7 +25,6 @@ export default function ClientDetailsPage() {
 
   useEffect(() => { if (Id) loadClientData(); }, [Id]);
 
-  // --- ÜGYFÉL TÖRLÉSE ---
   const handleDeleteClient = async () => {
     if (!confirm("⚠️ FIGYELEM! Biztosan törölni akarod ezt az ügyfelet? Minden gép, karbantartás és árajánlat is törlődni fog!")) return;
     
@@ -42,17 +41,11 @@ export default function ClientDetailsPage() {
     }
   };
 
-  // --- ÁRAJÁNLAT TÖRLÉSE ---
   const handleDeleteQuote = async (quoteId: number) => {
     if (!confirm("Biztosan törlöd ezt az árajánlatot?")) return;
-
     try {
       const res = await fetch(`/api/quotes/${quoteId}`, { method: "DELETE" });
-      if (res.ok) {
-        loadClientData(); // Lista frissítése
-      } else {
-        alert("Hiba történt az ajánlat törlésekor.");
-      }
+      if (res.ok) loadClientData();
     } catch (error) {
       console.error(error);
     }
@@ -86,12 +79,22 @@ export default function ClientDetailsPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial" }}>
       
+      {/* --- ÚJ NAVIGÁCIÓS SÁV --- */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 25 }}>
+        <button onClick={() => router.push("/clients")} style={navBtn}>
+          ⬅️ Vissza az ügyfelekhez
+        </button>
+        <button onClick={() => router.push("/")} style={{ ...navBtn, background: "#f8f9fa", color: "#333" }}>
+          🏠 Főoldal
+        </button>
+      </div>
+
       {/* ÜGYFÉL ADATAI + TÖRLÉS GOMB */}
       <div style={{ borderBottom: "2px solid #eee", paddingBottom: 20, marginBottom: 30, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <h1>{client.name}</h1>
-          <p>📞 {client.phone} | ✉️ {client.email}</p>
-          <p>🏠 {client.address}</p>
+          <h1 style={{ margin: 0 }}>{client.name}</h1>
+          <p style={{ margin: "10px 0 0 0" }}>📞 {client.phone} | ✉️ {client.email}</p>
+          <p style={{ margin: "5px 0 0 0" }}>🏠 {client.address}</p>
         </div>
         <button 
           onClick={handleDeleteClient}
@@ -101,10 +104,10 @@ export default function ClientDetailsPage() {
         </button>
       </div>
 
-      {/* EGYSÉGEK */}
+      {/* EGYSÉGEK SZAKASZ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ color: "#2c3e50" }}>Telepített egységek</h2>
-        <button onClick={() => setShowUnitForm(!showUnitForm)} style={{ background: "#27ae60", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer" }}>
+        <button onClick={() => setShowUnitForm(!showUnitForm)} style={{ background: "#27ae60", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer", fontWeight: "bold" }}>
           {showUnitForm ? "Mégse" : "+ Új gép"}
         </button>
       </div>
@@ -116,7 +119,7 @@ export default function ClientDetailsPage() {
             <input placeholder="Modell" value={model} onChange={e => setModel(e.target.value)} style={inputS} required />
             <input placeholder="Gyári szám" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
             <input placeholder="Helyszín" value={location} onChange={e => setLocation(e.target.value)} style={inputS} />
-            <button type="submit" style={{ background: "#2c3e50", color: "#fff", padding: 12, border: "none", borderRadius: 8 }}>Mentés</button>
+            <button type="submit" style={{ background: "#2c3e50", color: "#fff", padding: 12, border: "none", borderRadius: 8, fontWeight: "bold", cursor: "pointer" }}>Mentés</button>
           </form>
         </div>
       )}
@@ -138,7 +141,7 @@ export default function ClientDetailsPage() {
               </button>
               <button 
                 onClick={() => handleDeleteUnit(unit.id)}
-                style={{ background: "#e74c3c", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" }}
+                style={{ background: "#fdf2f2", color: "#e74c3c", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" }}
               >
                 🗑️
               </button>
@@ -147,7 +150,7 @@ export default function ClientDetailsPage() {
         ))}
       </div>
 
-      {/* ÁRAJÁNLATOK ELŐZMÉNYEI */}
+      {/* ÁRAJÁNLATOK SZAKASZ */}
       <div style={{ marginTop: 50 }}>
         <h2 style={{ color: "#2c3e50", borderTop: "2px solid #eee", paddingTop: 30 }}>Korábbi árajánlatok</h2>
         <div style={{ marginTop: 20, display: "grid", gap: 10 }}>
@@ -188,4 +191,19 @@ export default function ClientDetailsPage() {
   );
 }
 
-const inputS = { width: "100%", padding: "10px", borderRadius: 6, border: "1px solid #ccc" };
+/* --- STÍLUSOK --- */
+const navBtn: React.CSSProperties = {
+  padding: "8px 16px",
+  borderRadius: "8px",
+  border: "1px solid #ddd",
+  background: "#fff",
+  color: "#555",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: "bold",
+  display: "flex",
+  alignItems: "center",
+  gap: "5px"
+};
+
+const inputS = { width: "100%", padding: "10px", borderRadius: 6, border: "1px solid #ccc", boxSizing: "border-box" as "border-box" };
