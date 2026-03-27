@@ -10,6 +10,7 @@ export default function QuoteEditPage() {
 
   const [q, setQ] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [dbItems, setDbItems] = useState<any[]>([]); // ÚJ: Adatbázis tételek állapota
 
   // Kalkulátor állapotok
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -29,11 +30,34 @@ export default function QuoteEditPage() {
     setLoading(false);
   };
 
+  // ÚJ: Termékek betöltése az adatbázisból
+  const loadDbItems = async () => {
+    const res = await fetch("/api/items");
+    if (res.ok) {
+      const data = await res.json();
+      setDbItems(data);
+    }
+  };
+
   useEffect(() => {
-    if (quoteId) loadQuote();
+    if (quoteId) {
+      loadQuote();
+      loadDbItems(); // Betöltjük az elmentett árakat is
+    }
   }, [quoteId]);
 
-  // --- ÉLŐ MATEMATIKA (A beírás pillanatában számol) ---
+  // ÚJ: Beemelés az adatbázisból funkció
+  const handleSelectFromDB = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = dbItems.find(i => i.id === Number(e.target.value));
+    if (selected) {
+      setDesc(selected.name);
+      setBasePriceNet(selected.price);
+      // Opcionálisan alaphelyzetbe állíthatod a hasznot ilyenkor
+      setProfitValue(0);
+    }
+  };
+
+  // --- ÉLŐ MATEMATIKA ---
   const basePriceGross = (Number(basePriceNet) || 0) * 1.27;
   
   const profitGross = profitType === "percent" 
@@ -44,7 +68,6 @@ export default function QuoteEditPage() {
   const sellPriceNet = sellPriceGross / 1.27;
   const lineTotalGross = sellPriceGross * (Number(qty) || 0);
 
-  // Táblázat összesítők a már elmentett tételekből
   const totalGross = q?.items?.reduce((sum: number, it: any) => sum + Number(it.lineGross), 0) || 0;
   const totalNet = totalGross / 1.27;
   const totalTax = totalGross - totalNet;
@@ -103,7 +126,7 @@ export default function QuoteEditPage() {
         <button onClick={() => router.push("/")} style={{ ...navBtn, background: "#f8f9fa" }}>🏠 Főoldal</button>
       </div>
 
-      {/* FEJLÉC: Ajánlat címe + Gép adatai */}
+      {/* FEJLÉC */}
       <div style={{ marginBottom: 30, borderBottom: "2px solid #eee", paddingBottom: 20 }}>
         <h1 style={{ margin: 0, color: "#2c3e50", fontSize: 28 }}>{q.title}</h1>
         <div style={{ display: "flex", gap: 12, marginTop: 15, flexWrap: "wrap" }}>
@@ -122,6 +145,21 @@ export default function QuoteEditPage() {
         <h3 style={{ marginTop: 0, marginBottom: 20, fontSize: 18, color: "#555" }}>
           {editingId ? "✏️ Tétel módosítása" : "➕ Új tétel hozzáadása"}
         </h3>
+
+        {/* ÚJ: GYORSVÁLASZTÓ AZ ADATBÁZISBÓL */}
+        {!editingId && (
+          <div style={{ marginBottom: 25, padding: "15px", background: "#f0f7ff", borderRadius: "10px", border: "1px solid #d0e3ff" }}>
+            <label style={{ ...labS, color: "#2980b9" }}>✨ Gyors betöltés az adatbázisból</label>
+            <select onChange={handleSelectFromDB} style={{ ...inputS, borderColor: "#3498db", cursor: "pointer" }}>
+              <option value="">-- Válassz elmentett klímát vagy tétel --</option>
+              {dbItems.map(item => (
+                <option key={item.id} value={item.id}>
+                  {item.name} | {item.price.toLocaleString()} Ft (Nettó)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 20 }}>
           <div style={{ width: "100%" }}>
@@ -166,7 +204,6 @@ export default function QuoteEditPage() {
             </div>
           </div>
 
-          {/* SÖTÉT KIEMELT SÁV AZ ÉLŐ EREDMÉNNYEL */}
           <div style={resultBar}>
             <div>
               <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Ügyfél bruttó egységár:</div>
@@ -189,7 +226,7 @@ export default function QuoteEditPage() {
         </form>
       </div>
 
-      {/* TÁBLÁZAT A TÉTELEKKEL */}
+      {/* TÁBLÁZAT ÉS ÖSSZESÍTŐ (Változatlan marad) */}
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
           <thead>
@@ -221,7 +258,6 @@ export default function QuoteEditPage() {
         </table>
       </div>
 
-      {/* VÉGSŐ ÖSSZESÍTŐ KÁRTYA */}
       <div style={{ marginTop: 40, display: "flex", justifyContent: "flex-end" }}>
         <div style={{ background: "#fdfdfd", border: "1px solid #ddd", padding: 25, borderRadius: 15, minWidth: 350, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
           <div style={summaryRow}>
@@ -239,7 +275,6 @@ export default function QuoteEditPage() {
         </div>
       </div>
 
-      {/* PDF GOMB */}
       <div style={{ marginTop: 50, textAlign: "right" }}>
         <button 
           onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')}
@@ -252,7 +287,7 @@ export default function QuoteEditPage() {
   );
 }
 
-/* --- STÍLUSOK (Inline) --- */
+// STÍLUSOK (A régiek + az új badge-ek)
 const navBtn: React.CSSProperties = { padding: "10px 18px", borderRadius: "10px", border: "1px solid #ddd", background: "#fff", color: "#555", cursor: "pointer", fontSize: "14px", fontWeight: "bold" };
 const inputS = { width: "100%", padding: "14px", borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box" as const, fontSize: "16px", outline: "none" };
 const labS = { fontSize: "12px", fontWeight: "bold", marginBottom: 6, display: "block", color: "#7f8c8d", textTransform: "uppercase" as const };
