@@ -4,22 +4,44 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Client = { id: number; name: string; };
+type DBItem = { id: number; name: string; price: number; unit: string; };
 
 export default function NewQuotePage() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
+  const [dbItems, setDbItems] = useState<DBItem[]>([]); // ÚJ: Mentett tételek
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
 
   // Adat állapotok
   const [selectedClientId, setSelectedClientId] = useState("");
   const [newClient, setNewClient] = useState({ name: "", email: "", phone: "", address: "" });
-  const [unit, setUnit] = useState({ brand: "", model: "", power: "", location: "" }); // Hozzáadva: power
+  const [unit, setUnit] = useState({ brand: "", model: "", power: "", location: "" });
   const [quoteTitle, setQuoteTitle] = useState("");
 
   useEffect(() => {
+    // Ügyfelek betöltése
     fetch("/api/clients").then(res => res.ok && res.json().then(setClients));
+    // ÚJ: Mentett termékek betöltése az adatbázisból
+    fetch("/api/items").then(res => res.ok && res.json().then(setDbItems));
   }, []);
+
+  // ÚJ: Automatikus kitöltés funkció
+  const handleSelectDBItem = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = dbItems.find(i => i.id === Number(e.target.value));
+    if (selected) {
+      // Szétszedjük a nevet, ha pl. "Gree Amber (3.5kW)" formátumban van
+      // Ha sima név, akkor a Modell mezőbe kerül
+      setUnit({
+        ...unit,
+        model: selected.name,
+        brand: "", // Ezt manuálisan is finomíthatod
+        power: ""
+      });
+      // Az ajánlat címét is frissítjük, hogy látszódjon az ár vagy a név
+      if (!quoteTitle) setQuoteTitle(`${mode === 'new' ? newClient.name : clients.find(c => c.id === Number(selectedClientId))?.name || "Ügyfél"} - ${selected.name}`);
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +51,6 @@ export default function NewQuotePage() {
       let clientId: number;
       let clientName = "";
 
-      // 1. Ügyfél kezelése
       if (mode === 'new') {
         const cRes = await fetch("/api/clients", {
           method: "POST",
@@ -43,16 +64,11 @@ export default function NewQuotePage() {
       } else {
         if (!selectedClientId) return alert("Válassz ügyfelet!");
         clientId = Number(selectedClientId);
-        // Megkeressük a nevet a listában a címhez
         clientName = clients.find(c => c.id === clientId)?.name || "";
       }
 
-      // 2. Gép rögzítése
       if (unit.brand || unit.model) {
-        // A model mezőbe fűzzük bele a teljesítményt a Prisma sémától függően, 
-        // vagy ha van külön meződ, akkor küldd külön. Itt most összefűzzük a modellnévvel:
         const fullModel = unit.power ? `${unit.model} (${unit.power})` : unit.model;
-        
         await fetch(`/api/clients/${clientId}/units`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -64,7 +80,6 @@ export default function NewQuotePage() {
         });
       }
 
-      // 3. Intelligens cím generálása, ha üres
       const generatedTitle = quoteTitle || 
         `${clientName} - ${unit.brand} ${unit.model} ${unit.power ? `(${unit.power})` : ""}`.trim();
 
@@ -103,7 +118,6 @@ export default function NewQuotePage() {
       </div>
 
       <form onSubmit={handleSubmit} style={formCard}>
-        {/* ÜGYFÉL RÉSZ */}
         <h3 style={sectionTitle}>👤 Ügyfél adatai</h3>
         {mode === 'existing' ? (
           <select style={input} value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} required>
@@ -119,8 +133,19 @@ export default function NewQuotePage() {
           </div>
         )}
 
-        {/* GÉP RÉSZ */}
         <h3 style={{ ...sectionTitle, marginTop: 30 }}>❄️ Gép adatai</h3>
+        
+        {/* ÚJ: Választás az adatbázisból */}
+        <div style={{marginBottom: 15}}>
+            <label style={{fontSize: 12, color: "#3498db", fontWeight: "bold"}}>Betöltés az adatbázisból:</label>
+            <select style={{...input, borderColor: "#3498db"}} onChange={handleSelectDBItem}>
+                <option value="">-- Válassz elmentett típust (opcionális) --</option>
+                {dbItems.map(item => (
+                    <option key={item.id} value={item.id}>{item.name} ({item.price.toLocaleString()} Ft)</option>
+                ))}
+            </select>
+        </div>
+
         <div style={grid}>
           <input style={input} placeholder="Gyártó (pl. Gree)" value={unit.brand} onChange={e => setUnit({...unit, brand: e.target.value})} />
           <input style={input} placeholder="Modell (pl. Amber)" value={unit.model} onChange={e => setUnit({...unit, model: e.target.value})} />
@@ -128,7 +153,6 @@ export default function NewQuotePage() {
           <input style={input} placeholder="Helyszín (pl. Nappali)" value={unit.location} onChange={e => setUnit({...unit, location: e.target.value})} />
         </div>
 
-        {/* AJÁNLAT CÍME */}
         <h3 style={{ ...sectionTitle, marginTop: 30 }}>📝 Ajánlat címe</h3>
         <input 
           style={input} 
@@ -136,10 +160,7 @@ export default function NewQuotePage() {
           value={quoteTitle} 
           onChange={e => setQuoteTitle(e.target.value)} 
         />
-        <p style={{ fontSize: 12, color: "#95a5a6", marginTop: -5 }}>
-            Példa: {newClient.name || "Ügyfél"} - {unit.brand || "Márka"} {unit.model || "Típus"} {unit.power ? `(${unit.power})` : ""}
-        </p>
-
+        
         <button type="submit" disabled={loading} style={btnPrimary}>
           {loading ? "Mentés..." : "Ajánlat létrehozása →"}
         </button>
@@ -148,7 +169,7 @@ export default function NewQuotePage() {
   );
 }
 
-// ... (stílusok maradnak a régiek)
+// Stílusok (maradtak az eredetiek)
 const wrap: React.CSSProperties = { padding: 24, maxWidth: 700, margin: "0 auto", fontFamily: "Arial" };
 const tabContainer = { display: "flex", gap: 20, marginBottom: 20 };
 const tabBtn = { background: "none", border: "none", padding: "10px", cursor: "pointer", fontWeight: "bold" as const };
