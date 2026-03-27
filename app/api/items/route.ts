@@ -35,3 +35,22 @@ export async function POST(req: Request) {
     }, { status: 500 });
   }
 }
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Hiányzó ID" }, { status: 400 });
+    }
+
+    await prisma.item.delete({
+      where: { id: Number(id) },
+    });
+
+    return NextResponse.json({ message: "Sikeres törlés" });
+  } catch (e: any) {
+    console.error("Törlési hiba:", e);
+    return NextResponse.json({ error: "Nem sikerült a törlés", details: e.message }, { status: 500 });
+  }
+}
