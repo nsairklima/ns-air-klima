@@ -131,3 +131,11 @@ model QuoteItem {
 
   createdAt     DateTime @default(now())
 }
+model Item {
+  id    Int    @id @default(autoincrement())
+  name  String
+  price Float
+  unit  String @default("db")
+
+  @@map("items")
+}
