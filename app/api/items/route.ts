@@ -54,3 +54,21 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Nem sikerült a törlés", details: e.message }, { status: 500 });
   }
 }
+export async function PATCH(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, name, price } = body;
+
+    const updatedItem = await prisma.item.update({
+      where: { id: Number(id) },
+      data: {
+        name: name,
+        price: Number(price),
+      },
+    });
+
+    return NextResponse.json(updatedItem);
+  } catch (error: any) {
+    return NextResponse.json({ error: "Sikertelen módosítás", details: error.message }, { status: 500 });
+  }
+}
