@@ -132,10 +132,16 @@ model QuoteItem {
   createdAt     DateTime @default(now())
 }
 model Item {
-  id    Int    @id @default(autoincrement())
-  name  String
-  price Float
-  unit  String @default("db")
+  id           Int      @id @default(autoincrement())
+  name         String
+  price        Float
+  sku          String?  // Cikkszám
+  serialNumber String?  // Gyári szám
+  stock        Int      @default(0) // Készletmennyiség
+  supplier     String?  // Nagykereskedő
+  unit         String   @default("db")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("items")
 }
