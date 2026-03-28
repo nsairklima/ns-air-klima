@@ -4,10 +4,18 @@ import React, { useEffect, useState } from "react";
 
 export default function AdminItemsPage() {
   const [items, setItems] = useState<any[]>([]);
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null); // ÚJ: Szerkesztés azonosítója
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Állapotok az új mezőkhöz
+  const [formData, setFormData] = useState({
+    name: "",
+    price: "",
+    sku: "",
+    serialNumber: "",
+    stock: "0",
+    supplier: ""
+  });
 
   const loadItems = async () => {
     const res = await fetch("/api/items");
@@ -17,83 +25,114 @@ export default function AdminItemsPage() {
 
   useEffect(() => { loadItems(); }, []);
 
-  // SZERKESZTÉS INDÍTÁSA
-  const startEdit = (item: any) => {
-    setEditingId(item.id);
-    setName(item.name);
-    setPrice(item.price.toString());
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     const method = editingId ? "PATCH" : "POST";
-    const body = editingId 
-      ? { id: editingId, name, price: Number(price) } 
-      : { name, price: Number(price) };
+    const body = { 
+        ...formData, 
+        id: editingId, 
+        price: Number(formData.price), 
+        stock: Number(formData.stock) 
+    };
 
-    try {
-      const res = await fetch("/api/items", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+    const res = await fetch("/api/items", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
 
-      if (res.ok) {
-        setName("");
-        setPrice("");
-        setEditingId(null);
-        loadItems();
-      } else {
-        alert("Hiba történt a mentéskor.");
-      }
-    } finally {
-      setLoading(false);
+    if (res.ok) {
+      setFormData({ name: "", price: "", sku: "", serialNumber: "", stock: "0", supplier: "" });
+      setEditingId(null);
+      loadItems();
     }
+    setLoading(false);
   };
 
-  const deleteItem = async (id: number) => {
-    if (!confirm("Biztosan törlöd?")) return;
-    await fetch(`/api/items?id=${id}`, { method: "DELETE" });
-    loadItems();
+  const startEdit = (item: any) => {
+    setEditingId(item.id);
+    setFormData({
+      name: item.name,
+      price: item.price.toString(),
+      sku: item.sku || "",
+      serialNumber: item.serialNumber || "",
+      stock: item.stock?.toString() || "0",
+      supplier: item.supplier || ""
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 800, margin: "0 auto", fontFamily: "Arial" }}>
-      <h1>📦 Raktárkészlet kezelése</h1>
+    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial" }}>
+      <h1>📦 Raktárkészlet és Nyilvántartás</h1>
 
-      <form onSubmit={handleSubmit} style={{ background: editingId ? "#fff3e0" : "#f9f9f9", padding: 20, borderRadius: 10, marginBottom: 30, border: editingId ? "1px solid #e67e22" : "1px solid #ddd" }}>
-        <h3>{editingId ? "✏️ Tétel módosítása" : "➕ Új tétel hozzáadása"}</h3>
-        <div style={{ display: "flex", gap: 10 }}>
-          <input style={inputS} placeholder="Termék neve" value={name} onChange={e => setName(e.target.value)} required />
-          <input style={inputS} type="number" placeholder="Nettó ár" value={price} onChange={e => setPrice(e.target.value)} required />
-          <button type="submit" disabled={loading} style={{ ...btnS, background: editingId ? "#e67e22" : "#2ecc71" }}>
-            {editingId ? "Mentés" : "Hozzáadás"}
-          </button>
-          {editingId && (
-            <button type="button" onClick={() => { setEditingId(null); setName(""); setPrice(""); }} style={{ ...btnS, background: "#95a5a6" }}>Mégse</button>
-          )}
+      <form onSubmit={handleSubmit} style={formCard(!!editingId)}>
+        <h3 style={{marginTop: 0}}>{editingId ? "✏️ Tétel szerkesztése" : "➕ Új tétel rögzítése"}</h3>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px" }}>
+          <div style={{ gridColumn: "span 2" }}>
+            <label style={labelS}>Termék megnevezése *</label>
+            <input style={inputS} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+          </div>
+          <div>
+            <label style={labelS}>Nettó eladási ár (Ft) *</label>
+            <input style={inputS} type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required />
+          </div>
+          <div>
+            <label style={labelS}>Cikkszám (SKU)</label>
+            <input style={inputS} value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} />
+          </div>
+          <div>
+            <label style={labelS}>Gyári szám (S/N)</label>
+            <input style={inputS} value={formData.serialNumber} onChange={e => setFormData({...formData, serialNumber: e.target.value})} />
+          </div>
+          <div>
+            <label style={labelS}>Készlet (db)</label>
+            <input style={inputS} type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
+          </div>
+          <div style={{ gridColumn: "span 2" }}>
+            <label style={labelS}>Beszerzési forrás (Nagyker)</label>
+            <input style={inputS} placeholder="pl. Sinclair, Gree Hungary..." value={formData.supplier} onChange={e => setFormData({...formData, supplier: e.target.value})} />
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
+            <button type="submit" disabled={loading} style={{ ...btnS, background: editingId ? "#e67e22" : "#2ecc71", flex: 1 }}>
+              {editingId ? "Mentés" : "Rögzítés"}
+            </button>
+            {editingId && <button type="button" onClick={() => setEditingId(null)} style={{...btnS, background: "#95a5a6"}}>Mégse</button>}
+          </div>
         </div>
       </form>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      {/* TÁBLÁZAT BŐVÍTETT OSZLOPOKKAL */}
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
         <thead>
-          <tr style={{ textAlign: "left", borderBottom: "2px solid #eee" }}>
-            <th style={{ padding: 10 }}>Név</th>
-            <th>Nettó ár</th>
-            <th style={{ textAlign: "right" }}>Műveletek</th>
+          <tr style={{ textAlign: "left", borderBottom: "2px solid #333", background: "#f4f4f4" }}>
+            <th style={thS}>Megnevezés / Cikkszám</th>
+            <th style={thS}>Készlet</th>
+            <th style={thS}>Nagyker</th>
+            <th style={thS}>Nettó ár</th>
+            <th style={{ ...thS, textAlign: "right" }}>Műveletek</th>
           </tr>
         </thead>
         <tbody>
           {items.map(item => (
             <tr key={item.id} style={{ borderBottom: "1px solid #eee" }}>
-              <td style={{ padding: 10 }}>{item.name}</td>
-              <td>{item.price.toLocaleString()} Ft</td>
-              <td style={{ textAlign: "right" }}>
+              <td style={tdS}>
+                <strong>{item.name}</strong><br/>
+                <span style={{fontSize: "11px", color: "#888"}}>{item.sku || "Nincs cikkszám"}</span>
+              </td>
+              <td style={tdS}>
+                <span style={{ color: item.stock > 0 ? "#27ae60" : "#e74c3c", fontWeight: "bold" }}>
+                    {item.stock} db
+                </span>
+              </td>
+              <td style={tdS}>{item.supplier || "-"}</td>
+              <td style={tdS}>{item.price.toLocaleString()} Ft</td>
+              <td style={{ ...tdS, textAlign: "right" }}>
                 <button onClick={() => startEdit(item)} style={iconBtn}>✏️</button>
-                <button onClick={() => deleteItem(item.id)} style={{ ...iconBtn, color: "red" }}>🗑️</button>
+                <button onClick={async () => { if(confirm("Törlöd?")) { await fetch(`/api/items?id=${item.id}`, {method: "DELETE"}); loadItems(); } }} style={{ ...iconBtn, color: "red" }}>🗑️</button>
               </td>
             </tr>
           ))}
@@ -103,6 +142,11 @@ export default function AdminItemsPage() {
   );
 }
 
-const inputS = { padding: "10px", borderRadius: "5px", border: "1px solid #ddd", flex: 1 };
-const btnS = { padding: "10px 20px", color: "#fff", border: "none", borderRadius: "5px", cursor: "pointer" };
+// STÍLUSOK
+const formCard = (isEdit: boolean) => ({ background: isEdit ? "#fff8f0" : "#fff", padding: "25px", borderRadius: "12px", marginBottom: "30px", border: isEdit ? "2px solid #e67e22" : "1px solid #eee", boxShadow: "0 4px 6px rgba(0,0,0,0.05)" });
+const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" as const };
+const labelS = { fontSize: "12px", fontWeight: "bold" as const, color: "#666", marginBottom: "5px", display: "block" };
+const btnS = { padding: "12px", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" as const };
+const thS = { padding: "12px" };
+const tdS = { padding: "12px" };
 const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "18px", marginLeft: "10px" };
