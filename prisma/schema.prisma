@@ -141,7 +141,8 @@ model Item {
   supplier     String?
   unit         String   @default("db")
   createdAt    DateTime @default(now())
+  // Itt a módosítás: kap egy alapértelmezett értéket
+  updatedAt    DateTime @default(now()) @updatedAt 
 
-  
   @@map("items")
 }
