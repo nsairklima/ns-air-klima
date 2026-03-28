@@ -141,7 +141,7 @@ model Item {
   supplier     String?
   unit         String   @default("db")
   createdAt    DateTime @default(now())
-  updatedAt    DateTime? @updatedAt // <--- Itt a kérdőjel a fontos!
+//  updatedAt    DateTime? @updatedAt // <--- Itt a kérdőjel a fontos!
   
   @@map("items")
 }
