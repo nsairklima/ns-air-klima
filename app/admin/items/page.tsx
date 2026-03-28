@@ -80,8 +80,35 @@ export default function AdminItemsPage() {
   };
 
   return (
-    <div style={{ padding: "40px 20px", maxWidth: "1100px", margin: "0 auto", fontFamily: "'Inter', sans-serif", color: "#333" }}>
+    <div style={{ padding: "20px", maxWidth: "1100px", margin: "0 auto", fontFamily: "'Inter', sans-serif", color: "#333" }}>
       
+      {/* VISSZALÉPÉS ÉS NAVIGÁCIÓ */}
+      <div style={{ marginBottom: "30px", display: "flex", alignItems: "center", gap: "15px" }}>
+        <button 
+          onClick={() => window.location.href = "/"} 
+          style={{
+            background: "#fff",
+            border: "1px solid #ddd",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontSize: "14px",
+            fontWeight: "600",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+            transition: "all 0.2s"
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#f9f9f9"}
+          onMouseOut={(e) => e.currentTarget.style.background = "#fff"}
+        >
+          ← Főoldal
+        </button>
+        <div style={{ height: "20px", width: "1px", background: "#ddd" }}></div>
+        <span style={{ color: "#888", fontSize: "14px" }}>Adminisztráció / Raktárkészlet</span>
+      </div>
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: "800", margin: 0, color: "#1a1a1a" }}>📦 Raktárkészlet Kezelő</h1>
         <span style={{ background: "#e8f0fe", color: "#1967d2", padding: "6px 12px", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
@@ -157,7 +184,7 @@ export default function AdminItemsPage() {
           </thead>
           <tbody>
             {items.length > 0 ? items.map((item) => (
-              <tr key={item.id} style={{ borderBottom: "1px solid #f0f0f0" }} className="table-row">
+              <tr key={item.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
                 <td style={tdS}>
                   <div style={{ fontWeight: "600", fontSize: "15px" }}>{item.name}</div>
                   <div style={{ fontSize: "12px", color: "#888" }}>{item.sku || "Nincs SKU"}</div>
