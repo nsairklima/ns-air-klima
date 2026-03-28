@@ -18,7 +18,7 @@ export default function AdminItemsPage() {
   return (
     <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto", fontFamily: "sans-serif" }}>
       <button onClick={() => window.location.href = "/"} style={{marginBottom: "20px"}}>← Főoldal</button>
-      <h1>📦 Raktárkészlet</h1>
+      <h1>🚀 TESZT - EZ AZ ÚJ KÓD</h1>
 
       {/* MOBILBARÁT LISTA - Ez mindenképpen kártyás lesz */}
       <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
