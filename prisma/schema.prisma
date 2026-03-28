@@ -141,8 +141,7 @@ model Item {
   supplier     String?
   unit         String   @default("db")
   createdAt    DateTime @default(now())
-  // Itt a trükk: adunk neki egy alapértelmezett értéket a meglévő sorokhoz
-  updatedAt    DateTime @default(now()) @updatedAt 
-
+  updatedAt    DateTime? @updatedAt // <--- Itt a kérdőjel a fontos!
+  
   @@map("items")
 }
