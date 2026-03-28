@@ -7,7 +7,6 @@ export default function AdminItemsPage() {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // Állapotok az új mezőkhöz
   const [formData, setFormData] = useState({
     name: "",
     price: "",
@@ -18,9 +17,16 @@ export default function AdminItemsPage() {
   });
 
   const loadItems = async () => {
-    const res = await fetch("/api/items");
-    const data = await res.json();
-    setItems(data);
+    try {
+      const res = await fetch("/api/items");
+      if (res.ok) {
+        const data = await res.json();
+        // Biztosítjuk, hogy az items mindig egy tömb legyen
+        setItems(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Hiba a betöltéskor:", err);
+    }
   };
 
   useEffect(() => { loadItems(); }, []);
@@ -33,8 +39,8 @@ export default function AdminItemsPage() {
     const body = { 
         ...formData, 
         id: editingId, 
-        price: Number(formData.price), 
-        stock: Number(formData.stock) 
+        price: Number(formData.price) || 0, 
+        stock: Number(formData.stock) || 0 
     };
 
     const res = await fetch("/api/items", {
@@ -46,7 +52,7 @@ export default function AdminItemsPage() {
     if (res.ok) {
       setFormData({ name: "", price: "", sku: "", serialNumber: "", stock: "0", supplier: "" });
       setEditingId(null);
-      loadItems();
+      await loadItems();
     }
     setLoading(false);
   };
@@ -54,8 +60,8 @@ export default function AdminItemsPage() {
   const startEdit = (item: any) => {
     setEditingId(item.id);
     setFormData({
-      name: item.name,
-      price: item.price.toString(),
+      name: item.name || "",
+      price: item.price?.toString() || "0",
       sku: item.sku || "",
       serialNumber: item.serialNumber || "",
       stock: item.stock?.toString() || "0",
@@ -98,14 +104,13 @@ export default function AdminItemsPage() {
           </div>
           <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
             <button type="submit" disabled={loading} style={{ ...btnS, background: editingId ? "#e67e22" : "#2ecc71", flex: 1 }}>
-              {editingId ? "Mentés" : "Rögzítés"}
+              {loading ? "Mentés..." : (editingId ? "Mentés" : "Rögzítés")}
             </button>
-            {editingId && <button type="button" onClick={() => setEditingId(null)} style={{...btnS, background: "#95a5a6"}}>Mégse</button>}
+            {editingId && <button type="button" onClick={() => { setEditingId(null); setFormData({name:"", price:"", sku:"", serialNumber:"", stock:"0", supplier:""})}} style={{...btnS, background: "#95a5a6"}}>Mégse</button>}
           </div>
         </div>
       </form>
 
-      {/* TÁBLÁZAT BŐVÍTETT OSZLOPOKKAL */}
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
         <thead>
           <tr style={{ textAlign: "left", borderBottom: "2px solid #333", background: "#f4f4f4" }}>
@@ -117,32 +122,34 @@ export default function AdminItemsPage() {
           </tr>
         </thead>
         <tbody>
-          {items.map(item => (
+          {items && items.length > 0 ? items.map(item => (
             <tr key={item.id} style={{ borderBottom: "1px solid #eee" }}>
               <td style={tdS}>
-                <strong>{item.name}</strong><br/>
+                <strong>{item.name || "Névtelen"}</strong><br/>
                 <span style={{fontSize: "11px", color: "#888"}}>{item.sku || "Nincs cikkszám"}</span>
               </td>
               <td style={tdS}>
-                <span style={{ color: item.stock > 0 ? "#27ae60" : "#e74c3c", fontWeight: "bold" }}>
-                    {item.stock} db
+                <span style={{ color: (item.stock || 0) > 0 ? "#27ae60" : "#e74c3c", fontWeight: "bold" }}>
+                    {item.stock || 0} db
                 </span>
               </td>
               <td style={tdS}>{item.supplier || "-"}</td>
-              <td style={tdS}>{item.price.toLocaleString()} Ft</td>
+              <td style={tdS}>{(item.price || 0).toLocaleString()} Ft</td>
               <td style={{ ...tdS, textAlign: "right" }}>
                 <button onClick={() => startEdit(item)} style={iconBtn}>✏️</button>
                 <button onClick={async () => { if(confirm("Törlöd?")) { await fetch(`/api/items?id=${item.id}`, {method: "DELETE"}); loadItems(); } }} style={{ ...iconBtn, color: "red" }}>🗑️</button>
               </td>
             </tr>
-          ))}
+          )) : (
+            <tr><td colSpan={5} style={{padding: 20, textAlign: "center"}}>Nincsenek tételek a raktárban.</td></tr>
+          )}
         </tbody>
       </table>
     </div>
   );
 }
 
-// STÍLUSOK
+// STÍLUSOK (Ugyanazok)
 const formCard = (isEdit: boolean) => ({ background: isEdit ? "#fff8f0" : "#fff", padding: "25px", borderRadius: "12px", marginBottom: "30px", border: isEdit ? "2px solid #e67e22" : "1px solid #eee", boxShadow: "0 4px 6px rgba(0,0,0,0.05)" });
 const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" as const };
 const labelS = { fontSize: "12px", fontWeight: "bold" as const, color: "#666", marginBottom: "5px", display: "block" };
