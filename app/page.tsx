@@ -1,104 +1,90 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ totalClients: 0, totalUnits: 0, urgentCount: 0 });
-  const [items, setItems] = useState<any[]>([]); // Termékek állapota
+  const [stats, setStats] = useState({ totalItems: 0, lowStock: 0, value: 0 });
 
   useEffect(() => {
-    // Statisztikák lekérése
-    fetch("/api/stats")
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error("Stats hiba:", err));
-
-    // Termékek lekérése az adatbázisból
+    // Itt hívjuk be az adatokat az összesítéshez
     fetch("/api/items")
       .then(res => res.json())
-      .then(data => setItems(data))
-      .catch(err => console.error("Items hiba:", err));
+      .then(data => {
+        if (Array.isArray(data)) {
+          const low = data.filter(i => i.stock < 3).length;
+          const totalValue = data.reduce((acc, curr) => acc + (curr.price * curr.stock), 0);
+          setStats({ totalItems: data.length, lowStock: low, value: totalValue });
+        }
+      });
   }, []);
 
   return (
-    <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto", fontFamily: "Arial" }}>
-      <h1>🛠️ Vezérlőpult</h1>
+    <div style={{ padding: "15px", maxWidth: "800px", margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#f0f2f5", minHeight: "100vh" }}>
       
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 20, marginTop: 20 }}>
-        
-        <div style={cardS("#3498db")}>
-          <span style={{fontSize: 40}}>👥</span>
-          <h3>{stats.totalClients}</h3>
-          <p>Összes ügyfél</p>
-          <Link href="/clients" style={linkS}>Ügyfelek listája →</Link>
-        </div>
+      <h1 style={{ fontSize: "22px", marginBottom: "20px", fontWeight: "800", color: "#1a202c" }}>🛠️ NS-AIR CONTROL</h1>
 
-        <div style={cardS("#2ecc71")}>
-          <span style={{fontSize: 40}}>❄️</span>
-          <h3>{stats.totalUnits}</h3>
-          <p>Kezelt klímák</p>
+      {/* GYORS STATISZTIKA - Hogy lásd mi van */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+        <div style={statCardS}>
+          <span style={statLabelS}>Összes tétel</span>
+          <span style={statValueS}>{stats.totalItems}</span>
         </div>
-
-        {/* ÚJ KÁRTYA: Termékek száma az adatbázisból */}
-        <div style={cardS("#f39c12")}>
-          <span style={{fontSize: 40}}>📦</span>
-          <h3>{items.length}</h3>
-          <p>Regisztrált termék</p>
-          <Link href="/admin/items" style={linkS}>Termékek kezelése →</Link>
+        <div style={{ ...statCardS, borderLeft: "4px solid #e53e3e" }}>
+          <span style={statLabelS}>Kevés készlet</span>
+          <span style={{ ...statValueS, color: "#e53e3e" }}>{stats.lowStock}</span>
         </div>
-
-        <div style={cardS(stats.urgentCount > 0 ? "#e74c3c" : "#95a5a6")}>
-          <span style={{fontSize: 40}}>⚠️</span>
-          <h3>{stats.urgentCount}</h3>
-          <p>Esedékes karbantartás</p>
-          <Link href="/maintenance" style={linkS}>Megtekintés →</Link>
-        </div>
-
       </div>
 
-      {/* ÚJ SZEKCIÓ: Terméklista az adatbázisból */}
-      <div style={{ marginTop: 40, padding: 20, background: "#fff", borderRadius: 12, border: "1px solid #eee", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
-          <h2>📦 Aktuális termékkínálat</h2>
-          <Link href="/admin/items" style={{ ...linkS, background: "#eee", padding: "5px 10px", borderRadius: "5px" }}>Szerkesztés</Link>
-        </div>
+      {/* FŐ MŰVELETEK - A gombok, amik kellenek */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         
-        {items.length === 0 ? (
-          <p style={{ color: "#7f8c8d" }}>Nincsenek termékek az adatbázisban.</p>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 15 }}>
-            {items.map((item) => (
-              <div key={item.id} style={{ padding: 15, border: "1px solid #f0f0f0", borderRadius: 8, background: "#fafafa" }}>
-                <div style={{ fontWeight: "bold", marginBottom: 5 }}>{item.name}</div>
-                <div style={{ color: "#27ae60", fontWeight: "bold" }}>{item.price.toLocaleString()} Ft</div>
-              </div>
-            ))}
+        <button onClick={() => window.location.href = "/admin/items"} style={bigBtnS}>
+          <span style={{ fontSize: "24px" }}>📦</span>
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontWeight: "bold", fontSize: "18px" }}>Raktár Kezelése</div>
+            <div style={{ fontSize: "12px", opacity: 0.8 }}>Hozzáadás, szerkesztés, készlet infó</div>
           </div>
-        )}
+        </button>
+
+        <button onClick={() => alert("Fejlesztés alatt...")} style={{ ...bigBtnS, background: "#2d3748" }}>
+          <span style={{ fontSize: "24px" }}>📋</span>
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontWeight: "bold", fontSize: "18px" }}>Munkalapok / Ajánlatok</div>
+            <div style={{ fontSize: "12px", opacity: 0.8 }}>Gyors dokumentum generálás</div>
+          </div>
+        </button>
+
+        <button onClick={() => alert("Fejlesztés alatt...")} style={{ ...bigBtnS, background: "#38a169" }}>
+          <span style={{ fontSize: "24px" }}>👥</span>
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontWeight: "bold", fontSize: "18px" }}>Ügyféladatbázis</div>
+            <div style={{ fontSize: "12px", opacity: 0.8 }}>Címek, telefonszámok, gépek</div>
+          </div>
+        </button>
+
       </div>
 
-      <div style={{ marginTop: 40, padding: 20, background: "#f9f9f9", borderRadius: 12, border: "1px solid #eee" }}>
-        <h2>Gyorsműveletek</h2>
-        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-          <Link href="/quotes/new" style={btnS}>+ Új ajánlat készítése</Link>
-          <Link href="/clients" style={btnS}>+ Új ügyfél rögzítése</Link>
-          <Link href="/admin/items" style={{ ...btnS, background: "#f39c12" }}>+ Termék hozzáadása</Link>
-        </div>
+      {/* GYORSKERESŐ VAGY UTOLSÓ MOZGÁSOK HELYE */}
+      <div style={{ marginTop: "30px", padding: "15px", background: "white", borderRadius: "12px", fontSize: "14px", color: "#718096", textAlign: "center", border: "1px dashed #cbd5e0" }}>
+        A rendszer használatra kész. Válaszd ki a kívánt műveletet!
       </div>
     </div>
   );
 }
 
-// Stílusok maradnak változatlanok
-const cardS = (color: string) => ({
-  background: "#fff",
-  padding: "20px",
-  borderRadius: "15px",
-  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-  borderTop: `6px solid ${color}`,
-  textAlign: "center" as const
-});
-
-const linkS = { color: "#3498db", textDecoration: "none", fontSize: "14px", fontWeight: "bold" };
-const btnS = { background: "#2c3e50", color: "#fff", padding: "12px 20px", borderRadius: "8px", textDecoration: "none" };
+// STÍLUSOK (Tisztán, sallangmentesen)
+const statCardS = { background: "white", padding: "15px", borderRadius: "12px", display: "flex", flexDirection: "column" as const, boxShadow: "0 2px 4px rgba(0,0,0,0.05)" };
+const statLabelS = { fontSize: "12px", color: "#718096", fontWeight: "bold", textTransform: "uppercase" as const };
+const statValueS = { fontSize: "24px", fontWeight: "800", color: "#2d3748" };
+const bigBtnS = { 
+  display: "flex", 
+  alignItems: "center", 
+  gap: "15px", 
+  padding: "20px", 
+  background: "#0070f3", 
+  color: "white", 
+  border: "none", 
+  borderRadius: "15px", 
+  cursor: "pointer", 
+  transition: "transform 0.1s" 
+};
