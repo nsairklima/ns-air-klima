@@ -3,82 +3,71 @@
 import React, { useEffect, useState } from "react";
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ items: 0 });
+  const [stats, setStats] = useState({ items: 0, customers: 1, tasks: 0 });
 
   useEffect(() => {
+    // Csak a termékszámot frissítjük az API-ból, a többi marad a kép szerinti alapérték
     fetch("/api/items").then(res => res.json()).then(data => {
-      if (Array.isArray(data)) setStats({ items: data.length });
+      if (Array.isArray(data)) setStats(s => ({ ...s, items: data.length }));
     }).catch(() => {});
   }, []);
 
   return (
-    <div style={{ padding: "15px", maxWidth: "800px", margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
+    <div style={{ padding: "15px", maxWidth: "900px", margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
       
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "25px", paddingTop: "10px" }}>
-        <span style={{ fontSize: "28px" }}>🛠️</span>
-        <h1 style={{ fontSize: "22px", margin: 0, fontWeight: "800", color: "#1a202c" }}>Vezérlőpult</h1>
+      <h1 style={{ fontSize: "24px", marginBottom: "25px", fontWeight: "800", color: "#1a202c", display: "flex", alignItems: "center", gap: "10px" }}>
+        🛠️ Vezérlőpult
+      </h1>
+
+      {/* FELSŐ STATISZTIKAI KÁRTYÁK - Pontosan a képed szerint */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "15px", marginBottom: "30px" }}>
+        <div style={{ ...miniCardS, borderTop: "4px solid #0070f3" }}>
+          <div style={statNumS}>{stats.customers}</div>
+          <div style={statLabelS}>Összes ügyfél</div>
+          <a href="/admin/customers" style={linkS}>Ügyfelek listája →</a>
+        </div>
+        <div style={{ ...miniCardS, borderTop: "4px solid #38a169" }}>
+          <div style={statNumS}>0</div>
+          <div style={statLabelS}>Kezelt klímák</div>
+        </div>
+        <div style={{ ...miniCardS, borderTop: "4px solid #ecc94b" }}>
+          <div style={statNumS}>{stats.items}</div>
+          <div style={statLabelS}>Regisztrált termék</div>
+          <a href="/admin/items" style={linkS}>Termékek kezelése →</a>
+        </div>
+        <div style={{ ...miniCardS, borderTop: "4px solid #718096" }}>
+          <div style={statNumS}>0</div>
+          <div style={statLabelS}>Esedékes karbantartás</div>
+          <a href="/admin/tasks" style={linkS}>Megtekintés →</a>
+        </div>
       </div>
 
-      {/* STATISZTIKA KÁRTYA */}
-      <div style={{ background: "white", padding: "20px", borderRadius: "15px", marginBottom: "25px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)", border: "1px solid #eee" }}>
-        <div style={{ fontSize: "12px", color: "#666", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>Raktár állapota</div>
-        <div style={{ fontSize: "26px", fontWeight: "900", color: "#0070f3", marginTop: "5px" }}>{stats.items} termék</div>
+      {/* GYORSMŰVELETEK - Az alsó gombok modernizálva */}
+      <div style={{ background: "white", padding: "20px", borderRadius: "15px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+        <h3 style={{ marginTop: 0, marginBottom: "20px", fontSize: "18px" }}>Gyorsműveletek</h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+          <button onClick={() => window.location.href = "/admin/quotes/new"} style={actionBtnS}>
+            + Új ajánlat készítése
+          </button>
+          <button onClick={() => window.location.href = "/admin/customers/new"} style={actionBtnS}>
+            + Új ügyfél rögzítése
+          </button>
+          <button onClick={() => window.location.href = "/admin/items"} style={{ ...actionBtnS, background: "#ecc94b", color: "#000" }}>
+            + Termék hozzáadása
+          </button>
+        </div>
       </div>
 
-      {/* GOMBOK - EREDETI ÚTVONALAKKAL */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-        
-        {/* RAKTÁR - A képed alapján ez az admin/items */}
-        <button onClick={() => window.location.href = "/admin/items"} style={btnS}>
-          <div style={iconS}>📦</div>
-          <div style={{ textAlign: "left" }}>
-            <div style={titleS}>Termékek Kezelése</div>
-            <div style={descS}>Készlet, árak és rögzítés</div>
-          </div>
-        </button>
-
-        {/* ÜGYFELEK - Ha ez nem admin/customers, akkor próbáld meg simán /customers-el */}
-        <button onClick={() => window.location.href = "/admin/customers"} style={{ ...btnS, background: "#2d3748" }}>
-          <div style={iconS}>👥</div>
-          <div style={{ textAlign: "left" }}>
-            <div style={titleS}>Ügyfelek</div>
-            <div style={descS}>Ügyféladatbázis megnyitása</div>
-          </div>
-        </button>
-
-        {/* AJÁNLATOK */}
-        <button onClick={() => window.location.href = "/admin/quotes"} style={{ ...btnS, background: "#38a169" }}>
-          <div style={iconS}>📋</div>
-          <div style={{ textAlign: "left" }}>
-            <div style={titleS}>Új Ajánlat / Munkalap</div>
-            <div style={descS}>Dokumentumok generálása</div>
-          </div>
-        </button>
-
-      </div>
-
-      <div style={{ marginTop: "40px", textAlign: "center", color: "#cbd5e0", fontSize: "11px", fontWeight: "bold" }}>
+      <div style={{ marginTop: "40px", textAlign: "center", color: "#cbd5e0", fontSize: "12px" }}>
         NS-AIR KLÍMA RENDSZER
       </div>
     </div>
   );
 }
 
-// STÍLUSOK - Maradnak a stabil, mobilbarát verziók
-const btnS = { 
-  display: "flex", 
-  alignItems: "center", 
-  gap: "15px", 
-  padding: "20px", 
-  background: "#0070f3", 
-  color: "white", 
-  border: "none", 
-  borderRadius: "16px", 
-  cursor: "pointer",
-  width: "100%",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-  transition: "transform 0.2s"
-};
-const iconS = { fontSize: "24px", background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "12px" };
-const titleS = { fontWeight: "bold", fontSize: "18px" };
-const descS = { fontSize: "12px", opacity: 0.85, marginTop: "2px" };űűűűűűű
+// STÍLUSOK
+const miniCardS = { background: "white", padding: "20px", borderRadius: "12px", textAlign: "center" as const, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" };
+const statNumS = { fontSize: "28px", fontWeight: "900", color: "#2d3748", marginBottom: "5px" };
+const statLabelS = { fontSize: "13px", color: "#718096", marginBottom: "10px", fontWeight: "bold" };
+const linkS = { fontSize: "12px", color: "#0070f3", textDecoration: "none", fontWeight: "bold" };
+const actionBtnS = { padding: "12px 20px", background: "#2d3748", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
