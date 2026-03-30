@@ -135,13 +135,14 @@ model Item {
   id           Int      @id @default(autoincrement())
   name         String
   price        Float
-  sku          String?  // Cikkszám
-  serialNumber String?  // Gyári szám
-  stock        Int      @default(0) // Készletmennyiség
-  supplier     String?  // Nagykereskedő
+  sku          String?
+  serialNumber String?
+  stock        Int      @default(0)
+  supplier     String?
   unit         String   @default("db")
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  // Itt a módosítás: kap egy alapértelmezett értéket
+  updatedAt    DateTime @default(now()) @updatedAt 
 
   @@map("items")
 }
