@@ -8,7 +8,12 @@ export default function AdminItemsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
-    name: "", price: "", sku: "", stock: "0", supplier: ""
+    name: "",
+    price: "",
+    sku: "",
+    serialNumber: "",
+    stock: "0",
+    supplier: ""
   });
 
   const loadItems = async () => {
@@ -17,7 +22,7 @@ export default function AdminItemsPage() {
       const data = await res.json();
       setItems(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Hiba:", err);
+      console.error("Betöltési hiba:", err);
     }
   };
 
@@ -26,94 +31,197 @@ export default function AdminItemsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const method = editingId ? "PATCH" : "POST";
+    const payload = {
+      id: editingId,
+      name: formData.name,
+      price: parseFloat(formData.price) || 0,
+      sku: formData.sku || null,
+      serialNumber: formData.serialNumber || null,
+      stock: parseInt(formData.stock) || 0,
+      supplier: formData.supplier || null,
+    };
+
     const res = await fetch("/api/items", {
-      method: editingId ? "PATCH" : "POST",
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        ...formData, 
-        id: editingId, 
-        price: parseFloat(formData.price) || 0, 
-        stock: parseInt(formData.stock) || 0 
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
-      setFormData({ name: "", price: "", sku: "", stock: "0", supplier: "" });
+      setFormData({ name: "", price: "", sku: "", serialNumber: "", stock: "0", supplier: "" });
       setEditingId(null);
       loadItems();
+    } else {
+      const errData = await res.json();
+      alert("Hiba: " + (errData.details || "Sikertelen mentés"));
     }
     setLoading(false);
   };
 
+  const startEdit = (item: any) => {
+    setEditingId(item.id);
+    setFormData({
+      name: item.name || "",
+      price: item.price?.toString() || "0",
+      sku: item.sku || "",
+      serialNumber: item.serialNumber || "",
+      stock: item.stock?.toString() || "0",
+      supplier: item.supplier || ""
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const deleteItem = async (id: number) => {
-    if (!confirm("Biztosan törlöd?")) return;
-    await fetch(`/api/items?id=${id}`, { method: "DELETE" });
-    loadItems();
+    if (!confirm("Biztosan törlöd ezt a tételt?")) return;
+    const res = await fetch(`/api/items?id=${id}`, { method: "DELETE" });
+    if (res.ok) loadItems();
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
+    <div style={{ padding: "20px", maxWidth: "1100px", margin: "0 auto", fontFamily: "'Inter', sans-serif", color: "#333" }}>
       
-      {/* FEJLÉC ÉS NAVIGÁCIÓ */}
-      <div style={{ marginBottom: "30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <button onClick={() => window.location.href = "/"} style={backBtnS}>← Főoldal</button>
-        <h1 style={{ margin: 0, fontSize: "22px" }}>📦 Raktárkészlet Kezelő</h1>
+      {/* VISSZALÉPÉS ÉS NAVIGÁCIÓ */}
+      <div style={{ marginBottom: "30px", display: "flex", alignItems: "center", gap: "15px" }}>
+        <button 
+          onClick={() => window.location.href = "/"} 
+          style={{
+            background: "#fff",
+            border: "1px solid #ddd",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontSize: "14px",
+            fontWeight: "600",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+            transition: "all 0.2s"
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#f9f9f9"}
+          onMouseOut={(e) => e.currentTarget.style.background = "#fff"}
+        >
+          ← Főoldal
+        </button>
+        <div style={{ height: "20px", width: "1px", background: "#ddd" }}></div>
+        <span style={{ color: "#888", fontSize: "14px" }}>Adminisztráció / Raktárkészlet</span>
       </div>
 
-      {/* RÖGZÍTŐ KÁRTYA */}
-      <div style={formCardS}>
-        <h3 style={{ marginTop: 0 }}>{editingId ? "✏️ Szerkesztés" : "➕ Új tétel"}</h3>
-        <form onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px" }}>
-          <input style={inputS} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Termék neve" required />
-          <input style={inputS} type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} placeholder="Nettó ár (Ft)" required />
-          <input style={inputS} value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} placeholder="Cikkszám" />
-          <input style={inputS} type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} placeholder="Készlet" />
-          <button type="submit" disabled={loading} style={saveBtnS}>
-            {loading ? "..." : (editingId ? "Mentés" : "Hozzáadás")}
-          </button>
-          {editingId && <button type="button" onClick={() => {setEditingId(null); setFormData({name:"", price:"", sku:"", stock:"0", supplier:""})}} style={cancelBtnS}>Mégse</button>}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", margin: 0, color: "#1a1a1a" }}>📦 Raktárkészlet Kezelő</h1>
+        <span style={{ background: "#e8f0fe", color: "#1967d2", padding: "6px 12px", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
+          {items.length} tétel összesen
+        </span>
+      </div>
+
+      {/* FORM KÁRTYA */}
+      <div style={{ 
+        background: editingId ? "#fffaf0" : "#ffffff", 
+        padding: "30px", 
+        borderRadius: "16px", 
+        boxShadow: "0 10px 25px rgba(0,0,0,0.05)", 
+        border: editingId ? "2px solid #f39c12" : "1px solid #e1e1e1",
+        marginBottom: "40px",
+        transition: "all 0.3s ease"
+      }}>
+        <h3 style={{ marginTop: 0, marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+          {editingId ? "✏️ Tétel módosítása" : "➕ Új termék hozzáadása"}
+        </h3>
+        
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
+            <div style={{ gridColumn: "span 2" }}>
+              <label style={labelS}>Termék megnevezése *</label>
+              <input style={inputS} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required placeholder="pl. Sinclair Vision 3.5kW" />
+            </div>
+            <div>
+              <label style={labelS}>Nettó eladási ár (Ft) *</label>
+              <input style={inputS} type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required />
+            </div>
+            <div>
+              <label style={labelS}>Cikkszám (SKU)</label>
+              <input style={inputS} value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} placeholder="V35-ABC" />
+            </div>
+            <div>
+              <label style={labelS}>Készlet (db)</label>
+              <input style={inputS} type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
+            </div>
+            <div style={{ gridColumn: "span 2" }}>
+              <label style={labelS}>Beszerzési forrás / Nagyker</label>
+              <input style={inputS} value={formData.supplier} onChange={e => setFormData({...formData, supplier: e.target.value})} placeholder="pl. Sinclair Hungary Kft." />
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
+              <button type="submit" disabled={loading} style={{ 
+                ...btnS, 
+                background: editingId ? "#f39c12" : "#0070f3", 
+                flex: 2 
+              }}>
+                {loading ? "Mentés..." : (editingId ? "Módosítás mentése" : "Tétel rögzítése")}
+              </button>
+              {editingId && (
+                <button type="button" onClick={() => { setEditingId(null); setFormData({name:"", price:"", sku:"", serialNumber:"", stock:"0", supplier:""})}} style={{ ...btnS, background: "#666", flex: 1 }}>
+                  Mégse
+                </button>
+              )}
+            </div>
+          </div>
         </form>
       </div>
 
-      {/* CSEMPE LISTA (Mindenhol ez látszik) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
-        {items.map(item => (
-          <div key={item.id} style={tileS}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-              <span style={{ fontSize: "12px", color: "#888", fontWeight: "bold" }}>{item.sku || "NINCS SKU"}</span>
-              <span style={{ 
-                background: item.stock > 0 ? "#e6fffa" : "#fff5f5", 
-                color: item.stock > 0 ? "#2c7a7b" : "#c53030",
-                padding: "2px 8px", borderRadius: "10px", fontSize: "12px", fontWeight: "bold"
-              }}>
-                {item.stock} db készleten
-              </span>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px", minHeight: "44px" }}>{item.name}</div>
-            <div style={{ fontSize: "22px", fontWeight: "800", color: "#0070f3", marginBottom: "15px" }}>
-              {item.price?.toLocaleString()} Ft
-            </div>
-            <div style={{ display: "flex", gap: "10px", borderTop: "1px solid #eee", paddingTop: "15px" }}>
-              <button onClick={() => {
-                setEditingId(item.id);
-                setFormData({name: item.name, price: item.price.toString(), sku: item.sku || "", stock: item.stock.toString(), supplier: item.supplier || ""});
-                window.scrollTo({top: 0, behavior: "smooth"});
-              }} style={editBtnS}>Szerkesztés ✏️</button>
-              <button onClick={() => deleteItem(item.id)} style={delBtnS}>Törlés 🗑️</button>
-            </div>
-          </div>
-        ))}
+      {/* TÁBLÁZAT */}
+      <div style={{ background: "#fff", borderRadius: "16px", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", overflow: "hidden", border: "1px solid #eee" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#f8f9fa", borderBottom: "2px solid #eee" }}>
+              <th style={thS}>TERMÉK ÉS CIKKSZÁM</th>
+              <th style={thS}>KÉSZLET</th>
+              <th style={thS}>NAGYKER</th>
+              <th style={thS}>NETTÓ ÁR</th>
+              <th style={{ ...thS, textAlign: "right" }}>MŰVELETEK</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.length > 0 ? items.map((item) => (
+              <tr key={item.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                <td style={tdS}>
+                  <div style={{ fontWeight: "600", fontSize: "15px" }}>{item.name}</div>
+                  <div style={{ fontSize: "12px", color: "#888" }}>{item.sku || "Nincs SKU"}</div>
+                </td>
+                <td style={tdS}>
+                  <span style={{ 
+                    padding: "4px 10px", 
+                    borderRadius: "6px", 
+                    fontSize: "13px", 
+                    fontWeight: "bold",
+                    background: (item.stock || 0) > 0 ? "#e6fffa" : "#fff5f5",
+                    color: (item.stock || 0) > 0 ? "#2c7a7b" : "#c53030"
+                  }}>
+                    {item.stock || 0} db
+                  </span>
+                </td>
+                <td style={tdS}><span style={{ color: "#666" }}>{item.supplier || "-"}</span></td>
+                <td style={tdS}><span style={{ fontWeight: "700" }}>{(item.price || 0).toLocaleString()} Ft</span></td>
+                <td style={{ ...tdS, textAlign: "right" }}>
+                  <button onClick={() => startEdit(item)} style={iconBtnS}>✏️</button>
+                  <button onClick={() => deleteItem(item.id)} style={{ ...iconBtnS, color: "#e53e3e" }}>🗑️</button>
+                </td>
+              </tr>
+            )) : (
+              <tr><td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#999" }}>Még nincs rögzített termék.</td></tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
 // STÍLUSOK
-const inputS = { padding: "12px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px" };
-const formCardS = { background: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: "30px" };
-const tileS = { background: "#fff", padding: "20px", borderRadius: "15px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", border: "1px solid #efefef", display: "flex", flexDirection: "column" as const };
-const backBtnS = { padding: "8px 16px", borderRadius: "8px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontWeight: "600" as const };
-const saveBtnS = { background: "#0070f3", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" as const };
-const cancelBtnS = { background: "#666", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer" };
-const editBtnS = { flex: 1, padding: "10px", borderRadius: "8px", border: "1px solid #ddd", background: "#f9f9f9", cursor: "pointer", fontWeight: "bold" as const };
-const delBtnS = { padding: "10px", borderRadius: "8px", border: "1px solid #feb2b2", background: "#fff5f5", color: "#c53030", cursor: "pointer" };
+const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px", outline: "none", boxSizing: "border-box" as const };
+const labelS = { display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: "700", color: "#666", textTransform: "uppercase" as const, letterSpacing: "0.5px" };
+const btnS = { padding: "12px", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px", transition: "opacity 0.2s" };
+const thS = { padding: "16px", textAlign: "left" as const, fontSize: "12px", fontWeight: "700", color: "#888", letterSpacing: "1px" };
+const tdS = { padding: "16px", verticalAlign: "middle" };
+const iconBtnS = { background: "none", border: "none", cursor: "pointer", fontSize: "18px", padding: "5px", marginLeft: "5px" };
