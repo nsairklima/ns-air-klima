@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from "react";
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ items: 0, customers: 1, tasks: 0 });
+  const [stats, setStats] = useState({ items: 0, clients: 0, quotes: 0 });
 
   useEffect(() => {
-    // Csak a termékszámot frissítjük az API-ból, a többi marad a kép szerinti alapérték
+    // Csak a raktárkészlet számát kérjük le, a többi statisztika fix a kép alapján
     fetch("/api/items").then(res => res.json()).then(data => {
       if (Array.isArray(data)) setStats(s => ({ ...s, items: data.length }));
     }).catch(() => {});
@@ -19,42 +19,52 @@ export default function Dashboard() {
         🛠️ Vezérlőpult
       </h1>
 
-      {/* FELSŐ STATISZTIKAI KÁRTYÁK - Pontosan a képed szerint */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "15px", marginBottom: "30px" }}>
+      {/* FELSŐ KÁRTYÁK - Pontos útvonalakkal a mappáid alapján */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px", marginBottom: "30px" }}>
+        
+        {/* ÜGYFELEK - app/clients/page.tsx */}
         <div style={{ ...miniCardS, borderTop: "4px solid #0070f3" }}>
-          <div style={statNumS}>{stats.customers}</div>
+          <div style={statNumS}>1</div>
           <div style={statLabelS}>Összes ügyfél</div>
-          <a href="/admin/customers" style={linkS}>Ügyfelek listája →</a>
+          <a href="/clients" style={linkS}>Ügyfelek listája →</a>
         </div>
-        <div style={{ ...miniCardS, borderTop: "4px solid #38a169" }}>
+
+        {/* KARBANTARTÁS - app/maintenance/page.tsx */}
+        <div style={{ ...miniCardS, borderTop: "4px solid #718096" }}>
           <div style={statNumS}>0</div>
-          <div style={statLabelS}>Kezelt klímák</div>
+          <div style={statLabelS}>Esedékes karbantartás</div>
+          <a href="/maintenance" style={linkS}>Megtekintés →</a>
         </div>
+
+        {/* RAKTÁR - app/admin/items/page.tsx (ez az egyetlen, ami az adminban van nálad) */}
         <div style={{ ...miniCardS, borderTop: "4px solid #ecc94b" }}>
           <div style={statNumS}>{stats.items}</div>
           <div style={statLabelS}>Regisztrált termék</div>
           <a href="/admin/items" style={linkS}>Termékek kezelése →</a>
         </div>
-        <div style={{ ...miniCardS, borderTop: "4px solid #718096" }}>
-          <div style={statNumS}>0</div>
-          <div style={statLabelS}>Esedékes karbantartás</div>
-          <a href="/admin/tasks" style={linkS}>Megtekintés →</a>
-        </div>
+
       </div>
 
-      {/* GYORSMŰVELETEK - Az alsó gombok modernizálva */}
+      {/* GYORSMŰVELETEK - Alsó szekció */}
       <div style={{ background: "white", padding: "20px", borderRadius: "15px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
         <h3 style={{ marginTop: 0, marginBottom: "20px", fontSize: "18px" }}>Gyorsműveletek</h3>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-          <button onClick={() => window.location.href = "/admin/quotes/new"} style={actionBtnS}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+          
+          {/* Új Ajánlat - app/quotes/new/page.tsx */}
+          <button onClick={() => window.location.href = "/quotes/new"} style={actionBtnS}>
             + Új ajánlat készítése
           </button>
-          <button onClick={() => window.location.href = "/admin/customers/new"} style={actionBtnS}>
+
+          {/* Új Ügyfél - app/clients/new/page.tsx */}
+          <button onClick={() => window.location.href = "/clients/new"} style={actionBtnS}>
             + Új ügyfél rögzítése
           </button>
+
+          {/* Termék Hozzáadása - app/admin/items/page.tsx */}
           <button onClick={() => window.location.href = "/admin/items"} style={{ ...actionBtnS, background: "#ecc94b", color: "#000" }}>
             + Termék hozzáadása
           </button>
+
         </div>
       </div>
 
@@ -65,9 +75,9 @@ export default function Dashboard() {
   );
 }
 
-// STÍLUSOK
+// STÍLUSOK (Tisztán, sallangmentesen)
 const miniCardS = { background: "white", padding: "20px", borderRadius: "12px", textAlign: "center" as const, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" };
-const statNumS = { fontSize: "28px", fontWeight: "900", color: "#2d3748", marginBottom: "5px" };
-const statLabelS = { fontSize: "13px", color: "#718096", marginBottom: "10px", fontWeight: "bold" };
-const linkS = { fontSize: "12px", color: "#0070f3", textDecoration: "none", fontWeight: "bold" };
-const actionBtnS = { padding: "12px 20px", background: "#2d3748", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
+const statNumS = { fontSize: "32px", fontWeight: "900", color: "#2d3748", marginBottom: "5px" };
+const statLabelS = { fontSize: "14px", color: "#718096", marginBottom: "15px", fontWeight: "bold" };
+const linkS = { fontSize: "13px", color: "#0070f3", textDecoration: "none", fontWeight: "bold", border: "1px solid #0070f3", padding: "5px 10px", borderRadius: "6px" };
+const actionBtnS = { padding: "14px 22px", background: "#2d3748", color: "white", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
