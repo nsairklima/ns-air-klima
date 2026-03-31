@@ -40,6 +40,7 @@ export async function PATCH(
     const data = await req.json();
     const unitId = parseInt(params.unitId);
 
+    // Itt frissítjük a ClientUnit táblát
     const updatedUnit = await prisma.clientUnit.update({
       where: { id: unitId },
       data: {
@@ -47,14 +48,14 @@ export async function PATCH(
         model: data.model,
         serialNumber: data.serialNumber,
         location: data.location,
-        status: data.status,
-        installation: data.installation ? new Date(data.installation) : undefined,
+        // Ha jön dátum, Date objektummá alakítjuk, ha nem, marad null
+        installation: data.installation ? new Date(data.installation) : null,
       },
     });
 
     return NextResponse.json(updatedUnit);
   } catch (error) {
-    console.error("Módosítási hiba:", error);
-    return NextResponse.json({ error: "Sikertelen frissítés" }, { status: 500 });
+    console.error("Módosítási hiba az API-ban:", error);
+    return NextResponse.json({ error: "Sikertelen frissítés az adatbázisban." }, { status: 500 });
   }
 }
