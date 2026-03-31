@@ -9,22 +9,25 @@ export async function DELETE(
   try {
     const unitId = parseInt(params.unitId);
 
-    // 1. ELŐSZÖR töröljük a géphez tartozó összes naplóbejegyzést (ha van)
-    // Enélkül az adatbázis "Foreign Key Constraint" hiba miatt megállítana
-    await prisma.workLog.deleteMany({
+    // 1. Töröljük a kapcsolódó karbantartási naplókat (MaintenanceLog)
+    await prisma.maintenanceLog.deleteMany({
       where: { unitId: unitId },
     });
 
-    // 2. MOST már törölhető maga a gép
-    // JAVÍTVA: prisma.Unit (nagybetűvel, ahogy a hibaüzeneted kérte)
-    await prisma.unit.delete({
+    // 2. Töröljük a kapcsolódó email értesítéseket
+    await prisma.emailNotifications.deleteMany({
+      where: { clientUnitId: unitId },
+    });
+
+    // 3. Most már törölhető a gép (clientUnit)
+    await prisma.clientUnit.delete({
       where: { id: unitId },
     });
 
-    return NextResponse.json({ message: "Gép és naplói sikeresen törölve" });
+    return NextResponse.json({ message: "Gép és kapcsolódó adatok törölve." });
   } catch (error) {
-    console.error("Hiba a törléskor:", error);
-    return NextResponse.json({ error: "Sikertelen törlés (adatbázis hiba)" }, { status: 500 });
+    console.error("Törlési hiba:", error);
+    return NextResponse.json({ error: "Sikertelen törlés" }, { status: 500 });
   }
 }
 
@@ -37,8 +40,7 @@ export async function PATCH(
     const data = await req.json();
     const unitId = parseInt(params.unitId);
 
-    // JAVÍTVA: prisma.unit használata a sémának megfelelően
-    const updatedUnit = await prisma.unit.update({
+    const updatedUnit = await prisma.clientUnit.update({
       where: { id: unitId },
       data: {
         brand: data.brand,
@@ -46,14 +48,13 @@ export async function PATCH(
         serialNumber: data.serialNumber,
         location: data.location,
         status: data.status,
-        // Biztosítjuk, hogy a dátum formátuma megfelelő legyen
         installation: data.installation ? new Date(data.installation) : undefined,
       },
     });
 
     return NextResponse.json(updatedUnit);
   } catch (error) {
-    console.error("Hiba a frissítéskor:", error);
+    console.error("Módosítási hiba:", error);
     return NextResponse.json({ error: "Sikertelen frissítés" }, { status: 500 });
   }
 }
