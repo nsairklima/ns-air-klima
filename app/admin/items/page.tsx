@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation"; // <--- Navigáció importálása
 
 export default function AdminItemsPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const router = useRouter(); // <--- Router inicializálása
 
   // Állapotok az új mezőkhöz
   const [formData, setFormData] = useState({
@@ -65,8 +67,30 @@ export default function AdminItemsPage() {
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial" }}>
-      <h1>📦 Raktárkészlet és Nyilvántartás</h1>
+    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
+      
+      {/* --- ÚJ VISSZA GOMB SOR --- */}
+      <div style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
+        <button 
+          onClick={() => router.push("/")} 
+          style={{
+            padding: "8px 15px",
+            borderRadius: "8px",
+            border: "1px solid #ddd",
+            background: "#fff",
+            cursor: "pointer",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+          }}
+        >
+          🏠 Főoldal
+        </button>
+      </div>
+
+      <h1 style={{ marginBottom: "25px", color: "#2c3e50" }}>📦 Raktárkészlet és Nyilvántartás</h1>
 
       <form onSubmit={handleSubmit} style={formCard(!!editingId)}>
         <h3 style={{marginTop: 0}}>{editingId ? "✏️ Tétel szerkesztése" : "➕ Új tétel rögzítése"}</h3>
@@ -100,44 +124,46 @@ export default function AdminItemsPage() {
             <button type="submit" disabled={loading} style={{ ...btnS, background: editingId ? "#e67e22" : "#2ecc71", flex: 1 }}>
               {editingId ? "Mentés" : "Rögzítés"}
             </button>
-            {editingId && <button type="button" onClick={() => setEditingId(null)} style={{...btnS, background: "#95a5a6"}}>Mégse</button>}
+            {editingId && <button type="button" onClick={() => { setEditingId(null); setFormData({ name: "", price: "", sku: "", serialNumber: "", stock: "0", supplier: "" }); }} style={{...btnS, background: "#95a5a6"}}>Mégse</button>}
           </div>
         </div>
       </form>
 
       {/* TÁBLÁZAT BŐVÍTETT OSZLOPOKKAL */}
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-        <thead>
-          <tr style={{ textAlign: "left", borderBottom: "2px solid #333", background: "#f4f4f4" }}>
-            <th style={thS}>Megnevezés / Cikkszám</th>
-            <th style={thS}>Készlet</th>
-            <th style={thS}>Nagyker</th>
-            <th style={thS}>Nettó ár</th>
-            <th style={{ ...thS, textAlign: "right" }}>Műveletek</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(item => (
-            <tr key={item.id} style={{ borderBottom: "1px solid #eee" }}>
-              <td style={tdS}>
-                <strong>{item.name}</strong><br/>
-                <span style={{fontSize: "11px", color: "#888"}}>{item.sku || "Nincs cikkszám"}</span>
-              </td>
-              <td style={tdS}>
-                <span style={{ color: item.stock > 0 ? "#27ae60" : "#e74c3c", fontWeight: "bold" }}>
-                    {item.stock} db
-                </span>
-              </td>
-              <td style={tdS}>{item.supplier || "-"}</td>
-              <td style={tdS}>{item.price.toLocaleString()} Ft</td>
-              <td style={{ ...tdS, textAlign: "right" }}>
-                <button onClick={() => startEdit(item)} style={iconBtn}>✏️</button>
-                <button onClick={async () => { if(confirm("Törlöd?")) { await fetch(`/api/items?id=${item.id}`, {method: "DELETE"}); loadItems(); } }} style={{ ...iconBtn, color: "red" }}>🗑️</button>
-              </td>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+          <thead>
+            <tr style={{ textAlign: "left", borderBottom: "2px solid #333", background: "#f4f4f4" }}>
+              <th style={thS}>Megnevezés / Cikkszám</th>
+              <th style={thS}>Készlet</th>
+              <th style={thS}>Nagyker</th>
+              <th style={thS}>Nettó ár</th>
+              <th style={{ ...thS, textAlign: "right" }}>Műveletek</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map(item => (
+              <tr key={item.id} style={{ borderBottom: "1px solid #eee" }}>
+                <td style={tdS}>
+                  <strong>{item.name}</strong><br/>
+                  <span style={{fontSize: "11px", color: "#888"}}>{item.sku || "Nincs cikkszám"}</span>
+                </td>
+                <td style={tdS}>
+                  <span style={{ color: item.stock > 0 ? "#27ae60" : "#e74c3c", fontWeight: "bold" }}>
+                      {item.stock} db
+                  </span>
+                </td>
+                <td style={tdS}>{item.supplier || "-"}</td>
+                <td style={tdS}>{item.price.toLocaleString()} Ft</td>
+                <td style={{ ...tdS, textAlign: "right", whiteSpace: "nowrap" }}>
+                  <button onClick={() => startEdit(item)} style={iconBtn}>✏️</button>
+                  <button onClick={async () => { if(confirm("Valóban törlöd?")) { await fetch(`/api/items?id=${item.id}`, {method: "DELETE"}); loadItems(); } }} style={{ ...iconBtn, color: "#e74c3c" }}>🗑️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
