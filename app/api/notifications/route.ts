@@ -110,7 +110,7 @@ export async function GET() {
     await transporter.sendMail({
       from: '"NS-AIR Rendszer" <ajanlat@nsairklima.hu>',
       to: "nsair.klima@gmail.com",
-      subject: `🛠️ Karbantartási lista - ${dueSoon.length} gép`,
+      subject: `⚠️ KARBANTARTÁSI RIASZTÁS - ${dueSoon.length} gép`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 800px; margin: auto; color: #2c3e50;">
           <h2 style="color: #2980b9; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Esedékes karbantartások összesítője</h2>
