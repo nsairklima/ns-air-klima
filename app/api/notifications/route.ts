@@ -10,7 +10,9 @@ export async function GET(req: Request) {
 
     const units = await prisma.clientUnit.findMany({
       where: {
-        status: "INSTALLED", // CSAK A TELEPÍTETT GÉPEKET NÉZZÜK
+        status: {
+          in: ["INSTALLED", "SERVICE_ONLY"] // Figyeli a saját és a hozott gépeket is
+        }
       },
       include: {
         client: true,
@@ -42,7 +44,7 @@ export async function GET(req: Request) {
     });
 
     if (dueSoon.length === 0) {
-      return NextResponse.json({ message: "Nincs esedékes karbantartás a telepített gépeknél." });
+      return NextResponse.json({ message: "Nincs esedékes karbantartás az aktív gépeknél." });
     }
 
     const transporter = nodemailer.createTransport({
@@ -63,6 +65,7 @@ export async function GET(req: Request) {
         : "Nincs megadva";
         
       const isOverdue = date < today;
+      const statusLabel = u.status === "SERVICE_ONLY" ? "🛠️ Csak szerviz" : "✅ Saját telepítés";
       
       return `
         <tr style="border-bottom: 1px solid #eee;">
@@ -77,7 +80,7 @@ export async function GET(req: Request) {
           <td style="padding: 12px; vertical-align: top;">
             <strong>${u.brand} ${u.model}</strong><br>
             <small style="color: #777;">Hely: ${u.location || '-'}</small><br>
-            <small style="color: #777;">S/N: ${u.serialNumber || '-'}</small>
+            <small style="color: #0070f3; font-weight: bold;">${statusLabel}</small>
           </td>
           <td style="padding: 12px; vertical-align: top; text-align: right; white-space: nowrap;">
             <strong style="color: ${isOverdue ? '#e74c3c' : '#27ae60'}; font-size: 14px;">
@@ -94,11 +97,11 @@ export async function GET(req: Request) {
     await transporter.sendMail({
       from: '"NS-AIR Rendszer" <ajanlat@nsairklima.hu>',
       to: "nsair.klima@gmail.com",
-      subject: `🛠️ Karbantartási lista - ${dueSoon.length} telepített gép`,
+      subject: `🛠️ Karbantartási lista - ${dueSoon.length} gép`,
       html: `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: auto; color: #2c3e50;">
           <h2 style="color: #2980b9; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Esedékes karbantartások összesítője</h2>
-          <p>Az alábbi <strong>telepített</strong> gépek karbantartása vált esedékessé:</p>
+          <p>Az alábbi gépek karbantartása vált esedékessé (Saját telepítés és hozott gépek vegyesen):</p>
           
           <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <thead>
