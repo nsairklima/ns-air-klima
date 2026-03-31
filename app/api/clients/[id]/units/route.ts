@@ -4,29 +4,30 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // Az 'id' itt a clientId
 ) {
   try {
-    const clientId = Number(params.id); // Itt vesszük át az URL-ből az ügyfél ID-t
     const data = await req.json();
-
-    // Itt történik a mentés a Prisma-val
-    const newUnit = await prisma.clientUnit.create({
+    
+    const unit = await prisma.clientUnit.create({
       data: {
-        clientId: clientId,
+        clientId: Number(params.id),
         brand: data.brand,
         model: data.model,
-        serialNumber: data.serialNumber,
         location: data.location,
-        periodMonths: 12, // Alapértelmezett 1 év
-        installation: new Date(),
+        serialNumber: data.serialNumber,
+        installation: data.installation ? new Date(data.installation) : null,
+        periodMonths: Number(data.periodMonths) || 12,
+        // JAVÍTÁS: Itt mentjük el a státuszt (INSTALLED vagy SERVICE_ONLY)
+        status: data.status || "INSTALLED", 
+        notes: data.notes
       },
     });
 
-    return NextResponse.json(newUnit);
-  } catch (error) {
-    console.error("Hiba a gép mentésekor:", error);
-    return NextResponse.json({ error: "Nem sikerült a gép mentése" }, { status: 500 });
+    return NextResponse.json(unit);
+  } catch (error: any) {
+    console.error("Gép mentési hiba:", error);
+    return NextResponse.json({ error: "Hiba a gép mentésekor" }, { status: 500 });
   }
 }
 
