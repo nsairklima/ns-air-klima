@@ -9,6 +9,9 @@ export async function GET(req: Request) {
     sixtyDaysFromNow.setDate(today.getDate() + 60);
 
     const units = await prisma.clientUnit.findMany({
+      where: {
+        status: "INSTALLED", // CSAK A TELEPÍTETT GÉPEKET NÉZZÜK
+      },
       include: {
         client: true,
         maintenance: {
@@ -18,7 +21,7 @@ export async function GET(req: Request) {
       }
     });
 
-    // 1. Kiszámoljuk a dátumokat és szűrünk
+    // 1. Dátum számítás és szűrés
     const dueSoon = units.map(unit => {
       const lastLog = unit.maintenance && unit.maintenance[0];
       let dueDate: Date | null = null;
@@ -39,7 +42,7 @@ export async function GET(req: Request) {
     });
 
     if (dueSoon.length === 0) {
-      return NextResponse.json({ message: "Nincs esedékes karbantartás." });
+      return NextResponse.json({ message: "Nincs esedékes karbantartás a telepített gépeknél." });
     }
 
     const transporter = nodemailer.createTransport({
@@ -52,9 +55,9 @@ export async function GET(req: Request) {
       },
     });
 
-    // 2. Táblázat összeállítása (Most már a TypeScript látja a calculatedDueDate-et)
+    // 2. Részletes táblázat minden ügyféladattal
     const tableRows = dueSoon.map(u => {
-      const date = u.calculatedDueDate as Date; // Jelezzük a TS-nek, hogy itt már biztosan van dátum
+      const date = u.calculatedDueDate as Date;
       const dateStr = (date && date.getFullYear() > 1970) 
         ? date.toLocaleDateString('hu-HU') 
         : "Nincs megadva";
@@ -62,15 +65,27 @@ export async function GET(req: Request) {
       const isOverdue = date < today;
       
       return `
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">
-            <strong>${u.client.name}</strong><br>${u.client.phone || ''}
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 12px; vertical-align: top;">
+            <strong style="font-size: 15px;">${u.client.name}</strong><br>
+            <span style="font-size: 13px; color: #555;">
+              📍 ${u.client.address || 'Nincs cím'}<br>
+              📞 <a href="tel:${u.client.phone}">${u.client.phone || 'Nincs tel.'}</a><br>
+              ✉️ ${u.client.email || 'Nincs email'}
+            </span>
           </td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">
-            ${u.brand} ${u.model}
+          <td style="padding: 12px; vertical-align: top;">
+            <strong>${u.brand} ${u.model}</strong><br>
+            <small style="color: #777;">Hely: ${u.location || '-'}</small><br>
+            <small style="color: #777;">S/N: ${u.serialNumber || '-'}</small>
           </td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; color: ${isOverdue ? 'red' : 'green'};">
-            <strong>${dateStr}</strong>
+          <td style="padding: 12px; vertical-align: top; text-align: right; white-space: nowrap;">
+            <strong style="color: ${isOverdue ? '#e74c3c' : '#27ae60'}; font-size: 14px;">
+              ${dateStr}
+            </strong><br>
+            <span style="font-size: 11px; color: ${isOverdue ? '#e74c3c' : '#7f8c8d'};">
+              ${isOverdue ? '⚠️ LEJÁRT' : 'Esedékes'}
+            </span>
           </td>
         </tr>
       `;
@@ -79,25 +94,32 @@ export async function GET(req: Request) {
     await transporter.sendMail({
       from: '"NS-AIR Rendszer" <ajanlat@nsairklima.hu>',
       to: "nsair.klima@gmail.com",
-      subject: `⚠️ Karbantartási emlékeztető - ${dueSoon.length} db gép`,
+      subject: `🛠️ Karbantartási lista - ${dueSoon.length} telepített gép`,
       html: `
-        <div style="font-family: Arial; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-          <h2 style="color: #3498db;">Esedékes karbantartások</h2>
-          <table style="width: 100%; border-collapse: collapse;">
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: auto; color: #2c3e50;">
+          <h2 style="color: #2980b9; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Esedékes karbantartások összesítője</h2>
+          <p>Az alábbi <strong>telepített</strong> gépek karbantartása vált esedékessé:</p>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <thead>
-              <tr style="background: #f8f9fa;">
-                <th style="padding: 10px; text-align: left;">Ügyfél</th>
-                <th style="padding: 10px; text-align: left;">Gép</th>
-                <th style="padding: 10px; text-align: right;">Dátum</th>
+              <tr style="background: #f2f2f2; text-align: left;">
+                <th style="padding: 12px; border-bottom: 2px solid #3498db;">Ügyfél adatai</th>
+                <th style="padding: 12px; border-bottom: 2px solid #3498db;">Gép adatai</th>
+                <th style="padding: 12px; border-bottom: 2px solid #3498db; text-align: right;">Határidő</th>
               </tr>
             </thead>
             <tbody>
               ${tableRows}
             </tbody>
           </table>
-          <p style="margin-top: 20px; text-align: center;">
-            <a href="https://nsairklima.vercel.app/maintenance" style="background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Részletek megtekintése</a>
-          </p>
+          
+          <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px; text-align: center;">
+            <p style="margin-bottom: 15px; font-weight: bold;">Részletes kezelés az admin felületen:</p>
+            <a href="https://nsairklima.vercel.app/maintenance" 
+               style="background: #3498db; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+               ÜTEMTERV MEGNYITÁSA
+            </a>
+          </div>
         </div>
       `,
     });
