@@ -1,10 +1,10 @@
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// ÚJ GÉP LÉTREHOZÁSA
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } } // Az 'id' itt a clientId
+  { params }: { params: { id: string } } // Az 'id' a mappaszerkezeted alapján a clientId
 ) {
   try {
     const data = await req.json();
@@ -18,7 +18,7 @@ export async function POST(
         serialNumber: data.serialNumber,
         installation: data.installation ? new Date(data.installation) : null,
         periodMonths: Number(data.periodMonths) || 12,
-        // JAVÍTÁS: Itt mentjük el a státuszt (INSTALLED vagy SERVICE_ONLY)
+        // Mentjük a státuszt (INSTALLED vagy SERVICE_ONLY)
         status: data.status || "INSTALLED", 
         notes: data.notes
       },
@@ -31,17 +31,25 @@ export async function POST(
   }
 }
 
+// ÜGYFÉL GÉPEINEK LEKÉRÉSE
 export async function GET(
   req: Request,
-  { params }: { params: { clientId: string } }
+  { params }: { params: { id: string } } // Itt is 'id'-t használunk a mappa neve alapján
 ) {
   try {
     const units = await prisma.clientUnit.findMany({
-      where: { clientId: Number(params.clientId) },
+      where: { clientId: Number(params.id) },
       orderBy: { id: "desc" },
+      include: {
+        maintenance: {
+          orderBy: { performedDate: "desc" },
+          take: 1
+        }
+      }
     });
     return NextResponse.json(units);
   } catch (error) {
+    console.error("Lekérési hiba:", error);
     return NextResponse.json({ error: "Hiba a lekéréskor" }, { status: 500 });
   }
 }
