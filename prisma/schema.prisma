@@ -18,41 +18,41 @@ model User {
 }
 
 model Client {
-  id        Int      @id @default(autoincrement())
-  name      String
-  address   String?
-  phone     String?
-  email     String?
-  notes     String?
-  units     ClientUnit[]
-  quotes    Quote[]
-emailNotifications EmailNotifications[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 Int                  @id @default(autoincrement())
+  name               String
+  address            String?
+  phone              String?
+  email              String?
+  notes              String?
+  units              ClientUnit[]
+  quotes             Quote[]
+  emailNotifications EmailNotifications[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 }
 
 model ClientUnit {
-  id            Int               @id @default(autoincrement())
-  clientId      Int
-  brand         String
-  model         String
-  powerKw       Float?
-  serialNumber  String?
-  installation  DateTime?
-  periodMonths  Int               @default(12)
-  location      String?
-  notes         String?
+  id                 Int                  @id @default(autoincrement())
+  clientId           Int
+  brand              String
+  model              String
+  powerKw            Float?
+  serialNumber       String?
+  installation       DateTime?
+  periodMonths       Int                  @default(12)
+  location           String?
+  notes              String?
   
-  // EZ A SOR HIÁNYZIK:
-  status        String            @default("PENDING") 
+  // Állapot: PENDING (ajánlat), INSTALLED (saját telepítés), SERVICE_ONLY (csak karbantartás)
+  status             String               @default("PENDING") 
 
-  maintenance   MaintenanceLog[]
+  maintenance        MaintenanceLog[]
   emailNotifications EmailNotifications[]
-  client        Client @relation(fields: [clientId], references: [id])
+  client             Client               @relation(fields: [clientId], references: [id])
 }
 
 model MaintenanceLog {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   unitId        Int
   performedDate DateTime
   description   String?
@@ -65,21 +65,17 @@ model MaintenanceLog {
   unit ClientUnit @relation(fields: [unitId], references: [id])
 }
 
-
-
-
-
 model EmailNotifications {
-  id               Int         @id @default(autoincrement())
+  id               Int        @id @default(autoincrement())
   clientId         Int
   clientUnitId     Int
   notificationType String
   sentToEmail      String
-  sentAt           DateTime    @default(now())
+  sentAt           DateTime   @default(now())
   status           String
 
-  client           Client      @relation(fields: [clientId], references: [id])
-  unit             ClientUnit  @relation(fields: [clientUnitId], references: [id])
+  client Client     @relation(fields: [clientId], references: [id])
+  unit   ClientUnit @relation(fields: [clientUnitId], references: [id])
 }
 
 enum QuoteStatus {
@@ -90,47 +86,45 @@ enum QuoteStatus {
 }
 
 model Quote {
-  id         Int          @id @default(autoincrement())
+  id         Int         @id @default(autoincrement())
   clientId   Int
-  client     Client       @relation(fields: [clientId], references: [id])
+  client     Client      @relation(fields: [clientId], references: [id])
   title      String?
-  status     QuoteStatus  @default(draft)
+  status     QuoteStatus @default(draft)
   terms      String?
 
-  // Összegek (nettó/áfa/bruttó) – pénzügyi pontosság miatt Decimal
-  netTotal   Decimal      @default(0)
-  vatAmount  Decimal      @default(0)
-  grossTotal Decimal      @default(0)
+  netTotal   Decimal     @default(0)
+  vatAmount  Decimal     @default(0)
+  grossTotal Decimal     @default(0)
 
   items      QuoteItem[]
 
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 }
 
 model QuoteItem {
-  id            Int      @id @default(autoincrement())
-  quoteId       Int
-  quote         Quote    @relation(fields: [quoteId], references: [id])
+  id           Int      @id @default(autoincrement())
+  quoteId      Int
+  quote        Quote    @relation(fields: [quoteId], references: [id])
 
-  description   String
-  quantity      Decimal  @default(1)
-  unit          String?  
-  unitPriceNet  Decimal  @default(0) // Ez az eladási nettó
-  vatRate       Decimal  @default(27)
+  description  String
+  quantity     Decimal  @default(1)
+  unit         String?  
+  unitPriceNet Decimal  @default(0)
+  vatRate      Decimal  @default(27)
 
-  // Sorösszegek
-  lineNet       Decimal  @default(0)
-  lineVat       Decimal  @default(0)
-  lineGross     Decimal  @default(0)
+  lineNet      Decimal  @default(0)
+  lineVat      Decimal  @default(0)
+  lineGross    Decimal  @default(0)
 
-  // IDE ILLESZD BE / ELLENŐRIZD:
-  costNet       Decimal? @default(0) // <--- Ez lesz a "Beszerzési ár"
-  profitAbs     Decimal? @default(0) // <--- Ez a "Fix haszon"
-  profitPct     Decimal? @default(0) // <--- Ez a "%-os haszon"
+  costNet      Decimal? @default(0)
+  profitAbs    Decimal? @default(0)
+  profitPct    Decimal? @default(0)
 
-  createdAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
 }
+
 model Item {
   id           Int      @id @default(autoincrement())
   name         String
@@ -141,7 +135,6 @@ model Item {
   supplier     String?
   unit         String   @default("db")
   createdAt    DateTime @default(now())
-  // Itt a módosítás: kap egy alapértelmezett értéket
   updatedAt    DateTime @default(now()) @updatedAt 
 
   @@map("items")
