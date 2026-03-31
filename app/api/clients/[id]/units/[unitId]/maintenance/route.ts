@@ -5,15 +5,20 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request, { params }: { params: { unitId: string } }) {
   try {
     const data = await req.json();
+    
     const newLog = await prisma.maintenanceLog.create({
       data: {
         unitId: Number(params.unitId),
         description: data.description,
         performedDate: new Date(data.performedDate),
+        // JAVÍTÁS: Most már elmentjük a manuálisan beírt határidőt is!
+        nextDue: data.nextDue ? new Date(data.nextDue) : null,
       },
     });
+    
     return NextResponse.json(newLog);
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Karbantartás rögzítési hiba:", error);
     return NextResponse.json({ error: "Hiba a mentéskor" }, { status: 500 });
   }
 }
@@ -21,7 +26,7 @@ export async function POST(req: Request, { params }: { params: { unitId: string 
 // KARBANTARTÁS MÓDOSÍTÁSA (Szerkesztés)
 export async function PATCH(req: Request) {
   try {
-    const data = await req.json(); // Itt várjuk az id-t, description-t és dátumot
+    const data = await req.json();
     
     if (!data.id) {
       return NextResponse.json({ error: "Hiányzó azonosító" }, { status: 400 });
@@ -32,11 +37,13 @@ export async function PATCH(req: Request) {
       data: {
         description: data.description,
         performedDate: new Date(data.performedDate),
+        // JAVÍTÁS: Szerkesztésnél is frissítjük a határidőt
+        nextDue: data.nextDue ? new Date(data.nextDue) : null,
       },
     });
 
     return NextResponse.json(updatedLog);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Update hiba:", error);
     return NextResponse.json({ error: "Hiba a módosításkor" }, { status: 500 });
   }
@@ -45,7 +52,6 @@ export async function PATCH(req: Request) {
 // KARBANTARTÁS TÖRLÉSE
 export async function DELETE(req: Request) {
   try {
-    // Megpróbáljuk kiolvasni a JSON-t a kérés testéből
     const body = await req.json();
     const id = body.id;
 
