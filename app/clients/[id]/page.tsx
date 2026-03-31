@@ -11,11 +11,9 @@ export default function ClientDetailsPage() {
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // --- ÜGYFÉL SZERKESZTÉS ÁLLAPOT ---
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [editClientData, setEditClientData] = useState({ name: "", email: "", phone: "", address: "" });
 
-  // --- GÉP (UNIT) FORM ÁLLAPOTOK ---
   const [showUnitForm, setShowUnitForm] = useState(false);
   const [editingUnitId, setEditingUnitId] = useState<number | null>(null);
   const [brand, setBrand] = useState("");
@@ -25,7 +23,6 @@ export default function ClientDetailsPage() {
 
   const loadClientData = async () => {
     try {
-      // Hozzáadtam egy hibakezelést és ellenőrzést
       const res = await fetch(`/api/clients/${Id}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
@@ -46,7 +43,6 @@ export default function ClientDetailsPage() {
 
   useEffect(() => { if (Id) loadClientData(); }, [Id]);
 
-  // --- ÜGYFÉL MŰVELETEK ---
   const handleUpdateClient = async () => {
     const res = await fetch(`/api/clients/${Id}`, {
       method: "PATCH",
@@ -57,12 +53,11 @@ export default function ClientDetailsPage() {
   };
 
   const handleDeleteClient = async () => {
-    if (!confirm("⚠️ FIGYELEM! Biztosan törlöd az ügyfelet és minden adatát?")) return;
+    if (!confirm("⚠️ Biztosan törlöd az ügyfelet?")) return;
     const res = await fetch(`/api/clients/${Id}`, { method: "DELETE" });
     if (res.ok) router.push("/clients");
   };
 
-  // --- GÉP MŰVELETEK ---
   const handleSubmitUnit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = { brand, model, serialNumber: serial, location };
@@ -80,16 +75,15 @@ export default function ClientDetailsPage() {
     }
   };
 
-  // JAVÍTOTT: Most már bevárja a választ, és csak utána frissíti a felületet!
   const handleSetStatus = async (unitId: number, newStatus: string) => {
     const res = await fetch(`/api/clients/${Id}/units/${unitId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({ status: newStatus, installation: new Date() }), // Telepítés dátuma a mai nap lesz
     });
     
     if (res.ok) {
-      await loadClientData(); // Fontos: megvárjuk, amíg az új adat megérkezik
+      await loadClientData();
     } else {
       alert("Hiba történt a státusz frissítésekor.");
     }
@@ -116,40 +110,24 @@ export default function ClientDetailsPage() {
     if (res.ok) loadClientData();
   };
 
-  // --- ÁRAJÁNLAT TÖRLÉSE ---
   const handleDeleteQuote = async (quoteId: number) => {
     if (!confirm("Biztosan törlöd ezt az árajánlatot?")) return;
     const res = await fetch(`/api/quotes/${quoteId}`, { method: "DELETE" });
-
-    if (res.ok) {
-      loadClientData();
-    } else {
-      const errorData = await res.json();
-      alert("Hiba: " + (errorData.error || "Ismeretlen hiba történt"));
-    }
+    if (res.ok) loadClientData();
   };
 
   if (loading) return <div style={{padding: 20}}>Betöltés...</div>;
   if (!client) return <div style={{padding: 20}}>Ügyfél nem található.</div>;
 
   return (
-    <div style={{ padding: "24px", maxWidth: "1000px", margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ padding: "24px", maxWidth: "1000px", margin: "0 auto", fontFamily: "Segoe UI, sans-serif" }}>
       
-      {/* NAVIGÁCIÓ */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "25px" }}>
         <button onClick={() => router.push("/clients")} style={navBtn}>⬅️ Vissza</button>
         <button onClick={() => router.push("/")} style={{ ...navBtn, background: "#f8f9fa" }}>🏠 Főoldal</button>
       </div>
 
-      {/* ÜGYFÉL ADATOK FEJLÉC */}
-      <div style={{ 
-        padding: "20px 0", 
-        marginBottom: "30px", 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "flex-start",
-        borderBottom: "1px solid #eee" 
-      }}>
+      <div style={headerS}>
         <div style={{ flex: 1 }}>
           {!isEditingClient ? (
             <>
@@ -161,8 +139,8 @@ export default function ClientDetailsPage() {
               <p style={{ margin: "10px 0 0 0", color: "#888" }}>🏠 {client.address || "Nincs cím megadva"}</p>
             </>
           ) : (
-            <div style={{ display: "grid", gap: "10px", maxWidth: "450px", background: "#f8f9fa", padding: "20px", borderRadius: "15px" }}>
-              <h3 style={{marginTop: 0}}>Ügyfél adatainak módosítása</h3>
+            <div style={editBoxS}>
+              <h3 style={{marginTop: 0}}>Ügyfél módosítása</h3>
               <input style={inputS} value={editClientData.name} onChange={e => setEditClientData({...editClientData, name: e.target.value})} placeholder="Név" />
               <input style={inputS} value={editClientData.phone} onChange={e => setEditClientData({...editClientData, phone: e.target.value})} placeholder="Telefon" />
               <input style={inputS} value={editClientData.email} onChange={e => setEditClientData({...editClientData, email: e.target.value})} placeholder="Email" />
@@ -174,8 +152,8 @@ export default function ClientDetailsPage() {
         <div style={{ display: "flex", gap: "12px" }}>
           {!isEditingClient ? (
             <>
-              <button onClick={() => setIsEditingClient(true)} style={btnBlueHeader}>✏️ Adatok javítása</button>
-              <button onClick={handleDeleteClient} style={btnDelete} title="Ügyfél törlése">🗑️</button>
+              <button onClick={() => setIsEditingClient(true)} style={btnBlueHeader}>✏️ Szerkesztés</button>
+              <button onClick={handleDeleteClient} style={btnDelete}>🗑️</button>
             </>
           ) : (
             <>
@@ -186,7 +164,6 @@ export default function ClientDetailsPage() {
         </div>
       </div>
 
-      {/* GÉPEK SZEKCIÓ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h2 style={{ margin: 0 }}>🛠️ Gépek kezelése</h2>
         <button onClick={() => { if(showUnitForm) resetUnitForm(); else setShowUnitForm(true); }} style={btnGreen}>
@@ -194,9 +171,8 @@ export default function ClientDetailsPage() {
         </button>
       </div>
 
-      {/* ÚJ GÉP / SZERKESZTÉS FORM */}
       {showUnitForm && (
-        <div style={{ background: "#f0f7ff", padding: "20px", borderRadius: "12px", marginBottom: "30px", border: "1px solid #3498db" }}>
+        <div style={formBoxS}>
           <h3 style={{ marginTop: 0 }}>{editingUnitId ? "✏️ Gép módosítása" : "➕ Új gép rögzítése"}</h3>
           <form onSubmit={handleSubmitUnit} style={{ display: "grid", gap: "10px" }}>
             <div style={{display: "flex", gap: "10px"}}>
@@ -212,28 +188,37 @@ export default function ClientDetailsPage() {
         </div>
       )}
 
-      {/* GÉPEK LISTÁZÁSA */}
       <div style={{ display: "grid", gap: "12px", marginBottom: "50px" }}>
         {client.units?.length > 0 ? (
           client.units.map((unit: any) => (
             <div key={unit.id} style={unitCard}>
               <div style={{ flex: 1 }}>
-                <strong style={{ fontSize: "18px" }}>{unit.brand} {unit.model}</strong>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <strong style={{ fontSize: "18px" }}>{unit.brand} {unit.model}</strong>
+                  <span style={{
+                    fontSize: "12px", padding: "2px 8px", borderRadius: "10px", fontWeight: "bold",
+                    background: unit.status === "SERVICE_ONLY" ? "#e3f2fd" : (unit.installation ? "#e8f5e9" : "#fff3e0"),
+                    color: unit.status === "SERVICE_ONLY" ? "#1976d2" : (unit.installation ? "#2e7d32" : "#ef6c00"),
+                  }}>
+                    {unit.status === "SERVICE_ONLY" ? "🔵 Hozott gép" : (unit.installation ? "✅ Telepítve" : "⏳ Telepítésre vár")}
+                  </span>
+                </div>
                 <div style={{ fontSize: "14px", color: "#666", marginTop: "4px" }}>
-                  {unit.status === "SERVICE_ONLY" 
-  ? "Csak karbantartás" 
-  : (unit.installation ? "Telepítve" : "Telepítésre vár")
-} | SN: {unit.serialNumber || "---"}
+                  SN: {unit.serialNumber || "---"} | Hely: {unit.location || "Nincs megadva"}
                 </div>
               </div>
+
               <div style={{ display: "flex", gap: "8px" }}>
-                {/* JAVÍTOTT FELTÉTEL: Ha a státusz nem INSTALLED, akkor mutatjuk a gombot */}
-                {unit.status !== "INSTALLED" && (
+                {/* CSAK akkor mutatjuk, ha SAJÁT gép és még nincs telepítve */}
+                {unit.status === "INSTALLED" && !unit.installation && (
                   <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={btnGreenSmall}>✅ Telepítés kész</button>
                 )}
-                {unit.status === "INSTALLED" && (
+                
+                {/* Napló elérhető ha hozott gép VAGY már telepítve van */}
+                {(unit.status === "SERVICE_ONLY" || unit.installation) && (
                   <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={btnBlueSmall}>Napló →</button>
                 )}
+
                 <button onClick={() => startEditUnit(unit)} style={btnOrangeSmall}>✏️</button>
                 <button onClick={() => handleDeleteUnit(unit.id)} style={btnRedSmall}>🗑️</button>
               </div>
@@ -244,7 +229,6 @@ export default function ClientDetailsPage() {
         )}
       </div>
 
-      {/* ÁRAJÁNLATOK SZEKCIÓ */}
       <div>
         <h2 style={{ borderBottom: "2px solid #eee", paddingBottom: "10px", marginBottom: "20px" }}>📄 Árajánlatok</h2>
         <div style={{ display: "grid", gap: "10px" }}>
@@ -258,8 +242,8 @@ export default function ClientDetailsPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
                   <div style={{ fontWeight: "bold", fontSize: "16px" }}>{Number(quote.grossTotal).toLocaleString()} Ft</div>
                   <div style={{ display: "flex", gap: "8px" }}>
-                    <button onClick={() => router.push(`/quotes/${quote.id}`)} style={btnOrangeSmall} title="Szerkesztés">✏️</button>
-                    <button onClick={() => handleDeleteQuote(quote.id)} style={btnRedSmall} title="Törlés">🗑️</button>
+                    <button onClick={() => router.push(`/quotes/${quote.id}`)} style={btnOrangeSmall}>✏️</button>
+                    <button onClick={() => handleDeleteQuote(quote.id)} style={btnRedSmall}>🗑️</button>
                   </div>
                 </div>
               </div>
@@ -273,11 +257,14 @@ export default function ClientDetailsPage() {
   );
 }
 
-// Stílus konstansok változatlanul...
+// Stílusok
+const headerS = { padding: "20px 0", marginBottom: "30px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid #eee" };
+const editBoxS = { display: "grid", gap: "10px", maxWidth: "450px", background: "#f8f9fa", padding: "20px", borderRadius: "15px" };
+const formBoxS = { background: "#f0f7ff", padding: "20px", borderRadius: "12px", marginBottom: "30px", border: "1px solid #3498db" };
 const navBtn = { padding: "8px 15px", borderRadius: "8px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontWeight: "bold" as const };
-const inputS = { width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", outline: "none" };
+const inputS = { width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", outline: "none", boxSizing: "border-box" as const };
 const btnBlueHeader = { background: "#eef6fc", color: "#3498db", border: "1px solid #3498db", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
-const btnDelete = { background: "#fff1f0", color: "#e74c3c", border: "1px solid #ffa39e", padding: "10px 15px", borderRadius: "10px", cursor: "pointer", fontSize: "18px" };
+const btnDelete = { background: "#fff1f0", color: "#e74c3c", border: "1px solid #ffa39e", padding: "10px 15px", borderRadius: "10px", cursor: "pointer" };
 const btnCancel = { background: "#eee", color: "#666", border: "1px solid #ccc", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
 const btnGreen = { background: "#27ae60", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
 const unitCard = { padding: "16px", border: "1px solid #eee", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" };
