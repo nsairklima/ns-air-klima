@@ -15,7 +15,7 @@ export default function UnitDetailsPage() {
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [desc, setDesc] = useState("");
-  const [nextDate, setNextDate] = useState("");
+  const [nextDate, setNextDate] = useState(""); // Ez lesz a nextDue
 
   const loadData = async () => {
     const res = await fetch(`/api/clients/${clientId}/units/${unitId}`);
@@ -28,7 +28,6 @@ export default function UnitDetailsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Ha van editingLogId, akkor PATCH (módosítás), ha nincs, akkor POST (új)
     const method = editingLogId ? "PATCH" : "POST";
     const url = editingLogId 
       ? `/api/maintenance/${editingLogId}` 
@@ -40,7 +39,8 @@ export default function UnitDetailsPage() {
       body: JSON.stringify({
         performedDate: date,
         description: desc,
-        nextServiceDate: nextDate || null,
+        // JAVÍTÁS: nextServiceDate helyett nextDue-t kell küldeni!
+        nextDue: nextDate || null, 
       }),
     });
 
@@ -54,7 +54,8 @@ export default function UnitDetailsPage() {
     setEditingLogId(log.id);
     setDate(new Date(log.performedDate).toISOString().split("T")[0]);
     setDesc(log.description);
-    setNextDate(log.nextServiceDate ? new Date(log.nextServiceDate).toISOString().split("T")[0] : "");
+    // JAVÍTÁS: Itt is nextDue-t olvasunk ki
+    setNextDate(log.nextDue ? new Date(log.nextDue).toISOString().split("T")[0] : "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -90,7 +91,7 @@ export default function UnitDetailsPage() {
               <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputS} required />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labS}>Következő esedékesség</label>
+              <label style={labS}>Következő esedékesség (Manuális)</label>
               <input type="date" value={nextDate} onChange={e => setNextDate(e.target.value)} style={inputS} />
             </div>
           </div>
@@ -113,9 +114,10 @@ export default function UnitDetailsPage() {
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: "bold", fontSize: 16 }}>{new Date(log.performedDate).toLocaleDateString("hu-HU")}</div>
               <div style={{ margin: "5px 0", color: "#444" }}>{log.description}</div>
-              {log.nextServiceDate && (
+              {/* JAVÍTÁS: Itt is nextDue-t jelenítünk meg */}
+              {log.nextDue && (
                 <div style={{ fontSize: 13, color: "#e67e22", fontWeight: "bold" }}>
-                  📅 Következő: {new Date(log.nextServiceDate).toLocaleDateString("hu-HU")}
+                  📅 Következő: {new Date(log.nextDue).toLocaleDateString("hu-HU")}
                 </div>
               )}
             </div>
@@ -130,7 +132,6 @@ export default function UnitDetailsPage() {
   );
 }
 
-/* --- STÍLUSOK --- */
 const navBtn = { padding: "8px 15px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer" };
 const inputS = { width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #ccc", fontFamily: "inherit" };
 const labS = { fontSize: 12, fontWeight: "bold", color: "#666", marginBottom: 5, display: "block" };
