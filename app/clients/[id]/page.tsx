@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect,状态, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 export default function ClientDetailsPage() {
@@ -22,8 +22,8 @@ export default function ClientDetailsPage() {
   const [model, setModel] = useState("");
   const [serial, setSerial] = useState("");
   const [location, setLocation] = useState("");
-  const [status, setStatus] = useState("INSTALLED"); // Alapértelmezett: Telepítendő
-  const [installation, setInstallation] = useState(""); // ÚJ: Dátum állapot
+  const [status, setStatus] = useState("INSTALLED"); // INSTALLED vagy SERVICE_ONLY
+  const [installation, setInstallation] = useState("");
 
   const loadClientData = async () => {
     try {
@@ -64,21 +64,18 @@ export default function ClientDetailsPage() {
   };
 
   // --- GÉP MŰVELETEK ---
- const handleSubmitUnit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  // A státuszt is beleírjuk a küldendő adatokba
-  const payload = { 
-    brand, 
-    model, 
-    serialNumber: serial, 
-    location, 
-    status, // <--- EZT ADTUK HOZZÁ
-    installation: (status === "SERVICE_ONLY" && installation) ? new Date(installation).toISOString() : null 
-  };
-  
-  // ... a fetch kód marad ugyanaz ...
-};
+  const handleSubmitUnit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const payload = { 
+      brand, 
+      model, 
+      serialNumber: serial, 
+      location, 
+      status,
+      // Ha hozott gép, és van megadva dátum, azt küldjük, különben null
+      installation: installation ? new Date(installation).toISOString() : null 
+    };
 
     const url = editingUnitId ? `/api/clients/${Id}/units/${editingUnitId}` : `/api/clients/${Id}/units`;
     
@@ -117,7 +114,7 @@ export default function ClientDetailsPage() {
     setModel(unit.model);
     setSerial(unit.serialNumber || "");
     setLocation(unit.location || "");
-    // Dátum formázása az input mezőhöz (YYYY-MM-DD)
+    setStatus(unit.status || "INSTALLED");
     setInstallation(unit.installation ? new Date(unit.installation).toISOString().split('T')[0] : "");
     setShowUnitForm(true);
   };
@@ -125,6 +122,7 @@ export default function ClientDetailsPage() {
   const resetUnitForm = () => {
     setEditingUnitId(null);
     setBrand(""); setModel(""); setSerial(""); setLocation(""); setInstallation("");
+    setStatus("INSTALLED");
     setShowUnitForm(false);
   };
 
@@ -198,19 +196,47 @@ export default function ClientDetailsPage() {
       {showUnitForm && (
         <div style={formBoxS}>
           <h3 style={{ marginTop: 0 }}>{editingUnitId ? "✏️ Gép módosítása" : "➕ Új gép rögzítése"}</h3>
-          <form onSubmit={handleSubmitUnit} style={{ display: "grid", gap: "10px" }}>
-            <div style={{display: "flex", gap: "10px"}}>
-              <input placeholder="Gyártó" value={brand} onChange={e => setBrand(e.target.value)} style={inputS} required />
-              <input placeholder="Modell" value={model} onChange={e => setModel(e.target.value)} style={inputS} required />
+          <form onSubmit={handleSubmitUnit} style={{ display: "grid", gap: "12px" }}>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+              <label style={labS}>Gép típusa:</label>
+              <select 
+                value={status} 
+                onChange={(e) => setStatus(e.target.value)} 
+                style={{ ...inputS, background: status === "SERVICE_ONLY" ? "#e3f2fd" : "#fff" }}
+              >
+                <option value="INSTALLED">🆕 Telepítendő (Saját eladás)</option>
+                <option value="SERVICE_ONLY">🔵 Hozott gép (Csak javítás/napló)</option>
+              </select>
             </div>
+
             <div style={{display: "flex", gap: "10px"}}>
-              <input placeholder="Gyári szám" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
-              <input placeholder="Helyszín" value={location} onChange={e => setLocation(e.target.value)} style={inputS} />
+              <div style={{flex: 1}}>
+                <label style={labS}>Gyártó</label>
+                <input placeholder="pl. Daikin" value={brand} onChange={e => setBrand(e.target.value)} style={inputS} required />
+              </div>
+              <div style={{flex: 1}}>
+                <label style={labS}>Modell</label>
+                <input placeholder="pl. Sensira" value={model} onChange={e => setModel(e.target.value)} style={inputS} required />
+              </div>
             </div>
+            
+            <div style={{display: "flex", gap: "10px"}}>
+              <div style={{flex: 1}}>
+                <label style={labS}>Gyári szám</label>
+                <input placeholder="S/N kód" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
+              </div>
+              <div style={{flex: 1}}>
+                <label style={labS}>Helyszín (helyiség)</label>
+                <input placeholder="pl. Nappali" value={location} onChange={e => setLocation(e.target.value)} style={inputS} />
+              </div>
+            </div>
+
             <div>
-              <label style={{fontSize: "12px", color: "#3498db", fontWeight: "bold"}}>Telepítés / Karbantartás kezdő dátuma:</label>
+              <label style={labS}>{status === "SERVICE_ONLY" ? "Utolsó/Kezdő karbantartás:" : "Telepítés dátuma:"}</label>
               <input type="date" value={installation} onChange={e => setInstallation(e.target.value)} style={inputS} />
             </div>
+
             <button type="submit" style={btnGreen}>{editingUnitId ? "MÓDOSÍTÁS MENTÉSE" : "GÉP HOZZÁADÁSA"}</button>
           </form>
         </div>
@@ -284,7 +310,8 @@ export default function ClientDetailsPage() {
   );
 }
 
-// Stílusok változatlanul
+// Stílusok
+const labS = { fontSize: "12px", color: "#666", fontWeight: "bold" as const, marginBottom: "2px", display: "block" };
 const headerS = { padding: "20px 0", marginBottom: "30px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid #eee" };
 const editBoxS = { display: "grid", gap: "10px", maxWidth: "450px", background: "#f8f9fa", padding: "20px", borderRadius: "15px" };
 const formBoxS = { background: "#f0f7ff", padding: "20px", borderRadius: "12px", marginBottom: "30px", border: "1px solid #3498db" };
