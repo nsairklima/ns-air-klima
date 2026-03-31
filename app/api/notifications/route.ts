@@ -12,22 +12,20 @@ export async function GET() {
     sixtyDaysFromNow.setDate(today.getDate() + 60);
 
     // FIGYELEM: Itt a tábla nevét ellenőrizd! 
-    // Ha a sémádban "Unit" van, akkor prisma.unit-nak kell lennie.
-    // A hibaüzeneted alapján valószínűleg a prisma.unit a helyes.
-    const units = await prisma.unit.findMany({
-      where: {
-        status: {
-          in: ["INSTALLED", "SERVICE_ONLY"]
-        }
-      },
-      include: {
-        client: true,
-        maintenance: {
-          orderBy: { performedDate: "desc" },
-          take: 1
-        }
-      }
-    });
+   const units = await prisma.clientUnit.findMany({
+  where: {
+    status: {
+      in: ["INSTALLED", "SERVICE_ONLY"]
+    }
+  },
+  include: {
+    client: true,
+    maintenance: {
+      orderBy: { performedDate: "desc" },
+      take: 1
+    }
+  }
+});
 
     // 1. Dátum számítás és szűrés
     const dueSoon = units.map(unit => {
