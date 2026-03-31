@@ -11,15 +11,18 @@ export default function ClientDetailsPage() {
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // --- ÜGYFÉL SZERKESZTÉS ÁLLAPOT ---
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [editClientData, setEditClientData] = useState({ name: "", email: "", phone: "", address: "" });
 
+  // --- GÉP (UNIT) FORM ÁLLAPOTOK ---
   const [showUnitForm, setShowUnitForm] = useState(false);
   const [editingUnitId, setEditingUnitId] = useState<number | null>(null);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [serial, setSerial] = useState("");
   const [location, setLocation] = useState("");
+  const [installation, setInstallation] = useState(""); // ÚJ: Dátum állapot
 
   const loadClientData = async () => {
     try {
@@ -43,6 +46,7 @@ export default function ClientDetailsPage() {
 
   useEffect(() => { if (Id) loadClientData(); }, [Id]);
 
+  // --- ÜGYFÉL MŰVELETEK ---
   const handleUpdateClient = async () => {
     const res = await fetch(`/api/clients/${Id}`, {
       method: "PATCH",
@@ -58,9 +62,19 @@ export default function ClientDetailsPage() {
     if (res.ok) router.push("/clients");
   };
 
+  // --- GÉP MŰVELETEK ---
   const handleSubmitUnit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { brand, model, serialNumber: serial, location };
+    
+    // JAVÍTOTT PAYLOAD: Dátum ISO formátumra alakítása
+    const payload = { 
+      brand, 
+      model, 
+      serialNumber: serial, 
+      location,
+      installation: installation ? new Date(installation).toISOString() : null 
+    };
+
     const url = editingUnitId ? `/api/clients/${Id}/units/${editingUnitId}` : `/api/clients/${Id}/units`;
     
     const res = await fetch(url, {
@@ -72,6 +86,9 @@ export default function ClientDetailsPage() {
     if (res.ok) {
       resetUnitForm();
       loadClientData();
+    } else {
+      const errorData = await res.json();
+      alert("Hiba: " + (errorData.error || "Ismeretlen hiba"));
     }
   };
 
@@ -79,7 +96,7 @@ export default function ClientDetailsPage() {
     const res = await fetch(`/api/clients/${Id}/units/${unitId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus, installation: new Date() }), // Telepítés dátuma a mai nap lesz
+      body: JSON.stringify({ status: newStatus, installation: new Date().toISOString() }),
     });
     
     if (res.ok) {
@@ -95,12 +112,14 @@ export default function ClientDetailsPage() {
     setModel(unit.model);
     setSerial(unit.serialNumber || "");
     setLocation(unit.location || "");
+    // Dátum formázása az input mezőhöz (YYYY-MM-DD)
+    setInstallation(unit.installation ? new Date(unit.installation).toISOString().split('T')[0] : "");
     setShowUnitForm(true);
   };
 
   const resetUnitForm = () => {
     setEditingUnitId(null);
-    setBrand(""); setModel(""); setSerial(""); setLocation("");
+    setBrand(""); setModel(""); setSerial(""); setLocation(""); setInstallation("");
     setShowUnitForm(false);
   };
 
@@ -183,6 +202,10 @@ export default function ClientDetailsPage() {
               <input placeholder="Gyári szám" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
               <input placeholder="Helyszín" value={location} onChange={e => setLocation(e.target.value)} style={inputS} />
             </div>
+            <div>
+              <label style={{fontSize: "12px", color: "#3498db", fontWeight: "bold"}}>Telepítés / Karbantartás kezdő dátuma:</label>
+              <input type="date" value={installation} onChange={e => setInstallation(e.target.value)} style={inputS} />
+            </div>
             <button type="submit" style={btnGreen}>{editingUnitId ? "MÓDOSÍTÁS MENTÉSE" : "GÉP HOZZÁADÁSA"}</button>
           </form>
         </div>
@@ -205,16 +228,15 @@ export default function ClientDetailsPage() {
                 </div>
                 <div style={{ fontSize: "14px", color: "#666", marginTop: "4px" }}>
                   SN: {unit.serialNumber || "---"} | Hely: {unit.location || "Nincs megadva"}
+                  {unit.installation && <span> | 📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
                 </div>
               </div>
 
               <div style={{ display: "flex", gap: "8px" }}>
-                {/* CSAK akkor mutatjuk, ha SAJÁT gép és még nincs telepítve */}
                 {unit.status === "INSTALLED" && !unit.installation && (
                   <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={btnGreenSmall}>✅ Telepítés kész</button>
                 )}
                 
-                {/* Napló elérhető ha hozott gép VAGY már telepítve van */}
                 {(unit.status === "SERVICE_ONLY" || unit.installation) && (
                   <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={btnBlueSmall}>Napló →</button>
                 )}
@@ -257,7 +279,7 @@ export default function ClientDetailsPage() {
   );
 }
 
-// Stílusok
+// Stílusok változatlanul
 const headerS = { padding: "20px 0", marginBottom: "30px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid #eee" };
 const editBoxS = { display: "grid", gap: "10px", maxWidth: "450px", background: "#f8f9fa", padding: "20px", borderRadius: "15px" };
 const formBoxS = { background: "#f0f7ff", padding: "20px", borderRadius: "12px", marginBottom: "30px", border: "1px solid #3498db" };
