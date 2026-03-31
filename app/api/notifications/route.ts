@@ -21,16 +21,28 @@ export async function GET(req: Request) {
     });
 
     // 3. Szűrés az esedékesekre
-    const dueSoon = units.filter(unit => {
-      const lastLog = unit.maintenance && unit.maintenance[0];
-      if (!lastLog || !lastLog.nextDue) return false;
-      const dueDate = new Date(lastLog.nextDue);
-      return dueDate <= sixtyDaysFromNow;
-    });
+   
+const dueSoon = units.filter(unit => {
+  const lastLog = unit.maintenance && unit.maintenance[0];
+  let dueDate: Date;
 
-    if (dueSoon.length === 0) {
-      return NextResponse.json({ message: "Nincs esedékes karbantartás." });
-    }
+  if (lastLog?.nextDue) {
+    dueDate = new Date(lastLog.nextDue);
+  } else if (lastLog?.performedDate) {
+    dueDate = new Date(lastLog.performedDate);
+    dueDate.setMonth(dueDate.getMonth() + (unit.periodMonths || 12));
+  } else if (unit.installation) {
+    dueDate = new Date(unit.installation);
+    dueDate.setMonth(dueDate.getMonth() + (unit.periodMonths || 12));
+  } else {
+    return false;
+  }
+
+  const sixtyDaysFromNow = new Date();
+  sixtyDaysFromNow.setDate(new Date().getDate() + 60);
+
+  return dueDate <= sixtyDaysFromNow;
+});
 
     // 4. Transporter beállítása az ÚJ címmel
     const transporter = nodemailer.createTransport({
