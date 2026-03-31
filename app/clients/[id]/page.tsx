@@ -22,6 +22,7 @@ export default function ClientDetailsPage() {
   const [model, setModel] = useState("");
   const [serial, setSerial] = useState("");
   const [location, setLocation] = useState("");
+  const [status, setStatus] = useState("INSTALLED"); // Alapértelmezett: Telepítendő
   const [installation, setInstallation] = useState(""); // ÚJ: Dátum állapot
 
   const loadClientData = async () => {
@@ -63,17 +64,21 @@ export default function ClientDetailsPage() {
   };
 
   // --- GÉP MŰVELETEK ---
-  const handleSubmitUnit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // JAVÍTOTT PAYLOAD: Dátum ISO formátumra alakítása
-    const payload = { 
-      brand, 
-      model, 
-      serialNumber: serial, 
-      location,
-      installation: installation ? new Date(installation).toISOString() : null 
-    };
+ const handleSubmitUnit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  // A státuszt is beleírjuk a küldendő adatokba
+  const payload = { 
+    brand, 
+    model, 
+    serialNumber: serial, 
+    location, 
+    status, // <--- EZT ADTUK HOZZÁ
+    installation: (status === "SERVICE_ONLY" && installation) ? new Date(installation).toISOString() : null 
+  };
+  
+  // ... a fetch kód marad ugyanaz ...
+};
 
     const url = editingUnitId ? `/api/clients/${Id}/units/${editingUnitId}` : `/api/clients/${Id}/units`;
     
