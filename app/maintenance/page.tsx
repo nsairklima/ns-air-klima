@@ -34,14 +34,36 @@ export default function GlobalMaintenancePage() {
   if (loading) return <div style={{padding: 20}}>Betöltés...</div>;
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial" }}>
-      <h1>🗓️ Karbantartási Ütemterv</h1>
-      <p style={{color: "#666"}}>A rendszer 12 havonta javasolja a tisztítást.</p>
+    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
+      
+      {/* --- ÚJ VISSZA GOMB --- */}
+      <div style={{ marginBottom: "20px" }}>
+        <button 
+          onClick={() => router.push("/")} 
+          style={{
+            padding: "10px 18px",
+            borderRadius: "10px",
+            border: "1px solid #ddd",
+            background: "#fff",
+            cursor: "pointer",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+          }}
+        >
+          🏠 Főoldal
+        </button>
+      </div>
 
-      <div style={{ marginTop: 20, display: "grid", gap: 15 }}>
+      <h1 style={{ marginBottom: "10px" }}>🗓️ Karbantartási Ütemterv</h1>
+      <p style={{color: "#666", marginBottom: "30px"}}>A rendszer 12 havonta javasolja a tisztítást.</p>
+
+      <div style={{ display: "grid", gap: 15 }}>
         {units.length === 0 && <p>Nincs rögzített gép a rendszerben.</p>}
         {units.map((unit: any) => {
-          const lastDate = unit.maintenance[0]?.performedDate;
+          const lastDate = unit.maintenance?.[0]?.performedDate;
           const status = getStatus(lastDate);
 
           return (
@@ -53,7 +75,7 @@ export default function GlobalMaintenancePage() {
               justifyContent: "space-between", 
               alignItems: "center", 
               background: status.bg,
-              transition: "transform 0.2s"
+              boxShadow: "0 2px 5px rgba(0,0,0,0.05)"
             }}>
               <div>
                 <span style={{ 
@@ -63,7 +85,8 @@ export default function GlobalMaintenancePage() {
                   color: "#fff", 
                   padding: "3px 8px", 
                   borderRadius: 4,
-                  verticalAlign: "middle"
+                  verticalAlign: "middle",
+                  textTransform: "uppercase"
                 }}>
                   {status.label}
                 </span>
@@ -88,8 +111,11 @@ export default function GlobalMaintenancePage() {
                     padding: "12px 20px", 
                     borderRadius: 8, 
                     cursor: "pointer",
-                    fontWeight: "bold"
+                    fontWeight: "bold",
+                    transition: "opacity 0.2s"
                   }}
+                  onMouseOver={(e) => e.currentTarget.style.opacity = "0.8"}
+                  onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
                 >
                   Napló / Mentés →
                 </button>
