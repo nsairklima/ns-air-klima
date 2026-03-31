@@ -56,32 +56,23 @@ const dueSoon = units.filter(unit => {
     });
 
     // 5. Táblázat összeállítása
-    const tableRows = dueSoon.map(u => {
-      const dueDate = new Date(u.maintenance[0].nextDue!);
-      const dateStr = dueDate.toLocaleDateString('hu-HU');
-      const isOverdue = dueDate < today;
-      
-      return `
-        <tr>
-          <td style="padding: 12px; border-bottom: 1px solid #eee;">
-            <strong style="color: #2c3e50;">${u.client.name}</strong><br>
-            <span style="font-size: 12px; color: #7f8c8d;">${u.client.phone || ''}</span>
-          </td>
-          <td style="padding: 12px; border-bottom: 1px solid #eee; color: #2c3e50;">
-            ${u.brand} ${u.model}<br>
-            <span style="font-size: 12px; color: #7f8c8d;">S/N: ${u.serialNumber || '-'}</span>
-          </td>
-          <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">
-            <span style="color: ${isOverdue ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
-              ${dateStr}
-            </span><br>
-            <span style="font-size: 11px; color: ${isOverdue ? '#e74c3c' : '#7f8c8d'};">
-              ${isOverdue ? 'LEJÁRT!' : 'Esedékes'}
-            </span>
-          </td>
-        </tr>
-      `;
-    }).join('');
+const tableRows = dueSoon.map(u => {
+  const date = u.calculatedDueDate;
+  // Csak akkor formázzuk, ha érvényes dátum és nem 1970
+  const dateStr = (date && date.getFullYear() > 1970) 
+    ? date.toLocaleDateString('hu-HU') 
+    : "Nincs megadva";
+    
+  const isOverdue = date && date < new Date();
+  
+  return `
+    <tr>
+      <td>${u.client.name}</td>
+      <td>${u.brand} ${u.model}</td>
+      <td style="color: ${isOverdue ? 'red' : 'black'}">${dateStr}</td>
+    </tr>
+  `;
+}).join('');
 
     // 6. Küldés (Feladó módosítva az új címre)
     await transporter.sendMail({
