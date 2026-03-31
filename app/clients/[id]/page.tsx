@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect,状态, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 export default function ClientDetailsPage() {
