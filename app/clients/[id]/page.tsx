@@ -220,7 +220,10 @@ export default function ClientDetailsPage() {
               <div style={{ flex: 1 }}>
                 <strong style={{ fontSize: "18px" }}>{unit.brand} {unit.model}</strong>
                 <div style={{ fontSize: "14px", color: "#666", marginTop: "4px" }}>
-                   {unit.status === "INSTALLED" ? "✅ Telepítve" : "⏳ Telepítésre vár"} | SN: {unit.serialNumber || "---"}
+                  {unit.status === "SERVICE_ONLY" 
+  ? "Csak karbantartás" 
+  : (unit.installation ? "Telepítve" : "Telepítésre vár")
+} | SN: {unit.serialNumber || "---"}
                 </div>
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
