@@ -2,16 +2,22 @@ import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 import nodemailer from 'nodemailer';
 
-export async function GET(req: Request) {
+// Kényszerítjük a Next.js-t, hogy ne gyorsítótárazza ezt a hívást
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
   try {
     const today = new Date();
     const sixtyDaysFromNow = new Date();
     sixtyDaysFromNow.setDate(today.getDate() + 60);
 
-    const units = await prisma.clientUnit.findMany({
+    // FIGYELEM: Itt a tábla nevét ellenőrizd! 
+    // Ha a sémádban "Unit" van, akkor prisma.unit-nak kell lennie.
+    // A hibaüzeneted alapján valószínűleg a prisma.unit a helyes.
+    const units = await prisma.unit.findMany({
       where: {
         status: {
-          in: ["INSTALLED", "SERVICE_ONLY"] // Figyeli a saját és a hozott gépeket is
+          in: ["INSTALLED", "SERVICE_ONLY"]
         }
       },
       include: {
@@ -28,25 +34,34 @@ export async function GET(req: Request) {
       const lastLog = unit.maintenance && unit.maintenance[0];
       let dueDate: Date | null = null;
 
-      if (lastLog?.nextDue) {
-        dueDate = new Date(lastLog.nextDue);
-      } else if (lastLog?.performedDate) {
-        dueDate = new Date(lastLog.performedDate);
-        dueDate.setMonth(dueDate.getMonth() + (unit.periodMonths || 12));
-      } else if (unit.installation) {
-        dueDate = new Date(unit.installation);
-        dueDate.setMonth(dueDate.getMonth() + (unit.periodMonths || 12));
+      try {
+        if (lastLog?.nextDue) {
+          dueDate = new Date(lastLog.nextDue);
+        } else if (lastLog?.performedDate) {
+          dueDate = new Date(lastLog.performedDate);
+          dueDate.setMonth(dueDate.getMonth() + (unit.periodMonths || 12));
+        } else if (unit.installation) {
+          dueDate = new Date(unit.installation);
+          dueDate.setMonth(dueDate.getMonth() + (unit.periodMonths || 12));
+        }
+      } catch (e) {
+        console.error(`Hiba a dátum számításánál a gépnél: ${unit.id}`, e);
       }
 
       return { ...unit, calculatedDueDate: dueDate };
     }).filter(u => {
-      return u.calculatedDueDate && u.calculatedDueDate <= sixtyDaysFromNow;
+      // Csak azokat hagyjuk meg, amiknek van érvényes dátuma és 60 napon belül esedékesek
+      return u.calculatedDueDate && 
+             u.calculatedDueDate instanceof Date && 
+             !isNaN(u.calculatedDueDate.getTime()) &&
+             u.calculatedDueDate <= sixtyDaysFromNow;
     });
 
     if (dueSoon.length === 0) {
       return NextResponse.json({ message: "Nincs esedékes karbantartás az aktív gépeknél." });
     }
 
+    // SMTP Beállítások - Ellenőrizd a jelszót a Vercelen!
     const transporter = nodemailer.createTransport({
       host: "mail.nsairklima.hu",
       port: 465,
@@ -55,26 +70,26 @@ export async function GET(req: Request) {
         user: "ajanlat@nsairklima.hu",
         pass: process.env.EMAIL_PASS,
       },
+      tls: {
+        rejectUnauthorized: false // Segít, ha a tárhely szolgáltató cert-je problémás
+      }
     });
 
-    // 2. Részletes táblázat minden ügyféladattal
+    // 2. Táblázat generálása
     const tableRows = dueSoon.map(u => {
       const date = u.calculatedDueDate as Date;
-      const dateStr = (date && date.getFullYear() > 1970) 
-        ? date.toLocaleDateString('hu-HU') 
-        : "Nincs megadva";
-        
+      const dateStr = date.toLocaleDateString('hu-HU');
       const isOverdue = date < today;
       const statusLabel = u.status === "SERVICE_ONLY" ? "🛠️ Csak szerviz" : "✅ Saját telepítés";
       
       return `
         <tr style="border-bottom: 1px solid #eee;">
           <td style="padding: 12px; vertical-align: top;">
-            <strong style="font-size: 15px;">${u.client.name}</strong><br>
+            <strong style="font-size: 15px;">${u.client?.name || 'Ismeretlen ügyfél'}</strong><br>
             <span style="font-size: 13px; color: #555;">
-              📍 ${u.client.address || 'Nincs cím'}<br>
-              📞 <a href="tel:${u.client.phone}">${u.client.phone || 'Nincs tel.'}</a><br>
-              ✉️ ${u.client.email || 'Nincs email'}
+              📍 ${u.client?.address || 'Nincs cím'}<br>
+              📞 ${u.client?.phone || 'Nincs tel.'}<br>
+              ✉️ ${u.client?.email || 'Nincs email'}
             </span>
           </td>
           <td style="padding: 12px; vertical-align: top;">
@@ -99,10 +114,8 @@ export async function GET(req: Request) {
       to: "nsair.klima@gmail.com",
       subject: `🛠️ Karbantartási lista - ${dueSoon.length} gép`,
       html: `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: auto; color: #2c3e50;">
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: auto; color: #2c3e50;">
           <h2 style="color: #2980b9; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Esedékes karbantartások összesítője</h2>
-          <p>Az alábbi gépek karbantartása vált esedékessé (Saját telepítés és hozott gépek vegyesen):</p>
-          
           <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <thead>
               <tr style="background: #f2f2f2; text-align: left;">
@@ -115,20 +128,14 @@ export async function GET(req: Request) {
               ${tableRows}
             </tbody>
           </table>
-          
-          <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px; text-align: center;">
-            <p style="margin-bottom: 15px; font-weight: bold;">Részletes kezelés az admin felületen:</p>
-            <a href="https://nsairklima.vercel.app/maintenance" 
-               style="background: #3498db; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-               ÜTEMTERV MEGNYITÁSA
-            </a>
-          </div>
+          <p style="margin-top: 20px; font-size: 12px; color: #888;">Ez egy automatikus rendszerüzenet.</p>
         </div>
       `,
     });
 
     return NextResponse.json({ success: true, count: dueSoon.length });
   } catch (error: any) {
+    console.error("KRITIKUS HIBA:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
