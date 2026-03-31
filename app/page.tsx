@@ -7,42 +7,49 @@ export default function Dashboard() {
   const [upcoming, setUpcoming] = useState<any[]>([]);
 
   useEffect(() => {
-    // 1. Raktárkészlet
+    // 1. Raktárkészlet lekérése
     fetch("/api/items").then(res => res.json()).then(data => {
       if (Array.isArray(data)) setStats(s => ({ ...s, items: data.length }));
     });
 
-    // 2. Ügyfelek
+    // 2. Ügyfelek lekérése
     fetch("/api/clients").then(res => res.json()).then(data => {
       if (Array.isArray(data)) setStats(s => ({ ...s, clients: data.length }));
     });
 
-    // 3. Karbantartások lekérése és szűrése
+    // 3. Karbantartások lekérése és okos szűrése
     fetch("/api/maintenance").then(res => res.json()).then(data => {
       if (Array.isArray(data)) {
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Ma éjfél
+        const sixtyDaysFromNow = new Date();
+        sixtyDaysFromNow.setDate(today.getDate() + 60);
 
-        const dueSoon = data.filter(unit => {
-          // Megnézzük a legfrissebb karbantartási bejegyzést
+        const dueSoon = data.map(unit => {
           const lastLog = unit.maintenance && unit.maintenance[0];
-          
-          if (!lastLog || !lastLog.nextDue) return false;
+          let calculatedDueDate: Date | null = null;
 
-          const dueDate = new Date(lastLog.nextDue);
-          
-          // Debug: Ha nem jelez, a konzolban látni fogod miért
-          console.log(`Ellenőrzés: ${unit.client?.name} - Határidő: ${dueDate.toLocaleDateString()}`);
+          // Dátum meghatározása prioritás szerint:
+          if (lastLog?.nextDue) {
+            // 1. Kézzel megadott következő időpont
+            calculatedDueDate = new Date(lastLog.nextDue);
+          } else if (lastLog?.performedDate) {
+            // 2. Utolsó karbantartás + periódus hónapok
+            calculatedDueDate = new Date(lastLog.performedDate);
+            calculatedDueDate.setMonth(calculatedDueDate.getMonth() + (unit.periodMonths || 12));
+          } else if (unit.installation) {
+            // 3. Telepítés dátuma + periódus hónapok
+            calculatedDueDate = new Date(unit.installation);
+            calculatedDueDate.setMonth(calculatedDueDate.getMonth() + (unit.periodMonths || 12));
+          }
 
-          // Akkor szóljon, ha a határidő MÁR ELMÚLT, vagy a következő 60 NAPBAN van
-          const diffTime = dueDate.getTime() - today.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-          return diffDays <= 60; // 60 napra emeltem a biztonság kedvéért
+          return { ...unit, calculatedDueDate };
+        }).filter(unit => {
+          // Csak azokat hagyjuk meg, amik 60 napon belül esedékesek vagy már lejártak
+          return unit.calculatedDueDate && unit.calculatedDueDate <= sixtyDaysFromNow;
         });
 
-        // Rendezzük dátum szerint (legközelebbi előre)
-        dueSoon.sort((a, b) => new Date(a.maintenance[0].nextDue).getTime() - new Date(b.maintenance[0].nextDue).getTime());
+        // Rendezés: a legrégebbi (legsürgősebb) legyen elöl
+        dueSoon.sort((a, b) => a.calculatedDueDate!.getTime() - b.calculatedDueDate!.getTime());
 
         setStats(s => ({ ...s, maintenanceCount: dueSoon.length }));
         setUpcoming(dueSoon);
@@ -69,7 +76,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* RAKKTÁR KÁRTYA */}
+      {/* RAKTÁR KÁRTYA */}
       <div style={{ ...cardS, marginBottom: "20px", borderLeft: "5px solid #ecc94b", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
            <div style={labelS}>Raktárkészlet</div>
@@ -83,7 +90,7 @@ export default function Dashboard() {
         <div style={{ background: "white", padding: "15px", borderRadius: "12px", marginBottom: "20px", border: "1px solid #e53e3e", boxShadow: "0 4px 6px rgba(229, 62, 62, 0.1)" }}>
           <h3 style={{ margin: "0 0 12px 0", fontSize: "15px", color: "#e53e3e", fontWeight: "bold" }}>⚠️ SÜRGŐS / ESEDÉKES:</h3>
           {upcoming.map((u, i) => {
-            const date = new Date(u.maintenance[0].nextDue);
+            const date = u.calculatedDueDate;
             const isOverdue = date < new Date();
             return (
               <div key={i} style={{ padding: "10px 0", borderBottom: i === upcoming.length - 1 ? "none" : "1px solid #edf2f7", display: "flex", justifyContent: "space-between" }}>
