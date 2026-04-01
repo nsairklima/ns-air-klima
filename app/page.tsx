@@ -59,31 +59,46 @@ export default function Dashboard() {
   return (
     <div style={{ padding: "15px", maxWidth: "900px", margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
       
-      {/* --- CÍM ÉS MENTÉS GOMB EGY SORBAN --- */}
+      {/* --- CÍM ÉS A FELTŰNŐ MENTÉS GOMB --- */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h1 style={{ fontSize: "22px", margin: 0, fontWeight: "800", color: "#1a202c" }}>📊 NS-AIR Vezérlő</h1>
         
-        {/* Kisebb, visszafogottabb gomb */}
-        <button 
-          onClick={handleBackup} 
-          title="Teljes adatbázis mentése (.json)"
-          style={{ 
-            background: "white", 
-            color: "#2c3e50", 
-            border: "1px solid #ddd", 
-            padding: "8px 12px", 
-            borderRadius: "8px", 
-            fontWeight: "bold", 
-            cursor: "pointer",
-            fontSize: "12px",
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-          }}
-        >
-          🛡️ Biztonsági mentés
-        </button>
+        {/* --- FELTŰNŐ, PULZÁLÓ GOMB --- */}
+        <>
+          <style>
+            {`
+              @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7); }
+                70% { box-shadow: 0 0 0 10px rgba(39, 174, 96, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
+              }
+            `}
+          </style>
+          <button 
+            onClick={handleBackup} 
+            title="Teljes adatbázis mentése (.json) - KATTINTS IDE NAPI EGYSZER!"
+            style={{ 
+              background: "#27ae60", // Erőteljes zöld szín
+              color: "white", 
+              border: "none", 
+              padding: "10px 18px", 
+              borderRadius: "10px", 
+              fontWeight: "bold", 
+              cursor: "pointer",
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              animation: "pulse 2s infinite", // Pulzáló animáció hozzáadása
+              transition: "transform 0.2s"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+            onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
+          >
+            🛡️ BIZT. MENTÉS
+          </button>
+        </>
       </div>
 
       {/* STATISZTIKA */}
