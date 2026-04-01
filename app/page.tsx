@@ -59,40 +59,30 @@ export default function Dashboard() {
   return (
     <div style={{ padding: "15px", maxWidth: "900px", margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
       
+      {/* --- CÍM ÉS MENTÉS GOMB EGY SORBAN --- */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h1 style={{ fontSize: "22px", margin: 0, fontWeight: "800", color: "#1a202c" }}>📊 NS-AIR Vezérlő</h1>
-      </div>
-
-      {/* --- ÚJ BIZTONSÁGI MENTÉS SZEKCIÓ --- */}
-      <div style={{ 
-        background: "#ebf8ff", 
-        padding: "15px", 
-        borderRadius: "12px", 
-        marginBottom: "20px", 
-        border: "1px solid #90cdf4",
-        display: "flex",
-        flexDirection: "column",
-        gap: "10px"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "20px" }}>🛡️</span>
-          <span style={{ fontWeight: "bold", color: "#2c5282", fontSize: "14px" }}>Adatbázis biztonság</span>
-        </div>
+        
+        {/* Kisebb, visszafogottabb gomb */}
         <button 
           onClick={handleBackup} 
+          title="Teljes adatbázis mentése (.json)"
           style={{ 
-            background: "#3182ce", 
-            color: "white", 
-            border: "none", 
-            padding: "12px", 
+            background: "white", 
+            color: "#2c3e50", 
+            border: "1px solid #ddd", 
+            padding: "8px 12px", 
             borderRadius: "8px", 
             fontWeight: "bold", 
             cursor: "pointer",
-            fontSize: "14px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+            fontSize: "12px",
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
           }}
         >
-          📥 Teljes mentés letöltése (.json)
+          🛡️ Mentés
         </button>
       </div>
 
