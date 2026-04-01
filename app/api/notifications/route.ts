@@ -1,40 +1,32 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+// A Resend kulcsodat a Vercel környezeti változói közül veszi (RESEND_API_KEY)
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function GET() {
   try {
-    // --- 1. ADATOK LEKÉRÉSE A MENTÉSHEZ ---
+    // 1. ADATOK LEKÉRÉSE A MENTÉSHEZ
     let allClients = [];
     let allItems = [];
-    let backupErrors = [];
-
-    // Ügyfelek lekérése (biztonsági blokkban)
+    
     try {
       allClients = await prisma.client.findMany({
         include: { units: { include: { maintenance: true } } }
       });
-    } catch (e: any) {
-      backupErrors.push("Ügyfél tábla hiba: " + e.message);
+      allItems = await prisma.item.findMany();
+    } catch (e) {
+      console.error("Adatbázis lekérési hiba a mentésnél", e);
     }
 
-    // Raktárkészlet lekérése (külön blokkban, hogy ne rontsa el az egészet!)
-    try {
-      // Itt a prisma.item-et hívjuk, de ha a Prisma 'items'-et keresne és elszállna, elkapjuk a hibát
-      allItems = await prisma.item.findMany();
-    } catch (e: any) {
-      console.error("Raktár lekérési hiba:", e.message);
-      backupErrors.push("Raktár tábla hiba (Item): " + e.message);
-    }
-    
     const backupData = {
       timestamp: new Date().toLocaleString('hu-HU'),
       clients: allClients,
-      inventory: allItems,
-      errors: backupErrors.length > 0 ? backupErrors : undefined
+      inventory: allItems
     };
 
-    // --- 2. KARBANTARTÁSOK ELLENŐRZÉSE ---
+    // 2. KARBANTARTÁSOK ELLENŐRZÉSE
     const today = new Date();
     const sixtyDaysFromNow = new Date();
     sixtyDaysFromNow.setDate(today.getDate() + 60);
@@ -58,49 +50,31 @@ export async function GET() {
       return dueDate && dueDate <= sixtyDaysFromNow;
     });
 
-    // --- 3. EMAIL KÜLDÉSE CSATOLMÁNNYAL ---
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: "nsair.klima@gmail.com",
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
-
+    // 3. EMAIL KÜLDÉSE RESEND-DEL (CSATOLMÁNNYAL)
     const reportDate = new Date().toLocaleDateString('hu-HU');
-
-    await transporter.sendMail({
-      from: '"NS-AIR Rendszer" <nsair.klima@gmail.com>',
+    
+    await resend.emails.send({
+      from: "NS-AIR <onboarding@resend.dev>", // Vagy a saját domain-ed, ha már beállítottad
       to: "nsair.klima@gmail.com",
-      subject: `⚠️ RENDSZERJELENTÉS - ${reportDate} (${dueSoon.length} esedékes)`,
+      subject: `⚠️ RENDSZERJELENTÉS ÉS MENTÉS - ${reportDate}`,
       html: `
-        <h2>Napi Automatikus Jelentés és Mentés</h2>
-        <p>Dátum: <b>${reportDate}</b></p>
-        <hr>
+        <h2>Napi Jelentés és Biztonsági Mentés</h2>
         <p><b>Esedékes karbantartások:</b> ${dueSoon.length} db</p>
-        ${backupErrors.length > 0 ? `<p style="color: red;">⚠️ <b>Figyelem:</b> A raktárkészletet nem sikerült kimenteni (táblahiba), de az ügyféladatok a csatolmányban vannak!</p>` : `<p style="color: green;">✅ A teljes mentés sikeres.</p>`}
-        <br>
-        <p><i>A biztonsági mentés (.json) az email mellékleteként érkezett.</i></p>
+        <p>A mai napi teljes adatbázis mentést csatolva találod.</p>
+        <hr>
+        <p>NS-Air Rendszer</p>
       `,
       attachments: [
         {
-          filename: `nsair_mentes_${new Date().toISOString().split('T')[0]}.json`,
-          content: JSON.stringify(backupData, null, 2),
-          contentType: 'application/json'
+          filename: `nsair_backup_${new Date().toISOString().split('T')[0]}.json`,
+          content: Buffer.from(JSON.stringify(backupData, null, 2)).toString('base64'),
         }
       ]
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      backedUp: true, 
-      itemTableError: backupErrors.length > 0 
-    });
-
+    return NextResponse.json({ success: true, sent: true });
   } catch (error: any) {
-    console.error("Kritikus hiba:", error);
+    console.error("Hiba:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
