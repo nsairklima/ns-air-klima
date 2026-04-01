@@ -4,19 +4,37 @@ import nodemailer from "nodemailer";
 
 export async function GET() {
   try {
-    // 1. ADATOK LEKÉRÉSE A MENTÉSHEZ (Minden tábla)
-    const allClients = await prisma.client.findMany({
-      include: { units: { include: { maintenance: true } } }
-    });
-    const allItems = await prisma.item.findMany();
+    // --- 1. ADATOK LEKÉRÉSE A MENTÉSHEZ ---
+    let allClients = [];
+    let allItems = [];
+    let backupErrors = [];
+
+    // Ügyfelek lekérése (biztonsági blokkban)
+    try {
+      allClients = await prisma.client.findMany({
+        include: { units: { include: { maintenance: true } } }
+      });
+    } catch (e: any) {
+      backupErrors.push("Ügyfél tábla hiba: " + e.message);
+    }
+
+    // Raktárkészlet lekérése (külön blokkban, hogy ne rontsa el az egészet!)
+    try {
+      // Itt a prisma.item-et hívjuk, de ha a Prisma 'items'-et keresne és elszállna, elkapjuk a hibát
+      allItems = await prisma.item.findMany();
+    } catch (e: any) {
+      console.error("Raktár lekérési hiba:", e.message);
+      backupErrors.push("Raktár tábla hiba (Item): " + e.message);
+    }
     
     const backupData = {
       timestamp: new Date().toLocaleString('hu-HU'),
       clients: allClients,
-      inventory: allItems
+      inventory: allItems,
+      errors: backupErrors.length > 0 ? backupErrors : undefined
     };
 
-    // 2. KARBANTARTÁSOK ELLENŐRZÉSE (A korábbi logika)
+    // --- 2. KARBANTARTÁSOK ELLENŐRZÉSE ---
     const today = new Date();
     const sixtyDaysFromNow = new Date();
     sixtyDaysFromNow.setDate(today.getDate() + 60);
@@ -40,14 +58,14 @@ export async function GET() {
       return dueDate && dueDate <= sixtyDaysFromNow;
     });
 
-    // 3. EMAIL KÜLDÉSE CSATOLMÁNNYAL
+    // --- 3. EMAIL KÜLDÉSE CSATOLMÁNNYAL ---
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
       secure: true,
       auth: {
         user: "nsair.klima@gmail.com",
-        pass: process.env.EMAIL_PASSWORD, // A Google App Passwordod
+        pass: process.env.EMAIL_PASSWORD,
       },
     });
 
@@ -58,24 +76,31 @@ export async function GET() {
       to: "nsair.klima@gmail.com",
       subject: `⚠️ RENDSZERJELENTÉS - ${reportDate} (${dueSoon.length} esedékes)`,
       html: `
-        <h2>Napi Automatikus Jelentés</h2>
-        <p>Az adatbázis állapota a mai napon: <b>${reportDate}</b></p>
+        <h2>Napi Automatikus Jelentés és Mentés</h2>
+        <p>Dátum: <b>${reportDate}</b></p>
         <hr>
-        <p><b>Esedékes karbantartások száma:</b> ${dueSoon.length}</p>
-        <p><i>A teljes adatbázis mentését csatolva találod JSON formátumban.</i></p>
+        <p><b>Esedékes karbantartások:</b> ${dueSoon.length} db</p>
+        ${backupErrors.length > 0 ? `<p style="color: red;">⚠️ <b>Figyelem:</b> A raktárkészletet nem sikerült kimenteni (táblahiba), de az ügyféladatok a csatolmányban vannak!</p>` : `<p style="color: green;">✅ A teljes mentés sikeres.</p>`}
+        <br>
+        <p><i>A biztonsági mentés (.json) az email mellékleteként érkezett.</i></p>
       `,
       attachments: [
         {
-          filename: `nsair_automata_mentes_${new Date().toISOString().split('T')[0]}.json`,
+          filename: `nsair_mentes_${new Date().toISOString().split('T')[0]}.json`,
           content: JSON.stringify(backupData, null, 2),
           contentType: 'application/json'
         }
       ]
     });
 
-    return NextResponse.json({ success: true, backedUp: true, alerted: dueSoon.length });
+    return NextResponse.json({ 
+      success: true, 
+      backedUp: true, 
+      itemTableError: backupErrors.length > 0 
+    });
+
   } catch (error: any) {
-    console.error(error);
+    console.error("Kritikus hiba:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
