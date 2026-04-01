@@ -6,6 +6,11 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ items: 0, clients: 0, maintenanceCount: 0 });
   const [upcoming, setUpcoming] = useState<any[]>([]);
 
+  // Mentés funkció
+  const handleBackup = () => {
+    window.location.href = "/api/admin/backup";
+  };
+
   useEffect(() => {
     // 1. Raktárkészlet lekérése
     fetch("/api/items").then(res => res.json()).then(data => {
@@ -17,7 +22,7 @@ export default function Dashboard() {
       if (Array.isArray(data)) setStats(s => ({ ...s, clients: data.length }));
     });
 
-    // 3. Karbantartások lekérése és okos szűrése
+    // 3. Karbantartások lekérése
     fetch("/api/maintenance").then(res => res.json()).then(data => {
       if (Array.isArray(data)) {
         const today = new Date();
@@ -28,27 +33,21 @@ export default function Dashboard() {
           const lastLog = unit.maintenance && unit.maintenance[0];
           let calculatedDueDate: Date | null = null;
 
-          // Dátum meghatározása prioritás szerint:
           if (lastLog?.nextDue) {
-            // 1. Kézzel megadott következő időpont
             calculatedDueDate = new Date(lastLog.nextDue);
           } else if (lastLog?.performedDate) {
-            // 2. Utolsó karbantartás + periódus hónapok
             calculatedDueDate = new Date(lastLog.performedDate);
             calculatedDueDate.setMonth(calculatedDueDate.getMonth() + (unit.periodMonths || 12));
           } else if (unit.installation) {
-            // 3. Telepítés dátuma + periódus hónapok
             calculatedDueDate = new Date(unit.installation);
             calculatedDueDate.setMonth(calculatedDueDate.getMonth() + (unit.periodMonths || 12));
           }
 
           return { ...unit, calculatedDueDate };
         }).filter(unit => {
-          // Csak azokat hagyjuk meg, amik 60 napon belül esedékesek vagy már lejártak
           return unit.calculatedDueDate && unit.calculatedDueDate <= sixtyDaysFromNow;
         });
 
-        // Rendezés: a legrégebbi (legsürgősebb) legyen elöl
         dueSoon.sort((a, b) => a.calculatedDueDate!.getTime() - b.calculatedDueDate!.getTime());
 
         setStats(s => ({ ...s, maintenanceCount: dueSoon.length }));
@@ -60,7 +59,42 @@ export default function Dashboard() {
   return (
     <div style={{ padding: "15px", maxWidth: "900px", margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
       
-      <h1 style={{ fontSize: "22px", marginBottom: "20px", fontWeight: "800", color: "#1a202c" }}>📊 NS-AIR Vezérlő</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <h1 style={{ fontSize: "22px", margin: 0, fontWeight: "800", color: "#1a202c" }}>📊 NS-AIR Vezérlő</h1>
+      </div>
+
+      {/* --- ÚJ BIZTONSÁGI MENTÉS SZEKCIÓ --- */}
+      <div style={{ 
+        background: "#ebf8ff", 
+        padding: "15px", 
+        borderRadius: "12px", 
+        marginBottom: "20px", 
+        border: "1px solid #90cdf4",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "20px" }}>🛡️</span>
+          <span style={{ fontWeight: "bold", color: "#2c5282", fontSize: "14px" }}>Adatbázis biztonság</span>
+        </div>
+        <button 
+          onClick={handleBackup} 
+          style={{ 
+            background: "#3182ce", 
+            color: "white", 
+            border: "none", 
+            padding: "12px", 
+            borderRadius: "8px", 
+            fontWeight: "bold", 
+            cursor: "pointer",
+            fontSize: "14px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+          }}
+        >
+          📥 Teljes mentés letöltése (.json)
+        </button>
+      </div>
 
       {/* STATISZTIKA */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
