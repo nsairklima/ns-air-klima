@@ -6,9 +6,26 @@ import { useRouter } from "next/navigation";
 export default function AdminDashboard() {
   const router = useRouter();
 
-  const handleBackup = () => {
-    // Ez a böngészőben közvetlenül meghívja a letöltő végpontot
-    window.location.href = "/api/admin/backup";
+  const handleBackup = async () => {
+    // Megerősítés a felhasználónak, hogy ne kattintgasson duplán
+    if (!confirm("Elindítja a biztonsági mentést? Az emailt a rendszer hamarosan küldi.")) return;
+
+    try {
+      // Itt a window.location helyett fetch-et használunk POST metódussal
+      // Ez megakadályozza, hogy a böngésző "oldalként" kezelje és duplázza a kérést
+      const response = await fetch("/api/admin/backup", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        alert("A mentés sikeresen elindult! Ellenőrizze az email fiókját.");
+      } else {
+        alert("Hiba történt a mentés során. Kérjük, próbálja újra később.");
+      }
+    } catch (error) {
+      console.error("Backup hiba:", error);
+      alert("Hálózati hiba történt.");
+    }
   };
 
   return (
@@ -35,7 +52,7 @@ export default function AdminDashboard() {
           textAlign: "center" 
         }}>
           <h3 style={{ marginTop: 0, color: "#27ae60" }}>🛡️ Adatbázis védelem</h3>
-          <p style={{ fontSize: "14px", color: "#666" }}>Kattints a gombra a teljes mentés letöltéséhez (.json formátum)</p>
+          <p style={{ fontSize: "14px", color: "#666" }}>Kattints a gombra a teljes mentés elküldéséhez emailben.</p>
           
           <button 
             onClick={handleBackup}
