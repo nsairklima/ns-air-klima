@@ -54,7 +54,7 @@ export async function GET() {
     const reportDate = new Date().toLocaleDateString('hu-HU');
     
     await resend.emails.send({
-      from: "Teszt <onboarding@resend.dev>", // Vagy a saját domain-ed, ha már beállítottad
+      from: "NS-AIR Központ <onboarding@resend.dev>", // Vagy a saját domain-ed, ha már beállítottad
       to: "nsair.klima@gmail.com",
       subject: `⚠️ RENDSZERJELENTÉS ÉS MENTÉS - ${reportDate}`,
       html: `
