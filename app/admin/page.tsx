@@ -6,25 +6,34 @@ import { useRouter } from "next/navigation";
 export default function AdminDashboard() {
   const router = useRouter();
 
-  const handleBackup = async () => {
-    // Megerősítés a felhasználónak, hogy ne kattintgasson duplán
+  const handleBackup = async (e: React.MouseEvent) => {
+    // MEGAKADÁLYOZZUK az alapértelmezett böngésző-működést (ne frissítsen rá)
+    e.preventDefault();
+
     if (!confirm("Elindítja a biztonsági mentést? Az emailt a rendszer hamarosan küldi.")) return;
 
     try {
-      // Itt a window.location helyett fetch-et használunk POST metódussal
-      // Ez megakadályozza, hogy a böngésző "oldalként" kezelje és duplázza a kérést
-      const response = await fetch("/api/admin/backup", {
+      // Kényszerített POST kérés, egy egyedi azonosítóval a végén (?t=...), 
+      // hogy a Vercel ne tudja a régi "cache" választ adni
+      const response = await fetch(`/api/admin/backup?t=${Date.now()}`, {
         method: "POST",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Content-Type": "application/json"
+        }
       });
 
       if (response.ok) {
         alert("A mentés sikeresen elindult! Ellenőrizze az email fiókját.");
       } else {
-        alert("Hiba történt a mentés során. Kérjük, próbálja újra később.");
+        // Megnézzük, pontosan mit mond a szerver hiba esetén
+        const errorText = await response.text();
+        console.error("Szerver hiba:", errorText);
+        alert(`Hiba történt (${response.status}). Kérjük, próbálja újra később.`);
       }
     } catch (error) {
-      console.error("Backup hiba:", error);
-      alert("Hálózati hiba történt.");
+      console.error("Hálózati hiba:", error);
+      alert("Hálózati hiba történt. Ellenőrizze az internetkapcsolatot!");
     }
   };
 
@@ -55,6 +64,7 @@ export default function AdminDashboard() {
           <p style={{ fontSize: "14px", color: "#666" }}>Kattints a gombra a teljes mentés elküldéséhez emailben.</p>
           
           <button 
+            type="button" 
             onClick={handleBackup}
             style={{
               width: "100%",
@@ -74,17 +84,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* --- NAVIGÁCIÓS GOMBOK --- */}
-        <button 
-          onClick={() => router.push("/admin/items")}
-          style={menuBtnS}
-        >
+        <button onClick={() => router.push("/admin/items")} style={menuBtnS}>
           📦 Raktárkészlet kezelése
         </button>
 
-        <button 
-          onClick={() => router.push("/maintenance")}
-          style={menuBtnS}
-        >
+        <button onClick={() => router.push("/maintenance")} style={menuBtnS}>
           🗓️ Karbantartási ütemterv
         </button>
 
