@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import React from "react";
@@ -8,110 +6,176 @@ import { useRouter } from "next/navigation";
 export default function AdminDashboard() {
   const router = useRouter();
 
+  // Biztonsági mentés kezelő
   const handleBackup = async (e: React.MouseEvent) => {
-    // MEGAKADÁLYOZZUK az alapértelmezett böngésző-működést (ne frissítsen rá)
     e.preventDefault();
-
-    if (!confirm("Elindítja a biztonsági mentést? Az emailt a rendszer hamarosan küldi.")) return;
+    if (!confirm("Biztonsági mentés indítása?")) return;
 
     try {
-      // Kényszerített POST kérés, egy egyedi azonosítóval a végén (?t=...), 
-      // hogy a Vercel ne tudja a régi "cache" választ adni
       const response = await fetch(`/api/admin/backup?t=${Date.now()}`, {
         method: "POST",
-        headers: {
-          "Cache-Control": "no-cache",
-          "Content-Type": "application/json"
-        }
       });
 
       if (response.ok) {
-        alert("A mentés sikeresen elindult! Ellenőrizze az email fiókját.");
+        alert("A mentés sikeresen elindult!");
       } else {
-        // Megnézzük, pontosan mit mond a szerver hiba esetén
-        const errorText = await response.text();
-        console.error("Szerver hiba:", errorText);
-        alert(`Hiba történt (${response.status}). Kérjük, próbálja újra később.`);
+        alert("Hiba történt a mentés során.");
       }
     } catch (error) {
-      console.error("Hálózati hiba:", error);
-      alert("Hálózati hiba történt. Ellenőrizze az internetkapcsolatot!");
+      alert("Hálózati hiba történt.");
     }
   };
 
-  return (
-    <div style={{ padding: "40px 20px", maxWidth: "600px", margin: "0 auto", fontFamily: "sans-serif" }}>
-      
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
-        <h1 style={{ margin: 0, fontSize: "24px", color: "#333" }}>⚙️ Adminisztráció</h1>
-        <button 
-          onClick={() => router.push("/")}
-          style={{ padding: "8px 16px", cursor: "pointer", borderRadius: "8px", border: "1px solid #ccc", background: "#fff" }}
-        >
-          Főoldal
-        </button>
-      </div>
+  // Egyszerűsített hover effekt (inline style változtatással)
+  const onEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = "scale(0.97)";
+    e.currentTarget.style.opacity = "0.9";
+  };
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+  const onLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = "scale(1)";
+    e.currentTarget.style.opacity = "1";
+  };
+
+  return (
+    <div style={containerStyle}>
+      <header style={headerStyle}>
+        <h1 style={titleStyle}>NS-AIR ADMIN</h1>
+        <button onClick={() => router.push("/")} style={homeButtonStyle}>
+          főoldal
+        </button>
+      </header>
+
+      <div style={gridStyle}>
         
-        {/* --- MENTÉS SZEKCIÓ --- */}
-        <div style={{ 
-          padding: "20px", 
-          background: "#f0fff4", 
-          border: "2px solid #2ecc71", 
-          borderRadius: "12px",
-          textAlign: "center" 
-        }}>
-          <h3 style={{ marginTop: 0, color: "#27ae60" }}>🛡️ Adatbázis védelem</h3>
-          <p style={{ fontSize: "14px", color: "#666" }}>Kattints a gombra a teljes mentés elküldéséhez emailben.</p>
-          
-          <button 
-            type="button" 
-            onClick={handleBackup}
-            style={{
-              width: "100%",
-              padding: "15px",
-              background: "#2ecc71",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "16px",
-              marginTop: "10px"
-            }}
-          >
-            📥 BIZTONSÁGI MENTÉS INDÍTÁSA
-          </button>
+        {/* MENTÉS CSEMPE */}
+        <div 
+          onClick={handleBackup}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#2ecc71", gridColumn: "span 2" }}
+        >
+          <span style={iconStyle}>🛡️</span>
+          <div style={tileLabelStyle}>Rendszerjelentés</div>
+          <span style={{ fontSize: "12px", opacity: 0.8 }}>Adatbázis mentés küldése</span>
         </div>
 
-        {/* --- NAVIGÁCIÓS GOMBOK --- */}
-        <button onClick={() => router.push("/admin/items")} style={menuBtnS}>
-          📦 Raktárkészlet kezelése
-        </button>
+        {/* NAPTÁR CSEMPE (AZ ÚJ!) */}
+        <div 
+          onClick={() => router.push("/admin/calendar")}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#008272" }}
+        >
+          <span style={iconStyle}>📅</span>
+          <div style={tileLabelStyle}>Naptár</div>
+          <span style={{ fontSize: "11px", opacity: 0.7 }}>Munkaterv</span>
+        </div>
 
-        <button onClick={() => router.push("/maintenance")} style={menuBtnS}>
-          🗓️ Karbantartási ütemterv
-        </button>
+        {/* RAKTÁR CSEMPE */}
+        <div 
+          onClick={() => router.push("/admin/items")}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#0078d7" }}
+        >
+          <span style={iconStyle}>📦</span>
+          <div style={tileLabelStyle}>Raktár</div>
+        </div>
+
+        {/* ÜTEMTERV CSEMPE */}
+        <div 
+          onClick={() => router.push("/maintenance")}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#a4379f" }}
+        >
+          <span style={iconStyle}>🗓️</span>
+          <div style={tileLabelStyle}>Ütemterv</div>
+        </div>
+
+        {/* ÜGYFELEK CSEMPE */}
+        <div 
+          onClick={() => router.push("/clients")}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#d83b01" }}
+        >
+          <span style={iconStyle}>👥</span>
+          <div style={tileLabelStyle}>Ügyfelek</div>
+        </div>
 
       </div>
 
-      <p style={{ textAlign: "center", color: "#999", fontSize: "12px", marginTop: "40px" }}>
-        NS-Air Klíma Rendszer v2.0
-      </p>
+      <footer style={footerStyle}>
+        NS-Air Klíma Rendszer v2.0 | 2026
+      </footer>
     </div>
   );
 }
 
-const menuBtnS = {
-  padding: "18px",
-  fontSize: "16px",
-  fontWeight: "bold" as const,
+// --- STÍLUSOK (FIXÁLVA) ---
+
+const containerStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  backgroundColor: "#000",
+  color: "#fff",
+  fontFamily: "'Segoe UI', sans-serif",
+  padding: "40px 20px",
+};
+
+const headerStyle: React.CSSProperties = {
+  maxWidth: "800px",
+  margin: "0 auto 40px auto",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
+const titleStyle: React.CSSProperties = {
+  fontSize: "32px",
+  fontWeight: "lighter",
+  margin: 0,
+};
+
+const homeButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "1px solid #fff",
+  color: "#fff",
+  padding: "5px 15px",
   cursor: "pointer",
-  border: "1px solid #ddd",
-  borderRadius: "10px",
-  background: "#fff",
-  textAlign: "left" as const,
-  display: "block",
-  width: "100%"
+};
+
+const gridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gridAutoRows: "140px",
+  gap: "10px",
+  maxWidth: "800px",
+  margin: "0 auto",
+};
+
+const tileStyle: React.CSSProperties = {
+  padding: "15px",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+};
+
+const iconStyle: React.CSSProperties = {
+  fontSize: "28px",
+};
+
+const tileLabelStyle: React.CSSProperties = {
+  fontSize: "18px",
+  fontWeight: "600",
+};
+
+const footerStyle: React.CSSProperties = {
+  textAlign: "center",
+  marginTop: "50px",
+  fontSize: "11px",
+  color: "#444",
 };
