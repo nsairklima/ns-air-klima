@@ -1,167 +1,129 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useRouter } from "next/navigation";
 
-export default function Dashboard() {
-  const [stats, setStats] = useState({ items: 0, clients: 0, maintenanceCount: 0 });
-  const [upcoming, setUpcoming] = useState<any[]>([]);
+export default function MainDashboard() {
+  const router = useRouter();
 
-  // Mentés funkció
-  const handleBackup = () => {
-    window.location.href = "/api/admin/backup";
+  const handleBackup = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!confirm("Biztonsági mentés indítása?")) return;
+    try {
+      const response = await fetch(`/api/admin/backup?t=${Date.now()}`, { method: "POST" });
+      if (response.ok) alert("A mentés sikeresen elindult!");
+      else alert("Hiba történt a mentés során.");
+    } catch (error) {
+      alert("Hálózati hiba történt.");
+    }
   };
 
-  useEffect(() => {
-    // 1. Raktárkészlet lekérése
-    fetch("/api/items").then(res => res.json()).then(data => {
-      if (Array.isArray(data)) setStats(s => ({ ...s, items: data.length }));
-    });
+  const onEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = "scale(0.97)";
+    e.currentTarget.style.opacity = "0.9";
+  };
 
-    // 2. Ügyfelek lekérése
-    fetch("/api/clients").then(res => res.json()).then(data => {
-      if (Array.isArray(data)) setStats(s => ({ ...s, clients: data.length }));
-    });
-
-    // 3. Karbantartások lekérése
-    fetch("/api/maintenance").then(res => res.json()).then(data => {
-      if (Array.isArray(data)) {
-        const today = new Date();
-        const sixtyDaysFromNow = new Date();
-        sixtyDaysFromNow.setDate(today.getDate() + 60);
-
-        const dueSoon = data.map(unit => {
-          const lastLog = unit.maintenance && unit.maintenance[0];
-          let calculatedDueDate: Date | null = null;
-
-          if (lastLog?.nextDue) {
-            calculatedDueDate = new Date(lastLog.nextDue);
-          } else if (lastLog?.performedDate) {
-            calculatedDueDate = new Date(lastLog.performedDate);
-            calculatedDueDate.setMonth(calculatedDueDate.getMonth() + (unit.periodMonths || 12));
-          } else if (unit.installation) {
-            calculatedDueDate = new Date(unit.installation);
-            calculatedDueDate.setMonth(calculatedDueDate.getMonth() + (unit.periodMonths || 12));
-          }
-
-          return { ...unit, calculatedDueDate };
-        }).filter(unit => {
-          return unit.calculatedDueDate && unit.calculatedDueDate <= sixtyDaysFromNow;
-        });
-
-        dueSoon.sort((a, b) => a.calculatedDueDate!.getTime() - b.calculatedDueDate!.getTime());
-
-        setStats(s => ({ ...s, maintenanceCount: dueSoon.length }));
-        setUpcoming(dueSoon);
-      }
-    }).catch(err => console.error("API Hiba:", err));
-  }, []);
+  const onLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = "scale(1)";
+    e.currentTarget.style.opacity = "1";
+  };
 
   return (
-    <div style={{ padding: "15px", maxWidth: "900px", margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-      
-      {/* --- CÍM ÉS A FELTŰNŐ MENTÉS GOMB --- */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h1 style={{ fontSize: "22px", margin: 0, fontWeight: "800", color: "#1a202c" }}>📊 NS-AIR Vezérlő</h1>
+    <div style={containerStyle}>
+      <header style={headerStyle}>
+        <h1 style={titleStyle}>NS-AIR KÖZPONT</h1>
+        <div style={statusDot}>Online</div>
+      </header>
+
+      <div style={gridStyle}>
         
-        {/* --- FELTŰNŐ, PULZÁLÓ GOMB --- */}
-        <>
-          <style>
-            {`
-              @keyframes pulse {
-                0% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7); }
-                70% { box-shadow: 0 0 0 10px rgba(39, 174, 96, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
-              }
-            `}
-          </style>
-          <button 
-            onClick={handleBackup} 
-            title="Teljes adatbázis mentése (.json) - KATTINTS IDE NAPI EGYSZER!"
-            style={{ 
-              background: "#27ae60", // Erőteljes zöld szín
-              color: "white", 
-              border: "none", 
-              padding: "10px 18px", 
-              borderRadius: "10px", 
-              fontWeight: "bold", 
-              cursor: "pointer",
-              fontSize: "14px",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-              animation: "pulse 2s infinite", // Pulzáló animáció hozzáadása
-              transition: "transform 0.2s"
-            }}
-            onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.05)"}
-            onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
-          >
-            🛡️ BIZT. MENTÉS
-          </button>
-        </>
+        {/* RENDSZERJELENTÉS */}
+        <div 
+          onClick={handleBackup}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#2ecc71", gridColumn: "span 2" }}
+        >
+          <span style={iconStyle}>🛡️</span>
+          <div style={tileLabelStyle}>Rendszerjelentés</div>
+          <span style={smallLabelStyle}>Adatbázis export emailben</span>
+        </div>
+
+        {/* NAPTÁR */}
+        <div 
+          onClick={() => router.push("/admin/calendar")}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#008272" }}
+        >
+          <span style={iconStyle}>📅</span>
+          <div style={tileLabelStyle}>Naptár</div>
+        </div>
+
+        {/* RAKTÁR */}
+        <div 
+          onClick={() => router.push("/admin/items")}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#0078d7" }}
+        >
+          <span style={iconStyle}>📦</span>
+          <div style={tileLabelStyle}>Raktár</div>
+        </div>
+
+        {/* ÜTEMTERV */}
+        <div 
+          onClick={() => router.push("/maintenance")}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#a4379f" }}
+        >
+          <span style={iconStyle}>🗓️</span>
+          <div style={tileLabelStyle}>Ütemterv</div>
+        </div>
+
+        {/* ÜGYFELEK */}
+        <div 
+          onClick={() => router.push("/clients")}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#d83b01" }}
+        >
+          <span style={iconStyle}>👥</span>
+          <div style={tileLabelStyle}>Ügyfelek</div>
+        </div>
+
       </div>
 
-      {/* STATISZTIKA */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
-        <div style={{ ...cardS, borderLeft: "5px solid #0070f3" }}>
-          <div style={labelS}>Ügyfelek</div>
-          <div style={numS}>{stats.clients}</div>
-          <a href="/clients" style={linkS}>Megnyitás →</a>
-        </div>
-        <div style={{ ...cardS, borderLeft: stats.maintenanceCount > 0 ? "5px solid #e53e3e" : "5px solid #718096" }}>
-          <div style={labelS}>Esedékes karbantartás</div>
-          <div style={{ ...numS, color: stats.maintenanceCount > 0 ? "#e53e3e" : "#2d3748" }}>{stats.maintenanceCount}</div>
-          <a href="/maintenance" style={linkS}>Lista →</a>
-        </div>
-      </div>
-
-      {/* RAKTÁR KÁRTYA */}
-      <div style={{ ...cardS, marginBottom: "20px", borderLeft: "5px solid #ecc94b", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-           <div style={labelS}>Raktárkészlet</div>
-           <div style={numS}>{stats.items} tétel</div>
-        </div>
-        <a href="/admin/items" style={{ ...linkS, padding: "10px 20px", background: "#ecc94b", color: "#000", borderRadius: "8px" }}>Kezelés</a>
-      </div>
-
-      {/* FIGYELMEZTETŐ LISTA */}
-      {upcoming.length > 0 && (
-        <div style={{ background: "white", padding: "15px", borderRadius: "12px", marginBottom: "20px", border: "1px solid #e53e3e", boxShadow: "0 4px 6px rgba(229, 62, 62, 0.1)" }}>
-          <h3 style={{ margin: "0 0 12px 0", fontSize: "15px", color: "#e53e3e", fontWeight: "bold" }}>⚠️ SÜRGŐS / ESEDÉKES:</h3>
-          {upcoming.map((u, i) => {
-            const date = u.calculatedDueDate;
-            const isOverdue = date < new Date();
-            return (
-              <div key={i} style={{ padding: "10px 0", borderBottom: i === upcoming.length - 1 ? "none" : "1px solid #edf2f7", display: "flex", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontWeight: "bold", fontSize: "14px" }}>{u.client?.name || "Ismeretlen"}</div>
-                  <div style={{ fontSize: "12px", color: "#718096" }}>{u.brand} {u.model}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: "bold", color: isOverdue ? "#e53e3e" : "#2d3748", fontSize: "13px" }}>
-                    {date.toLocaleDateString('hu-HU')}
-                  </div>
-                  <div style={{ fontSize: "10px", color: isOverdue ? "#e53e3e" : "#38a169" }}>
-                    {isOverdue ? "LEJÁRT!" : "Hamarosan"}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* GYORS GOMBOK ALUL */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-        <button onClick={() => window.location.href = "/quotes/new"} style={actionBtnS}>+ Új ajánlat</button>
-        <button onClick={() => window.location.href = "/clients/new"} style={actionBtnS}>+ Új ügyfél</button>
-      </div>
+      <footer style={footerStyle}>
+        NS-Air Klíma Rendszer v2.0 | 2026
+      </footer>
     </div>
   );
 }
 
-const cardS = { background: "white", padding: "15px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" };
-const numS = { fontSize: "24px", fontWeight: "900", color: "#2d3748" };
-const labelS = { fontSize: "12px", color: "#718096", fontWeight: "bold", textTransform: "uppercase" as const, marginBottom: "5px" };
-const linkS = { fontSize: "13px", color: "#0070f3", textDecoration: "none", fontWeight: "bold", marginTop: "10px", display: "inline-block" };
-const actionBtnS = { padding: "15px", background: "#2d3748", color: "white", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
+// STÍLUSOK (Sallangmentes Windows stílus)
+const containerStyle: React.CSSProperties = {
+  minHeight: "100vh", backgroundColor: "#000", color: "#fff",
+  fontFamily: "'Segoe UI', sans-serif", padding: "40px 20px",
+};
+const headerStyle: React.CSSProperties = {
+  maxWidth: "800px", margin: "0 auto 40px auto",
+  display: "flex", justifyContent: "space-between", alignItems: "baseline",
+};
+const titleStyle: React.CSSProperties = { fontSize: "32px", fontWeight: "lighter", margin: 0 };
+const statusDot: React.CSSProperties = { fontSize: "12px", color: "#2ecc71", textTransform: "uppercase", letterSpacing: "1px" };
+const gridStyle: React.CSSProperties = {
+  display: "grid", gridTemplateColumns: "repeat(2, 1fr)",
+  gridAutoRows: "140px", gap: "10px", maxWidth: "800px", margin: "0 auto",
+};
+const tileStyle: React.CSSProperties = {
+  padding: "15px", display: "flex", flexDirection: "column",
+  justifyContent: "space-between", cursor: "pointer", transition: "all 0.2s ease",
+};
+const iconStyle: React.CSSProperties = { fontSize: "28px" };
+const tileLabelStyle: React.CSSProperties = { fontSize: "18px", fontWeight: "600" };
+const smallLabelStyle: React.CSSProperties = { fontSize: "11px", opacity: 0.7 };
+const footerStyle: React.CSSProperties = {
+  textAlign: "center", marginTop: "50px", fontSize: "11px", color: "#444",
+};
