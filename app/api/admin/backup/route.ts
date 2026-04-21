@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 import { Resend } from "resend";
 
+export const dynamic = 'force-dynamic';
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Átírva GET-ről POST-ra, hogy megakadályozzuk a böngésző általi duplikált hívásokat
