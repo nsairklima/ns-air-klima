@@ -6,9 +6,8 @@ export const dynamic = 'force-dynamic';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Közös mentési logika, amit mind a POST, mind a GET meghívhat
 async function performBackup() {
-  // 1. Összes adat lekérése a mentéshez
+  // 1. Adatok lekérése
   const clients = await prisma.client.findMany({
     include: { 
       units: { 
@@ -19,75 +18,71 @@ async function performBackup() {
     }
   });
 
-  // Raktárkészlet lekérése hibatűréssel
   let inventory = [];
   try {
     inventory = await (prisma as any).item.findMany();
   } catch (e) {
-    console.log("Item tábla hiba a manuális mentésnél, kihagyva.");
+    console.log("Raktár tábla kihagyva.");
   }
 
   const backupData = {
     timestamp: new Date().toLocaleString('hu-HU'),
-    type: "MANUÁLIS MENTÉS",
-    data: {
-      clients,
-      inventory
-    }
+    type: "ADATBÁZIS MENTÉS",
+    data: { clients, inventory }
   };
 
-  // 2. Küldés emailben Resend-del
+  // 2. Email küldése - TESZT feliratok eltávolítva
   const reportDate = new Date().toLocaleDateString('hu-HU');
   const currentTime = new Date().toLocaleString('hu-HU');
   
   await resend.emails.send({
-    from: "NS-AIR <onboarding@resend.dev>",
+    from: "NS-AIR Rendszer <onboarding@resend.dev>",
     to: "nsair.klima@gmail.com",
-    subject: `💾 MANUÁLIS BIZTONSÁGI MENTÉS - ${reportDate}`,
+    subject: `📋 Rendszerjelentés és Mentés - ${reportDate}`,
     html: `
-      <div style="font-family: sans-serif; line-height: 1.6; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #2ecc71;">NS-AIR Manuális Mentés</h2>
-        <p>A mentés sikeresen elkészült a gomb megnyomásakor.</p>
-        <p>Időpont: <b>${currentTime}</b></p>
-        <hr style="border: 0; border-top: 1px solid #eee;">
-        <p style="color: #666;">A mentési fájlt (.json) csatolva találod a levélben.</p>
+      <div style="font-family: sans-serif; line-height: 1.6; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="color: #2c3e50; border-bottom: 2px solid #2ecc71; padding-bottom: 10px;">NS-AIR Rendszerjelentés</h2>
+        <p>Ez egy automatikusan generált biztonsági mentés és állapotjelentés.</p>
+        <table style="width: 100%; margin-top: 20px; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;"><b>Időpont:</b></td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">${currentTime}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;"><b>Típus:</b></td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">Teljes adatbázis mentés</td>
+          </tr>
+        </table>
+        <p style="margin-top: 20px; font-size: 13px; color: #666;">
+          A csatolt JSON fájl tartalmazza az összes ügyfél, klímaegység és raktárkészlet aktuális adatát.
+        </p>
       </div>
     `,
     attachments: [
       {
-        filename: `nsair_manualis_mentes_${new Date().toISOString().split('T')[0]}.json`,
+        filename: `nsair_backup_${new Date().toISOString().split('T')[0]}.json`,
         content: Buffer.from(JSON.stringify(backupData, null, 2)).toString('base64'),
       }
     ]
   });
 
-  return { success: true, message: "A mentést elküldtük az email címedre!" };
+  return { success: true, message: "Rendszerjelentés elküldve." };
 }
 
-// POST metódus a gombnak
 export async function POST() {
   try {
     const result = await performBackup();
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error("Backup hiba (POST):", error);
-    return NextResponse.json(
-      { error: "Hiba történt a mentés során: " + error.message }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// GET metódus biztonsági tartaléknak (ha a böngésző/Vercel makacskodik)
 export async function GET() {
   try {
     const result = await performBackup();
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error("Backup hiba (GET):", error);
-    return NextResponse.json(
-      { error: "Hiba történt a mentés során: " + error.message }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
