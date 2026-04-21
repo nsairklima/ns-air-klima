@@ -1,212 +1,117 @@
+
+
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
   const router = useRouter();
 
   const handleBackup = async (e: React.MouseEvent) => {
+    // MEGAKADÁLYOZZUK az alapértelmezett böngésző-működést (ne frissítsen rá)
     e.preventDefault();
-    if (!confirm("Biztonsági mentés indítása? Az emailt hamarosan küldjük.")) return;
+
+    if (!confirm("Elindítja a biztonsági mentést? Az emailt a rendszer hamarosan küldi.")) return;
 
     try {
+      // Kényszerített POST kérés, egy egyedi azonosítóval a végén (?t=...), 
+      // hogy a Vercel ne tudja a régi "cache" választ adni
       const response = await fetch(`/api/admin/backup?t=${Date.now()}`, {
         method: "POST",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Content-Type": "application/json"
+        }
       });
 
       if (response.ok) {
         alert("A mentés sikeresen elindult! Ellenőrizze az email fiókját.");
       } else {
-        alert("Hiba történt a mentés során. Próbálja meg később.");
+        // Megnézzük, pontosan mit mond a szerver hiba esetén
+        const errorText = await response.text();
+        console.error("Szerver hiba:", errorText);
+        alert(`Hiba történt (${response.status}). Kérjük, próbálja újra később.`);
       }
     } catch (error) {
-      console.error("Backup hiba:", error);
-      alert("Hálózati hiba történt.");
+      console.error("Hálózati hiba:", error);
+      alert("Hálózati hiba történt. Ellenőrizze az internetkapcsolatot!");
     }
   };
 
-  // Segédfüggvény a csempe animációhoz
-  const tileHover = (e: React.MouseEvent<HTMLDivElement>, enter: boolean) => {
-    e.currentTarget.style.transform = enter ? "scale(0.96)" : "scale(1)";
-    e.currentTarget.style.opacity = enter ? "0.9" : "1";
-  };
-
   return (
-    <div style={containerStyle}>
-      {/* FEJLÉC */}
-      <header style={headerStyle}>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={subTitleStyle}>RENDSZER</span>
-          <h1 style={titleStyle}>Adminisztráció</h1>
-        </div>
+    <div style={{ padding: "40px 20px", maxWidth: "600px", margin: "0 auto", fontFamily: "sans-serif" }}>
+      
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+        <h1 style={{ margin: 0, fontSize: "24px", color: "#333" }}>⚙️ Adminisztráció</h1>
         <button 
-          onClick={() => router.push("/")} 
-          style={homeButtonStyle}
+          onClick={() => router.push("/")}
+          style={{ padding: "8px 16px", cursor: "pointer", borderRadius: "8px", border: "1px solid #ccc", background: "#fff" }}
         >
-          főoldal
+          Főoldal
         </button>
-      </header>
+      </div>
 
-      {/* CSEMPE RÁCS */}
-      <div style={gridStyle}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
         
-        {/* MENTÉS (Nagy csempe) */}
-        <div 
-          onClick={handleBackup}
-          onMouseEnter={(e) => tileHover(e, true)}
-          onMouseLeave={(e) => tileHover(e, false)}
-          style={{ ...tileStyle, background: "#2ecc71", gridColumn: "span 2" }}
-        >
-          <span style={iconStyle}>🛡️</span>
-          <div style={tileLabelContainer}>
-            <div style={tileLabelStyle}>Biztonsági mentés</div>
-            <span style={smallLabelStyle}>Adatbázis export küldése emailben</span>
-          </div>
+        {/* --- MENTÉS SZEKCIÓ --- */}
+        <div style={{ 
+          padding: "20px", 
+          background: "#f0fff4", 
+          border: "2px solid #2ecc71", 
+          borderRadius: "12px",
+          textAlign: "center" 
+        }}>
+          <h3 style={{ marginTop: 0, color: "#27ae60" }}>🛡️ Adatbázis védelem</h3>
+          <p style={{ fontSize: "14px", color: "#666" }}>Kattints a gombra a teljes mentés elküldéséhez emailben.</p>
+          
+          <button 
+            type="button" 
+            onClick={handleBackup}
+            style={{
+              width: "100%",
+              padding: "15px",
+              background: "#2ecc71",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "16px",
+              marginTop: "10px"
+            }}
+          >
+            📥 BIZTONSÁGI MENTÉS INDÍTÁSA
+          </button>
         </div>
 
-        {/* RAKTÁR */}
-        <div 
-          onClick={() => router.push("/admin/items")}
-          onMouseEnter={(e) => tileHover(e, true)}
-          onMouseLeave={(e) => tileHover(e, false)}
-          style={{ ...tileStyle, background: "#0078d7" }}
-        >
-          <span style={iconStyle}>📦</span>
-          <div style={tileLabelStyle}>Raktár</div>
-        </div>
+        {/* --- NAVIGÁCIÓS GOMBOK --- */}
+        <button onClick={() => router.push("/admin/items")} style={menuBtnS}>
+          📦 Raktárkészlet kezelése
+        </button>
 
-        {/* ÜTEMTERV */}
-        <div 
-          onClick={() => router.push("/maintenance")}
-          onMouseEnter={(e) => tileHover(e, true)}
-          onMouseLeave={(e) => tileHover(e, false)}
-          style={{ ...tileStyle, background: "#a4379f" }}
-        >
-          <span style={iconStyle}>🗓️</span>
-          <div style={tileLabelStyle}>Ütemterv</div>
-        </div>
-
-        {/* ÜGYFELEK */}
-        <div 
-          onClick={() => router.push("/clients")}
-          onMouseEnter={(e) => tileHover(e, true)}
-          onMouseLeave={(e) => tileHover(e, false)}
-          style={{ ...tileStyle, background: "#d83b01" }}
-        >
-          <span style={iconStyle}>👥</span>
-          <div style={tileLabelStyle}>Ügyfelek</div>
-        </div>
-
-        {/* NAPLÓK */}
-        <div 
-          onMouseEnter={(e) => tileHover(e, true)}
-          onMouseLeave={(e) => tileHover(e, false)}
-          style={{ ...tileStyle, background: "#008272" }}
-        >
-          <span style={iconStyle}>📊</span>
-          <div style={tileLabelStyle}>Naplók</div>
-        </div>
+        <button onClick={() => router.push("/maintenance")} style={menuBtnS}>
+          🗓️ Karbantartási ütemterv
+        </button>
 
       </div>
 
-      <footer style={footerStyle}>
-        NS-Air Klíma Rendszer v2.0 | 2026
-      </footer>
+      <p style={{ textAlign: "center", color: "#999", fontSize: "12px", marginTop: "40px" }}>
+        NS-Air Klíma Rendszer v2.0
+      </p>
     </div>
   );
 }
 
-// --- WINDOWS PHONE / METRO UI STÍLUSOK ---
-
-const containerStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  backgroundColor: "#000",
-  color: "#fff",
-  fontFamily: "'Segoe UI Neue', 'Segoe UI', helvetica, sans-serif",
-  padding: "40px 20px",
-  transition: "all 0.5s ease",
-};
-
-const headerStyle: React.CSSProperties = {
-  maxWidth: "800px",
-  margin: "0 auto 50px auto",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-};
-
-const subTitleStyle: React.CSSProperties = {
-  fontSize: "14px",
-  fontWeight: "600",
-  letterSpacing: "2px",
-  color: "#fff",
-  opacity: 0.7,
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: "42px",
-  fontWeight: "lighter",
-  margin: "0",
-  lineHeight: "1.1",
-};
-
-const homeButtonStyle: React.CSSProperties = {
-  background: "transparent",
-  border: "2px solid rgba(255,255,255,0.5)",
-  color: "#fff",
-  padding: "10px 20px",
+const menuBtnS = {
+  padding: "18px",
+  fontSize: "16px",
+  fontWeight: "bold" as const,
   cursor: "pointer",
-  fontSize: "14px",
-  fontWeight: "600",
-  textTransform: "lowercase",
-};
-
-const gridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, 1fr)",
-  gridAutoRows: "160px",
-  gap: "10px",
-  maxWidth: "800px",
-  margin: "0 auto",
-};
-
-const tileStyle: React.CSSProperties = {
-  padding: "15px",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  cursor: "pointer",
-  transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
-  userSelect: "none",
-};
-
-const iconStyle: React.CSSProperties = {
-  fontSize: "36px",
-};
-
-const tileLabelContainer: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-};
-
-const tileLabelStyle: React.CSSProperties = {
-  fontSize: "19px",
-  fontWeight: "600",
-};
-
-const smallLabelStyle: React.CSSProperties = {
-  fontSize: "12px",
-  opacity: 0.8,
-  marginTop: "4px",
-};
-
-const footerStyle: React.CSSProperties = {
-  textAlign: "left",
-  maxWidth: "800px",
-  margin: "60px auto 0 auto",
-  fontSize: "12px",
-  color: "#444",
-  textTransform: "uppercase",
-  letterSpacing: "1px",
+  border: "1px solid #ddd",
+  borderRadius: "10px",
+  background: "#fff",
+  textAlign: "left" as const,
+  display: "block",
+  width: "100%"
 };
