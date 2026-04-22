@@ -35,7 +35,6 @@ export default function CalendarPage() {
     desc: "" 
   });
 
-  // EREDETI API HÍVÁSOK - NEM MÓDOSÍTVA
   const fetchEvents = async () => {
     try {
       const res = await fetch('/api/calendar');
@@ -77,14 +76,12 @@ export default function CalendarPage() {
       setShowModal(false);
       setEditingId(null);
       fetchEvents();
-    } else {
-      alert("Hiba a mentés során! (404 vagy Szerver hiba)");
     }
   };
 
-  // Navigáció és Swipe logikák
   const prevMonth = () => { if (isTransitioning) return; setIsTransitioning(true); setTranslateX(100); setTimeout(() => { setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)); setTranslateX(-100); setTimeout(() => { setTranslateX(0); setIsTransitioning(false); }, 50); }, 150); };
   const nextMonth = () => { if (isTransitioning) return; setIsTransitioning(true); setTranslateX(-100); setTimeout(() => { setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)); setTranslateX(100); setTimeout(() => { setTranslateX(0); setIsTransitioning(false); }, 50); }, 150); };
+  
   const handleTouchStart = (e: React.TouchEvent) => { if (selectedDate) return; setTouchStart(e.targetTouches[0].clientX); };
   const handleTouchMove = (e: React.TouchEvent) => { if (touchStart === null || selectedDate) return; setTranslateX((e.targetTouches[0].clientX - touchStart) * 0.6); };
   const handleTouchEnd = () => { if (touchStart === null || selectedDate) return; if (translateX > 80) prevMonth(); else if (translateX < -80) nextMonth(); else setTranslateX(0); setTouchStart(null); };
@@ -100,6 +97,9 @@ export default function CalendarPage() {
         .calendar-content { transition: ${isTransitioning ? 'transform 0.15s ease-out, opacity 0.15s' : 'none'}; opacity: ${isTransitioning ? 0.3 : 1}; }
         .type-btn { flex: 1; border: 2px solid transparent; color: #fff; padding: 10px; borderRadius: 8px; cursor: pointer; font-size: 11px; opacity: 0.5; transition: 0.2s; }
         .type-btn.active { opacity: 1; border-color: white; transform: scale(1.05); }
+        .input-container { position: relative; display: flex; align-items: center; width: 100%; }
+        .calendar-icon-overlay { position: absolute; right: 12px; pointer-events: none; display: flex; align-items: center; }
+        .no-native-icon::-webkit-calendar-picker-indicator { position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; padding: 0; cursor: pointer; opacity: 0; }
       `}</style>
 
       <header style={headerContainer}>
@@ -118,13 +118,18 @@ export default function CalendarPage() {
         <h1 style={monthTitle}>{selectedDate ? `📅 ${selectedDate}` : `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}</h1>
       </header>
 
-      <main style={{ flex: 1, overflow: 'hidden', touchAction: 'pan-y' }}>
-        <div className="calendar-content" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${translateX}px)`, height: '100%' }}>
+      <main style={{ flex: 1, overflow: 'hidden', touchAction: 'pan-y' }} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+        <div className="calendar-content" style={{ transform: `translateX(${translateX}px)`, height: '100%' }}>
           {selectedDate ? (
             <div style={dailyContainer}>
               <button onClick={() => { setNewEntry({...newEntry, date: `${selectedDate}T08:00`}); setEditingId(null); setShowModal(true); }} style={addFullBtn}>+ ÚJ FELADAT ERRE A NAPRA</button>
               {events.filter(e => e.date.startsWith(selectedDate)).map(ev => (
-                <div key={ev.id} onClick={() => { setEditingId(ev.id); setActiveType(ev.type); setNewEntry({ unitId: ev.unitId.toString(), date: ev.date.substring(0,16), desc: ev.description }); setShowModal(true); }} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`}}>
+                <div key={ev.id} onClick={() => { 
+                    setEditingId(ev.id); 
+                    setActiveType(ev.type); 
+                    setNewEntry({ unitId: ev.unitId.toString(), date: ev.date.substring(0,16), desc: ev.description || "" }); 
+                    setShowModal(true); 
+                }} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`}}>
                   <div style={{ fontWeight: 'bold' }}>{ev.title}</div>
                   <div style={{ color: '#cbd5e1', fontSize: '14px' }}>{ev.description}</div>
                 </div>
@@ -160,16 +165,34 @@ export default function CalendarPage() {
               ))}
             </div>
 
+            {/* AZ ÁLTALAD KÉRT ÚJ ÜGYFÉL GOMB RÉSZ */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
               <select style={{ ...inputStyle, marginBottom: 0, flex: 1 }} value={newEntry.unitId} onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}>
                 <option value="">-- Ügyfél választása --</option>
                 {units.map(u => <option key={u.id} value={u.id}>{u.displayName || u.model}</option>)}
               </select>
-              <button onClick={() => router.push("/admin/clients")} style={{ ...navBtn, background: '#3b82f6', fontSize: '20px', padding: '0 15px', fontWeight: 'bold' }}>+</button>
+              <button 
+                onClick={() => router.push("/admin/units")} 
+                style={{ background: '#333', border: '1px solid #444', color: '#fff', borderRadius: '8px', padding: '0 15px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                type="button"
+              >
+                + ÜGYFÉL
+              </button>
             </div>
 
-            <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
-            <textarea placeholder="Leírás..." style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
+            <div className="input-container">
+                <input type="datetime-local" className="no-native-icon" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
+                <div className="calendar-icon-overlay">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                </div>
+            </div>
+
+            <textarea placeholder="Leírás..." style={{...inputStyle, minHeight: '80px', marginTop: '12px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
             
             <button onClick={handleSave} style={saveBtn}>MENTÉS</button>
             <button onClick={() => { setShowModal(false); setEditingId(null); }} style={cancelBtn}>MÉGSE</button>
@@ -197,6 +220,6 @@ const dailyCard: React.CSSProperties = { background: '#1e293b', padding: '15px',
 const addFullBtn: React.CSSProperties = { background: '#2ecc71', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 'bold' };
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#1e293b', padding: '20px', borderRadius: '16px', width: '95%', maxWidth: '400px' };
-const inputStyle: React.CSSProperties = { width: '100%', padding: '12px', marginBottom: '12px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '8px', fontSize: '14px' };
-const saveBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#2ecc71', border: 'none', color: '#fff', borderRadius: '10px', fontWeight: 'bold', marginBottom: '8px' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '12px', marginBottom: '12px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '8px', fontSize: '14px', colorScheme: 'dark' };
+const saveBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#2ecc71', border: 'none', color: '#fff', borderRadius: '10px', fontWeight: 'bold', marginBottom: '8px', marginTop: '10px' };
 const cancelBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#334155', border: 'none', color: '#fff', borderRadius: '10px' };
