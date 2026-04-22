@@ -35,10 +35,9 @@ export default function CalendarPage() {
     desc: "" 
   });
 
-  // API hívások a kép alapján pontosítva
   const fetchEvents = async () => {
     try {
-      const res = await fetch('/api/calendar'); 
+      const res = await fetch('/api/calendar');
       const data = await res.json();
       setEvents(Array.isArray(data) ? data : []);
     } catch (e) { console.error("Fetch hiba", e); }
@@ -46,8 +45,7 @@ export default function CalendarPage() {
 
   const fetchUnits = async () => {
     try {
-      // Ügyfelek listájának lekérése az API-ból
-      const res = await fetch('/api/calendar/units'); 
+      const res = await fetch('/api/calendar/units');
       const data = await res.json();
       setUnits(Array.isArray(data) ? data : []);
     } catch (e) { console.error("Units hiba", e); }
@@ -165,7 +163,6 @@ export default function CalendarPage() {
               </select>
               <button 
                 title="Új ügyfél létrehozása"
-                // A kép alapján az ügyfélkezelő oldal útvonala:
                 onClick={() => router.push("/admin/clients")} 
                 style={{ ...navBtn, fontSize: '18px', padding: '0 15px', background: '#3b82f6' }}
               >
