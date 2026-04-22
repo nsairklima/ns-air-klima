@@ -30,8 +30,14 @@ export default function CalendarPage() {
     });
   };
 
+  // 1. LÉPÉS: Frissítés kényszerítése (cache: 'no-store')
   const fetchUnits = () => {
-    fetch('/api/calendar/units').then(res => res.json()).then(data => setUnits(Array.isArray(data) ? data : []));
+    fetch('/api/calendar/units', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(data => {
+        setUnits(Array.isArray(data) ? data : []);
+      })
+      .catch(err => console.error("Hiba az ügyfelek betöltésekor:", err));
   };
 
   useEffect(() => {
@@ -86,7 +92,14 @@ export default function CalendarPage() {
           </button>
 
           <div style={rightControls}>
-            <button onClick={() => setShowModal(true)} style={addBtn}>
+            {/* 2. LÉPÉS: Gombnyomásra is frissítjük az ügyféllistát */}
+            <button 
+              onClick={() => {
+                fetchUnits();
+                setShowModal(true);
+              }} 
+              style={addBtn}
+            >
               + ÚJ BEJEGYZÉS
             </button>
             <div style={navGroup}>
@@ -162,7 +175,7 @@ export default function CalendarPage() {
   );
 }
 
-// --- JAVÍTOTT STÍLUSOK SZÉLESEBB GOMBOKKAL ---
+// --- STÍLUSOK ---
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "10px", fontFamily: "sans-serif" };
 
 const headerContainer: React.CSSProperties = {
@@ -190,7 +203,7 @@ const rightControls: React.CSSProperties = {
 
 const navGroup: React.CSSProperties = {
   display: "flex",
-  gap: "4px", // Hézag a két léptető gomb között
+  gap: "4px",
   alignItems: "center"
 };
 
@@ -219,7 +232,7 @@ const navBtn: React.CSSProperties = {
   color: "#fff", 
   cursor: "pointer", 
   background: "#222", 
-  padding: "6px 18px", // Szélesebb belső margó a könnyebb kattintáshoz
+  padding: "6px 18px", 
   fontSize: "18px",
   borderRadius: "6px",
   display: "flex",
