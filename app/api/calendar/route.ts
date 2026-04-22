@@ -18,11 +18,9 @@ export async function GET() {
     const events = maintenances.map(m => ({
       id: m.id,
       unitId: m.unitId,
-      // Megtartjuk az ISO formátumot a pontosabb megjelenítéshez (időponttal együtt)
       date: m.performedDate ? m.performedDate.toISOString() : null,
       title: `${m.unit.client.name} - ${m.unit.brand} ${m.unit.model}`,
       description: m.description || "",
-      // ITT VOLT A HIBA: Be kell adni a típust a frontendnek
       type: m.type || "MAINTENANCE", 
       status: "COMPLETED" 
     })).filter(e => e.date !== null);
@@ -37,14 +35,14 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { unitId, performedDate, description, type } = body; // type kinyerése
+    const { unitId, performedDate, description, type } = body; 
     
     const newLog = await prisma.maintenanceLog.create({
       data: {
         unitId: parseInt(unitId),
         performedDate: new Date(performedDate),
         description: description || "",
-        type: type || "MAINTENANCE", // ITT VOLT A HIBA: Mentés az adatbázisba
+        type: type || "MAINTENANCE", 
       }
     });
     return NextResponse.json(newLog);
@@ -57,14 +55,14 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, description, performedDate, type } = body; // type kinyerése
+    const { id, description, performedDate, type } = body; 
     
     const updatedLog = await prisma.maintenanceLog.update({
       where: { id: parseInt(id) },
       data: {
         description: description,
         performedDate: new Date(performedDate),
-        type: type, // ITT VOLT A HIBA: Frissítés az adatbázisban
+        type: type, 
       },
     });
     return NextResponse.json(updatedLog);
