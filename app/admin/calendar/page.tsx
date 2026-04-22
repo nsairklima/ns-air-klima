@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// ... (TYPE_COLORS változatlan)
 const TYPE_COLORS: Record<string, string> = {
   INSTALLATION: "#2ecc71", 
   MAINTENANCE: "#0078d7",  
@@ -80,15 +79,15 @@ export default function CalendarPage() {
   return (
     <div style={pageStyle}>
       <header style={headerContainer}>
-        {/* FELSŐ SOR: GOMBOK */}
+        {/* FELSŐ VEZÉRLŐSÁV */}
         <div style={topActionRow}>
           <button onClick={() => router.push("/")} style={backBtn}>
-            <span>⬅</span> <span className="hide-on-mobile">VISSZA</span>
+            ⬅ VISSZA
           </button>
 
           <div style={rightControls}>
             <button onClick={() => setShowModal(true)} style={addBtn}>
-              <span>+</span><span className="hide-on-mobile"> ÚJ</span>
+              + ÚJ BEJEGYZÉS
             </button>
             <div style={navGroup}>
               <button onClick={() => changeMonth(-1)} style={navBtn}>‹</button>
@@ -97,23 +96,17 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* ALSÓ SOR: HÓNAP CÍME */}
+        {/* CÍM SÁV */}
         <h1 style={titleStyle}>
-          {monthNames[currentDate.getMonth()]} <span style={{ opacity: 0.5 }}>{currentDate.getFullYear()}</span>
+          {monthNames[currentDate.getMonth()]} <span style={{ opacity: 0.4, fontWeight: 300 }}>{currentDate.getFullYear()}</span>
         </h1>
       </header>
 
-      <style jsx>{`
-        @media (max-width: 600px) {
-          .hide-on-mobile { display: none; }
-        }
-      `}</style>
-
-      {/* ... (Modal és Naptár rács változatlan) */}
+      {/* NAPTÁR ÉS MODAL RÉSZ */}
       {showModal && (
         <div style={modalOverlay}>
           <div style={modalContent}>
-            <h2 style={{marginTop: 0, fontSize: '20px', color: '#fff'}}>{editingId ? "Szerkesztés" : "Új munka"}</h2>
+            <h2 style={{marginTop: 0, fontSize: '18px', color: '#fff'}}>{editingId ? "Módosítás" : "Új feladat"}</h2>
             <label style={labelStyle}>Típus:</label>
             <div style={{display: 'flex', gap: '5px', marginBottom: '15px'}}>
               <button onClick={() => setNewEntry({...newEntry, type: 'MAINTENANCE'})} style={{...typeBtn, backgroundColor: newEntry.type === 'MAINTENANCE' ? TYPE_COLORS.MAINTENANCE : '#333'}}>Karbantartás</button>
@@ -169,75 +162,87 @@ export default function CalendarPage() {
   );
 }
 
-// --- STÍLUSOK ---
+// --- JAVÍTOTT STÍLUSOK ---
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "10px", fontFamily: "sans-serif" };
 
 const headerContainer: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "15px",
-  marginBottom: "20px",
+  gap: "12px",
+  marginBottom: "15px",
   maxWidth: "1200px",
-  margin: "0 auto 20px auto"
+  margin: "0 auto 15px auto"
 };
 
 const topActionRow: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  width: "100%"
+  width: "100%",
+  gap: "5px"
 };
 
 const rightControls: React.CSSProperties = {
   display: "flex",
-  gap: "8px",
+  gap: "5px",
   alignItems: "center"
 };
 
 const navGroup: React.CSSProperties = {
   display: "flex",
-  gap: "2px",
-  background: "#222",
+  gap: "1px",
+  background: "#333",
   borderRadius: "6px",
-  padding: "2px"
+  padding: "2px",
+  border: "1px solid #444"
 };
 
 const titleStyle: React.CSSProperties = { 
-  fontSize: "26px", 
+  fontSize: "24px", 
   fontWeight: "bold", 
   margin: 0, 
   textAlign: "left",
-  paddingLeft: "5px"
+  paddingLeft: "2px",
+  letterSpacing: "-0.5px"
 };
 
 const backBtn: React.CSSProperties = { 
   background: "transparent", 
-  border: "1px solid #2ecc71", 
-  color: "#2ecc71", 
-  padding: "8px 12px", 
+  border: "1px solid #444", 
+  color: "#aaa", 
+  padding: "6px 10px", 
   cursor: "pointer", 
-  borderRadius: '8px',
-  fontWeight: "bold",
-  fontSize: "13px",
-  display: "flex",
-  alignItems: "center",
-  gap: "6px"
+  borderRadius: '6px',
+  fontWeight: "600",
+  fontSize: "11px",
+  whiteSpace: "nowrap"
 };
 
-const navBtn: React.CSSProperties = { border: "none", color: "#fff", cursor: "pointer", background: "transparent", padding: "6px 15px", fontSize: "18px" };
-const addBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "8px 14px", cursor: "pointer", fontWeight: "bold", fontSize: "14px", borderRadius: '8px' };
+const navBtn: React.CSSProperties = { border: "none", color: "#fff", cursor: "pointer", background: "transparent", padding: "4px 10px", fontSize: "16px" };
+
+const addBtn: React.CSSProperties = { 
+  background: "#2ecc71", 
+  border: "none", 
+  color: "#fff", 
+  padding: "7px 10px", 
+  cursor: "pointer", 
+  fontWeight: "bold", 
+  fontSize: "11px", 
+  borderRadius: '6px',
+  whiteSpace: "nowrap"
+};
 
 const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "1px", backgroundColor: "#333", border: "1px solid #333" };
-const dayHeader: React.CSSProperties = { backgroundColor: "#000", padding: "10px 0", textAlign: "center", fontSize: "11px", color: "#555" };
-const cellStyle: React.CSSProperties = { minHeight: "70px", padding: "4px", position: 'relative', cursor: "pointer" };
+const dayHeader: React.CSSProperties = { backgroundColor: "#000", padding: "8px 0", textAlign: "center", fontSize: "10px", color: "#444", fontWeight: "bold" };
+const cellStyle: React.CSSProperties = { minHeight: "65px", padding: "4px", position: 'relative', cursor: "pointer" };
 const emptyCell: React.CSSProperties = { backgroundColor: "#000" };
-const dayNum: React.CSSProperties = { fontSize: "13px", fontWeight: "bold" };
-const eventContainer: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: "2px", marginTop: "4px" };
-const eventBadge: React.CSSProperties = { width: "6px", height: "6px", borderRadius: "50%" };
+const dayNum: React.CSSProperties = { fontSize: "12px", fontWeight: "600" };
+const eventContainer: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "4px" };
+const eventBadge: React.CSSProperties = { width: "5px", height: "5px", borderRadius: "50%" };
 
-const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
-const modalContent: React.CSSProperties = { background: '#111', padding: '20px', border: '1px solid #333', width: '90%', maxWidth: '400px', borderRadius: '15px' };
-const inputStyle: React.CSSProperties = { background: '#222', border: '1px solid #444', color: '#fff', padding: '12px', marginBottom: '10px', borderRadius: '8px', width: '100%' };
-const labelStyle: React.CSSProperties = { fontSize: '10px', color: '#888', marginBottom: '4px', display: 'block' };
-const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '8px 2px', fontSize: '10px', borderRadius: '5px' };
-const saveBtnStyle: React.CSSProperties = { border: "none", color: "#fff", padding: "12px", borderRadius: "8px", fontWeight: "bold" };
+const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
+const modalContent: React.CSSProperties = { background: '#111', padding: '20px', border: '1px solid #333', width: '92%', maxWidth: '380px', borderRadius: '12px' };
+const inputStyle: React.CSSProperties = { background: '#222', border: '1px solid #444', color: '#fff', padding: '10px', marginBottom: '10px', borderRadius: '6px', width: '100%', fontSize: '14px' };
+const labelStyle: React.CSSProperties = { fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block', fontWeight: 'bold' };
+const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '8px 2px', fontSize: '10px', borderRadius: '4px', cursor: 'pointer' };
+const saveBtnStyle: React.CSSProperties = { border: "none", color: "#fff", padding: "10px", borderRadius: "6px", fontWeight: "bold", cursor: 'pointer' };
