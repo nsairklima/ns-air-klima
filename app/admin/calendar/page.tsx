@@ -25,7 +25,6 @@ export default function CalendarPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [activeType, setActiveType] = useState("MAINTENANCE");
 
-  const [touchStart, setTouchStart] = useState<number | null>(null);
   const [translateX, setTranslateX] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
@@ -79,13 +78,6 @@ export default function CalendarPage() {
     }
   };
 
-  const prevMonth = () => { if (isTransitioning) return; setIsTransitioning(true); setTranslateX(100); setTimeout(() => { setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)); setTranslateX(-100); setTimeout(() => { setTranslateX(0); setIsTransitioning(false); }, 50); }, 150); };
-  const nextMonth = () => { if (isTransitioning) return; setIsTransitioning(true); setTranslateX(-100); setTimeout(() => { setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)); setTranslateX(100); setTimeout(() => { setTranslateX(0); setIsTransitioning(false); }, 50); }, 150); };
-  
-  const handleTouchStart = (e: React.TouchEvent) => { if (selectedDate) return; setTouchStart(e.targetTouches[0].clientX); };
-  const handleTouchMove = (e: React.TouchEvent) => { if (touchStart === null || selectedDate) return; setTranslateX((e.targetTouches[0].clientX - touchStart) * 0.6); };
-  const handleTouchEnd = () => { if (touchStart === null || selectedDate) return; if (translateX > 80) prevMonth(); else if (translateX < -80) nextMonth(); else setTranslateX(0); setTouchStart(null); };
-
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
   const offset = firstDay === 0 ? 6 : firstDay - 1;
@@ -94,7 +86,6 @@ export default function CalendarPage() {
   return (
     <div style={pageStyle}>
       <style>{`
-        .calendar-content { transition: ${isTransitioning ? 'transform 0.15s ease-out, opacity 0.15s' : 'none'}; opacity: ${isTransitioning ? 0.3 : 1}; }
         .type-btn { flex: 1; border: 2px solid transparent; color: #fff; padding: 10px; borderRadius: 8px; cursor: pointer; font-size: 11px; opacity: 0.5; transition: 0.2s; }
         .type-btn.active { opacity: 1; border-color: white; transform: scale(1.05); }
         .input-container { position: relative; display: flex; align-items: center; width: 100%; }
@@ -110,16 +101,13 @@ export default function CalendarPage() {
           {!selectedDate && (
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => { setEditingId(null); setShowModal(true); }} style={quickAddBtn}>+ ÚJ</button>
-              <button onClick={prevMonth} style={navBtn}>‹</button>
-              <button onClick={nextMonth} style={navBtn}>›</button>
             </div>
           )}
         </div>
         <h1 style={monthTitle}>{selectedDate ? `📅 ${selectedDate}` : `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}</h1>
       </header>
 
-      <main style={{ flex: 1, overflow: 'hidden', touchAction: 'pan-y' }} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-        <div className="calendar-content" style={{ transform: `translateX(${translateX}px)`, height: '100%' }}>
+      <main style={{ flex: 1, overflowY: 'auto' }}>
           {selectedDate ? (
             <div style={dailyContainer}>
               <button onClick={() => { setNewEntry({...newEntry, date: `${selectedDate}T08:00`}); setEditingId(null); setShowModal(true); }} style={addFullBtn}>+ ÚJ FELADAT ERRE A NAPRA</button>
@@ -152,32 +140,43 @@ export default function CalendarPage() {
               })}
             </div>
           )}
-        </div>
       </main>
 
       {showModal && (
         <div style={modalOverlay}>
           <div style={modalContent}>
             <h3 style={{marginTop: 0}}>Bejegyzés rögzítése</h3>
-            <div style={{display: 'flex', gap: '8px', marginBottom: '15px'}}>
+            <div style={{display: 'flex', gap: '5px', marginBottom: '15px'}}>
               {Object.keys(TYPE_COLORS).map(t => (
                 <button key={t} className={`type-btn ${activeType === t ? 'active' : ''}`} onClick={() => setActiveType(t)} style={{ backgroundColor: TYPE_COLORS[t] }}>{TYPE_LABELS[t]}</button>
               ))}
             </div>
 
-            {/* AZ ÁLTALAD KÉRT ÚJ ÜGYFÉL GOMB RÉSZ */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <select style={{ ...inputStyle, marginBottom: 0, flex: 1 }} value={newEntry.unitId} onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}>
-                <option value="">-- Ügyfél választása --</option>
-                {units.map(u => <option key={u.id} value={u.id}>{u.displayName || u.model}</option>)}
-              </select>
-              <button 
-                onClick={() => router.push("/admin/units")} 
-                style={{ background: '#333', border: '1px solid #444', color: '#fff', borderRadius: '8px', padding: '0 15px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                type="button"
-              >
-                + ÜGYFÉL
-              </button>
+            {/* PONTOSAN AZ ÁLTALAD BEKÜLDÖTT RÉSZ */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
+                <select 
+                  style={{ ...inputStyle, marginBottom: 0, flex: 1 }} 
+                  value={newEntry.unitId} 
+                  onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
+                >
+                  <option value="">-- Válassz --</option>
+                  {units.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                </select>
+                <button 
+                  onClick={() => router.push("/admin/units")}
+                  style={{ 
+                    background: '#333', 
+                    border: '1px solid #444', 
+                    color: '#fff', 
+                    borderRadius: '8px', 
+                    padding: '0 15px', 
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  + ÜGYFÉL
+                </button>
             </div>
 
             <div className="input-container">
@@ -207,7 +206,6 @@ const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column
 const headerContainer: React.CSSProperties = { marginBottom: '10px', borderBottom: '1px solid #334155', paddingBottom: '10px' };
 const monthTitle: React.CSSProperties = { fontSize: '20px', marginTop: '10px', fontWeight: '800' };
 const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid #334155", color: "#fff", padding: "8px 12px", borderRadius: "10px", fontSize: "13px" };
-const navBtn: React.CSSProperties = { background: "#334155", border: "none", color: "#fff", padding: "8px 14px", borderRadius: "10px" };
 const quickAddBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "8px 16px", borderRadius: "10px", fontWeight: "bold" };
 const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px", background: "#334155", padding: "2px", borderRadius: "8px" };
 const dayHeader: React.CSSProperties = { padding: "6px 0", textAlign: "center", fontSize: "11px", color: "#94a3b8" };
@@ -215,9 +213,9 @@ const cellStyle: React.CSSProperties = { minHeight: "75px", padding: "4px", back
 const emptyCell: React.CSSProperties = { background: "#0f172a" };
 const eventStack: React.CSSProperties = { display: "flex", gap: "2px", flexWrap: 'wrap' };
 const miniBar: React.CSSProperties = { width: "100%", height: "4px", borderRadius: "2px" };
-const dailyContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' };
+const dailyContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '10px' };
 const dailyCard: React.CSSProperties = { background: '#1e293b', padding: '15px', borderRadius: '12px' };
-const addFullBtn: React.CSSProperties = { background: '#2ecc71', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 'bold' };
+const addFullBtn: React.CSSProperties = { background: '#2ecc71', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 'bold', marginBottom: '10px' };
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#1e293b', padding: '20px', borderRadius: '16px', width: '95%', maxWidth: '400px' };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '12px', marginBottom: '12px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '8px', fontSize: '14px', colorScheme: 'dark' };
