@@ -35,10 +35,10 @@ export default function CalendarPage() {
     desc: "" 
   });
 
-  // JAVÍTVA: A kép alapján az API útvonalak pontosítása
+  // API hívások a kép alapján pontosítva
   const fetchEvents = async () => {
     try {
-      const res = await fetch('/api/calendar'); // Ellenőrizd: app/api/calendar/route.ts létezik?
+      const res = await fetch('/api/calendar'); 
       const data = await res.json();
       setEvents(Array.isArray(data) ? data : []);
     } catch (e) { console.error("Fetch hiba", e); }
@@ -46,7 +46,7 @@ export default function CalendarPage() {
 
   const fetchUnits = async () => {
     try {
-      // JAVÍTVA: A kép alapján az ügyfelek listája valószínűleg itt van
+      // Ügyfelek listájának lekérése az API-ból
       const res = await fetch('/api/calendar/units'); 
       const data = await res.json();
       setUnits(Array.isArray(data) ? data : []);
@@ -165,7 +165,7 @@ export default function CalendarPage() {
               </select>
               <button 
                 title="Új ügyfél létrehozása"
-                // JAVÍTVA: A kép alapján az ügyfélkezelő oldalad valószínűleg itt van
+                // A kép alapján az ügyfélkezelő oldal útvonala:
                 onClick={() => router.push("/admin/clients")} 
                 style={{ ...navBtn, fontSize: '18px', padding: '0 15px', background: '#3b82f6' }}
               >
@@ -185,7 +185,6 @@ export default function CalendarPage() {
   );
 }
 
-// ... stílusok változatlanok ...
 const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', height: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "10px", fontFamily: "sans-serif", overflow: "hidden" };
 const headerContainer: React.CSSProperties = { marginBottom: '10px', borderBottom: '1px solid #334155', paddingBottom: '10px' };
 const monthTitle: React.CSSProperties = { fontSize: '20px', marginTop: '10px', fontWeight: '800' };
