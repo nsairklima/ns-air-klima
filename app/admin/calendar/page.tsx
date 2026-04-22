@@ -97,29 +97,47 @@ export default function CalendarPage() {
       {showModal && (
         <div style={modalOverlay}>
           <div style={modalContent}>
-            <h2 style={{marginTop: 0, fontSize: '20px', color: '#fff'}}>{editingId ? "Szerkesztés" : "Új munka"}</h2>
+            <h2 style={{marginTop: 0, fontSize: '20px', color: '#fff'}}>{editingId ? "Szerkesztés" : "Új munka rögzítése"}</h2>
+            
             <label style={labelStyle}>Típus:</label>
             <div style={{display: 'flex', gap: '5px', marginBottom: '15px'}}>
               <button onClick={() => setNewEntry({...newEntry, type: 'MAINTENANCE'})} style={{...typeBtn, backgroundColor: newEntry.type === 'MAINTENANCE' ? TYPE_COLORS.MAINTENANCE : '#333'}}>Karbantartás</button>
               <button onClick={() => setNewEntry({...newEntry, type: 'INSTALLATION'})} style={{...typeBtn, backgroundColor: newEntry.type === 'INSTALLATION' ? TYPE_COLORS.INSTALLATION : '#333'}}>Telepítés</button>
               <button onClick={() => setNewEntry({...newEntry, type: 'REPAIR'})} style={{...typeBtn, backgroundColor: newEntry.type === 'REPAIR' ? TYPE_COLORS.REPAIR : '#333'}}>Javítás</button>
             </div>
+
             {!editingId && (
               <>
-                <label style={labelStyle}>Ügyfél:</label>
-                <select style={inputStyle} value={newEntry.unitId} onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}>
-                  <option value="">-- Válassz --</option>
-                  {units.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                <label style={labelStyle}>Ügyfél és Gép kiválasztása:</label>
+                <select 
+                  style={{...inputStyle, cursor: 'pointer', border: '1px solid #2ecc71'}} 
+                  value={newEntry.unitId} 
+                  onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
+                >
+                  <option value="">-- Válassz ügyfelet --</option>
+                  {units.map(u => (
+                    <option key={u.id} value={u.id}>{u.displayName}</option>
+                  ))}
                 </select>
+                <button 
+                  onClick={() => router.push("/clients")}
+                  style={{ background: 'none', border: 'none', color: '#2ecc71', fontSize: '12px', textAlign: 'left', marginBottom: '15px', cursor: 'pointer', padding: '0 5px' }}
+                >
+                  + Nincs a listában? Új ügyfél hozzáadása
+                </button>
               </>
             )}
+
             <label style={labelStyle}>Dátum:</label>
             <input type="date" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
-            <label style={labelStyle}>Megjegyzés:</label>
+            
+            <label style={labelStyle}>Megjegyzés (Pl. kültéri tisztítás):</label>
             <textarea style={{...inputStyle, minHeight: '60px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
+            
             <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-              <button onClick={handleSave} style={{...navBtn, background: '#2ecc71', padding: '12px', borderRadius: '4px'}}>Mentés</button>
-              <button onClick={closeModal} style={{...navBtn, background: '#444', padding: '12px', borderRadius: '4px'}}>Mégse</button>
+              <button onClick={handleSave} style={{...saveBtnStyle, background: '#2ecc71'}}>Mentés</button>
+              {editingId && <button onClick={handleDelete} style={{...saveBtnStyle, background: '#e74c3c'}}>Törlés</button>}
+              <button onClick={closeModal} style={{...saveBtnStyle, background: '#444'}}>Mégse</button>
             </div>
           </div>
         </div>
@@ -140,7 +158,7 @@ export default function CalendarPage() {
             return (
               <div key={day} onClick={() => { if(!showModal) { setNewEntry({...newEntry, date: dateStr}); setShowModal(true); } }}
                 style={{...cellStyle, border: isToday ? "2px solid #2ecc71" : "1px solid #444", backgroundColor: isToday ? "#0a2a1a" : "#1a1a1a"}}>
-                <span style={{...dayNum, color: isToday ? "#2ecc71" : "#eee", opacity: 1}}>{day}</span>
+                <span style={{...dayNum, color: isToday ? "#2ecc71" : "#eee"}}>{day}</span>
                 <div style={eventContainer}>
                   {dayEvents.map((ev) => (
                     <div key={ev.id} style={{...eventBadge, backgroundColor: TYPE_COLORS[ev.type] || TYPE_COLORS.MAINTENANCE}}
@@ -158,23 +176,24 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK FRISSÍTVE: Világosabb keretek és sötét háttér
-const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "20px", fontFamily: "'Segoe UI', sans-serif" };
-const headerStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", maxWidth: "1200px", margin: "0 auto 30px auto", backgroundColor: "#000", padding: "10px", borderRadius: "8px" };
-const titleStyle: React.CSSProperties = { fontSize: "28px", fontWeight: "normal", margin: 0, color: "#fff" };
+// --- STÍLUSOK (Vizuális és funkcionális javításokkal) ---
+const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "20px", fontFamily: "sans-serif" };
+const headerStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", maxWidth: "1200px", margin: "0 auto 30px auto" };
+const titleStyle: React.CSSProperties = { fontSize: "28px", fontWeight: "normal", margin: 0 };
 const backBtn: React.CSSProperties = { background: "#222", border: "1px solid #444", color: "#fff", padding: "8px 15px", cursor: "pointer", borderRadius: '4px' };
 const navBtns: React.CSSProperties = { display: "flex", gap: "8px", alignItems: 'center' };
 const navBtn: React.CSSProperties = { border: "1px solid #444", color: "#fff", cursor: "pointer", background: "#222", padding: "5px 15px", fontSize: "20px", borderRadius: "4px" };
 const addBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "8px 15px", cursor: "pointer", fontWeight: "bold", fontSize: "14px", borderRadius: '4px' };
 const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "1px", backgroundColor: "#555", border: "1px solid #555", maxWidth: "1200px", margin: "0 auto" };
-const dayHeader: React.CSSProperties = { backgroundColor: "#111", padding: "10px", textAlign: "center", fontSize: "12px", color: "#bbb", fontWeight: "bold" };
-const cellStyle: React.CSSProperties = { minHeight: "120px", padding: "8px", display: "flex", flexDirection: "column", transition: '0.2s' };
+const dayHeader: React.CSSProperties = { backgroundColor: "#111", padding: "10px", textAlign: "center", fontSize: "12px", color: "#bbb" };
+const cellStyle: React.CSSProperties = { minHeight: "120px", padding: "8px", display: "flex", flexDirection: "column" };
 const emptyCell: React.CSSProperties = { backgroundColor: "#000" };
 const dayNum: React.CSSProperties = { fontSize: "16px", marginBottom: "5px", fontWeight: "500" };
 const eventContainer: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "4px" };
-const eventBadge: React.CSSProperties = { padding: "4px 8px", fontSize: "11px", borderRadius: "3px", color: "#fff", fontWeight: "bold" };
+const eventBadge: React.CSSProperties = { padding: "4px 8px", fontSize: "11px", borderRadius: "3px", color: "#fff", fontWeight: "bold", cursor: 'pointer' };
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
-const modalContent: React.CSSProperties = { background: '#1a1a1a', padding: '25px', border: '1px solid #444', width: '380px', borderRadius: '12px' };
-const inputStyle: React.CSSProperties = { background: '#2a2a2a', border: '1px solid #444', color: '#fff', padding: '12px', marginBottom: '15px', borderRadius: '6px', width: '100%' };
-const labelStyle: React.CSSProperties = { fontSize: '11px', marginBottom: '6px', color: '#aaa', textTransform: 'uppercase' };
-const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '8px 5px', fontSize: '11px', cursor: 'pointer', borderRadius: '4px' };
+const modalContent: React.CSSProperties = { background: '#1a1a1a', padding: '25px', border: '1px solid #444', width: '90%', maxWidth: '400px', borderRadius: '12px' };
+const inputStyle: React.CSSProperties = { background: '#2a2a2a', border: '1px solid #444', color: '#fff', padding: '14px', marginBottom: '10px', borderRadius: '8px', width: '100%', fontSize: '16px', boxSizing: 'border-box' };
+const labelStyle: React.CSSProperties = { fontSize: '11px', marginBottom: '6px', color: '#aaa', textTransform: 'uppercase', display: 'block' };
+const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '10px 5px', fontSize: '11px', cursor: 'pointer', borderRadius: '6px' };
+const saveBtnStyle: React.CSSProperties = { border: "none", color: "#fff", cursor: "pointer", padding: "14px", borderRadius: "8px", fontSize: "16px", fontWeight: "bold" };
