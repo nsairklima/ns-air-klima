@@ -162,7 +162,7 @@ export default function CalendarPage() {
   );
 }
 
-// --- JAVÍTOTT STÍLUSOK ---
+// --- JAVÍTOTT STÍLUSOK SZÉLESEBB GOMBOKKAL ---
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "10px", fontFamily: "sans-serif" };
 
 const headerContainer: React.CSSProperties = {
@@ -179,22 +179,19 @@ const topActionRow: React.CSSProperties = {
   justifyContent: "space-between",
   alignItems: "center",
   width: "100%",
-  gap: "5px"
+  gap: "8px"
 };
 
 const rightControls: React.CSSProperties = {
   display: "flex",
-  gap: "5px",
+  gap: "8px",
   alignItems: "center"
 };
 
 const navGroup: React.CSSProperties = {
   display: "flex",
-  gap: "1px",
-  background: "#333",
-  borderRadius: "6px",
-  padding: "2px",
-  border: "1px solid #444"
+  gap: "4px", // Hézag a két léptető gomb között
+  alignItems: "center"
 };
 
 const titleStyle: React.CSSProperties = { 
@@ -202,33 +199,43 @@ const titleStyle: React.CSSProperties = {
   fontWeight: "bold", 
   margin: 0, 
   textAlign: "left",
-  paddingLeft: "2px",
-  letterSpacing: "-0.5px"
+  paddingLeft: "2px"
 };
 
 const backBtn: React.CSSProperties = { 
   background: "transparent", 
   border: "1px solid #444", 
   color: "#aaa", 
-  padding: "6px 10px", 
+  padding: "8px 12px", 
   cursor: "pointer", 
-  borderRadius: '6px',
+  borderRadius: '8px',
   fontWeight: "600",
   fontSize: "11px",
   whiteSpace: "nowrap"
 };
 
-const navBtn: React.CSSProperties = { border: "none", color: "#fff", cursor: "pointer", background: "transparent", padding: "4px 10px", fontSize: "16px" };
+const navBtn: React.CSSProperties = { 
+  border: "1px solid #444", 
+  color: "#fff", 
+  cursor: "pointer", 
+  background: "#222", 
+  padding: "6px 18px", // Szélesebb belső margó a könnyebb kattintáshoz
+  fontSize: "18px",
+  borderRadius: "6px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+};
 
 const addBtn: React.CSSProperties = { 
   background: "#2ecc71", 
   border: "none", 
   color: "#fff", 
-  padding: "7px 10px", 
+  padding: "10px 14px", 
   cursor: "pointer", 
   fontWeight: "bold", 
   fontSize: "11px", 
-  borderRadius: '6px',
+  borderRadius: '8px',
   whiteSpace: "nowrap"
 };
 
