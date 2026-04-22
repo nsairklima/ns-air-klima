@@ -7,7 +7,7 @@ export default function CalendarPage() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<any[]>([]);
-  const [units, setUnits] = useState<any[]>([]); // Ügyfelek/Egységek listája
+  const [units, setUnits] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   
   const [showModal, setShowModal] = useState(false);
@@ -27,7 +27,6 @@ export default function CalendarPage() {
   };
 
   const fetchUnits = () => {
-    // Feltételezzük, hogy létrehoztad az elöző válaszban javasolt /api/calendar/units végpontot
     fetch('/api/calendar/units')
       .then(res => res.json())
       .then(data => setUnits(Array.isArray(data) ? data : []));
@@ -110,7 +109,9 @@ export default function CalendarPage() {
       {showModal && (
         <div style={modalOverlay}>
           <div style={modalContent}>
-            <h2 style={{marginTop: 0, fontSize: '20px'}}>{editingId ? "Szerkesztés" : "Új karbantartás"}</h2>
+            <h2 style={{marginTop: 0, fontSize: '20px'}}>
+               {editingId ? "Bejegyzés szerkesztése" : "Új munka rögzítése"}
+            </h2>
             
             {!editingId && (
               <>
@@ -129,7 +130,7 @@ export default function CalendarPage() {
                   onClick={() => router.push("/clients")} 
                   style={{background: 'none', border: 'none', color: '#2ecc71', fontSize: '11px', textAlign: 'left', marginBottom: '15px', cursor: 'pointer', padding: 0}}
                 >
-                  + Nincs a listában? Új ügyfél rögzítése
+                  + Új ügyfél vagy gép rögzítése
                 </button>
               </>
             )}
@@ -142,17 +143,17 @@ export default function CalendarPage() {
               onChange={e => setNewEntry({...newEntry, date: e.target.value})} 
             />
             
-            <label style={labelStyle}>Leírás (opcionális):</label>
+            <label style={labelStyle}>Munka leírása (pl. Telepítés, Karbantartás):</label>
             <textarea 
-              style={{...inputStyle, minHeight: '60px'}} 
-              placeholder="Pl. Szűrőcsere, gáztöltés..."
+              style={{...inputStyle, minHeight: '80px'}} 
+              placeholder="Írd ide a feladatot: pl. Gree Pulse telepítés vagy éves tisztítás..."
               value={newEntry.desc}
               onChange={e => setNewEntry({...newEntry, desc: e.target.value})} 
             />
             
             <div style={{display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px'}}>
               <button onClick={handleSave} style={{...navBtn, background: '#2ecc71', fontSize: '16px', padding: '12px', borderRadius: '4px'}}>
-                {editingId ? "Módosítások mentése" : "Rögzítés a naptárba"}
+                {editingId ? "Módosítások mentése" : "Mentés a naptárba"}
               </button>
               
               {editingId && (
@@ -226,7 +227,6 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK (ugyanazok, amiket használtál, apró finomításokkal)
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#111', padding: '25px', border: '1px solid #333', width: '380px', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', borderRadius: '8px' };
 const inputStyle: React.CSSProperties = { background: '#222', border: '1px solid #444', color: '#fff', padding: '12px', marginBottom: '15px', outline: 'none', fontFamily: 'inherit', borderRadius: '4px' };
