@@ -25,7 +25,7 @@ export default function CalendarPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   
-  // A 'date' mező most már YYYY-MM-DDTHH:mm formátumot fog kezelni
+  // Időpont kezelés: YYYY-MM-DDTHH:mm formátum az inputnak
   const [newEntry, setNewEntry] = useState({ unitId: "", title: "", date: "", desc: "", type: "MAINTENANCE" });
 
   const today = new Date();
@@ -54,7 +54,7 @@ export default function CalendarPage() {
     e.stopPropagation();
     setEditingId(eventData.id);
 
-    // Időpont formázása az input számára (ha nincs benne T, akkor alapértelmezett reggel 8 óra)
+    // Dátum formázása az input számára
     let formattedDate = eventData.date;
     if (formattedDate && !formattedDate.includes('T')) {
       formattedDate = `${formattedDate}T08:00`;
@@ -110,10 +110,9 @@ export default function CalendarPage() {
 
   return (
     <div style={pageStyle}>
-      {/* CSS injektálás a naptár ikon láthatóságához és a sötét mód támogatásához */}
       <style>{`
         input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-          filter: invert(1);
+          filter: invert(1) brightness(100%);
           cursor: pointer;
         }
         select option {
@@ -162,9 +161,7 @@ export default function CalendarPage() {
 
             <label style={labelStyle}>Ügyfél / Gép:</label>
             {editingId ? (
-              <div style={readonlyField}>
-                {newEntry.title}
-              </div>
+              <div style={readonlyField}>{newEntry.title}</div>
             ) : (
               <div style={{ marginBottom: '15px' }}>
                 <select 
@@ -178,7 +175,7 @@ export default function CalendarPage() {
               </div>
             )}
 
-            <label style={labelStyle}>Dátum és Idő:</label>
+            <label style={labelStyle}>Időpont:</label>
             <input 
               type="datetime-local" 
               style={inputStyle} 
@@ -208,7 +205,6 @@ export default function CalendarPage() {
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          // Csak a nap alapján szűrjük az eseményeket a naptárban
           const dayEvents = events.filter(e => e.date.startsWith(dateStr));
           const isToday = dateStr === todayStr;
           
@@ -219,7 +215,6 @@ export default function CalendarPage() {
               <span style={{...dayNum, color: isToday ? "#2ecc71" : "#888"}}>{day}</span>
               <div style={eventStack}>
                 {dayEvents.map((ev) => {
-                  // Idő kinyerése a megjelenítéshez
                   const timeStr = ev.date.includes('T') ? ev.date.split('T')[1].substring(0, 5) : "";
                   return (
                     <div 
@@ -241,7 +236,6 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK (Sávokra optimalizálva)
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "10px", fontFamily: "sans-serif" };
 const headerContainer: React.CSSProperties = { marginBottom: "15px", maxWidth: "1200px", margin: "0 auto 15px auto" };
 const topActionRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" };
@@ -251,27 +245,13 @@ const titleStyle: React.CSSProperties = { fontSize: "24px", fontWeight: "bold", 
 const backBtn: React.CSSProperties = { background: "#222", border: "1px solid #444", color: "#fff", padding: "8px 16px", borderRadius: '8px', cursor: "pointer" };
 const navBtn: React.CSSProperties = { border: "1px solid #444", color: "#fff", background: "#222", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "18px" };
 const addBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "10px 18px", fontWeight: "bold", borderRadius: '8px', cursor: "pointer" };
-
 const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "1px", backgroundColor: "#333", border: "1px solid #333" };
 const dayHeader: React.CSSProperties = { backgroundColor: "#000", padding: "10px 0", textAlign: "center", fontSize: "11px", color: "#666", fontWeight: "bold" };
 const cellStyle: React.CSSProperties = { minHeight: "120px", padding: "6px", backgroundColor: "#111", cursor: "pointer" };
 const emptyCell: React.CSSProperties = { backgroundColor: "#000" };
 const dayNum: React.CSSProperties = { fontSize: "14px", fontWeight: "bold", marginBottom: "8px", display: "block" };
-
 const eventStack: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "4px" };
-const eventBar: React.CSSProperties = { 
-  fontSize: "10px", 
-  padding: "4px 6px", 
-  borderRadius: "4px", 
-  color: "#fff", 
-  whiteSpace: "nowrap", 
-  overflow: "hidden", 
-  textOverflow: "ellipsis",
-  fontWeight: "bold",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-  borderLeft: "3px solid rgba(255,255,255,0.5)"
-};
-
+const eventBar: React.CSSProperties = { fontSize: "10px", padding: "4px 6px", borderRadius: "4px", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: "bold", boxShadow: "0 1px 3px rgba(0,0,0,0.3)", borderLeft: "3px solid rgba(255,255,255,0.5)" };
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#111', padding: '24px', border: '1px solid #333', width: '90%', maxWidth: '400px', borderRadius: '16px' };
 const inputStyle: React.CSSProperties = { background: '#222', border: '1px solid #444', color: '#fff', padding: '12px', marginBottom: '12px', borderRadius: '8px', width: '100%', fontSize: '15px', colorScheme: 'dark' };
