@@ -12,14 +12,15 @@ export async function GET() {
       }
     });
 
-    // Úgy formázzuk, hogy könnyű legyen megjeleníteni: "Ügyfél neve - Gép típusa"
+    // Itt volt a hiba: u.address nem létezik, csak u.client.address
     const formattedUnits = units.map(u => ({
       id: u.id,
-      displayName: `${u.client.name} | ${u.brand} (${u.address || u.client.address})`
+      displayName: `${u.client.name} | ${u.brand} - ${u.model} (${u.client.address})`
     }));
 
     return NextResponse.json(formattedUnits);
   } catch (error) {
+    console.error("Hiba az egységek lekérésekor:", error);
     return NextResponse.json({ error: "Hiba az egységek lekérésekor" }, { status: 500 });
   }
 }
