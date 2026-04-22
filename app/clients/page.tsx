@@ -45,10 +45,8 @@ export default function ClientsPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
-  // --- ÜGYFÉL TÖRLÉSE A LISTÁBÓL ---
   async function handleDelete(id: number, clientName: string) {
     if (!confirm(`⚠️ BIZTOSAN TÖRÖLNI AKAROD: ${clientName}?\nMinden hozzá tartozó gép és ajánlat is törlődni fog!`)) return;
-    
     try {
       const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
       if (res.ok) {
@@ -82,84 +80,182 @@ export default function ClientsPage() {
   }
 
   return (
-    <div style={{ padding: 32, fontFamily: "Arial, sans-serif", maxWidth: 1000, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h1>Ügyfelek</h1>
-        <Link href="/" style={{ color: "#3498db", textDecoration: "none", fontWeight: "bold" }}>← Dashboard</Link>
+    <div style={containerStyle}>
+      {/* FEJLÉC */}
+      <div style={headerStyle}>
+        <h1 style={{ margin: 0, fontSize: "24px" }}>Ügyfelek</h1>
+        <Link href="/admin/calendar" style={backLinkStyle}>← Naptár</Link>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
-        {/* BAL OLDAL: Űrlap */}
-        <div>
-          <form onSubmit={addClient} style={formStyle}>
-            <h3 style={{ margin: "0 0 15px 0" }}>Új ügyfél felvétele</h3>
-            <input placeholder="Név" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-            <input placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
-            <input placeholder="Telefon" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
-            <input placeholder="Cím" value={address} onChange={(e) => setAddress(e.target.value)} style={inputStyle} />
-            <button disabled={saving} style={btnPrimary}>
-              {saving ? "Mentés..." : "Ügyfél mentése"}
-            </button>
-          </form>
-          {error && <p style={{ color: "red", marginTop: 10 }}>{error}</p>}
-        </div>
+      {/* ŰRLAP SZEKCIÓ */}
+      <div style={sectionStyle}>
+        <form onSubmit={addClient} style={formStyle}>
+          <h3 style={{ margin: "0 0 15px 0", color: "#fff" }}>Új ügyfél felvétele</h3>
+          <input placeholder="Ügyfél neve *" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+          <input placeholder="Telefonszám" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
+          <input placeholder="E-mail cím" type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+          <textarea placeholder="Telepítési cím" value={address} onChange={(e) => setAddress(e.target.value)} style={{...inputStyle, minHeight: "80px", resize: "none"}} />
+          
+          <button disabled={saving} style={{...btnPrimary, backgroundColor: saving ? "#444" : "#2ecc71"}}>
+            {saving ? "Mentés..." : "Ügyfél mentése"}
+          </button>
+        </form>
+        {error && <p style={{ color: "#ff4d4d", marginTop: 10, fontSize: "14px" }}>{error}</p>}
+      </div>
 
-        {/* JOBB OLDAL: Kereső és Lista */}
-        <div>
+      {/* KERESŐ ÉS LISTA SZEKCIÓ */}
+      <div style={{ marginTop: "30px" }}>
+        <div style={{ position: "sticky", top: "10px", zIndex: 5, backgroundColor: "#000", paddingBottom: "10px" }}>
           <input 
             type="text"
-            placeholder="🔍 Keresés..."
+            placeholder="🔍 Keresés név vagy cím alapján..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ ...inputStyle, width: "100%", border: "2px solid #4DA3FF", marginBottom: 15 }}
+            style={searchFieldStyle}
           />
+        </div>
 
-          {loading && <p>Betöltés...</p>}
-          
-          <div style={{ display: "grid", gap: 12 }}>
-            {clients.map((c: any) => {
-              const hasUrgent = c.units?.some((u: any) => {
-                if (u.maintenance.length === 0) return true;
-                const last = new Date(u.maintenance[0].performedDate);
-                return (Math.ceil(Math.abs(new Date().getTime() - last.getTime()) / (1000*60*60*24))) >= 330;
-              });
+        {loading && <p style={{ textAlign: "center", opacity: 0.6 }}>Betöltés...</p>}
+        
+        <div style={{ display: "grid", gap: "15px", marginTop: "10px" }}>
+          {clients.map((c: any) => {
+            const hasUrgent = c.units?.some((u: any) => {
+              if (!u.maintenance || u.maintenance.length === 0) return true;
+              const last = new Date(u.maintenance[0].performedDate);
+              return (Math.ceil(Math.abs(new Date().getTime() - last.getTime()) / (1000*60*60*24))) >= 330;
+            });
 
-              return (
-                <div key={c.id} style={{ 
-                  ...cardStyle, 
-                  borderLeft: hasUrgent ? "6px solid #e74c3c" : "1px solid #ddd" 
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontWeight: "bold" }}>
-                        {c.name} {hasUrgent && "⚠️"}
-                      </div>
-                      <div style={{ fontSize: 12, color: "#666" }}>{c.address || "Nincs cím"}</div>
+            return (
+              <div key={c.id} style={{ 
+                ...cardStyle, 
+                borderLeft: hasUrgent ? "6px solid #e74c3c" : "1px solid #333" 
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: "bold", fontSize: "18px", marginBottom: "4px" }}>
+                      {c.name} {hasUrgent && "⚠️"}
                     </div>
-                    <div style={{ display: "flex", gap: 15, alignItems: "center" }}>
-                      <Link href={`/clients/${c.id}`} style={detailsLink}>Részletek →</Link>
-                      <button 
-                        onClick={() => handleDelete(c.id, c.name)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#e74c3c", fontSize: 16 }}
-                        title="Ügyfél törlése"
-                      >
-                        🗑️
-                      </button>
-                    </div>
+                    <div style={{ fontSize: "14px", color: "#bbb", marginBottom: "4px" }}>{c.phone || "Nincs tel."}</div>
+                    <div style={{ fontSize: "13px", color: "#888" }}>{c.address || "Nincs cím megadva"}</div>
+                  </div>
+                  
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-end" }}>
+                    <Link href={`/clients/${c.id}`} style={detailsBtnStyle}>Részletek</Link>
+                    <button 
+                      onClick={() => handleDelete(c.id, c.name)}
+                      style={deleteBtnStyle}
+                    >
+                      Törlés 🗑️
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-            {!loading && clients.length === 0 && <p style={{ color: "#999" }}>Nincs találat.</p>}
-          </div>
+              </div>
+            );
+          })}
+          {!loading && clients.length === 0 && (
+            <p style={{ textAlign: "center", color: "#666", marginTop: "20px" }}>Nincs ilyen nevű ügyfél.</p>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-const inputStyle = { padding: "10px", borderRadius: 6, border: "1px solid #ddd", marginBottom: 8, display: "block", width: "100%" as const };
-const formStyle = { padding: 20, border: "1px solid #ddd", borderRadius: 12, background: "#fafafa" };
-const cardStyle = { padding: 15, background: "#fff", borderRadius: 10, boxShadow: "0 2px 4px rgba(0,0,0,0.05)" };
-const btnPrimary = { background: "#4DA3FF", color: "#fff", border: "none", borderRadius: 6, padding: "12px", cursor: "pointer", width: "100%" as const, fontWeight: "bold" as const };
-const detailsLink = { color: "#4DA3FF", textDecoration: "none", fontSize: 13, fontWeight: "bold" as const };
+// --- MOBIL-OPTIMALIZÁLT STÍLUSOK ---
+
+const containerStyle: React.CSSProperties = {
+  padding: "15px",
+  backgroundColor: "#000",
+  minHeight: "100vh",
+  color: "#fff",
+  fontFamily: "sans-serif",
+  maxWidth: "600px",
+  margin: "0 auto"
+};
+
+const headerStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "20px",
+  paddingBottom: "10px",
+  borderBottom: "1px solid #222"
+};
+
+const backLinkStyle: React.CSSProperties = {
+  color: "#2ecc71",
+  textDecoration: "none",
+  fontWeight: "bold",
+  fontSize: "14px"
+};
+
+const sectionStyle: React.CSSProperties = {
+  marginBottom: "20px"
+};
+
+const formStyle: React.CSSProperties = {
+  padding: "20px",
+  borderRadius: "12px",
+  background: "#111",
+  border: "1px solid #333"
+};
+
+const inputStyle: React.CSSProperties = {
+  padding: "14px",
+  borderRadius: "8px",
+  border: "1px solid #444",
+  marginBottom: "12px",
+  display: "block",
+  width: "100%",
+  fontSize: "16px", // iOS zoom fix
+  backgroundColor: "#222",
+  color: "#fff",
+  boxSizing: "border-box"
+};
+
+const searchFieldStyle: React.CSSProperties = {
+  ...inputStyle,
+  border: "2px solid #2ecc71",
+  backgroundColor: "#000",
+  marginBottom: "0"
+};
+
+const btnPrimary: React.CSSProperties = {
+  color: "#fff",
+  border: "none",
+  borderRadius: "8px",
+  padding: "16px",
+  cursor: "pointer",
+  width: "100%",
+  fontWeight: "bold",
+  fontSize: "16px",
+  marginTop: "10px"
+};
+
+const cardStyle: React.CSSProperties = {
+  padding: "15px",
+  background: "#111",
+  borderRadius: "10px",
+  boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
+  border: "1px solid #222"
+};
+
+const detailsBtnStyle: React.CSSProperties = {
+  backgroundColor: "#222",
+  color: "#2ecc71",
+  textDecoration: "none",
+  fontSize: "13px",
+  fontWeight: "bold",
+  padding: "8px 12px",
+  borderRadius: "6px",
+  border: "1px solid #2ecc71"
+};
+
+const deleteBtnStyle: React.CSSProperties = {
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  color: "#e74c3c",
+  fontSize: "12px",
+  opacity: 0.8
+};
