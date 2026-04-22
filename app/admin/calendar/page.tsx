@@ -25,7 +25,6 @@ export default function CalendarPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   
-  // Időpont kezelés: YYYY-MM-DDTHH:mm formátum az inputnak
   const [newEntry, setNewEntry] = useState({ unitId: "", title: "", date: "", desc: "", type: "MAINTENANCE" });
 
   const today = new Date();
@@ -54,7 +53,6 @@ export default function CalendarPage() {
     e.stopPropagation();
     setEditingId(eventData.id);
 
-    // Dátum formázása az input számára
     let formattedDate = eventData.date;
     if (formattedDate && !formattedDate.includes('T')) {
       formattedDate = `${formattedDate}T08:00`;
@@ -111,9 +109,14 @@ export default function CalendarPage() {
   return (
     <div style={pageStyle}>
       <style>{`
+        /* Agresszív szűrő a naptár ikon kifehérítéséhez */
         input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-          filter: invert(1) brightness(100%);
+          filter: invert(1) brightness(100%) contrast(1000%);
           cursor: pointer;
+        }
+        /* Sötét módos görgetősáv és belső elemek kényszerítése */
+        input[type="datetime-local"] {
+          color-scheme: dark;
         }
         select option {
           background-color: #222;
@@ -236,6 +239,7 @@ export default function CalendarPage() {
   );
 }
 
+// STÍLUSOK (Változatlanok, de az inputStyle-ban a colorScheme: 'dark' fontos)
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "10px", fontFamily: "sans-serif" };
 const headerContainer: React.CSSProperties = { marginBottom: "15px", maxWidth: "1200px", margin: "0 auto 15px auto" };
 const topActionRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" };
