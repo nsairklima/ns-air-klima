@@ -60,6 +60,17 @@ export default function MainDashboard() {
           <div style={tileLabelStyle}>Naptár</div>
         </div>
 
+        {/* ÁRAJÁNLATOK - EZ HIÁNYZOTT */}
+        <div 
+          onClick={() => router.push("/quotes")}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ ...tileStyle, background: "#00bcf2" }}
+        >
+          <span style={iconStyle}>📄</span>
+          <div style={tileLabelStyle}>Árajánlatok</div>
+        </div>
+
         {/* RAKTÁR */}
         <div 
           onClick={() => router.push("/admin/items")}
@@ -87,10 +98,10 @@ export default function MainDashboard() {
           onClick={() => router.push("/clients")}
           onMouseEnter={onEnter}
           onMouseLeave={onLeave}
-          style={{ ...tileStyle, background: "#d83b01" }}
+          style={{ ...tileStyle, background: "#d83b01", gridColumn: "span 2" }}
         >
           <span style={iconStyle}>👥</span>
-          <div style={tileLabelStyle}>Ügyfelek</div>
+          <div style={tileLabelStyle}>Ügyfelek kezelése</div>
         </div>
 
       </div>
@@ -102,7 +113,7 @@ export default function MainDashboard() {
   );
 }
 
-// STÍLUSOK (Sallangmentes Windows stílus)
+// STÍLUSOK (Változatlanul)
 const containerStyle: React.CSSProperties = {
   minHeight: "100vh", backgroundColor: "#000", color: "#fff",
   fontFamily: "'Segoe UI', sans-serif", padding: "40px 20px",
