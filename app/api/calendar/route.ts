@@ -19,14 +19,23 @@ export async function GET() {
     // Formázzuk a naptár számára emészthető formátumba
     const events = maintenances.map(m => ({
       id: m.id,
-      date: m.scheduledDate ? new Date(m.scheduledDate).toISOString().split('T')[0] : null,
-      title: `${m.unit.client.name} - ${m.unit.model || 'Klíma'}`,
-      description: m.notes || "Karbantartás",
-      status: m.status
+      // A sémádban performedDate van scheduledDate helyett
+      date: m.performedDate ? new Date(m.performedDate).toISOString().split('T')[0] : null,
+      
+      // A sémádban van brand és model is a unit-on
+      title: `${m.unit.client.name} - ${m.unit.brand} ${m.unit.model}`,
+      
+      // A sémádban description van notes helyett
+      description: m.description || "Karbantartás",
+      
+      // Mivel a MaintenanceLog-on nincs status mező, itt egy fix értéket adunk, 
+      // vagy használd a m.unit.status-t, ha az egység állapota kell
+      status: "COMPLETED" 
     })).filter(e => e.date !== null);
 
     return NextResponse.json(events);
   } catch (error) {
+    console.error("Calendar API Error:", error);
     return NextResponse.json({ error: "Hiba az adatok lekérésekor" }, { status: 500 });
   }
 }
