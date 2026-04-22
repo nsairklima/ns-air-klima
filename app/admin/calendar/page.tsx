@@ -25,12 +25,36 @@ export default function CalendarPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [activeType, setActiveType] = useState("MAINTENANCE");
   
+  // Touch állapothoz
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
   const [newEntry, setNewEntry] = useState({ 
     unitId: "", 
     title: "", 
     date: new Date().toISOString().substring(0, 16), 
     desc: ""
   });
+
+  // Hónap váltó funkciók
+  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+
+  // Swipe logika
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
+  const handleTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 70;  // 70px minimum elmozdulás
+    const isRightSwipe = distance < -70;
+
+    if (isLeftSwipe && !selectedDate) nextMonth();
+    if (isRightSwipe && !selectedDate) prevMonth();
+
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
 
   const fetchEvents = async () => {
     try {
@@ -108,15 +132,14 @@ export default function CalendarPage() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
              {!selectedDate && (
                <>
-                 {/* VISSZAKERÜLT A GOMB IDE IS */}
                  <button onClick={() => {
                     setEditingId(null);
                     setNewEntry({ ...newEntry, date: new Date().toISOString().substring(0, 16) });
                     setShowModal(true);
                  }} style={quickAddBtn}>+ ÚJ</button>
                  
-                 <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={navBtn}>‹</button>
-                 <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={navBtn}>›</button>
+                 <button onClick={prevMonth} style={navBtn}>‹</button>
+                 <button onClick={nextMonth} style={navBtn}>›</button>
                </>
              )}
           </div>
@@ -127,7 +150,12 @@ export default function CalendarPage() {
         </h1>
       </header>
 
-      <main style={{ flex: 1 }}>
+      <main 
+        style={{ flex: 1, touchAction: 'none' }} 
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {selectedDate ? (
           <div style={dailyContainer}>
             <button onClick={() => {
@@ -210,7 +238,7 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK
+// STÍLUSOK (Változatlanul)
 const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "15px", fontFamily: "sans-serif" };
 const footerStyle: React.CSSProperties = { marginTop: '40px', paddingBottom: '10px', textAlign: 'center' };
 const footerDivider: React.CSSProperties = { height: '1px', background: 'linear-gradient(90deg, transparent, #334155, transparent)', marginBottom: '15px' };
