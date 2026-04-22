@@ -83,6 +83,7 @@ export default function CalendarPage() {
     <div style={pageStyle}>
       <header style={headerContainer}>
         <div style={topActionRow}>
+          {/* Vissza a gyökérkönyvtárba (Főoldal) */}
           <button onClick={() => router.push("/")} style={backBtn}>⬅ VISSZA</button>
           <div style={rightControls}>
             <button onClick={() => { fetchUnits(); setShowModal(true); }} style={addBtn}>+ ÚJ BEJEGYZÉS</button>
@@ -113,7 +114,8 @@ export default function CalendarPage() {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label style={labelStyle}>Ügyfél / Gép:</label>
-                  <button onClick={() => router.push("/units")} style={{ background: 'transparent', border: 'none', color: '#2ecc71', fontSize: '10px', cursor: 'pointer', textDecoration: 'underline' }}>
+                  {/* Átirányítás a főoldalra, ahol az új gép felvétel gombod van */}
+                  <button onClick={() => router.push("/")} style={{ background: 'transparent', border: 'none', color: '#2ecc71', fontSize: '10px', cursor: 'pointer', textDecoration: 'underline' }}>
                     + Új gép
                   </button>
                 </div>
@@ -163,7 +165,7 @@ export default function CalendarPage() {
   );
 }
 
-// Stílusok változatlanok...
+// Stílusok maradnak...
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "10px", fontFamily: "sans-serif" };
 const headerContainer: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "12px", marginBottom: "15px", maxWidth: "1200px", margin: "0 auto 15px auto" };
 const topActionRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", gap: "8px" };
