@@ -18,14 +18,18 @@ export async function GET() {
     const events = maintenances.map(m => ({
       id: m.id,
       unitId: m.unitId,
-      date: m.performedDate ? new Date(m.performedDate).toISOString().split('T')[0] : null,
+      // Megtartjuk az ISO formátumot a pontosabb megjelenítéshez (időponttal együtt)
+      date: m.performedDate ? m.performedDate.toISOString() : null,
       title: `${m.unit.client.name} - ${m.unit.brand} ${m.unit.model}`,
-      description: m.description || "Karbantartás",
+      description: m.description || "",
+      // ITT VOLT A HIBA: Be kell adni a típust a frontendnek
+      type: m.type || "MAINTENANCE", 
       status: "COMPLETED" 
     })).filter(e => e.date !== null);
 
     return NextResponse.json(events);
   } catch (error) {
+    console.error("GET hiba:", error);
     return NextResponse.json({ error: "Hiba az adatok lekérésekor" }, { status: 500 });
   }
 }
@@ -33,34 +37,40 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { unitId, performedDate, description } = body;
+    const { unitId, performedDate, description, type } = body; // type kinyerése
+    
     const newLog = await prisma.maintenanceLog.create({
       data: {
         unitId: parseInt(unitId),
         performedDate: new Date(performedDate),
         description: description || "",
+        type: type || "MAINTENANCE", // ITT VOLT A HIBA: Mentés az adatbázisba
       }
     });
     return NextResponse.json(newLog);
   } catch (error) {
-    return NextResponse.json({ error: "Hiba" }, { status: 500 });
+    console.error("POST hiba:", error);
+    return NextResponse.json({ error: "Mentési hiba" }, { status: 500 });
   }
 }
 
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, description, performedDate } = body;
+    const { id, description, performedDate, type } = body; // type kinyerése
+    
     const updatedLog = await prisma.maintenanceLog.update({
       where: { id: parseInt(id) },
       data: {
         description: description,
         performedDate: new Date(performedDate),
+        type: type, // ITT VOLT A HIBA: Frissítés az adatbázisban
       },
     });
     return NextResponse.json(updatedLog);
   } catch (error) {
-    return NextResponse.json({ error: "Hiba" }, { status: 500 });
+    console.error("PUT hiba:", error);
+    return NextResponse.json({ error: "Módosítási hiba" }, { status: 500 });
   }
 }
 
@@ -69,9 +79,11 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Nincs ID" }, { status: 400 });
+    
     await prisma.maintenanceLog.delete({ where: { id: parseInt(id) } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: "Hiba" }, { status: 500 });
+    console.error("DELETE hiba:", error);
+    return NextResponse.json({ error: "Törlési hiba" }, { status: 500 });
   }
 }
