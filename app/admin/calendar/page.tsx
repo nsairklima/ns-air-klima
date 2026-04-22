@@ -25,7 +25,6 @@ export default function CalendarPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [activeType, setActiveType] = useState("MAINTENANCE");
 
-  // Effektushoz és swipe-hoz szükséges állapotok
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [translateX, setTranslateX] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -93,7 +92,7 @@ export default function CalendarPage() {
     if (touchStart === null || selectedDate) return;
     const currentX = e.targetTouches[0].clientX;
     const diff = currentX - touchStart;
-    setTranslateX(diff * 0.6); // Követi az ujjat
+    setTranslateX(diff * 0.6);
   };
 
   const handleTouchEnd = () => {
@@ -248,10 +247,23 @@ export default function CalendarPage() {
                 </button>
               ))}
             </div>
-            <select style={inputStyle} value={newEntry.unitId} onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}>
-                <option value="">-- Ügyfél választása --</option>
-                {units.map(u => <option key={u.id} value={u.id}>{u.displayName || u.model}</option>)}
-            </select>
+            
+            {/* ÜGYFÉL VÁLASZTÓ + ÚJ ÜGYFÉL GOMB EGY SORBAN */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <select style={{ ...inputStyle, marginBottom: 0, flex: 1 }} value={newEntry.unitId} onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}>
+                    <option value="">-- Ügyfél választása --</option>
+                    {units.map(u => <option key={u.id} value={u.id}>{u.displayName || u.model}</option>)}
+                </select>
+                <button 
+                    type="button"
+                    onClick={() => router.push("/admin/clients")}
+                    style={{ ...navBtn, background: '#3b82f6', fontSize: '18px', padding: '0 15px', display: 'flex', alignItems: 'center' }}
+                    title="Új ügyfél hozzáadása"
+                >
+                    +
+                </button>
+            </div>
+
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
             <textarea placeholder="Leírás" style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
             <button onClick={handleSave} style={saveBtn}>MENTÉS</button>
@@ -263,7 +275,7 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUS DEFINÍCIÓK - KOMPAKT MOBIL NÉZETRE OPTIMALIZÁLVA
+// STÍLUSOK (Változatlanul hagytam őket)
 const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", maxHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "10px", fontFamily: "sans-serif", overflow: "hidden" };
 const headerContainer: React.CSSProperties = { marginBottom: '10px', borderBottom: '1px solid #334155', paddingBottom: '10px' };
 const monthTitle: React.CSSProperties = { fontSize: '22px', marginTop: '10px', marginBottom: 0, fontWeight: '800' };
