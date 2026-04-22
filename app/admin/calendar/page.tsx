@@ -114,14 +114,14 @@ export default function CalendarPage() {
                   value={newEntry.unitId} 
                   onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
                 >
-                  <option value="">-- Válassz ügyfelet --</option>
+                  <option value="">-- Válassz a meglévők közül --</option>
                   {units.map(u => (
                     <option key={u.id} value={u.id}>{u.displayName}</option>
                   ))}
                 </select>
                 <button 
                   onClick={() => router.push("/clients")}
-                  style={{ background: 'none', border: 'none', color: '#2ecc71', fontSize: '12px', textAlign: 'left', marginBottom: '15px', cursor: 'pointer', padding: '0 5px' }}
+                  style={{ background: 'none', border: 'none', color: '#2ecc71', fontSize: '13px', textAlign: 'left', marginBottom: '15px', cursor: 'pointer', padding: '0 5px', textDecoration: 'underline' }}
                 >
                   + Nincs a listában? Új ügyfél hozzáadása
                 </button>
@@ -131,8 +131,8 @@ export default function CalendarPage() {
             <label style={labelStyle}>Dátum:</label>
             <input type="date" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
             
-            <label style={labelStyle}>Megjegyzés (Pl. kültéri tisztítás):</label>
-            <textarea style={{...inputStyle, minHeight: '60px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
+            <label style={labelStyle}>Megjegyzés:</label>
+            <textarea style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
             
             <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
               <button onClick={handleSave} style={{...saveBtnStyle, background: '#2ecc71'}}>Mentés</button>
@@ -176,7 +176,7 @@ export default function CalendarPage() {
   );
 }
 
-// --- STÍLUSOK (Vizuális és funkcionális javításokkal) ---
+// --- STÍLUSOK (Olvashatóság javítva: tiszta fehér betűk az inputokban) ---
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "20px", fontFamily: "sans-serif" };
 const headerStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", maxWidth: "1200px", margin: "0 auto 30px auto" };
 const titleStyle: React.CSSProperties = { fontSize: "28px", fontWeight: "normal", margin: 0 };
@@ -193,7 +193,20 @@ const eventContainer: React.CSSProperties = { display: "flex", flexDirection: "c
 const eventBadge: React.CSSProperties = { padding: "4px 8px", fontSize: "11px", borderRadius: "3px", color: "#fff", fontWeight: "bold", cursor: 'pointer' };
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#1a1a1a', padding: '25px', border: '1px solid #444', width: '90%', maxWidth: '400px', borderRadius: '12px' };
-const inputStyle: React.CSSProperties = { background: '#2a2a2a', border: '1px solid #444', color: '#fff', padding: '14px', marginBottom: '10px', borderRadius: '8px', width: '100%', fontSize: '16px', boxSizing: 'border-box' };
+
+// FEHÉR BETŰSZÍN ÉS JOBB OLVASHATÓSÁG AZ INPUTOKBAN
+const inputStyle: React.CSSProperties = { 
+  background: '#2a2a2a', 
+  border: '1px solid #444', 
+  color: '#ffffff', // Tiszta fehér betűszín
+  padding: '14px', 
+  marginBottom: '10px', 
+  borderRadius: '8px', 
+  width: '100%', 
+  fontSize: '16px', 
+  boxSizing: 'border-box' 
+};
+
 const labelStyle: React.CSSProperties = { fontSize: '11px', marginBottom: '6px', color: '#aaa', textTransform: 'uppercase', display: 'block' };
 const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '10px 5px', fontSize: '11px', cursor: 'pointer', borderRadius: '6px' };
 const saveBtnStyle: React.CSSProperties = { border: "none", color: "#fff", cursor: "pointer", padding: "14px", borderRadius: "8px", fontSize: "16px", fontWeight: "bold" };
