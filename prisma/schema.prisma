@@ -52,10 +52,11 @@ model ClientUnit {
 }
 
 model MaintenanceLog {
-  id            Int       @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   unitId        Int
   performedDate DateTime
   description   String?
+  type          String   @default("MAINTENANCE") // <--- EZT ADD HOZZÁ
   materials     String?
   costInternal  Int?
   technicianId  Int?
