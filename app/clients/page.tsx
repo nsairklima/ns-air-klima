@@ -1,186 +1,165 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+
+type Client = {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  units?: any[];
+};
 
 export default function ClientsPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    phone: "",
-    brand: "",
-    model: ""
-  });
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function loadClients(query: string = "") {
     setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/clients?search=${encodeURIComponent(query)}`, { cache: "no-store" });
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Váratlan válasz.");
+      setClients(data);
+    } catch (e: any) {
+      setError(e?.message || "Hiba történt a lekéréskor.");
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      loadClients(searchTerm);
+    }, 400);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
+  // --- ÜGYFÉL TÖRLÉSE A LISTÁBÓL ---
+  async function handleDelete(id: number, clientName: string) {
+    if (!confirm(`⚠️ BIZTOSAN TÖRÖLNI AKAROD: ${clientName}?\nMinden hozzá tartozó gép és ajánlat is törlődni fog!`)) return;
     
     try {
-      const res = await fetch('/api/clients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
+      const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
       if (res.ok) {
-        router.push('/admin/calendar'); // Vissza a naptárhoz sikeres mentés után
+        loadClients(searchTerm);
       } else {
-        alert("Hiba történt a mentés során.");
+        alert("Hiba történt a törlés során.");
       }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.error(e);
     }
-  };
+  }
+
+  async function addClient(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return alert("A név kötelező.");
+    setSaving(true);
+    try {
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, phone, address }),
+      });
+      if (!res.ok) throw new Error("Mentési hiba.");
+      setName(""); setEmail(""); setPhone(""); setAddress("");
+      setSearchTerm("");
+      await loadClients("");
+    } catch (e: any) {
+      setError(e?.message || "Hiba mentéskor.");
+    }
+    setSaving(false);
+  }
 
   return (
-    <div style={pageContainer}>
-      <header style={headerStyle}>
-        <button onClick={() => router.back()} style={backBtn}>←</button>
-        <h1 style={{fontSize: '20px', margin: 0}}>Új ügyfél rögzítése</h1>
-      </header>
+    <div style={{ padding: 32, fontFamily: "Arial, sans-serif", maxWidth: 1000, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h1>Ügyfelek</h1>
+        <Link href="/" style={{ color: "#3498db", textDecoration: "none", fontWeight: "bold" }}>← Dashboard</Link>
+      </div>
 
-      <form onSubmit={handleSubmit} style={formStyle}>
-        <div style={inputGroup}>
-          <label style={labelStyle}>Ügyfél neve</label>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
+        {/* BAL OLDAL: Űrlap */}
+        <div>
+          <form onSubmit={addClient} style={formStyle}>
+            <h3 style={{ margin: "0 0 15px 0" }}>Új ügyfél felvétele</h3>
+            <input placeholder="Név" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+            <input placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+            <input placeholder="Telefon" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
+            <input placeholder="Cím" value={address} onChange={(e) => setAddress(e.target.value)} style={inputStyle} />
+            <button disabled={saving} style={btnPrimary}>
+              {saving ? "Mentés..." : "Ügyfél mentése"}
+            </button>
+          </form>
+          {error && <p style={{ color: "red", marginTop: 10 }}>{error}</p>}
+        </div>
+
+        {/* JOBB OLDAL: Kereső és Lista */}
+        <div>
           <input 
             type="text"
-            required
-            style={mobileInput}
-            placeholder="Pl. Nagy Ervin"
-            value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            placeholder="🔍 Keresés..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ ...inputStyle, width: "100%", border: "2px solid #4DA3FF", marginBottom: 15 }}
           />
-        </div>
 
-        <div style={inputGroup}>
-          <label style={labelStyle}>Telefonszám</label>
-          <input 
-            type="tel" // Mobilon számokat hoz fel!
-            style={mobileInput}
-            placeholder="06 30 123 4567"
-            value={formData.phone}
-            onChange={(e) => setFormData({...formData, phone: e.target.value})}
-          />
-        </div>
+          {loading && <p>Betöltés...</p>}
+          
+          <div style={{ display: "grid", gap: 12 }}>
+            {clients.map((c: any) => {
+              const hasUrgent = c.units?.some((u: any) => {
+                if (u.maintenance.length === 0) return true;
+                const last = new Date(u.maintenance[0].performedDate);
+                return (Math.ceil(Math.abs(new Date().getTime() - last.getTime()) / (1000*60*60*24))) >= 330;
+              });
 
-        <div style={inputGroup}>
-          <label style={labelStyle}>Cím</label>
-          <textarea 
-            style={{...mobileInput, minHeight: '100px', resize: 'none'}}
-            placeholder="Város, utca, házszám..."
-            value={formData.address}
-            onChange={(e) => setFormData({...formData, address: e.target.value})}
-          />
-        </div>
-
-        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
-          <div style={inputGroup}>
-            <label style={labelStyle}>Gép márka</label>
-            <input 
-              type="text"
-              style={mobileInput}
-              placeholder="Pl. Gree"
-              value={formData.brand}
-              onChange={(e) => setFormData({...formData, brand: e.target.value})}
-            />
-          </div>
-          <div style={inputGroup}>
-            <label style={labelStyle}>Modell</label>
-            <input 
-              type="text"
-              style={mobileInput}
-              placeholder="Pl. Pulse"
-              value={formData.model}
-              onChange={(e) => setFormData({...formData, model: e.target.value})}
-            />
+              return (
+                <div key={c.id} style={{ 
+                  ...cardStyle, 
+                  borderLeft: hasUrgent ? "6px solid #e74c3c" : "1px solid #ddd" 
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontWeight: "bold" }}>
+                        {c.name} {hasUrgent && "⚠️"}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#666" }}>{c.address || "Nincs cím"}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 15, alignItems: "center" }}>
+                      <Link href={`/clients/${c.id}`} style={detailsLink}>Részletek →</Link>
+                      <button 
+                        onClick={() => handleDelete(c.id, c.name)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#e74c3c", fontSize: 16 }}
+                        title="Ügyfél törlése"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {!loading && clients.length === 0 && <p style={{ color: "#999" }}>Nincs találat.</p>}
           </div>
         </div>
-
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{
-            ...submitBtn,
-            backgroundColor: loading ? "#444" : "#2ecc71"
-          }}
-        >
-          {loading ? "Mentés..." : "Ügyfél mentése"}
-        </button>
-      </form>
+      </div>
     </div>
   );
 }
 
-// --- STÍLUSOK ---
-
-const pageContainer: React.CSSProperties = {
-  minHeight: '100vh',
-  backgroundColor: '#000',
-  color: '#fff',
-  padding: '20px',
-  fontFamily: 'sans-serif'
-};
-
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '20px',
-  marginBottom: '30px'
-};
-
-const backBtn: React.CSSProperties = {
-  background: '#222',
-  border: '1px solid #444',
-  color: '#fff',
-  padding: '10px 15px',
-  borderRadius: '8px',
-  fontSize: '18px'
-};
-
-const formStyle: React.CSSProperties = {
-  maxWidth: '500px',
-  margin: '0 auto'
-};
-
-const inputGroup: React.CSSProperties = {
-  marginBottom: '20px'
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '12px',
-  color: '#888',
-  textTransform: 'uppercase',
-  marginBottom: '8px',
-  letterSpacing: '1px'
-};
-
-const mobileInput: React.CSSProperties = {
-  width: '100%',
-  padding: '16px',       // Elég hely az ujjaknak
-  fontSize: '16px',      // Megakadályozza az iOS automata zoomot
-  backgroundColor: '#111',
-  border: '1px solid #333',
-  borderRadius: '10px',
-  color: '#fff',
-  outline: 'none',
-  boxSizing: 'border-box'
-};
-
-const submitBtn: React.CSSProperties = {
-  width: '100%',
-  padding: '18px',
-  borderRadius: '12px',
-  border: 'none',
-  color: '#fff',
-  fontSize: '18px',
-  fontWeight: 'bold',
-  cursor: 'pointer',
-  marginTop: '20px',
-  boxShadow: '0 4px 15px rgba(46, 204, 113, 0.2)'
-};
+const inputStyle = { padding: "10px", borderRadius: 6, border: "1px solid #ddd", marginBottom: 8, display: "block", width: "100%" as const };
+const formStyle = { padding: 20, border: "1px solid #ddd", borderRadius: 12, background: "#fafafa" };
+const cardStyle = { padding: 15, background: "#fff", borderRadius: 10, boxShadow: "0 2px 4px rgba(0,0,0,0.05)" };
+const btnPrimary = { background: "#4DA3FF", color: "#fff", border: "none", borderRadius: 6, padding: "12px", cursor: "pointer", width: "100%" as const, fontWeight: "bold" as const };
+const detailsLink = { color: "#4DA3FF", textDecoration: "none", fontSize: 13, fontWeight: "bold" as const };
