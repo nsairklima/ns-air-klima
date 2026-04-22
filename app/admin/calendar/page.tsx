@@ -24,6 +24,8 @@ export default function CalendarPage() {
   
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  
+  // A 'date' mező most már YYYY-MM-DDTHH:mm formátumot fog kezelni
   const [newEntry, setNewEntry] = useState({ unitId: "", title: "", date: "", desc: "", type: "MAINTENANCE" });
 
   const today = new Date();
@@ -51,10 +53,17 @@ export default function CalendarPage() {
   const openEdit = (e: React.MouseEvent, eventData: any) => {
     e.stopPropagation();
     setEditingId(eventData.id);
+
+    // Időpont formázása az input számára (ha nincs benne T, akkor alapértelmezett reggel 8 óra)
+    let formattedDate = eventData.date;
+    if (formattedDate && !formattedDate.includes('T')) {
+      formattedDate = `${formattedDate}T08:00`;
+    }
+
     setNewEntry({
       unitId: eventData.unitId?.toString() || "",
-      title: eventData.title || "Ismeretlen gép", // Az API-ból érkező 'title' használata
-      date: eventData.date,
+      title: eventData.title || "Ismeretlen gép",
+      date: formattedDate,
       desc: eventData.description || "",
       type: eventData.type || "MAINTENANCE"
     });
@@ -101,6 +110,18 @@ export default function CalendarPage() {
 
   return (
     <div style={pageStyle}>
+      {/* CSS injektálás a naptár ikon láthatóságához és a sötét mód támogatásához */}
+      <style>{`
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+          cursor: pointer;
+        }
+        select option {
+          background-color: #222;
+          color: white;
+        }
+      `}</style>
+
       <header style={headerContainer}>
         <div style={topActionRow}>
           <button onClick={() => router.push("/")} style={backBtn}>⬅</button>
@@ -157,8 +178,13 @@ export default function CalendarPage() {
               </div>
             )}
 
-            <label style={labelStyle}>Dátum:</label>
-            <input type="date" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
+            <label style={labelStyle}>Dátum és Idő:</label>
+            <input 
+              type="datetime-local" 
+              style={inputStyle} 
+              value={newEntry.date} 
+              onChange={e => setNewEntry({...newEntry, date: e.target.value})} 
+            />
             
             <label style={labelStyle}>Megjegyzés:</label>
             <textarea 
@@ -182,24 +208,30 @@ export default function CalendarPage() {
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const dayEvents = events.filter(e => e.date === dateStr);
+          // Csak a nap alapján szűrjük az eseményeket a naptárban
+          const dayEvents = events.filter(e => e.date.startsWith(dateStr));
           const isToday = dateStr === todayStr;
           
           return (
             <div key={day} 
-              onClick={() => { if(!showModal) { setNewEntry({...newEntry, date: dateStr}); setShowModal(true); } }}
+              onClick={() => { if(!showModal) { setNewEntry({...newEntry, date: `${dateStr}T08:00`}); setShowModal(true); } }}
               style={{...cellStyle, border: isToday ? "1px solid #2ecc71" : "1px solid #333", backgroundColor: isToday ? "#0a2a1a" : "#111"}}>
               <span style={{...dayNum, color: isToday ? "#2ecc71" : "#888"}}>{day}</span>
               <div style={eventStack}>
-                {dayEvents.map((ev) => (
-                  <div 
-                    key={ev.id} 
-                    onClick={(e) => openEdit(e, ev)}
-                    style={{...eventBar, backgroundColor: TYPE_COLORS[ev.type] || TYPE_COLORS.MAINTENANCE}}
-                  >
-                    {ev.title}
-                  </div>
-                ))}
+                {dayEvents.map((ev) => {
+                  // Idő kinyerése a megjelenítéshez
+                  const timeStr = ev.date.includes('T') ? ev.date.split('T')[1].substring(0, 5) : "";
+                  return (
+                    <div 
+                      key={ev.id} 
+                      onClick={(e) => openEdit(e, ev)}
+                      style={{...eventBar, backgroundColor: TYPE_COLORS[ev.type] || TYPE_COLORS.MAINTENANCE}}
+                    >
+                      {timeStr && <span style={{opacity: 0.8, marginRight: '4px'}}>{timeStr}</span>}
+                      {ev.title}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -242,7 +274,7 @@ const eventBar: React.CSSProperties = {
 
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#111', padding: '24px', border: '1px solid #333', width: '90%', maxWidth: '400px', borderRadius: '16px' };
-const inputStyle: React.CSSProperties = { background: '#222', border: '1px solid #444', color: '#fff', padding: '12px', marginBottom: '12px', borderRadius: '8px', width: '100%', fontSize: '15px' };
+const inputStyle: React.CSSProperties = { background: '#222', border: '1px solid #444', color: '#fff', padding: '12px', marginBottom: '12px', borderRadius: '8px', width: '100%', fontSize: '15px', colorScheme: 'dark' };
 const readonlyField: React.CSSProperties = { background: '#1a1a1a', border: '1px solid #333', color: '#2ecc71', padding: '12px', marginBottom: '12px', borderRadius: '8px', width: '100%', fontSize: '15px', fontWeight: 'bold' };
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#888', marginBottom: '6px', display: 'block', textTransform: 'uppercase', letterSpacing: '1px' };
 const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '12px 2px', fontSize: '11px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' };
