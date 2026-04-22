@@ -36,7 +36,6 @@ export default function MainDashboard() {
       </header>
 
       <div style={gridStyle}>
-        
         {/* RENDSZERJELENTÉS */}
         <div 
           onClick={handleBackup}
@@ -103,7 +102,6 @@ export default function MainDashboard() {
           <span style={iconStyle}>👥</span>
           <div style={tileLabelStyle}>Ügyfelek kezelése</div>
         </div>
-
       </div>
 
       <footer style={footerContainer}>
@@ -114,46 +112,57 @@ export default function MainDashboard() {
   );
 }
 
-// STÍLUSOK - TISZTÍTVA ÉS JAVÍTVA
+// STÍLUSOK - FIXÁLT MÉRETEKKEL
 const containerStyle: React.CSSProperties = {
-  minHeight: "100vh", backgroundColor: "#000", color: "#fff",
-  fontFamily: "'Segoe UI', sans-serif", padding: "40px 20px",
-  display: "flex", flexDirection: "column"
+  minHeight: "100vh", 
+  backgroundColor: "#000", 
+  color: "#fff",
+  fontFamily: "'Segoe UI', sans-serif", 
+  padding: "40px 20px",
+  display: "block" // Visszaállítva flex-ről, hogy ne húzza szét a tartalmat
 };
 
 const headerStyle: React.CSSProperties = {
-  maxWidth: "800px", width: "100%", margin: "0 auto 40px auto",
-  display: "flex", justifyContent: "space-between", alignItems: "baseline",
+  maxWidth: "800px", 
+  width: "100%", 
+  margin: "0 auto 40px auto",
+  display: "flex", 
+  justifyContent: "space-between", 
+  alignItems: "baseline",
 };
 
 const titleStyle: React.CSSProperties = { fontSize: "32px", fontWeight: "lighter", margin: 0 };
-
 const statusDot: React.CSSProperties = { fontSize: "12px", color: "#2ecc71", textTransform: "uppercase", letterSpacing: "1px" };
 
 const gridStyle: React.CSSProperties = {
-  display: "grid", gridTemplateColumns: "repeat(2, 1fr)",
-  gridAutoRows: "140px", gap: "10px", maxWidth: "800px", margin: "0 auto",
-  flex: 1
+  display: "grid", 
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gridAutoRows: "140px", // Ez garantálja, hogy a csempék nem mennek össze
+  gap: "10px", 
+  maxWidth: "800px", 
+  margin: "0 auto",
 };
 
 const tileStyle: React.CSSProperties = {
-  padding: "15px", display: "flex", flexDirection: "column",
-  justifyContent: "space-between", cursor: "pointer", transition: "all 0.2s ease",
+  padding: "15px", 
+  display: "flex", 
+  flexDirection: "column",
+  justifyContent: "space-between", 
+  cursor: "pointer", 
+  transition: "all 0.2s ease",
 };
 
 const iconStyle: React.CSSProperties = { fontSize: "28px" };
-
 const tileLabelStyle: React.CSSProperties = { fontSize: "18px", fontWeight: "600" };
-
 const smallLabelStyle: React.CSSProperties = { fontSize: "11px", opacity: 0.7 };
 
 const footerContainer: React.CSSProperties = {
   textAlign: "center", 
-  marginTop: "60px", 
+  marginTop: "80px", 
   paddingBottom: "20px",
   width: "100%",
   maxWidth: "800px",
-  margin: "60px auto 0 auto"
+  margin: "80px auto 0 auto"
 };
 
 const footerLine: React.CSSProperties = {
