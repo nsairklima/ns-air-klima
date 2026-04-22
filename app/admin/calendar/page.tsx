@@ -110,22 +110,30 @@ export default function CalendarPage() {
             </div>
 
             {!editingId && (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ marginBottom: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <label style={labelStyle}>Ügyfél / Gép:</label>
-                  {/* JAVÍTVA: Átirányítás a pontos app/clients/new/page.tsx útvonalra */}
                   <button 
                     onClick={() => router.push("/clients/new")} 
-                    style={{ background: 'transparent', border: 'none', color: '#2ecc71', fontSize: '10px', cursor: 'pointer', textDecoration: 'underline' }}
+                    style={{ 
+                      background: '#333', 
+                      border: '1px solid #444', 
+                      color: '#2ecc71', 
+                      fontSize: '11px', 
+                      padding: '8px 14px', 
+                      borderRadius: '20px', 
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}
                   >
-                    + Új gép
+                    + ÚJ ÜGYFÉL
                   </button>
                 </div>
                 <select style={inputStyle} value={newEntry.unitId} onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}>
                   <option value="">-- Válassz --</option>
                   {units.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
                 </select>
-              </>
+              </div>
             )}
 
             <label style={labelStyle}>Dátum:</label>
