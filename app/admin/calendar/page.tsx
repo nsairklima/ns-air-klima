@@ -25,19 +25,15 @@ export default function CalendarPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [activeType, setActiveType] = useState("MAINTENANCE");
 
-  // Swipe állapotok
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [translateX, setTranslateX] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Új munka adatai + Gyors ügyfél hozzáadás állapota
   const [newEntry, setNewEntry] = useState({ 
     unitId: "", 
     date: new Date().toISOString().substring(0, 16), 
     desc: "" 
   });
-  const [isQuickAddingUnit, setIsQuickAddingUnit] = useState(false);
-  const [quickUnitName, setQuickUnitName] = useState("");
 
   const fetchEvents = async () => {
     try {
@@ -48,9 +44,11 @@ export default function CalendarPage() {
   };
 
   const fetchUnits = async () => {
-    const res = await fetch('/api/calendar/units');
-    const data = await res.json();
-    setUnits(Array.isArray(data) ? data : []);
+    try {
+      const res = await fetch('/api/calendar/units');
+      const data = await res.json();
+      setUnits(Array.isArray(data) ? data : []);
+    } catch (e) { console.error("Units hiba", e); }
   };
 
   useEffect(() => {
@@ -58,28 +56,9 @@ export default function CalendarPage() {
     fetchUnits();
   }, []);
 
-  // Gyors ügyfél mentése
-  const handleQuickAddUnit = async () => {
-    if (!quickUnitName) return;
-    const res = await fetch('/api/calendar/units', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: quickUnitName }),
-    });
-    if (res.ok) {
-      const savedUnit = await res.json();
-      await fetchUnits(); // Lista frissítése
-      setNewEntry({ ...newEntry, unitId: savedUnit.id.toString() });
-      setQuickUnitName("");
-      setIsQuickAddingUnit(false);
-    }
-  };
-
   const handleSave = async () => {
-    if (!newEntry.unitId) {
-        alert("Válassz ügyfelet!");
-        return;
-    }
+    if (!newEntry.unitId) return alert("Válassz ügyfelet!");
+    
     const payload = {
       ...(editingId ? { id: editingId } : { unitId: parseInt(newEntry.unitId) }),
       performedDate: newEntry.date,
@@ -100,7 +79,6 @@ export default function CalendarPage() {
     }
   };
 
-  // Naptár navigáció és Swipe (változatlan)
   const prevMonth = () => { if (isTransitioning) return; setIsTransitioning(true); setTranslateX(100); setTimeout(() => { setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)); setTranslateX(-100); setTimeout(() => { setTranslateX(0); setIsTransitioning(false); }, 50); }, 150); };
   const nextMonth = () => { if (isTransitioning) return; setIsTransitioning(true); setTranslateX(-100); setTimeout(() => { setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)); setTranslateX(100); setTimeout(() => { setTranslateX(0); setIsTransitioning(false); }, 50); }, 150); };
   const handleTouchStart = (e: React.TouchEvent) => { if (selectedDate) return; setTouchStart(e.targetTouches[0].clientX); };
@@ -178,30 +156,26 @@ export default function CalendarPage() {
               ))}
             </div>
 
-            {/* ÜGYFÉL VÁLASZTÓ + GYORS HOZZÁADÁS */}
-            <div style={{ marginBottom: '12px' }}>
-              {!isQuickAddingUnit ? (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <select style={{ ...inputStyle, marginBottom: 0, flex: 1 }} value={newEntry.unitId} onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}>
-                    <option value="">-- Ügyfél választása --</option>
-                    {units.map(u => <option key={u.id} value={u.id}>{u.displayName || u.model}</option>)}
-                  </select>
-                  <button onClick={() => setIsQuickAddingUnit(true)} style={{ ...navBtn, fontSize: '18px', padding: '0 15px' }}>+</button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input placeholder="Új ügyfél neve..." style={{ ...inputStyle, marginBottom: 0, flex: 1 }} value={quickUnitName} onChange={e => setQuickUnitName(e.target.value)} autoFocus />
-                  <button onClick={handleQuickAddUnit} style={{ ...quickAddBtn, margin: 0, background: '#3b82f6' }}>OK</button>
-                  <button onClick={() => setIsQuickAddingUnit(false)} style={{ ...navBtn, background: '#ef4444' }}>X</button>
-                </div>
-              )}
+            {/* ÜGYFÉL VÁLASZTÓ + ÁTIRÁNYÍTÁS GOMB */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <select style={{ ...inputStyle, marginBottom: 0, flex: 1 }} value={newEntry.unitId} onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}>
+                <option value="">-- Ügyfél választása --</option>
+                {units.map(u => <option key={u.id} value={u.id}>{u.displayName || u.model}</option>)}
+              </select>
+              <button 
+                title="Új ügyfél létrehozása"
+                onClick={() => router.push("/admin/units")} 
+                style={{ ...navBtn, fontSize: '18px', padding: '0 15px', background: '#3b82f6' }}
+              >
+                +
+              </button>
             </div>
 
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
             <textarea placeholder="Munka leírása..." style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
             
             <button onClick={handleSave} style={saveBtn}>MENTÉS</button>
-            <button onClick={() => { setShowModal(false); setIsQuickAddingUnit(false); }} style={cancelBtn}>MÉGSE</button>
+            <button onClick={() => setShowModal(false)} style={cancelBtn}>MÉGSE</button>
           </div>
         </div>
       )}
@@ -209,7 +183,7 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK (Kompakt mobilra)
+// STÍLUSOK (Mobilra húzva)
 const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', height: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "10px", fontFamily: "sans-serif", overflow: "hidden" };
 const headerContainer: React.CSSProperties = { marginBottom: '10px', borderBottom: '1px solid #334155', paddingBottom: '10px' };
 const monthTitle: React.CSSProperties = { fontSize: '20px', marginTop: '10px', fontWeight: '800' };
@@ -218,7 +192,7 @@ const navBtn: React.CSSProperties = { background: "#334155", border: "none", col
 const quickAddBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "8px 16px", borderRadius: "10px", fontWeight: "bold" };
 const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px", background: "#334155", padding: "2px", borderRadius: "8px" };
 const dayHeader: React.CSSProperties = { padding: "6px 0", textAlign: "center", fontSize: "11px", color: "#94a3b8" };
-const cellStyle: React.CSSProperties = { minHeight: "70px", padding: "4px", background: "#1e293b", display: "flex", flexDirection: "column", justifyContent: "space-between" };
+const cellStyle: React.CSSProperties = { minHeight: "75px", padding: "4px", background: "#1e293b", display: "flex", flexDirection: "column", justifyContent: "space-between" };
 const emptyCell: React.CSSProperties = { background: "#0f172a" };
 const eventStack: React.CSSProperties = { display: "flex", gap: "2px", flexWrap: 'wrap' };
 const miniBar: React.CSSProperties = { width: "100%", height: "4px", borderRadius: "2px" };
