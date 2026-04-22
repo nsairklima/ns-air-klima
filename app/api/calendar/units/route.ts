@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 
+// Ez a sor gondoskodik róla, hogy az új ügyfél azonnal megjelenjen a listában:
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const units = await prisma.clientUnit.findMany({
@@ -12,7 +15,7 @@ export async function GET() {
       }
     });
 
-    // Itt volt a hiba: u.address nem létezik, csak u.client.address
+    // A javított displayName szerkezet, amit írtál:
     const formattedUnits = units.map(u => ({
       id: u.id,
       displayName: `${u.client.name} | ${u.brand} - ${u.model} (${u.client.address})`
