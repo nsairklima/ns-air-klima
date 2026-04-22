@@ -126,6 +126,7 @@ export default function CalendarPage() {
           display: flex;
           align-items: center;
           width: 100%;
+          box-sizing: border-box;
         }
 
         .calendar-icon-overlay {
@@ -134,6 +135,11 @@ export default function CalendarPage() {
           pointer-events: none;
           display: flex;
           align-items: center;
+        }
+
+        /* Megakadályozza a kilógást */
+        input, textarea, select {
+          box-sizing: border-box !important;
         }
 
         select option {
@@ -184,15 +190,30 @@ export default function CalendarPage() {
             {editingId ? (
               <div style={readonlyField}>{newEntry.title}</div>
             ) : (
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
                 <select 
-                  style={inputStyle} 
+                  style={{ ...inputStyle, marginBottom: 0, flex: 1 }} 
                   value={newEntry.unitId} 
                   onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
                 >
                   <option value="">-- Válassz --</option>
                   {units.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
                 </select>
+                <button 
+                  onClick={() => router.push("/admin/units")}
+                  style={{ 
+                    background: '#333', 
+                    border: '1px solid #444', 
+                    color: '#fff', 
+                    borderRadius: '8px', 
+                    padding: '0 15px', 
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  + ÜGYFÉL
+                </button>
               </div>
             )}
 
@@ -217,7 +238,7 @@ export default function CalendarPage() {
             
             <label style={{ ...labelStyle, marginTop: '12px' }}>Megjegyzés:</label>
             <textarea 
-              style={{ ...inputStyle, minHeight: '70px', resize: 'none' }} 
+              style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} 
               value={newEntry.desc} 
               onChange={e => setNewEntry({...newEntry, desc: e.target.value})} 
             />
@@ -268,7 +289,7 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK DEFINÍCIÓJA
+// STÍLUSOK
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "10px", fontFamily: "sans-serif" };
 const headerContainer: React.CSSProperties = { marginBottom: "15px", maxWidth: "1200px", margin: "0 auto 15px auto" };
 const topActionRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" };
@@ -286,7 +307,7 @@ const dayNum: React.CSSProperties = { fontSize: "14px", fontWeight: "bold", marg
 const eventStack: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "4px" };
 const eventBar: React.CSSProperties = { fontSize: "10px", padding: "4px 6px", borderRadius: "4px", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: "bold", boxShadow: "0 1px 3px rgba(0,0,0,0.3)", borderLeft: "3px solid rgba(255,255,255,0.5)" };
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
-const modalContent: React.CSSProperties = { background: '#111', padding: '24px', border: '1px solid #333', width: '90%', maxWidth: '400px', borderRadius: '16px' };
+const modalContent: React.CSSProperties = { background: '#111', padding: '24px', border: '1px solid #333', width: '90%', maxWidth: '420px', borderRadius: '16px' };
 const inputStyle: React.CSSProperties = { background: '#222', border: '1px solid #444', color: '#fff', padding: '12px', paddingRight: '40px', marginBottom: '12px', borderRadius: '8px', width: '100%', fontSize: '15px', colorScheme: 'dark' };
 const readonlyField: React.CSSProperties = { background: '#1a1a1a', border: '1px solid #333', color: '#2ecc71', padding: '12px', marginBottom: '12px', borderRadius: '8px', width: '100%', fontSize: '15px', fontWeight: 'bold' };
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#888', marginBottom: '6px', display: 'block', textTransform: 'uppercase', letterSpacing: '1px' };
