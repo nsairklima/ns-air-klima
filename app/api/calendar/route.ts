@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     // Lekérjük a karbantartásokat az ügyfél nevével együtt
-    const maintenances = await prisma.maintenance.findMany({
+    const maintenances = await prisma.maintenanceLog.findMany({
       include: {
         unit: {
           include: {
