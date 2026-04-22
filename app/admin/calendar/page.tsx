@@ -105,24 +105,20 @@ export default function CalendarPage() {
           <button onClick={() => selectedDate ? setSelectedDate(null) : router.push("/")} style={backBtn}>
             {selectedDate ? "← Vissza a naptárhoz" : "⬅ Főmenü"}
           </button>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600' }}>
-              NS-Air Klíma Rendszer v2.0 | 2026
-            </span>
-          </div>
-        </div>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '20px' }}>
-          <h1 style={{ fontSize: '28px', margin: 0, fontWeight: '800', letterSpacing: '-0.5px' }}>
-            {selectedDate ? `📅 ${selectedDate}` : `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
-          </h1>
-          {!selectedDate && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={navBtn}>‹</button>
-              <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={navBtn}>›</button>
-            </div>
-          )}
-        </div>
+          {/* EZ A RÉSZ FELEL A FELIRATÉRT */}
+    <div style={{ textAlign: 'right' }}>
+      <span style={{ fontSize: '14px', color: '#f8fafc', fontWeight: 'bold', display: 'block' }}>
+        NS-Air Klíma Rendszer v2.0 | 2026
+      </span>
+    </div>
+  </div>
+  
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '20px' }}>
+    <h1 style={{ fontSize: '28px', margin: 0, fontWeight: '800', letterSpacing: '-0.5px' }}>
+      {selectedDate ? `📅 ${selectedDate}` : `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
+    </h1>
+    {/* Navigációs gombok... */}
+  </div>
       </header>
 
       {selectedDate ? (
