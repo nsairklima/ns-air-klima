@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function ClientDetailsPage() {
   const params = useParams();
@@ -22,7 +23,7 @@ export default function ClientDetailsPage() {
   const [model, setModel] = useState("");
   const [serial, setSerial] = useState("");
   const [location, setLocation] = useState("");
-  const [status, setStatus] = useState("INSTALLED"); // INSTALLED vagy SERVICE_ONLY
+  const [status, setStatus] = useState("INSTALLED");
   const [installation, setInstallation] = useState("");
 
   const loadClientData = async () => {
@@ -47,7 +48,6 @@ export default function ClientDetailsPage() {
 
   useEffect(() => { if (Id) loadClientData(); }, [Id]);
 
-  // --- ÜGYFÉL MŰVELETEK ---
   const handleUpdateClient = async () => {
     const res = await fetch(`/api/clients/${Id}`, {
       method: "PATCH",
@@ -63,35 +63,19 @@ export default function ClientDetailsPage() {
     if (res.ok) router.push("/clients");
   };
 
-  // --- GÉP MŰVELETEK ---
   const handleSubmitUnit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     const payload = { 
-      brand, 
-      model, 
-      serialNumber: serial, 
-      location, 
-      status,
-      // Ha hozott gép, és van megadva dátum, azt küldjük, különben null
+      brand, model, serialNumber: serial, location, status,
       installation: installation ? new Date(installation).toISOString() : null 
     };
-
     const url = editingUnitId ? `/api/clients/${Id}/units/${editingUnitId}` : `/api/clients/${Id}/units`;
-    
     const res = await fetch(url, {
       method: editingUnitId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-
-    if (res.ok) {
-      resetUnitForm();
-      loadClientData();
-    } else {
-      const errorData = await res.json();
-      alert("Hiba: " + (errorData.error || "Ismeretlen hiba"));
-    }
+    if (res.ok) { resetUnitForm(); loadClientData(); }
   };
 
   const handleSetStatus = async (unitId: number, newStatus: string) => {
@@ -100,21 +84,13 @@ export default function ClientDetailsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus, installation: new Date().toISOString() }),
     });
-    
-    if (res.ok) {
-      await loadClientData();
-    } else {
-      alert("Hiba történt a státusz frissítésekor.");
-    }
+    if (res.ok) await loadClientData();
   };
 
   const startEditUnit = (unit: any) => {
     setEditingUnitId(unit.id);
-    setBrand(unit.brand);
-    setModel(unit.model);
-    setSerial(unit.serialNumber || "");
-    setLocation(unit.location || "");
-    setStatus(unit.status || "INSTALLED");
+    setBrand(unit.brand); setModel(unit.model); setSerial(unit.serialNumber || "");
+    setLocation(unit.location || ""); setStatus(unit.status || "INSTALLED");
     setInstallation(unit.installation ? new Date(unit.installation).toISOString().split('T')[0] : "");
     setShowUnitForm(true);
   };
@@ -122,8 +98,7 @@ export default function ClientDetailsPage() {
   const resetUnitForm = () => {
     setEditingUnitId(null);
     setBrand(""); setModel(""); setSerial(""); setLocation(""); setInstallation("");
-    setStatus("INSTALLED");
-    setShowUnitForm(false);
+    setStatus("INSTALLED"); setShowUnitForm(false);
   };
 
   const handleDeleteUnit = async (unitId: number) => {
@@ -138,31 +113,34 @@ export default function ClientDetailsPage() {
     if (res.ok) loadClientData();
   };
 
-  if (loading) return <div style={{padding: 20}}>Betöltés...</div>;
-  if (!client) return <div style={{padding: 20}}>Ügyfél nem található.</div>;
+  if (loading) return <div style={containerStyle}>Betöltés...</div>;
+  if (!client) return <div style={containerStyle}>Ügyfél nem található.</div>;
 
   return (
-    <div style={{ padding: "24px", maxWidth: "1000px", margin: "0 auto", fontFamily: "Segoe UI, sans-serif" }}>
-      
+    <div style={containerStyle}>
+      {/* NAVIGÁCIÓ */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "25px" }}>
         <button onClick={() => router.push("/clients")} style={navBtn}>⬅️ Vissza</button>
-        <button onClick={() => router.push("/")} style={{ ...navBtn, background: "#f8f9fa" }}>🏠 Főoldal</button>
+        <button onClick={() => router.push("/")} style={navBtn}>🏠 Főoldal</button>
       </div>
 
+      {/* ÜGYFÉL ADATOK - JAVÍTOTT OLVASHATÓSÁG */}
       <div style={headerS}>
         <div style={{ flex: 1 }}>
           {!isEditingClient ? (
             <>
-              <h1 style={{ margin: "0 0 10px 0", fontSize: "32px", color: "#1a1a1a" }}>{client.name}</h1>
-              <div style={{ display: "flex", gap: "20px", color: "#666" }}>
-                <span>📞 {client.phone || "Nincs telefonszám"}</span>
-                <span>✉️ {client.email || "Nincs email"}</span>
+              <h1 style={clientNameStyle}>{client.name}</h1>
+              <div style={contactRow}>
+                <span style={{ color: "#2ecc71", marginRight: "20px" }}>📞 {client.phone || "Nincs telefonszám"}</span>
+                <span style={{ color: "#bbb" }}>✉️ {client.email || "Nincs email"}</span>
               </div>
-              <p style={{ margin: "10px 0 0 0", color: "#888" }}>🏠 {client.address || "Nincs cím megadva"}</p>
+              <div style={{ ...contactRow, marginTop: "8px", color: "#fff", fontSize: "16px" }}>
+                🏠 {client.address || "Nincs cím megadva"}
+              </div>
             </>
           ) : (
             <div style={editBoxS}>
-              <h3 style={{marginTop: 0}}>Ügyfél módosítása</h3>
+              <h3 style={{marginTop: 0, color: "#fff"}}>Ügyfél módosítása</h3>
               <input style={inputS} value={editClientData.name} onChange={e => setEditClientData({...editClientData, name: e.target.value})} placeholder="Név" />
               <input style={inputS} value={editClientData.phone} onChange={e => setEditClientData({...editClientData, phone: e.target.value})} placeholder="Telefon" />
               <input style={inputS} value={editClientData.email} onChange={e => setEditClientData({...editClientData, email: e.target.value})} placeholder="Email" />
@@ -174,8 +152,8 @@ export default function ClientDetailsPage() {
         <div style={{ display: "flex", gap: "12px" }}>
           {!isEditingClient ? (
             <>
-              <button onClick={() => setIsEditingClient(true)} style={btnBlueHeader}>✏️ Szerkesztés</button>
-              <button onClick={handleDeleteClient} style={btnDelete}>🗑️</button>
+              <button onClick={() => setIsEditingClient(true)} style={btnEditHeader}>✏️ Szerkesztés</button>
+              <button onClick={handleDeleteClient} style={btnDeleteHeader}>🗑️</button>
             </>
           ) : (
             <>
@@ -186,8 +164,9 @@ export default function ClientDetailsPage() {
         </div>
       </div>
 
+      {/* GÉPEK SZEKCIÓ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h2 style={{ margin: 0 }}>🛠️ Gépek kezelése</h2>
+        <h2 style={{ margin: 0, color: "#fff" }}>🛠️ Gépek kezelése</h2>
         <button onClick={() => { if(showUnitForm) resetUnitForm(); else setShowUnitForm(true); }} style={btnGreen}>
           {showUnitForm ? "Mégse" : "+ Új gép felvétele"}
         </button>
@@ -195,21 +174,15 @@ export default function ClientDetailsPage() {
 
       {showUnitForm && (
         <div style={formBoxS}>
-          <h3 style={{ marginTop: 0 }}>{editingUnitId ? "✏️ Gép módosítása" : "➕ Új gép rögzítése"}</h3>
+          <h3 style={{ marginTop: 0, color: "#fff" }}>{editingUnitId ? "✏️ Gép módosítása" : "➕ Új gép rögzítése"}</h3>
           <form onSubmit={handleSubmitUnit} style={{ display: "grid", gap: "12px" }}>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+            <div>
               <label style={labS}>Gép típusa:</label>
-              <select 
-                value={status} 
-                onChange={(e) => setStatus(e.target.value)} 
-                style={{ ...inputS, background: status === "SERVICE_ONLY" ? "#e3f2fd" : "#fff" }}
-              >
+              <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputS}>
                 <option value="INSTALLED">🆕 Telepítendő (Saját eladás)</option>
                 <option value="SERVICE_ONLY">🔵 Hozott gép (Csak javítás/napló)</option>
               </select>
             </div>
-
             <div style={{display: "flex", gap: "10px"}}>
               <div style={{flex: 1}}>
                 <label style={labS}>Gyártó</label>
@@ -220,35 +193,33 @@ export default function ClientDetailsPage() {
                 <input placeholder="pl. Sensira" value={model} onChange={e => setModel(e.target.value)} style={inputS} required />
               </div>
             </div>
-            
             <div style={{display: "flex", gap: "10px"}}>
               <div style={{flex: 1}}>
                 <label style={labS}>Gyári szám</label>
                 <input placeholder="S/N kód" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
               </div>
               <div style={{flex: 1}}>
-                <label style={labS}>Helyszín (helyiség)</label>
+                <label style={labS}>Helyszín</label>
                 <input placeholder="pl. Nappali" value={location} onChange={e => setLocation(e.target.value)} style={inputS} />
               </div>
             </div>
-
             <div>
-              <label style={labS}>{status === "SERVICE_ONLY" ? "Utolsó/Kezdő karbantartás:" : "Telepítés dátuma:"}</label>
+              <label style={labS}>Dátum:</label>
               <input type="date" value={installation} onChange={e => setInstallation(e.target.value)} style={inputS} />
             </div>
-
-            <button type="submit" style={btnGreen}>{editingUnitId ? "MÓDOSÍTÁS MENTÉSE" : "GÉP HOZZÁADÁSA"}</button>
+            <button type="submit" style={btnGreen}>MENTÉS</button>
           </form>
         </div>
       )}
 
+      {/* GÉPEK LISTÁJA */}
       <div style={{ display: "grid", gap: "12px", marginBottom: "50px" }}>
         {client.units?.length > 0 ? (
           client.units.map((unit: any) => (
             <div key={unit.id} style={unitCard}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <strong style={{ fontSize: "18px" }}>{unit.brand} {unit.model}</strong>
+                  <strong style={{ fontSize: "18px", color: "#000" }}>{unit.brand} {unit.model}</strong>
                   <span style={{
                     fontSize: "12px", padding: "2px 8px", borderRadius: "10px", fontWeight: "bold",
                     background: unit.status === "SERVICE_ONLY" ? "#e3f2fd" : (unit.installation ? "#e8f5e9" : "#fff3e0"),
@@ -262,38 +233,34 @@ export default function ClientDetailsPage() {
                   {unit.installation && <span> | 📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
                 </div>
               </div>
-
               <div style={{ display: "flex", gap: "8px" }}>
                 {unit.status === "INSTALLED" && !unit.installation && (
                   <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={btnGreenSmall}>✅ Telepítés kész</button>
                 )}
-                
-                {(unit.status === "SERVICE_ONLY" || unit.installation) && (
-                  <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={btnBlueSmall}>Napló →</button>
-                )}
-
+                <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={btnBlueSmall}>Napló →</button>
                 <button onClick={() => startEditUnit(unit)} style={btnOrangeSmall}>✏️</button>
                 <button onClick={() => handleDeleteUnit(unit.id)} style={btnRedSmall}>🗑️</button>
               </div>
             </div>
           ))
         ) : (
-          <p style={{ color: "#999", fontStyle: "italic" }}>Nincs még gép rögzítve.</p>
+          <p style={{ color: "#666", fontStyle: "italic" }}>Nincs még gép rögzítve.</p>
         )}
       </div>
 
+      {/* ÁRAJÁNLATOK */}
       <div>
-        <h2 style={{ borderBottom: "2px solid #eee", paddingBottom: "10px", marginBottom: "20px" }}>📄 Árajánlatok</h2>
+        <h2 style={{ borderBottom: "1px solid #333", paddingBottom: "10px", marginBottom: "20px", color: "#fff" }}>📄 Árajánlatok</h2>
         <div style={{ display: "grid", gap: "10px" }}>
           {client.quotes?.length > 0 ? (
             client.quotes.map((quote: any) => (
               <div key={quote.id} style={quoteCard}>
                 <div>
-                  <strong style={{ color: "#2c3e50" }}>{quote.title || "Ajánlat"}</strong>
-                  <div style={{ fontSize: "12px", color: "#888", marginTop: "2px" }}>Státusz: {quote.status}</div>
+                  <strong style={{ color: "#000" }}>{quote.title || "Ajánlat"}</strong>
+                  <div style={{ fontSize: "12px", color: "#666" }}>Státusz: {quote.status}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                  <div style={{ fontWeight: "bold", fontSize: "16px" }}>{Number(quote.grossTotal).toLocaleString()} Ft</div>
+                  <div style={{ fontWeight: "bold", fontSize: "16px", color: "#000" }}>{Number(quote.grossTotal).toLocaleString()} Ft</div>
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button onClick={() => router.push(`/quotes/${quote.id}`)} style={btnOrangeSmall}>✏️</button>
                     <button onClick={() => handleDeleteQuote(quote.id)} style={btnRedSmall}>🗑️</button>
@@ -302,7 +269,7 @@ export default function ClientDetailsPage() {
               </div>
             ))
           ) : (
-            <p style={{ color: "#999", fontStyle: "italic" }}>Nincs korábbi ajánlat.</p>
+            <p style={{ color: "#666", fontStyle: "italic" }}>Nincs korábbi ajánlat.</p>
           )}
         </div>
       </div>
@@ -310,20 +277,77 @@ export default function ClientDetailsPage() {
   );
 }
 
-// Stílusok
-const labS = { fontSize: "12px", color: "#666", fontWeight: "bold" as const, marginBottom: "2px", display: "block" };
-const headerS = { padding: "20px 0", marginBottom: "30px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid #eee" };
-const editBoxS = { display: "grid", gap: "10px", maxWidth: "450px", background: "#f8f9fa", padding: "20px", borderRadius: "15px" };
-const formBoxS = { background: "#f0f7ff", padding: "20px", borderRadius: "12px", marginBottom: "30px", border: "1px solid #3498db" };
-const navBtn = { padding: "8px 15px", borderRadius: "8px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontWeight: "bold" as const };
-const inputS = { width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", outline: "none", boxSizing: "border-box" as const };
-const btnBlueHeader = { background: "#eef6fc", color: "#3498db", border: "1px solid #3498db", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
-const btnDelete = { background: "#fff1f0", color: "#e74c3c", border: "1px solid #ffa39e", padding: "10px 15px", borderRadius: "10px", cursor: "pointer" };
-const btnCancel = { background: "#eee", color: "#666", border: "1px solid #ccc", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
-const btnGreen = { background: "#27ae60", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
-const unitCard = { padding: "16px", border: "1px solid #eee", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" };
-const quoteCard = { padding: "15px", border: "1px solid #e1e8ed", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fcfdff" };
+// --- JAVÍTOTT STÍLUSOK SÖTÉT MÓDHOZ ---
+
+const containerStyle: React.CSSProperties = {
+  backgroundColor: "#000",
+  minHeight: "100vh",
+  padding: "24px",
+  maxWidth: "1000px",
+  margin: "0 auto",
+  fontFamily: "sans-serif",
+  color: "#fff"
+};
+
+const clientNameStyle: React.CSSProperties = {
+  fontSize: "32px",
+  margin: "0 0 10px 0",
+  color: "#ffffff",
+  fontWeight: "bold"
+};
+
+const contactRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  fontSize: "15px",
+  fontWeight: "500"
+};
+
+const headerS: React.CSSProperties = {
+  padding: "20px 0",
+  marginBottom: "30px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  borderBottom: "1px solid #333"
+};
+
+const navBtn = {
+  padding: "8px 15px",
+  borderRadius: "8px",
+  border: "none",
+  background: "#fff",
+  color: "#000",
+  cursor: "pointer",
+  fontWeight: "bold" as const,
+  fontSize: "14px"
+};
+
+const inputS = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "8px",
+  border: "1px solid #444",
+  backgroundColor: "#222",
+  color: "#fff",
+  outline: "none",
+  boxSizing: "border-box" as const
+};
+
+const editBoxS = { display: "grid", gap: "10px", width: "100%", background: "#111", padding: "20px", borderRadius: "15px", border: "1px solid #333" };
+const formBoxS = { background: "#111", padding: "20px", borderRadius: "12px", marginBottom: "30px", border: "1px solid #2ecc71" };
+
+const btnEditHeader = { background: "#e3f2fd", color: "#1976d2", border: "none", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
+const btnDeleteHeader = { background: "#ffebee", color: "#c62828", border: "none", padding: "10px 15px", borderRadius: "10px", cursor: "pointer" };
+
+const btnGreen = { background: "#2ecc71", color: "#fff", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
+const btnCancel = { background: "#444", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "10px", cursor: "pointer" };
+
+const unitCard = { padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", marginBottom: "10px" };
+const quoteCard = { padding: "15px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff" };
+
+const labS = { fontSize: "12px", color: "#aaa", fontWeight: "bold" as const, marginBottom: "4px", display: "block" };
 const btnBlueSmall = { background: "#3498db", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" as const };
 const btnGreenSmall = { background: "#2ecc71", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" as const };
 const btnOrangeSmall = { background: "#f39c12", color: "#fff", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" };
-const btnRedSmall = { background: "#fdf2f2", color: "#e74c3c", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" };
+const btnRedSmall = { background: "#ffebee", color: "#e74c3c", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" };
