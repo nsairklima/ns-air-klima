@@ -28,7 +28,7 @@ export default function CalendarPage() {
   const [newEntry, setNewEntry] = useState({ 
     unitId: "", 
     title: "", 
-    date: "", 
+    date: new Date().toISOString().substring(0, 16), 
     desc: ""
   });
 
@@ -105,9 +105,16 @@ export default function CalendarPage() {
             {selectedDate ? "← Vissza" : "⬅ Főmenü"}
           </button>
           
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
              {!selectedDate && (
                <>
+                 {/* VISSZAKERÜLT A GOMB IDE IS */}
+                 <button onClick={() => {
+                    setEditingId(null);
+                    setNewEntry({ ...newEntry, date: new Date().toISOString().substring(0, 16) });
+                    setShowModal(true);
+                 }} style={quickAddBtn}>+ ÚJ</button>
+                 
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={navBtn}>‹</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={navBtn}>›</button>
                </>
@@ -168,7 +175,6 @@ export default function CalendarPage() {
         )}
       </main>
 
-      {/* --- JAVÍTOTT ALSÓ FELIRAT (FOOTER) --- */}
       <footer style={footerStyle}>
         <div style={footerDivider} />
         <p style={footerText}>NS-Air Klíma Rendszer v2.0 | 2026</p>
@@ -187,6 +193,11 @@ export default function CalendarPage() {
               ))}
             </div>
             
+            <select style={inputStyle} value={newEntry.unitId} onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}>
+                <option value="">-- Válassz ügyfelet --</option>
+                {units.map(u => <option key={u.id} value={u.id}>{u.displayName || u.model}</option>)}
+            </select>
+
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
             <textarea placeholder="Megjegyzés" style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
             
@@ -200,39 +211,13 @@ export default function CalendarPage() {
 }
 
 // STÍLUSOK
-const pageStyle: React.CSSProperties = { 
-  display: 'flex',
-  flexDirection: 'column',
-  minHeight: "100vh", 
-  backgroundColor: "#121826", 
-  color: "#f8fafc", 
-  padding: "15px", 
-  fontFamily: "sans-serif" 
-};
-
-const footerStyle: React.CSSProperties = {
-  marginTop: '40px',
-  paddingBottom: '10px',
-  textAlign: 'center'
-};
-
-const footerDivider: React.CSSProperties = {
-  height: '1px',
-  background: 'linear-gradient(90deg, transparent, #334155, transparent)',
-  marginBottom: '15px'
-};
-
-const footerText: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#64748b',
-  fontWeight: '600',
-  letterSpacing: '1px',
-  margin: 0,
-  textTransform: 'uppercase'
-};
-
+const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "15px", fontFamily: "sans-serif" };
+const footerStyle: React.CSSProperties = { marginTop: '40px', paddingBottom: '10px', textAlign: 'center' };
+const footerDivider: React.CSSProperties = { height: '1px', background: 'linear-gradient(90deg, transparent, #334155, transparent)', marginBottom: '15px' };
+const footerText: React.CSSProperties = { fontSize: '12px', color: '#64748b', fontWeight: '600', letterSpacing: '1px', margin: 0, textTransform: 'uppercase' };
 const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid #334155", color: "#fff", padding: "10px 18px", borderRadius: "10px", cursor: "pointer", fontWeight: "600" };
 const navBtn: React.CSSProperties = { background: "#334155", border: "none", color: "#fff", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontSize: "18px" };
+const quickAddBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold", marginRight: "10px" };
 const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", background: "#334155", padding: "4px", borderRadius: "12px" };
 const dayHeader: React.CSSProperties = { padding: "12px", textAlign: "center", fontSize: "13px", fontWeight: "bold", color: "#94a3b8" };
 const cellStyle: React.CSSProperties = { minHeight: "95px", padding: "12px", background: "#1e293b", cursor: "pointer" };
