@@ -1,6 +1,16 @@
-html, body {
+/* app/globals.css */
+body {
+  background-color: #000;
   margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  background: #f8f9fa;
+  -webkit-font-smoothing: antialiased;
+}
+
+input::placeholder, 
+textarea::placeholder {
+  color: #bbbbbb !important; /* Világos szürke placeholder szöveg */
+  opacity: 1; 
+}
+
+input, textarea, select {
+  font-size: 16px !important; /* iPhone zoom megelőzése */
 }
