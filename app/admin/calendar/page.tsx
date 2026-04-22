@@ -83,10 +83,15 @@ export default function CalendarPage() {
   return (
     <div style={pageStyle}>
       <header style={headerStyle}>
-        <button onClick={() => router.push("/")} style={backBtn}>←</button>
+        {/* HANGSÚLYOS VISSZA GOMB */}
+        <button onClick={() => router.push("/")} style={backBtn}>
+          <span style={{ fontSize: '18px' }}>⬅</span> VISSZA A FŐOLDALRA
+        </button>
+
         <h1 style={titleStyle}>
           {monthNames[currentDate.getMonth()]} <span style={{ opacity: 0.6 }}>{currentDate.getFullYear()}</span>
         </h1>
+
         <div style={navBtns}>
           <button onClick={() => setShowModal(true)} style={addBtn}>+ Új bejegyzés</button>
           <button onClick={() => changeMonth(-1)} style={navBtn}>‹</button>
@@ -176,17 +181,34 @@ export default function CalendarPage() {
   );
 }
 
-// --- STÍLUSOK (Olvashatóság javítva: tiszta fehér betűk az inputokban) ---
+// --- STÍLUSOK ---
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "20px", fontFamily: "sans-serif" };
-const headerStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", maxWidth: "1200px", margin: "0 auto 30px auto" };
-const titleStyle: React.CSSProperties = { fontSize: "28px", fontWeight: "normal", margin: 0 };
-const backBtn: React.CSSProperties = { background: "#222", border: "1px solid #444", color: "#fff", padding: "8px 15px", cursor: "pointer", borderRadius: '4px' };
+const headerStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", maxWidth: "1200px", margin: "0 auto 30px auto", gap: "20px" };
+const titleStyle: React.CSSProperties = { fontSize: "28px", fontWeight: "bold", margin: 0, flex: 1, textAlign: "center" };
+
+const backBtn: React.CSSProperties = { 
+  background: "#1a1a1a", 
+  border: "2px solid #2ecc71", 
+  color: "#2ecc71", 
+  padding: "10px 20px", 
+  cursor: "pointer", 
+  borderRadius: '8px',
+  fontWeight: "bold",
+  fontSize: "14px",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  boxShadow: "0 0 15px rgba(46, 204, 113, 0.15)",
+  transition: "all 0.2s ease",
+  textTransform: "uppercase"
+};
+
 const navBtns: React.CSSProperties = { display: "flex", gap: "8px", alignItems: 'center' };
 const navBtn: React.CSSProperties = { border: "1px solid #444", color: "#fff", cursor: "pointer", background: "#222", padding: "5px 15px", fontSize: "20px", borderRadius: "4px" };
-const addBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "8px 15px", cursor: "pointer", fontWeight: "bold", fontSize: "14px", borderRadius: '4px' };
-const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "1px", backgroundColor: "#555", border: "1px solid #555", maxWidth: "1200px", margin: "0 auto" };
+const addBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "10px 18px", cursor: "pointer", fontWeight: "bold", fontSize: "14px", borderRadius: '6px' };
+const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "1px", backgroundColor: "#333", border: "1px solid #333", maxWidth: "1200px", margin: "0 auto" };
 const dayHeader: React.CSSProperties = { backgroundColor: "#111", padding: "10px", textAlign: "center", fontSize: "12px", color: "#bbb" };
-const cellStyle: React.CSSProperties = { minHeight: "120px", padding: "8px", display: "flex", flexDirection: "column" };
+const cellStyle: React.CSSProperties = { minHeight: "120px", padding: "8px", display: "flex", flexDirection: "column", cursor: "pointer" };
 const emptyCell: React.CSSProperties = { backgroundColor: "#000" };
 const dayNum: React.CSSProperties = { fontSize: "16px", marginBottom: "5px", fontWeight: "500" };
 const eventContainer: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "4px" };
@@ -194,11 +216,10 @@ const eventBadge: React.CSSProperties = { padding: "4px 8px", fontSize: "11px", 
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#1a1a1a', padding: '25px', border: '1px solid #444', width: '90%', maxWidth: '400px', borderRadius: '12px' };
 
-// FEHÉR BETŰSZÍN ÉS JOBB OLVASHATÓSÁG AZ INPUTOKBAN
 const inputStyle: React.CSSProperties = { 
   background: '#2a2a2a', 
   border: '1px solid #444', 
-  color: '#ffffff', // Tiszta fehér betűszín
+  color: '#ffffff', 
   padding: '14px', 
   marginBottom: '10px', 
   borderRadius: '8px', 
