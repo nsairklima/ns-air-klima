@@ -83,9 +83,9 @@ export default function CalendarPage() {
   return (
     <div style={pageStyle}>
       <header style={headerStyle}>
-        {/* HANGSÚLYOS VISSZA GOMB */}
+        {/* MOBILBARÁT VISSZA GOMB */}
         <button onClick={() => router.push("/")} style={backBtn}>
-          <span style={{ fontSize: '18px' }}>⬅</span> VISSZA A FŐOLDALRA
+          <span>⬅</span> <span className="hide-on-mobile">VISSZA</span>
         </button>
 
         <h1 style={titleStyle}>
@@ -93,11 +93,26 @@ export default function CalendarPage() {
         </h1>
 
         <div style={navBtns}>
-          <button onClick={() => setShowModal(true)} style={addBtn}>+ Új bejegyzés</button>
-          <button onClick={() => changeMonth(-1)} style={navBtn}>‹</button>
-          <button onClick={() => changeMonth(1)} style={navBtn}>›</button>
+          <button onClick={() => setShowModal(true)} style={addBtn}>
+            <span className="hide-on-mobile">+ Új bejegyzés</span>
+            <span className="show-on-mobile">+</span>
+          </button>
+          <div style={{display: 'flex', gap: '4px'}}>
+            <button onClick={() => changeMonth(-1)} style={navBtn}>‹</button>
+            <button onClick={() => changeMonth(1)} style={navBtn}>›</button>
+          </div>
         </div>
       </header>
+
+      <style jsx>{`
+        @media (max-width: 600px) {
+          .hide-on-mobile { display: none; }
+          .show-on-mobile { display: inline; }
+        }
+        @media (min-width: 601px) {
+          .show-on-mobile { display: none; }
+        }
+      `}</style>
 
       {showModal && (
         <div style={modalOverlay}>
@@ -181,46 +196,70 @@ export default function CalendarPage() {
   );
 }
 
-// --- STÍLUSOK ---
-const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "20px", fontFamily: "sans-serif" };
-const headerStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", maxWidth: "1200px", margin: "0 auto 30px auto", gap: "20px" };
-const titleStyle: React.CSSProperties = { fontSize: "28px", fontWeight: "bold", margin: 0, flex: 1, textAlign: "center" };
+// --- JAVÍTOTT MOBILBARÁT STÍLUSOK ---
+const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "10px", fontFamily: "sans-serif" };
+
+const headerStyle: React.CSSProperties = { 
+  display: "flex", 
+  justifyContent: "space-between", 
+  alignItems: "center", 
+  marginBottom: "20px", 
+  maxWidth: "1200px", 
+  margin: "0 auto 20px auto", 
+  gap: "10px",
+  flexWrap: "wrap" // Engedi a sorba törést mobilon
+};
+
+const titleStyle: React.CSSProperties = { 
+  fontSize: "22px", 
+  fontWeight: "bold", 
+  margin: 0, 
+  textAlign: "center",
+  order: 2, // Középre kerül mobilon
+  flex: "1 1 100%", // Mobilon külön sorba kényszerítheti ha nincs hely
+  maxWidth: "100%"
+};
 
 const backBtn: React.CSSProperties = { 
   background: "#1a1a1a", 
   border: "2px solid #2ecc71", 
   color: "#2ecc71", 
-  padding: "10px 20px", 
+  padding: "8px 12px", 
   cursor: "pointer", 
   borderRadius: '8px',
   fontWeight: "bold",
-  fontSize: "14px",
+  fontSize: "12px",
   display: "flex",
   alignItems: "center",
-  gap: "8px",
-  boxShadow: "0 0 15px rgba(46, 204, 113, 0.15)",
-  transition: "all 0.2s ease",
-  textTransform: "uppercase"
+  gap: "6px",
+  boxShadow: "0 0 10px rgba(46, 204, 113, 0.15)",
+  order: 1
 };
 
-const navBtns: React.CSSProperties = { display: "flex", gap: "8px", alignItems: 'center' };
-const navBtn: React.CSSProperties = { border: "1px solid #444", color: "#fff", cursor: "pointer", background: "#222", padding: "5px 15px", fontSize: "20px", borderRadius: "4px" };
-const addBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "10px 18px", cursor: "pointer", fontWeight: "bold", fontSize: "14px", borderRadius: '6px' };
+const navBtns: React.CSSProperties = { 
+  display: "flex", 
+  gap: "6px", 
+  alignItems: 'center',
+  order: 3
+};
+
+const navBtn: React.CSSProperties = { border: "1px solid #444", color: "#fff", cursor: "pointer", background: "#222", padding: "6px 12px", fontSize: "18px", borderRadius: "4px" };
+const addBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "8px 12px", cursor: "pointer", fontWeight: "bold", fontSize: "12px", borderRadius: '6px' };
 const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "1px", backgroundColor: "#333", border: "1px solid #333", maxWidth: "1200px", margin: "0 auto" };
-const dayHeader: React.CSSProperties = { backgroundColor: "#111", padding: "10px", textAlign: "center", fontSize: "12px", color: "#bbb" };
-const cellStyle: React.CSSProperties = { minHeight: "120px", padding: "8px", display: "flex", flexDirection: "column", cursor: "pointer" };
+const dayHeader: React.CSSProperties = { backgroundColor: "#111", padding: "8px 2px", textAlign: "center", fontSize: "11px", color: "#bbb" };
+const cellStyle: React.CSSProperties = { minHeight: "80px", padding: "4px", display: "flex", flexDirection: "column", cursor: "pointer" };
 const emptyCell: React.CSSProperties = { backgroundColor: "#000" };
-const dayNum: React.CSSProperties = { fontSize: "16px", marginBottom: "5px", fontWeight: "500" };
-const eventContainer: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "4px" };
-const eventBadge: React.CSSProperties = { padding: "4px 8px", fontSize: "11px", borderRadius: "3px", color: "#fff", fontWeight: "bold", cursor: 'pointer' };
+const dayNum: React.CSSProperties = { fontSize: "14px", marginBottom: "3px", fontWeight: "500" };
+const eventContainer: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "2px" };
+const eventBadge: React.CSSProperties = { padding: "2px 4px", fontSize: "9px", borderRadius: "2px", color: "#fff", fontWeight: "bold", cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
-const modalContent: React.CSSProperties = { background: '#1a1a1a', padding: '25px', border: '1px solid #444', width: '90%', maxWidth: '400px', borderRadius: '12px' };
+const modalContent: React.CSSProperties = { background: '#1a1a1a', padding: '20px', border: '1px solid #444', width: '95%', maxWidth: '400px', borderRadius: '12px' };
 
 const inputStyle: React.CSSProperties = { 
   background: '#2a2a2a', 
   border: '1px solid #444', 
   color: '#ffffff', 
-  padding: '14px', 
+  padding: '12px', 
   marginBottom: '10px', 
   borderRadius: '8px', 
   width: '100%', 
@@ -228,6 +267,6 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box' 
 };
 
-const labelStyle: React.CSSProperties = { fontSize: '11px', marginBottom: '6px', color: '#aaa', textTransform: 'uppercase', display: 'block' };
-const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '10px 5px', fontSize: '11px', cursor: 'pointer', borderRadius: '6px' };
-const saveBtnStyle: React.CSSProperties = { border: "none", color: "#fff", cursor: "pointer", padding: "14px", borderRadius: "8px", fontSize: "16px", fontWeight: "bold" };
+const labelStyle: React.CSSProperties = { fontSize: '10px', marginBottom: '4px', color: '#aaa', textTransform: 'uppercase', display: 'block' };
+const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '8px 4px', fontSize: '10px', cursor: 'pointer', borderRadius: '6px' };
+const saveBtnStyle: React.CSSProperties = { border: "none", color: "#fff", cursor: "pointer", padding: "12px", borderRadius: "8px", fontSize: "14px", fontWeight: "bold" };
