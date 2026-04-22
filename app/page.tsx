@@ -60,7 +60,7 @@ export default function MainDashboard() {
           <div style={tileLabelStyle}>Naptár</div>
         </div>
 
-        {/* ÁRAJÁNLATOK - EZ HIÁNYZOTT */}
+        {/* ÁRAJÁNLATOK */}
         <div 
           onClick={() => router.push("/quotes")}
           onMouseEnter={onEnter}
@@ -106,20 +106,23 @@ export default function MainDashboard() {
 
       </div>
 
-      <footer style={footerStyle}>
-        NS-Air Klíma Rendszer v2.0 | 2026
+      {/* --- JAVÍTOTT FOOTER SZAKASZ --- */}
+      <footer style={footerContainer}>
+        <div style={footerLine} />
+        <p style={footerText}>NS-Air Klíma Rendszer v2.0 | 2026</p>
       </footer>
     </div>
   );
 }
 
-// STÍLUSOK (Változatlanul)
+// STÍLUSOK
 const containerStyle: React.CSSProperties = {
   minHeight: "100vh", backgroundColor: "#000", color: "#fff",
   fontFamily: "'Segoe UI', sans-serif", padding: "40px 20px",
+  display: "flex", flexDirection: "column"
 };
 const headerStyle: React.CSSProperties = {
-  maxWidth: "800px", margin: "0 auto 40px auto",
+  maxWidth: "800px", width: "100%", margin: "0 auto 40px auto",
   display: "flex", justifyContent: "space-between", alignItems: "baseline",
 };
 const titleStyle: React.CSSProperties = { fontSize: "32px", fontWeight: "lighter", margin: 0 };
@@ -127,6 +130,7 @@ const statusDot: React.CSSProperties = { fontSize: "12px", color: "#2ecc71", tex
 const gridStyle: React.CSSProperties = {
   display: "grid", gridTemplateColumns: "repeat(2, 1fr)",
   gridAutoRows: "140px", gap: "10px", maxWidth: "800px", margin: "0 auto",
+  flex: 1
 };
 const tileStyle: React.CSSProperties = {
   padding: "15px", display: "flex", flexDirection: "column",
@@ -135,6 +139,26 @@ const tileStyle: React.CSSProperties = {
 const iconStyle: React.CSSProperties = { fontSize: "28px" };
 const tileLabelStyle: React.CSSProperties = { fontSize: "18px", fontWeight: "600" };
 const smallLabelStyle: React.CSSProperties = { fontSize: "11px", opacity: 0.7 };
-const footerStyle: React.CSSProperties = {
-  textAlign: "center", marginTop: "50px", fontSize: "11px", color: "#444",
+
+// AZ ÚJ FOOTER STÍLUSOK:
+const footerContainer: React.CSSProperties = {
+  textAlign: "center", 
+  marginTop: "60px", 
+  paddingBottom: "20px",
+  width: "100%",
+  maxWidth: "800px",
+  margin: "60px auto 0 auto"
+};
+const footerLine: React.CSSProperties = {
+  height: "1px",
+  background: "linear-gradient(90deg, transparent, #333, transparent)",
+  marginBottom: "15px"
+};
+const footerText: React.CSSProperties = {
+  fontSize: "12px", 
+  color: "#2ecc71", // Zöld, hogy látszódjon!
+  fontWeight: "bold",
+  letterSpacing: "1.5px",
+  textTransform: "uppercase",
+  margin: 0
 };
