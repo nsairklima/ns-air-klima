@@ -161,7 +161,7 @@ export default function ClientsPage() {
   );
 }
 
-// --- MOBIL-OPTIMALIZÁLT STÍLUSOK ---
+// --- STÍLUSOK ---
 
 const containerStyle: React.CSSProperties = {
   padding: "15px",
@@ -207,16 +207,16 @@ const inputStyle: React.CSSProperties = {
   marginBottom: "12px",
   display: "block",
   width: "100%",
-  fontSize: "16px", // iOS zoom fix
+  fontSize: "16px",
   backgroundColor: "#222",
-  color: "#fff",
+  color: "#ffffff", // Tiszta fehér szöveg
   boxSizing: "border-box"
 };
 
 const searchFieldStyle: React.CSSProperties = {
   ...inputStyle,
   border: "2px solid #2ecc71",
-  backgroundColor: "#000",
+  backgroundColor: "#111", // Kicsit sötétebb, hogy elváljon
   marginBottom: "0"
 };
 
