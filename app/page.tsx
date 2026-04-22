@@ -137,4 +137,4 @@ const tileLabelStyle: React.CSSProperties = { fontSize: "18px", fontWeight: "600
 const smallLabelStyle: React.CSSProperties = { fontSize: "11px", opacity: 0.7 };
 const footerStyle: React.CSSProperties = {
   textAlign: "center", marginTop: "50px", fontSize: "11px", color: "#444",
-}; tedd bele
+};
