@@ -25,6 +25,10 @@ export default function CalendarPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   
+  // A mai nap fix definíciója a fordítási hiba elkerüléséhez
+  const todayObj = new Date();
+  const todayISO = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
   const [newEntry, setNewEntry] = useState({ 
     unitId: "", 
     title: "", 
@@ -53,37 +57,29 @@ export default function CalendarPage() {
   }, []);
 
   const handleSave = async () => {
-    // Validálás
     if (!newEntry.unitId || !newEntry.date) {
       return alert("Kérlek válassz ügyfelet és időpontot!");
     }
 
     const method = editingId ? 'PUT' : 'POST';
-    
-    // Explicit adat-összeállítás a küldéshez
     const payload = {
       ...(editingId ? { id: editingId } : { unitId: parseInt(newEntry.unitId) }),
       performedDate: newEntry.date,
       description: newEntry.desc,
-      type: newEntry.type // Ez itt a kritikus pont
+      type: newEntry.type 
     };
 
-    try {
-      const res = await fetch('/api/calendar', {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+    const res = await fetch('/api/calendar', {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-      if (res.ok) {
-        closeModal();
-        fetchEvents();
-      } else {
-        const errData = await res.json();
-        alert("Hiba: " + (errData.error || "Sikertelen mentés"));
-      }
-    } catch (error) {
-      alert("Hálózati hiba történt.");
+    if (res.ok) {
+      closeModal();
+      fetchEvents();
+    } else {
+      alert("Sikertelen mentés.");
     }
   };
 
@@ -156,12 +152,12 @@ export default function CalendarPage() {
                 <button 
                   key={t}
                   type="button"
-                  onClick={() => setNewEntry({...newEntry, type: t})} 
+                  onClick={() => setNewEntry(prev => ({...prev, type: t}))} 
                   style={{
                     ...typeBtn, 
                     backgroundColor: newEntry.type === t ? TYPE_COLORS[t] : '#333',
                     border: newEntry.type === t ? '2px solid #fff' : '1px solid transparent',
-                    boxShadow: newEntry.type === t ? `0 0 10px ${TYPE_COLORS[t]}` : 'none'
+                    opacity: newEntry.type === t ? 1 : 0.5
                   }}
                 >
                   {TYPE_LABELS[t]}
@@ -177,7 +173,7 @@ export default function CalendarPage() {
                 <select 
                   style={{ ...inputStyle, marginBottom: 0, flex: 1 }} 
                   value={newEntry.unitId} 
-                  onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
+                  onChange={e => setNewEntry(prev => ({...prev, unitId: e.target.value}))}
                 >
                   <option value="">-- Válassz --</option>
                   {units.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
@@ -195,7 +191,7 @@ export default function CalendarPage() {
                 className="no-native-icon"
                 style={{ ...inputStyle, marginBottom: 0 }} 
                 value={newEntry.date} 
-                onChange={e => setNewEntry({...newEntry, date: e.target.value})} 
+                onChange={e => setNewEntry(prev => ({...prev, date: e.target.value}))} 
               />
               <div className="calendar-icon-overlay">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -211,7 +207,7 @@ export default function CalendarPage() {
             <textarea 
               style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} 
               value={newEntry.desc} 
-              onChange={e => setNewEntry({...newEntry, desc: e.target.value})} 
+              onChange={e => setNewEntry(prev => ({...prev, desc: e.target.value}))} 
             />
             
             <div style={{display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px'}}>
@@ -230,7 +226,7 @@ export default function CalendarPage() {
           const day = i + 1;
           const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const dayEvents = events.filter(e => e.date.startsWith(dateStr));
-          const isToday = dateStr === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          const isToday = dateStr === todayISO;
           
           return (
             <div key={day} 
@@ -253,7 +249,7 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK - MINDEN EGY HELYEN
+// STÍLUSOK
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "10px", fontFamily: "sans-serif" };
 const headerContainer: React.CSSProperties = { marginBottom: "15px", maxWidth: "1200px", margin: "0 auto 15px auto" };
 const topActionRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" };
@@ -276,5 +272,5 @@ const modalContent: React.CSSProperties = { background: '#111', padding: '24px',
 const inputStyle: React.CSSProperties = { background: '#222', border: '1px solid #444', color: '#fff', padding: '12px', paddingRight: '40px', marginBottom: '12px', borderRadius: '8px', width: '100%', fontSize: '15px', colorScheme: 'dark' };
 const readonlyField: React.CSSProperties = { background: '#1a1a1a', border: '1px solid #333', color: '#2ecc71', padding: '12px', marginBottom: '12px', borderRadius: '8px', width: '100%', fontSize: '15px', fontWeight: 'bold' };
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#888', marginBottom: '6px', display: 'block', textTransform: 'uppercase', letterSpacing: '1px' };
-const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '12px 2px', fontSize: '11px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' };
+const typeBtn: React.CSSProperties = { flex: 1, border: 'none', color: '#fff', padding: '12px 2px', fontSize: '11px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' };
 const saveBtnStyle: React.CSSProperties = { border: "none", color: "#fff", padding: "14px", borderRadius: "10px", fontWeight: "bold", cursor: 'pointer', fontSize: '15px' };
