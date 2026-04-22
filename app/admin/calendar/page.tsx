@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Színkód térkép a naptár eseményekhez
+// Színkódok a naptárhoz
 const TYPE_COLORS: Record<string, string> = {
   INSTALLATION: "#2ecc71", // Zöld
   MAINTENANCE: "#0078d7",  // Kék
@@ -50,7 +50,7 @@ export default function CalendarPage() {
   }, []);
 
   const handleSave = async () => {
-    if (!newEntry.unitId || !newEntry.date) return alert("Ki kell választani egy ügyfelet és dátumot!");
+    if (!newEntry.unitId || !newEntry.date) return alert("Válassz ügyfelet és dátumot!");
     
     const method = editingId ? 'PUT' : 'POST';
     const body = editingId 
@@ -66,13 +66,11 @@ export default function CalendarPage() {
     if (res.ok) {
       closeModal();
       fetchEvents();
-    } else {
-      alert("Hiba történt a mentés során.");
     }
   };
 
   const handleDelete = async () => {
-    if (!editingId || !confirm("Biztosan törlöd ezt a bejegyzést?")) return;
+    if (!editingId || !confirm("Biztosan törlöd?")) return;
     const res = await fetch(`/api/calendar?id=${editingId}`, { method: 'DELETE' });
     if (res.ok) {
       closeModal();
@@ -114,29 +112,20 @@ export default function CalendarPage() {
       {showModal && (
         <div style={modalOverlay}>
           <div style={modalContent}>
-            <h2 style={{marginTop: 0, fontSize: '20px'}}>{editingId ? "Szerkesztés" : "Új munka rögzítése"}</h2>
+            <h2 style={{marginTop: 0, fontSize: '20px'}}>{editingId ? "Szerkesztés" : "Új munka"}</h2>
             
             <label style={labelStyle}>Munka típusa:</label>
             <div style={{display: 'flex', gap: '5px', marginBottom: '15px'}}>
-              <button 
-                onClick={() => setNewEntry({...newEntry, type: 'MAINTENANCE'})}
-                style={{...typeBtn, backgroundColor: newEntry.type === 'MAINTENANCE' ? TYPE_COLORS.MAINTENANCE : '#333'}}
-              >Karbantartás</button>
-              <button 
-                onClick={() => setNewEntry({...newEntry, type: 'INSTALLATION'})}
-                style={{...typeBtn, backgroundColor: newEntry.type === 'INSTALLATION' ? TYPE_COLORS.INSTALLATION : '#333'}}
-              >Telepítés</button>
-              <button 
-                onClick={() => setNewEntry({...newEntry, type: 'REPAIR'})}
-                style={{...typeBtn, backgroundColor: newEntry.type === 'REPAIR' ? TYPE_COLORS.REPAIR : '#333'}}
-              >Javítás</button>
+              <button onClick={() => setNewEntry({...newEntry, type: 'MAINTENANCE'})} style={{...typeBtn, backgroundColor: newEntry.type === 'MAINTENANCE' ? TYPE_COLORS.MAINTENANCE : '#333'}}>Karbantartás</button>
+              <button onClick={() => setNewEntry({...newEntry, type: 'INSTALLATION'})} style={{...typeBtn, backgroundColor: newEntry.type === 'INSTALLATION' ? TYPE_COLORS.INSTALLATION : '#333'}}>Telepítés</button>
+              <button onClick={() => setNewEntry({...newEntry, type: 'REPAIR'})} style={{...typeBtn, backgroundColor: newEntry.type === 'REPAIR' ? TYPE_COLORS.REPAIR : '#333'}}>Javítás</button>
             </div>
 
             {!editingId && (
               <>
-                <label style={labelStyle}>Ügyfél és Gép:</label>
+                <label style={labelStyle}>Ügyfél, Gép és Cím:</label>
                 <select 
-                  style={inputStyle} 
+                  style={{...inputStyle, cursor: 'pointer'}} 
                   value={newEntry.unitId}
                   onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
                 >
@@ -145,14 +134,20 @@ export default function CalendarPage() {
                     <option key={u.id} value={u.id}>{u.displayName}</option>
                   ))}
                 </select>
+                <button 
+                  onClick={() => router.push("/clients")} 
+                  style={{background: 'none', border: 'none', color: '#2ecc71', fontSize: '11px', textAlign: 'left', marginBottom: '15px', cursor: 'pointer', padding: 0}}
+                >
+                  + Nincs a listában? Új ügyfél rögzítése
+                </button>
               </>
             )}
             
             <label style={labelStyle}>Dátum:</label>
             <input type="date" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
             
-            <label style={labelStyle}>Leírás / Megjegyzés:</label>
-            <textarea style={{...inputStyle, minHeight: '60px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
+            <label style={labelStyle}>Leírás / Részletek:</label>
+            <textarea style={{...inputStyle, minHeight: '60px'}} placeholder="Pl. Kültéri egység tisztítása, vagy új Gree Amber 3.5kW..." value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
             
             <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
               <button onClick={handleSave} style={{...navBtn, background: '#2ecc71', padding: '12px', borderRadius: '4px'}}>Mentés</button>
@@ -167,9 +162,7 @@ export default function CalendarPage() {
         <p style={{ textAlign: 'center', marginTop: '50px', opacity: 0.5 }}>Betöltés...</p>
       ) : (
         <div style={calendarGrid}>
-          {["Hé", "Ke", "Sze", "Csü", "Pé", "Szo", "Va"].map(d => (
-            <div key={d} style={dayHeader}>{d}</div>
-          ))}
+          {["Hé", "Ke", "Sze", "Csü", "Pé", "Szo", "Va"].map(d => <div key={d} style={dayHeader}>{d}</div>)}
           {Array.from({ length: offset }).map((_, i) => <div key={`empty-${i}`} style={emptyCell} />)}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1;
@@ -198,7 +191,7 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK DEFINÍCIÓJA - EZ HIÁNYZOTT!
+// STÍLUSOK (MINDEN BENNE VAN!)
 const pageStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "20px", fontFamily: "'Segoe UI', sans-serif" };
 const headerStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", maxWidth: "1200px", margin: "0 auto 30px auto" };
 const titleStyle: React.CSSProperties = { fontSize: "32px", fontWeight: "lighter", margin: 0 };
