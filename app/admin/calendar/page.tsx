@@ -263,25 +263,25 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUS DEFINÍCIÓK
-const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "15px", fontFamily: "sans-serif" };
-const headerContainer: React.CSSProperties = { marginBottom: '25px', borderBottom: '1px solid #334155', paddingBottom: '15px' };
-const monthTitle: React.CSSProperties = { fontSize: '28px', marginTop: '20px', marginBottom: 0, fontWeight: '800' };
-const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid #334155", color: "#fff", padding: "10px 18px", borderRadius: "10px", cursor: "pointer", fontWeight: "600" };
-const navBtn: React.CSSProperties = { background: "#334155", border: "none", color: "#fff", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontSize: "18px" };
-const quickAddBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold", marginRight: "10px" };
-const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", background: "#334155", padding: "4px", borderRadius: "12px" };
-const dayHeader: React.CSSProperties = { padding: "12px", textAlign: "center", fontSize: "13px", fontWeight: "bold", color: "#94a3b8" };
-const cellStyle: React.CSSProperties = { minHeight: "95px", padding: "10px", background: "#1e293b", cursor: "pointer" };
+// STÍLUS DEFINÍCIÓK - KOMPAKT MOBIL NÉZETRE OPTIMALIZÁLVA
+const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", maxHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "10px", fontFamily: "sans-serif", overflow: "hidden" };
+const headerContainer: React.CSSProperties = { marginBottom: '10px', borderBottom: '1px solid #334155', paddingBottom: '10px' };
+const monthTitle: React.CSSProperties = { fontSize: '22px', marginTop: '10px', marginBottom: 0, fontWeight: '800' };
+const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid #334155", color: "#fff", padding: "8px 14px", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "13px" };
+const navBtn: React.CSSProperties = { background: "#334155", border: "none", color: "#fff", padding: "8px 16px", borderRadius: "10px", cursor: "pointer", fontSize: "16px" };
+const quickAddBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "8px 16px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold", marginRight: "5px", fontSize: "13px" };
+const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px", background: "#334155", padding: "2px", borderRadius: "8px" };
+const dayHeader: React.CSSProperties = { padding: "8px 0", textAlign: "center", fontSize: "11px", fontWeight: "bold", color: "#94a3b8" };
+const cellStyle: React.CSSProperties = { minHeight: "75px", padding: "6px", background: "#1e293b", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between" };
 const emptyCell: React.CSSProperties = { background: "#0f172a" };
-const eventStack: React.CSSProperties = { display: "flex", gap: "3px", marginTop: "8px", flexWrap: 'wrap' };
-const miniBar: React.CSSProperties = { width: "100%", height: "5px", borderRadius: "3px" };
-const dailyContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '15px' };
+const eventStack: React.CSSProperties = { display: "flex", gap: "2px", marginTop: "4px", flexWrap: 'wrap' };
+const miniBar: React.CSSProperties = { width: "100%", height: "4px", borderRadius: "2px" };
+const dailyContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '15px', overflowY: 'auto', paddingBottom: '20px' };
 const dailyCard: React.CSSProperties = { background: '#1e293b', padding: '18px', borderRadius: '14px', border: '1px solid #334155' };
 const addFullBtn: React.CSSProperties = { background: '#2ecc71', color: '#fff', border: 'none', padding: '16px', borderRadius: '14px', fontWeight: 'bold' };
-const footerStyle: React.CSSProperties = { marginTop: '40px', paddingBottom: '10px', textAlign: 'center' };
-const footerDivider: React.CSSProperties = { height: '1px', background: 'linear-gradient(90deg, transparent, #334155, transparent)', marginBottom: '15px' };
-const footerText: React.CSSProperties = { fontSize: '12px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' };
+const footerStyle: React.CSSProperties = { marginTop: 'auto', padding: '10px 0', textAlign: 'center' };
+const footerDivider: React.CSSProperties = { height: '1px', background: 'linear-gradient(90deg, transparent, #334155, transparent)', marginBottom: '8px' };
+const footerText: React.CSSProperties = { fontSize: '10px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', margin: 0 };
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#1e293b', padding: '25px', borderRadius: '20px', width: '90%', maxWidth: '420px', border: '1px solid #334155' };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '14px', marginBottom: '12px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '10px', boxSizing: 'border-box' };
