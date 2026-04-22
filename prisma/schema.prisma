@@ -139,3 +139,12 @@ model Item {
 
   @@map("items")
 }
+
+model CalendarEvent {
+  id            Int      @id @default(autoincrement())
+  unitId        Int
+  performedDate DateTime
+  description   String?
+  type          String   @default("MAINTENANCE") // Karbantartás (kék), Telepítés (zöld), Javítás (piros)
+  // ... többi mező
+}
