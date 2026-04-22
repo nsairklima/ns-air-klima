@@ -35,6 +35,7 @@ export default function CalendarPage() {
     desc: "" 
   });
 
+  // EREDETI API HÍVÁSOK - NEM MÓDOSÍTVA
   const fetchEvents = async () => {
     try {
       const res = await fetch('/api/calendar');
@@ -76,12 +77,14 @@ export default function CalendarPage() {
       setShowModal(false);
       setEditingId(null);
       fetchEvents();
+    } else {
+      alert("Hiba a mentés során! (404 vagy Szerver hiba)");
     }
   };
 
+  // Navigáció és Swipe logikák
   const prevMonth = () => { if (isTransitioning) return; setIsTransitioning(true); setTranslateX(100); setTimeout(() => { setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)); setTranslateX(-100); setTimeout(() => { setTranslateX(0); setIsTransitioning(false); }, 50); }, 150); };
   const nextMonth = () => { if (isTransitioning) return; setIsTransitioning(true); setTranslateX(-100); setTimeout(() => { setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)); setTranslateX(100); setTimeout(() => { setTranslateX(0); setIsTransitioning(false); }, 50); }, 150); };
-  
   const handleTouchStart = (e: React.TouchEvent) => { if (selectedDate) return; setTouchStart(e.targetTouches[0].clientX); };
   const handleTouchMove = (e: React.TouchEvent) => { if (touchStart === null || selectedDate) return; setTranslateX((e.targetTouches[0].clientX - touchStart) * 0.6); };
   const handleTouchEnd = () => { if (touchStart === null || selectedDate) return; if (translateX > 80) prevMonth(); else if (translateX < -80) nextMonth(); else setTranslateX(0); setTouchStart(null); };
@@ -115,8 +118,8 @@ export default function CalendarPage() {
         <h1 style={monthTitle}>{selectedDate ? `📅 ${selectedDate}` : `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}</h1>
       </header>
 
-      <main style={{ flex: 1, overflow: 'hidden', touchAction: 'pan-y' }} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-        <div className="calendar-content" style={{ transform: `translateX(${translateX}px)`, height: '100%' }}>
+      <main style={{ flex: 1, overflow: 'hidden', touchAction: 'pan-y' }}>
+        <div className="calendar-content" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${translateX}px)`, height: '100%' }}>
           {selectedDate ? (
             <div style={dailyContainer}>
               <button onClick={() => { setNewEntry({...newEntry, date: `${selectedDate}T08:00`}); setEditingId(null); setShowModal(true); }} style={addFullBtn}>+ ÚJ FELADAT ERRE A NAPRA</button>
@@ -150,7 +153,7 @@ export default function CalendarPage() {
       {showModal && (
         <div style={modalOverlay}>
           <div style={modalContent}>
-            <h3 style={{marginTop: 0}}>Munka rögzítése</h3>
+            <h3 style={{marginTop: 0}}>Bejegyzés rögzítése</h3>
             <div style={{display: 'flex', gap: '8px', marginBottom: '15px'}}>
               {Object.keys(TYPE_COLORS).map(t => (
                 <button key={t} className={`type-btn ${activeType === t ? 'active' : ''}`} onClick={() => setActiveType(t)} style={{ backgroundColor: TYPE_COLORS[t] }}>{TYPE_LABELS[t]}</button>
@@ -162,14 +165,14 @@ export default function CalendarPage() {
                 <option value="">-- Ügyfél választása --</option>
                 {units.map(u => <option key={u.id} value={u.id}>{u.displayName || u.model}</option>)}
               </select>
-              <button onClick={() => router.push("/admin/clients")} style={{ ...navBtn, background: '#3b82f6', fontSize: '18px', padding: '0 15px' }}>+</button>
+              <button onClick={() => router.push("/admin/clients")} style={{ ...navBtn, background: '#3b82f6', fontSize: '20px', padding: '0 15px', fontWeight: 'bold' }}>+</button>
             </div>
 
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
-            <textarea placeholder="Munka leírása..." style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
+            <textarea placeholder="Leírás..." style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
             
             <button onClick={handleSave} style={saveBtn}>MENTÉS</button>
-            <button onClick={() => setShowModal(false)} style={cancelBtn}>MÉGSE</button>
+            <button onClick={() => { setShowModal(false); setEditingId(null); }} style={cancelBtn}>MÉGSE</button>
           </div>
         </div>
       )}
