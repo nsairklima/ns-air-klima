@@ -186,19 +186,19 @@ export default function CalendarPage() {
             </div>
 
             <label style={labelStyle}>ÜGYFÉL KIVÁLASZTÁSA</label>
-            <select 
-              style={inputStyle} 
-              value={newEntry.unitId} 
-              onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
-              disabled={!!editingId}
-            >
-              <option value="">-- Válassz ügyfelet --</option>
-              {units.map((u: any) => (
-                <option key={u.id} value={u.id.toString()}>
-                  {u.client?.name} | {u.brand} ({u.model})
-                </option>
-              ))}
-            </select>
+<select 
+  style={inputStyle} 
+  value={newEntry.unitId} 
+  onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
+  disabled={!!editingId}
+>
+  <option value="">-- Válassz ügyfelet --</option>
+  {units.map((u: any) => (
+    <option key={u.id} value={u.id.toString()}>
+      {u.displayName} {/* Itt csak a displayName-t használjuk */}
+    </option>
+  ))}
+</select>
             
             <label style={labelStyle}>IDŐPONT</label>
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
