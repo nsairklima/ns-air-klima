@@ -74,6 +74,22 @@ export default function CalendarPage() {
     }
   };
 
+  // ÚJ: Törlés funkció
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation(); // Megakadályozza a szerkesztő ablak megnyílását
+    if (!confirm("Biztosan törölni szeretnéd ezt a bejegyzést?")) return;
+
+    const res = await fetch(`/api/calendar?id=${id}`, {
+      method: 'DELETE',
+    });
+
+    if (res.ok) {
+      fetchEvents();
+    } else {
+      alert("Hiba történt a törlés során.");
+    }
+  };
+
   const openEdit = (e: React.MouseEvent, eventData: any) => {
     e.stopPropagation();
     setEditingId(eventData.id);
@@ -135,8 +151,16 @@ export default function CalendarPage() {
               <p style={{ textAlign: 'center', color: '#94a3b8', marginTop: '40px' }}>Nincs erre a napra rögzített feladat.</p>
             ) : (
               dailyEvents.map(ev => (
-                <div key={ev.id} onClick={(e) => openEdit(e, ev)} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`}}>
-                  <div style={{ fontWeight: 'bold', fontSize: '17px' }}>
+                <div key={ev.id} onClick={(e) => openEdit(e, ev)} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`, position: 'relative'}}>
+                  {/* TÖRLÉS GOMB */}
+                  <button 
+                    onClick={(e) => handleDelete(e, ev.id)}
+                    style={deleteBtnStyle}
+                  >
+                    TÖRLÉS
+                  </button>
+
+                  <div style={{ fontWeight: 'bold', fontSize: '17px', paddingRight: '60px' }}>
                     {ev.unit?.client?.name ? `${ev.unit.client.name} - ${ev.unit.brand} ${ev.unit.model}` : ev.title}
                   </div>
                   <div style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '5px' }}>{ev.description}</div>
@@ -186,19 +210,19 @@ export default function CalendarPage() {
             </div>
 
             <label style={labelStyle}>ÜGYFÉL KIVÁLASZTÁSA</label>
-<select 
-  style={inputStyle} 
-  value={newEntry.unitId} 
-  onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
-  disabled={!!editingId}
->
-  <option value="">-- Válassz ügyfelet --</option>
-  {units.map((u: any) => (
-    <option key={u.id} value={u.id.toString()}>
-      {u.displayName} {/* Itt csak a displayName-t használjuk */}
-    </option>
-  ))}
-</select>
+            <select 
+              style={inputStyle} 
+              value={newEntry.unitId} 
+              onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
+              disabled={!!editingId}
+            >
+              <option value="">-- Válassz ügyfelet --</option>
+              {units.map((u: any) => (
+                <option key={u.id} value={u.id.toString()}>
+                  {u.displayName}
+                </option>
+              ))}
+            </select>
             
             <label style={labelStyle}>IDŐPONT</label>
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
@@ -215,7 +239,7 @@ export default function CalendarPage() {
   );
 }
 
-// Stílusok maradnak változatlanok...
+const deleteBtnStyle: React.CSSProperties = { position: 'absolute', top: '18px', right: '18px', background: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' };
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '5px', display: 'block' };
 const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "15px", fontFamily: "sans-serif" };
 const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid #334155", color: "#fff", padding: "10px 18px", borderRadius: "10px", cursor: "pointer", fontWeight: "600" };
