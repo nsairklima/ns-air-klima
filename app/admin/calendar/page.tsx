@@ -125,7 +125,7 @@ export default function CalendarPage() {
           <div style={{ display: 'flex', gap: '10px' }}>
              {!selectedDate && (
                <>
-                 <button onClick={() => router.push("/admin/units")} style={{...backBtn, background: '#0078d7', borderColor: '#0078d7'}}>+ ÚJ ÜGYFÉL</button>
+                 button onClick={() => router.push("/clients/new")} style={{...backBtn, background: '#0078d7', borderColor: '#0078d7'}}>+ ÚJ ÜGYFÉL</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={navBtn}>‹</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={navBtn}>›</button>
                </>
