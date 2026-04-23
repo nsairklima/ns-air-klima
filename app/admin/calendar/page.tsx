@@ -124,7 +124,6 @@ export default function CalendarPage() {
           <div style={{ display: 'flex', gap: '10px' }}>
              {!selectedDate && (
                <>
-                 {/* JAVÍTOTT ÚTVONAL: /clients/new */}
                  <button onClick={() => router.push("/clients/new")} style={{...backBtn, background: '#0078d7', borderColor: '#0078d7'}}>+ ÚJ ÜGYFÉL</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={navBtn}>‹</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={navBtn}>›</button>
@@ -203,19 +202,31 @@ export default function CalendarPage() {
             </div>
 
             <label style={labelStyle}>ÜGYFÉL KIVÁLASZTÁSA</label>
-            <select 
-              style={inputStyle} 
-              value={newEntry.unitId} 
-              onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
-              disabled={!!editingId}
-            >
-              <option value="">-- Válassz ügyfelet --</option>
-              {units.map((u: any) => (
-                <option key={u.id} value={u.id.toString()}>
-                  {u.displayName}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <select 
+                style={{ ...inputStyle, marginBottom: 0 }} 
+                value={newEntry.unitId} 
+                onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
+                disabled={!!editingId}
+                >
+                <option value="">-- Válassz ügyfelet --</option>
+                {units.map((u: any) => (
+                    <option key={u.id} value={u.id.toString()}>
+                    {u.displayName}
+                    </option>
+                ))}
+                </select>
+                {!editingId && (
+                    <button 
+                        type="button" 
+                        onClick={() => router.push("/clients/new")} 
+                        style={miniAddBtn}
+                        title="Új ügyfél felvétele"
+                    >
+                        +
+                    </button>
+                )}
+            </div>
             
             <label style={labelStyle}>IDŐPONT</label>
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
@@ -231,6 +242,9 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+// Új stílus a kis "+" gombhoz a Modalban
+const miniAddBtn: React.CSSProperties = { background: '#0078d7', color: '#fff', border: 'none', padding: '0 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '20px' };
 
 const deleteBtnStyle: React.CSSProperties = { position: 'absolute', top: '18px', right: '18px', background: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' };
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '5px', display: 'block' };
