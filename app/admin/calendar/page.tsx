@@ -80,7 +80,7 @@ export default function CalendarPage() {
     setActiveType(eventData.type || "MAINTENANCE");
     setNewEntry({
       unitId: eventData.unitId?.toString() || "",
-      date: eventData.date.includes('T') ? eventData.date.substring(0, 16) : `${eventData.date}T08:00`,
+      date: eventData.date?.includes('T') ? eventData.date.substring(0, 16) : `${eventData.date}T08:00`,
       desc: eventData.description || ""
     });
     setShowModal(true);
@@ -90,7 +90,7 @@ export default function CalendarPage() {
   const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
   const offset = firstDay === 0 ? 6 : firstDay - 1;
   const monthNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
-  const dailyEvents = events.filter(e => e.date.startsWith(selectedDate || "---"));
+  const dailyEvents = events.filter(e => e.date && e.date.startsWith(selectedDate || "---"));
 
   return (
     <div style={pageStyle}>
@@ -134,23 +134,19 @@ export default function CalendarPage() {
             {dailyEvents.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#94a3b8', marginTop: '40px' }}>Nincs erre a napra rögzített feladat.</p>
             ) : (
-              {dailyEvents.map(ev => (
-  <div key={ev.id} onClick={(e) => openEdit(e, ev)} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`}}>
-    {/* JAVÍTÁS: ev.title helyett az ügyfél neve és a gép adatai */}
-    <div style={{ fontWeight: 'bold', fontSize: '17px' }}>
-      {ev.unit?.client?.name || "Ismeretlen ügyfél"} 
-      <span style={{fontSize: '13px', color: '#94a3b8', marginLeft: '10px'}}>
-        ({ev.unit?.brand} {ev.unit?.model})
-      </span>
-    </div>
-    
-    <div style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '5px' }}>{ev.description}</div>
-    
-    <div style={{ marginTop: '12px', fontSize: '12px', color: TYPE_COLORS[ev.type], fontWeight: 'bold' }}>
-      {TYPE_LABELS[ev.type]} • {ev.date.split('T')[1]?.substring(0, 5) || "Egész nap"}
-    </div>
-  </div>
-))}
+              dailyEvents.map(ev => (
+                <div key={ev.id} onClick={(e) => openEdit(e, ev)} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`}}>
+                  <div style={{ fontWeight: 'bold', fontSize: '17px' }}>
+                    {/* Megjelenítjük a nevet: ha van unit objektumunk akkor onnan, ha nincs akkor a kész title-ből */}
+                    {ev.unit?.client?.name ? `${ev.unit.client.name} - ${ev.unit.brand} ${ev.unit.model}` : ev.title}
+                  </div>
+                  <div style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '5px' }}>{ev.description}</div>
+                  <div style={{ marginTop: '12px', fontSize: '12px', color: TYPE_COLORS[ev.type], fontWeight: 'bold' }}>
+                    {TYPE_LABELS[ev.type]} • {ev.date?.split('T')[1]?.substring(0, 5) || "Egész nap"}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         ) : (
           <div style={calendarGrid}>
@@ -159,7 +155,7 @@ export default function CalendarPage() {
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const dayEvents = events.filter(e => e.date.startsWith(dateStr));
+              const dayEvents = events.filter(e => e.date && e.date.startsWith(dateStr));
               
               return (
                 <div key={day} onClick={() => setSelectedDate(dateStr)} className="day-cell" style={cellStyle}>
@@ -181,7 +177,6 @@ export default function CalendarPage() {
           <div style={modalContent}>
             <h3 style={{marginTop: 0, fontSize: '20px', marginBottom: '20px'}}>{editingId ? "Módosítás" : "Új bejegyzés"}</h3>
             
-            {/* TÍPUS VÁLASZTÓ */}
             <div style={{display: 'flex', gap: '8px', marginBottom: '20px'}}>
               {Object.keys(TYPE_COLORS).map(t => (
                 <button key={t} className={`type-btn ${activeType === t ? 'active' : ''}`}
@@ -191,13 +186,12 @@ export default function CalendarPage() {
               ))}
             </div>
 
-            {/* ÜGYFÉL VÁLASZTÓ - EZ HIÁNYZOTT! */}
             <label style={labelStyle}>ÜGYFÉL KIVÁLASZTÁSA</label>
             <select 
               style={inputStyle} 
               value={newEntry.unitId} 
               onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
-              disabled={!!editingId} // Szerkesztésnél ne lehessen átrakni más nevére véletlen
+              disabled={!!editingId}
             >
               <option value="">-- Válassz ügyfelet --</option>
               {units.map((u: any) => (
@@ -222,7 +216,6 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK (Változatlanok, csak a labelStyle-t adtam hozzá)
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '5px', display: 'block' };
 const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "15px", fontFamily: "sans-serif" };
 const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid #334155", color: "#fff", padding: "10px 18px", borderRadius: "10px", cursor: "pointer", fontWeight: "600" };
