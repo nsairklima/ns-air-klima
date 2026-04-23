@@ -134,16 +134,23 @@ export default function CalendarPage() {
             {dailyEvents.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#94a3b8', marginTop: '40px' }}>Nincs erre a napra rögzített feladat.</p>
             ) : (
-              dailyEvents.map(ev => (
-                <div key={ev.id} onClick={(e) => openEdit(e, ev)} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`}}>
-                  <div style={{ fontWeight: 'bold', fontSize: '17px' }}>{ev.title}</div>
-                  <div style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '5px' }}>{ev.description}</div>
-                  <div style={{ marginTop: '12px', fontSize: '12px', color: TYPE_COLORS[ev.type], fontWeight: 'bold' }}>
-                    {TYPE_LABELS[ev.type]} • {ev.date.split('T')[1]?.substring(0, 5) || "Egész nap"}
-                  </div>
-                </div>
-              ))
-            )}
+              {dailyEvents.map(ev => (
+  <div key={ev.id} onClick={(e) => openEdit(e, ev)} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`}}>
+    {/* JAVÍTÁS: ev.title helyett az ügyfél neve és a gép adatai */}
+    <div style={{ fontWeight: 'bold', fontSize: '17px' }}>
+      {ev.unit?.client?.name || "Ismeretlen ügyfél"} 
+      <span style={{fontSize: '13px', color: '#94a3b8', marginLeft: '10px'}}>
+        ({ev.unit?.brand} {ev.unit?.model})
+      </span>
+    </div>
+    
+    <div style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '5px' }}>{ev.description}</div>
+    
+    <div style={{ marginTop: '12px', fontSize: '12px', color: TYPE_COLORS[ev.type], fontWeight: 'bold' }}>
+      {TYPE_LABELS[ev.type]} • {ev.date.split('T')[1]?.substring(0, 5) || "Egész nap"}
+    </div>
+  </div>
+))}
           </div>
         ) : (
           <div style={calendarGrid}>
