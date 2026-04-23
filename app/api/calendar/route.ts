@@ -12,17 +12,20 @@ export async function GET() {
             client: true
           }
         }
-      }
+      },
+      orderBy: { performedDate: 'asc' }
     });
 
     const events = maintenances.map(m => ({
       id: m.id,
       unitId: m.unitId,
       date: m.performedDate ? m.performedDate.toISOString() : null,
+      // Meghagyjuk a title-t is a biztonság kedvéért
       title: `${m.unit.client.name} - ${m.unit.brand} ${m.unit.model}`,
       description: m.description || "",
-      type: m.type || "MAINTENANCE", 
-      status: "COMPLETED" 
+      type: m.type || "MAINTENANCE",
+      // Visszaküldjük a teljes unitot, hogy a frontend elérje: ev.unit.client.name
+      unit: m.unit 
     })).filter(e => e.date !== null);
 
     return NextResponse.json(events);
@@ -43,7 +46,8 @@ export async function POST(req: Request) {
         performedDate: new Date(performedDate),
         description: description || "",
         type: type || "MAINTENANCE", 
-      }
+      },
+      include: { unit: { include: { client: true } } }
     });
     return NextResponse.json(newLog);
   } catch (error) {
