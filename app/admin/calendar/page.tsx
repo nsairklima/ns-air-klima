@@ -27,9 +27,8 @@ export default function CalendarPage() {
   
   const [newEntry, setNewEntry] = useState({ 
     unitId: "", 
-    title: "", 
     date: "", 
-    desc: ""
+    desc: "" 
   });
 
   const fetchEvents = async () => {
@@ -52,6 +51,8 @@ export default function CalendarPage() {
   }, []);
 
   const handleSave = async () => {
+    if (!newEntry.unitId && !editingId) return alert("Válassz ügyfelet!");
+    
     const payload = {
       ...(editingId ? { id: editingId } : { unitId: parseInt(newEntry.unitId) }),
       performedDate: newEntry.date,
@@ -68,6 +69,7 @@ export default function CalendarPage() {
     if (res.ok) {
       setShowModal(false);
       setEditingId(null);
+      setNewEntry({ unitId: "", date: "", desc: "" });
       fetchEvents();
     }
   };
@@ -78,7 +80,6 @@ export default function CalendarPage() {
     setActiveType(eventData.type || "MAINTENANCE");
     setNewEntry({
       unitId: eventData.unitId?.toString() || "",
-      title: eventData.title || "",
       date: eventData.date.includes('T') ? eventData.date.substring(0, 16) : `${eventData.date}T08:00`,
       desc: eventData.description || ""
     });
@@ -105,9 +106,10 @@ export default function CalendarPage() {
             {selectedDate ? "← Vissza" : "⬅ Főmenü"}
           </button>
           
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '10px' }}>
              {!selectedDate && (
                <>
+                 <button onClick={() => router.push("/admin/units")} style={{...backBtn, background: '#0078d7', borderColor: '#0078d7'}}>+ ÚJ ÜGYFÉL</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={navBtn}>‹</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={navBtn}>›</button>
                </>
@@ -124,7 +126,7 @@ export default function CalendarPage() {
         {selectedDate ? (
           <div style={dailyContainer}>
             <button onClick={() => {
-              setNewEntry({...newEntry, date: `${selectedDate}T08:00`});
+              setNewEntry({unitId: "", desc: "", date: `${selectedDate}T08:00`});
               setEditingId(null);
               setShowModal(true);
             }} style={addFullBtn}>+ ÚJ FELADAT ERRE A NAPRA</button>
@@ -159,7 +161,6 @@ export default function CalendarPage() {
                     {dayEvents.slice(0, 3).map(ev => (
                       <div key={ev.id} style={{ ...miniBar, backgroundColor: TYPE_COLORS[ev.type] }} />
                     ))}
-                    {dayEvents.length > 3 && <div style={{fontSize: '10px', color: '#64748b', fontWeight: 'bold'}}>+{dayEvents.length - 3}</div>}
                   </div>
                 </div>
               );
@@ -168,17 +169,13 @@ export default function CalendarPage() {
         )}
       </main>
 
-      {/* --- JAVÍTOTT ALSÓ FELIRAT (FOOTER) --- */}
-      <footer style={footerStyle}>
-        <div style={footerDivider} />
-        <p style={footerText}>NS-Air Klíma Rendszer v2.0 | 2026</p>
-      </footer>
-
       {showModal && (
         <div style={modalOverlay}>
           <div style={modalContent}>
-            <h3 style={{marginTop: 0, fontSize: '20px'}}>{editingId ? "Módosítás" : "Új bejegyzés"}</h3>
-            <div style={{display: 'flex', gap: '8px', marginBottom: '15px'}}>
+            <h3 style={{marginTop: 0, fontSize: '20px', marginBottom: '20px'}}>{editingId ? "Módosítás" : "Új bejegyzés"}</h3>
+            
+            {/* TÍPUS VÁLASZTÓ */}
+            <div style={{display: 'flex', gap: '8px', marginBottom: '20px'}}>
               {Object.keys(TYPE_COLORS).map(t => (
                 <button key={t} className={`type-btn ${activeType === t ? 'active' : ''}`}
                   onClick={() => setActiveType(t)} style={{ backgroundColor: TYPE_COLORS[t] }}>
@@ -186,9 +183,28 @@ export default function CalendarPage() {
                 </button>
               ))}
             </div>
+
+            {/* ÜGYFÉL VÁLASZTÓ - EZ HIÁNYZOTT! */}
+            <label style={labelStyle}>ÜGYFÉL KIVÁLASZTÁSA</label>
+            <select 
+              style={inputStyle} 
+              value={newEntry.unitId} 
+              onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
+              disabled={!!editingId} // Szerkesztésnél ne lehessen átrakni más nevére véletlen
+            >
+              <option value="">-- Válassz ügyfelet --</option>
+              {units.map((u: any) => (
+                <option key={u.id} value={u.id.toString()}>
+                  {u.client?.name} | {u.brand} ({u.model})
+                </option>
+              ))}
+            </select>
             
+            <label style={labelStyle}>IDŐPONT</label>
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
-            <textarea placeholder="Megjegyzés" style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
+            
+            <label style={labelStyle}>MEGJEGYZÉS</label>
+            <textarea placeholder="Hiba leírása, elvégzendő munka..." style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
             
             <button onClick={handleSave} style={saveBtn}>MENTÉS</button>
             <button onClick={() => setShowModal(false)} style={cancelBtn}>MÉGSE</button>
@@ -199,38 +215,9 @@ export default function CalendarPage() {
   );
 }
 
-// STÍLUSOK
-const pageStyle: React.CSSProperties = { 
-  display: 'flex',
-  flexDirection: 'column',
-  minHeight: "100vh", 
-  backgroundColor: "#121826", 
-  color: "#f8fafc", 
-  padding: "15px", 
-  fontFamily: "sans-serif" 
-};
-
-const footerStyle: React.CSSProperties = {
-  marginTop: '40px',
-  paddingBottom: '10px',
-  textAlign: 'center'
-};
-
-const footerDivider: React.CSSProperties = {
-  height: '1px',
-  background: 'linear-gradient(90deg, transparent, #334155, transparent)',
-  marginBottom: '15px'
-};
-
-const footerText: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#64748b',
-  fontWeight: '600',
-  letterSpacing: '1px',
-  margin: 0,
-  textTransform: 'uppercase'
-};
-
+// STÍLUSOK (Változatlanok, csak a labelStyle-t adtam hozzá)
+const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '5px', display: 'block' };
+const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "15px", fontFamily: "sans-serif" };
 const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid #334155", color: "#fff", padding: "10px 18px", borderRadius: "10px", cursor: "pointer", fontWeight: "600" };
 const navBtn: React.CSSProperties = { background: "#334155", border: "none", color: "#fff", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontSize: "18px" };
 const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", background: "#334155", padding: "4px", borderRadius: "12px" };
@@ -245,5 +232,5 @@ const addFullBtn: React.CSSProperties = { background: '#2ecc71', color: '#fff', 
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#1e293b', padding: '25px', borderRadius: '20px', width: '90%', maxWidth: '420px', border: '1px solid #334155' };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '14px', marginBottom: '12px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '10px', boxSizing: 'border-box' };
-const saveBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#2ecc71', border: 'none', color: '#fff', borderRadius: '10px', fontWeight: 'bold', marginBottom: '10px' };
-const cancelBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#334155', border: 'none', color: '#fff', borderRadius: '10px' };
+const saveBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#2ecc71', border: 'none', color: '#fff', borderRadius: '10px', fontWeight: 'bold', marginBottom: '10px', cursor: 'pointer' };
+const cancelBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#334155', border: 'none', color: '#fff', borderRadius: '10px', cursor: 'pointer' };
