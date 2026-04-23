@@ -137,7 +137,6 @@ export default function CalendarPage() {
               dailyEvents.map(ev => (
                 <div key={ev.id} onClick={(e) => openEdit(e, ev)} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`}}>
                   <div style={{ fontWeight: 'bold', fontSize: '17px' }}>
-                    {/* Megjelenítjük a nevet: ha van unit objektumunk akkor onnan, ha nincs akkor a kész title-ből */}
                     {ev.unit?.client?.name ? `${ev.unit.client.name} - ${ev.unit.brand} ${ev.unit.model}` : ev.title}
                   </div>
                   <div style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '5px' }}>{ev.description}</div>
@@ -216,6 +215,7 @@ export default function CalendarPage() {
   );
 }
 
+// Stílusok maradnak változatlanok...
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '5px', display: 'block' };
 const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "15px", fontFamily: "sans-serif" };
 const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid #334155", color: "#fff", padding: "10px 18px", borderRadius: "10px", cursor: "pointer", fontWeight: "600" };
