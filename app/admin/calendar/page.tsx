@@ -74,9 +74,8 @@ export default function CalendarPage() {
     }
   };
 
-  // ÚJ: Törlés funkció
   const handleDelete = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); // Megakadályozza a szerkesztő ablak megnyílását
+    e.stopPropagation();
     if (!confirm("Biztosan törölni szeretnéd ezt a bejegyzést?")) return;
 
     const res = await fetch(`/api/calendar?id=${id}`, {
@@ -125,7 +124,8 @@ export default function CalendarPage() {
           <div style={{ display: 'flex', gap: '10px' }}>
              {!selectedDate && (
                <>
-                 button onClick={() => router.push("/clients/new")} style={{...backBtn, background: '#0078d7', borderColor: '#0078d7'}}>+ ÚJ ÜGYFÉL</button>
+                 {/* JAVÍTOTT ÚTVONAL: /clients/new */}
+                 <button onClick={() => router.push("/clients/new")} style={{...backBtn, background: '#0078d7', borderColor: '#0078d7'}}>+ ÚJ ÜGYFÉL</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={navBtn}>‹</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={navBtn}>›</button>
                </>
@@ -152,14 +152,7 @@ export default function CalendarPage() {
             ) : (
               dailyEvents.map(ev => (
                 <div key={ev.id} onClick={(e) => openEdit(e, ev)} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`, position: 'relative'}}>
-                  {/* TÖRLÉS GOMB */}
-                  <button 
-                    onClick={(e) => handleDelete(e, ev.id)}
-                    style={deleteBtnStyle}
-                  >
-                    TÖRLÉS
-                  </button>
-
+                  <button onClick={(e) => handleDelete(e, ev.id)} style={deleteBtnStyle}>TÖRLÉS</button>
                   <div style={{ fontWeight: 'bold', fontSize: '17px', paddingRight: '60px' }}>
                     {ev.unit?.client?.name ? `${ev.unit.client.name} - ${ev.unit.brand} ${ev.unit.model}` : ev.title}
                   </div>
