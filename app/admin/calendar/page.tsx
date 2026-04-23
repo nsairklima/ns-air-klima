@@ -9,12 +9,6 @@ const TYPE_COLORS: Record<string, string> = {
   REPAIR: "#e74c3c"
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  INSTALLATION: "Telepítés",
-  MAINTENANCE: "Karbantartás",
-  REPAIR: "Javítás"
-};
-
 export default function CalendarPage() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -23,47 +17,41 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [activeType, setActiveType] = useState("MAINTENANCE");
-
-  const [translateX, setTranslateX] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
+  
   const [newEntry, setNewEntry] = useState({ 
     unitId: "", 
-    date: new Date().toISOString().substring(0, 16), 
-    desc: "" 
+    date: "", 
+    desc: "", 
+    type: "MAINTENANCE" 
   });
 
-  const fetchEvents = async () => {
+  const fetchData = async () => {
     try {
-      const res = await fetch('/api/calendar');
-      const data = await res.json();
-      setEvents(Array.isArray(data) ? data : []);
-    } catch (e) { console.error("Fetch hiba", e); }
-  };
-
-  const fetchUnits = async () => {
-    try {
-      const res = await fetch('/api/calendar/units');
-      const data = await res.json();
-      setUnits(Array.isArray(data) ? data : []);
-    } catch (e) { console.error("Units hiba", e); }
+      const [evRes, unitRes] = await Promise.all([
+        fetch('/api/calendar'),
+        fetch('/api/calendar/units')
+      ]);
+      const evData = await evRes.json();
+      const unitData = await unitRes.json();
+      
+      setEvents(Array.isArray(evData) ? evData : []);
+      setUnits(Array.isArray(unitData) ? unitData : []);
+    } catch (err) {
+      console.error("Adatlekérési hiba:", err);
+    }
   };
 
   useEffect(() => {
-    fetchEvents();
-    fetchUnits();
+    fetchData();
   }, []);
 
   const handleSave = async () => {
-    if (!newEntry.unitId) return alert("Válassz ügyfelet!");
-    
-    const payload = {
-      ...(editingId ? { id: editingId } : { unitId: parseInt(newEntry.unitId) }),
-      performedDate: newEntry.date,
-      description: newEntry.desc,
-      type: activeType
-    };
+    if (!newEntry.unitId || !newEntry.date) return alert("Válassz ügyfelet és dátumot!");
+
+    // FONTOS: Az API-d parseInt(unitId)-t vár a POST-nál!
+    const payload = editingId 
+      ? { id: editingId, description: newEntry.desc, performedDate: newEntry.date, type: newEntry.type }
+      : { unitId: parseInt(newEntry.unitId), performedDate: newEntry.date, description: newEntry.desc, type: newEntry.type };
 
     const res = await fetch('/api/calendar', {
       method: editingId ? 'PUT' : 'POST',
@@ -74,127 +62,93 @@ export default function CalendarPage() {
     if (res.ok) {
       setShowModal(false);
       setEditingId(null);
-      fetchEvents();
+      setNewEntry({ unitId: "", date: "", desc: "", type: "MAINTENANCE" });
+      fetchData();
     }
+  };
+
+  // Amikor rákattintasz egy létező eseményre szerkesztéshez:
+  const openEdit = (ev: any) => {
+    setEditingId(ev.id);
+    setNewEntry({
+      unitId: ev.unitId.toString(), // A select-nek string kell az egyezéshez!
+      date: ev.date ? ev.date.substring(0, 16) : "",
+      desc: ev.description || "",
+      type: ev.type || "MAINTENANCE"
+    });
+    setShowModal(true);
   };
 
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
   const offset = firstDay === 0 ? 6 : firstDay - 1;
-  const monthNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
 
   return (
-    <div style={pageStyle}>
-      <style>{`
-        .type-btn { flex: 1; border: 2px solid transparent; color: #fff; padding: 10px; borderRadius: 8px; cursor: pointer; font-size: 11px; opacity: 0.5; transition: 0.2s; }
-        .type-btn.active { opacity: 1; border-color: white; transform: scale(1.05); }
-        .input-container { position: relative; display: flex; align-items: center; width: 100%; }
-        .calendar-icon-overlay { position: absolute; right: 12px; pointer-events: none; display: flex; align-items: center; }
-        .no-native-icon::-webkit-calendar-picker-indicator { position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; padding: 0; cursor: pointer; opacity: 0; }
-      `}</style>
-
-      <header style={headerContainer}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button onClick={() => selectedDate ? setSelectedDate(null) : router.push("/")} style={backBtn}>
-            {selectedDate ? "← Vissza" : "⬅ Főmenü"}
-          </button>
-          {!selectedDate && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => { setEditingId(null); setShowModal(true); }} style={quickAddBtn}>+ ÚJ</button>
-            </div>
-          )}
-        </div>
-        <h1 style={monthTitle}>{selectedDate ? `📅 ${selectedDate}` : `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}</h1>
+    <div style={{ background: "#0f172a", color: "white", minHeight: "100vh", padding: "10px" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
+        <button onClick={() => selectedDate ? setSelectedDate(null) : router.push("/")} style={btnStyle}>
+          {selectedDate ? "← Vissza" : "⬅ Menü"}
+        </button>
+        <button onClick={() => { setEditingId(null); setShowModal(true); }} style={{ ...btnStyle, background: "#2ecc71" }}>+ ÚJ</button>
       </header>
 
-      <main style={{ flex: 1, overflowY: 'auto' }}>
-          {selectedDate ? (
-            <div style={dailyContainer}>
-              <button onClick={() => { setNewEntry({...newEntry, date: `${selectedDate}T08:00`}); setEditingId(null); setShowModal(true); }} style={addFullBtn}>+ ÚJ FELADAT ERRE A NAPRA</button>
-              {events.filter(e => e.date.startsWith(selectedDate)).map(ev => (
-                <div key={ev.id} onClick={() => { 
-                    setEditingId(ev.id); 
-                    setActiveType(ev.type); 
-                    setNewEntry({ unitId: ev.unitId.toString(), date: ev.date.substring(0,16), desc: ev.description || "" }); 
-                    setShowModal(true); 
-                }} style={{...dailyCard, borderLeft: `6px solid ${TYPE_COLORS[ev.type]}`}}>
-                  <div style={{ fontWeight: 'bold' }}>{ev.title}</div>
-                  <div style={{ color: '#cbd5e1', fontSize: '14px' }}>{ev.description}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={calendarGrid}>
-              {["H", "K", "Sze", "Cs", "P", "Szo", "V"].map(d => <div key={d} style={dayHeader}>{d}</div>)}
-              {Array.from({ length: offset }).map((_, i) => <div key={`e-${i}`} style={emptyCell} />)}
-              {Array.from({ length: daysInMonth }).map((_, i) => {
-                const day = i + 1;
-                const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const dayEvents = events.filter(e => e.date.startsWith(dateStr));
-                return (
-                  <div key={day} onClick={() => setSelectedDate(dateStr)} style={cellStyle}>
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{day}</span>
-                    <div style={eventStack}>{dayEvents.slice(0, 3).map(ev => <div key={ev.id} style={{ ...miniBar, backgroundColor: TYPE_COLORS[ev.type] }} />)}</div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-      </main>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px" }}>
+        {selectedDate ? (
+          <div style={{ gridColumn: "1 / -1" }}>
+            {events.filter(e => e.date?.startsWith(selectedDate)).map(ev => (
+              <div key={ev.id} onClick={() => openEdit(ev)} style={{ background: "#1e293b", padding: "15px", marginBottom: "10px", borderRadius: "10px", borderLeft: `5px solid ${TYPE_COLORS[ev.type]}` }}>
+                <strong>{ev.title}</strong>
+                <p style={{ fontSize: "13px", color: "#94a3b8" }}>{ev.description}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          Array.from({ length: daysInMonth + offset }).map((_, i) => {
+            const day = i - offset + 1;
+            if (day <= 0) return <div key={i} />;
+            const dStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayEvs = events.filter(e => e.date?.startsWith(dStr));
+            return (
+              <div key={i} onClick={() => setSelectedDate(dStr)} style={{ background: "#1e293b", minHeight: "60px", padding: "5px" }}>
+                <div style={{ fontSize: "10px" }}>{day}</div>
+                {dayEvs.map(e => <div key={e.id} style={{ height: "4px", background: TYPE_COLORS[e.type], marginBottom: "2px" }} />)}
+              </div>
+            );
+          })
+        )}
+      </div>
 
       {showModal && (
-        <div style={modalOverlay}>
-          <div style={modalContent}>
-            <h3 style={{marginTop: 0}}>Bejegyzés rögzítése</h3>
-            <div style={{display: 'flex', gap: '5px', marginBottom: '15px'}}>
-              {Object.keys(TYPE_COLORS).map(t => (
-                <button key={t} className={`type-btn ${activeType === t ? 'active' : ''}`} onClick={() => setActiveType(t)} style={{ backgroundColor: TYPE_COLORS[t] }}>{TYPE_LABELS[t]}</button>
-              ))}
-            </div>
-
-            {/* PONTOSAN AZ ÁLTALAD BEKÜLDÖTT RÉSZ */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
-                <select 
-                  style={{ ...inputStyle, marginBottom: 0, flex: 1 }} 
-                  value={newEntry.unitId} 
-                  onChange={e => setNewEntry({...newEntry, unitId: e.target.value})}
-                >
-                  <option value="">-- Válassz --</option>
-                  {units.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
-                </select>
-                <button 
-                  onClick={() => router.push("/admin/units")}
-                  style={{ 
-                    background: '#333', 
-                    border: '1px solid #444', 
-                    color: '#fff', 
-                    borderRadius: '8px', 
-                    padding: '0 15px', 
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  + ÜGYFÉL
-                </button>
-            </div>
-
-            <div className="input-container">
-                <input type="datetime-local" className="no-native-icon" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
-                <div className="calendar-icon-overlay">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                </div>
-            </div>
-
-            <textarea placeholder="Leírás..." style={{...inputStyle, minHeight: '80px', marginTop: '12px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div style={{ background: "#1e293b", padding: "20px", borderRadius: "15px", width: "90%", maxWidth: "400px" }}>
+            <h3>{editingId ? "Módosítás" : "Új bejegyzés"}</h3>
             
-            <button onClick={handleSave} style={saveBtn}>MENTÉS</button>
-            <button onClick={() => { setShowModal(false); setEditingId(null); }} style={cancelBtn}>MÉGSE</button>
+            <label style={labelStyle}>ÜGYFÉL / GÉP</label>
+            <div style={{ display: "flex", gap: "5px", marginBottom: "15px" }}>
+              <select 
+                style={inputStyle} 
+                value={newEntry.unitId} 
+                onChange={e => setNewEntry({ ...newEntry, unitId: e.target.value })}
+              >
+                <option value="">-- Válassz --</option>
+                {units.map((u: any) => (
+                  <option key={u.id} value={u.id.toString()}>
+                    {/* Itt fűzzük össze a nevet, hogy felismerhető legyen */}
+                    {u.client?.name} | {u.brand} - {u.model}
+                  </option>
+                ))}
+              </select>
+              <button onClick={() => router.push("/admin/units")} style={{ background: "#334155", border: "none", color: "white", padding: "0 10px", borderRadius: "8px" }}>+ ÜGYFÉL</button>
+            </div>
+
+            <label style={labelStyle}>DÁTUM</label>
+            <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({ ...newEntry, date: e.target.value })} />
+
+            <label style={labelStyle}>MEGJEGYZÉS</label>
+            <textarea style={{ ...inputStyle, minHeight: "80px" }} value={newEntry.desc} onChange={e => setNewEntry({ ...newEntry, desc: e.target.value })} />
+
+            <button onClick={handleSave} style={{ ...btnStyle, width: "100%", background: "#2ecc71", marginBottom: "10px" }}>MENTÉS</button>
+            <button onClick={() => setShowModal(false)} style={{ ...btnStyle, width: "100%", background: "#475569" }}>MÉGSE</button>
           </div>
         </div>
       )}
@@ -202,22 +156,6 @@ export default function CalendarPage() {
   );
 }
 
-const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', height: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "10px", fontFamily: "sans-serif", overflow: "hidden" };
-const headerContainer: React.CSSProperties = { marginBottom: '10px', borderBottom: '1px solid #334155', paddingBottom: '10px' };
-const monthTitle: React.CSSProperties = { fontSize: '20px', marginTop: '10px', fontWeight: '800' };
-const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid #334155", color: "#fff", padding: "8px 12px", borderRadius: "10px", fontSize: "13px" };
-const quickAddBtn: React.CSSProperties = { background: "#2ecc71", border: "none", color: "#fff", padding: "8px 16px", borderRadius: "10px", fontWeight: "bold" };
-const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px", background: "#334155", padding: "2px", borderRadius: "8px" };
-const dayHeader: React.CSSProperties = { padding: "6px 0", textAlign: "center", fontSize: "11px", color: "#94a3b8" };
-const cellStyle: React.CSSProperties = { minHeight: "75px", padding: "4px", background: "#1e293b", display: "flex", flexDirection: "column", justifyContent: "space-between" };
-const emptyCell: React.CSSProperties = { background: "#0f172a" };
-const eventStack: React.CSSProperties = { display: "flex", gap: "2px", flexWrap: 'wrap' };
-const miniBar: React.CSSProperties = { width: "100%", height: "4px", borderRadius: "2px" };
-const dailyContainer: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '10px' };
-const dailyCard: React.CSSProperties = { background: '#1e293b', padding: '15px', borderRadius: '12px' };
-const addFullBtn: React.CSSProperties = { background: '#2ecc71', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 'bold', marginBottom: '10px' };
-const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
-const modalContent: React.CSSProperties = { background: '#1e293b', padding: '20px', borderRadius: '16px', width: '95%', maxWidth: '400px' };
-const inputStyle: React.CSSProperties = { width: '100%', padding: '12px', marginBottom: '12px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '8px', fontSize: '14px', colorScheme: 'dark' };
-const saveBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#2ecc71', border: 'none', color: '#fff', borderRadius: '10px', fontWeight: 'bold', marginBottom: '8px', marginTop: '10px' };
-const cancelBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#334155', border: 'none', color: '#fff', borderRadius: '10px' };
+const btnStyle = { border: "none", padding: "10px 15px", borderRadius: "8px", color: "white", fontWeight: "bold", cursor: "pointer" };
+const inputStyle = { width: "100%", padding: "12px", background: "#0f172a", border: "1px solid #334155", color: "white", borderRadius: "8px", marginBottom: "10px" };
+const labelStyle = { fontSize: "12px", color: "#64748b", display: "block", marginBottom: "5px" };
