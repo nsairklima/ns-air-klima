@@ -170,11 +170,32 @@ export default function CalendarPage() {
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              
+              // Mai nap logikája
+              const today = new Date();
+              const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+              const isToday = dateStr === todayStr;
+
               const dayEvents = events.filter(e => e.date && e.date.startsWith(dateStr));
               
               return (
-                <div key={day} onClick={() => setSelectedDate(dateStr)} className="day-cell" style={cellStyle}>
-                  <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 'bold' }}>{day}</span>
+                <div 
+                    key={day} 
+                    onClick={() => setSelectedDate(dateStr)} 
+                    className="day-cell" 
+                    style={{
+                        ...cellStyle,
+                        border: isToday ? '2px solid #f59e0b' : '1px solid transparent',
+                        backgroundColor: isToday ? '#1e293b' : '#1e293b'
+                    }}
+                >
+                  <span style={{ 
+                      fontSize: '13px', 
+                      color: isToday ? '#f59e0b' : '#94a3b8', 
+                      fontWeight: 'bold' 
+                  }}>
+                    {day} {isToday && <span style={{fontSize: '10px', marginLeft: '2px'}}>(Ma)</span>}
+                  </span>
                   <div style={eventStack}>
                     {dayEvents.slice(0, 3).map(ev => (
                       <div key={ev.id} style={{ ...miniBar, backgroundColor: TYPE_COLORS[ev.type] }} />
@@ -243,9 +264,7 @@ export default function CalendarPage() {
   );
 }
 
-// Új stílus a kis "+" gombhoz a Modalban
 const miniAddBtn: React.CSSProperties = { background: '#0078d7', color: '#fff', border: 'none', padding: '0 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '20px' };
-
 const deleteBtnStyle: React.CSSProperties = { position: 'absolute', top: '18px', right: '18px', background: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' };
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '5px', display: 'block' };
 const pageStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: "100vh", backgroundColor: "#121826", color: "#f8fafc", padding: "15px", fontFamily: "sans-serif" };
@@ -253,7 +272,7 @@ const backBtn: React.CSSProperties = { background: "#1e293b", border: "1px solid
 const navBtn: React.CSSProperties = { background: "#334155", border: "none", color: "#fff", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontSize: "18px" };
 const calendarGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", background: "#334155", padding: "4px", borderRadius: "12px" };
 const dayHeader: React.CSSProperties = { padding: "12px", textAlign: "center", fontSize: "13px", fontWeight: "bold", color: "#94a3b8" };
-const cellStyle: React.CSSProperties = { minHeight: "95px", padding: "12px", background: "#1e293b", cursor: "pointer" };
+const cellStyle: React.CSSProperties = { minHeight: "95px", padding: "12px", background: "#1e293b", cursor: "pointer", border: '1px solid transparent' };
 const emptyCell: React.CSSProperties = { background: "#0f172a" };
 const eventStack: React.CSSProperties = { display: "flex", gap: "3px", marginTop: "8px", flexWrap: 'wrap' };
 const miniBar: React.CSSProperties = { width: "100%", height: "5px", borderRadius: "3px" };
