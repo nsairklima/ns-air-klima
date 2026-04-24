@@ -21,14 +21,27 @@ export async function POST(req: Request) {
   }
 }
 
-// ÜGYFELEK LEKÉRÉSE (Csak ez az egy GET maradjon a fájlban!)
-export async function GET() {
+// ÜGYFELEK LEKÉRÉSE KERESÉSSEL
+export async function GET(req: Request) {
   try {
+    // 1. Kinyerjük a keresési paramétert az URL-ből
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search") || "";
+
+    // 2. Összeállítjuk a lekérdezést
     const clients = await prisma.client.findMany({
+      where: search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },    // Keresés névben
+          { address: { contains: search, mode: 'insensitive' } }, // Keresés címben
+          { phone: { contains: search, mode: 'insensitive' } },   // Keresés telefonban
+        ]
+      } : {}, // Ha nincs keresés, üres objektumot küldünk (mindenkit lekér)
       orderBy: { 
-        name: "asc" // ABC sorrendben adja vissza az ügyfeleket
+        name: "asc" 
       }
     });
+
     return NextResponse.json(clients);
   } catch (error) {
     console.error("Lekérési hiba:", error);
