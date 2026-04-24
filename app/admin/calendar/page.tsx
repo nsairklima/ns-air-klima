@@ -84,6 +84,8 @@ export default function CalendarPage() {
 
     if (res.ok) {
       fetchEvents();
+    } else {
+      alert("Hiba történt a törlés során.");
     }
   };
 
@@ -122,7 +124,7 @@ export default function CalendarPage() {
           <div style={{ display: 'flex', gap: '10px' }}>
              {!selectedDate && (
                <>
-                 {/* Kivettük a felesleges + Új ügyfél gombot innen, mert a főoldalon és a modalban is ott van */}
+                 <button onClick={() => router.push("/clients/new")} style={{...backBtn, background: '#0078d7', borderColor: '#0078d7'}}>+ ÚJ ÜGYFÉL</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={navBtn}>‹</button>
                  <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={navBtn}>›</button>
                </>
@@ -169,6 +171,7 @@ export default function CalendarPage() {
               const day = i + 1;
               const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               
+              // Mai nap logikája
               const today = new Date();
               const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
               const isToday = dateStr === todayStr;
@@ -183,6 +186,7 @@ export default function CalendarPage() {
                     style={{
                         ...cellStyle,
                         border: isToday ? '2px solid #f59e0b' : '1px solid transparent',
+                        backgroundColor: isToday ? '#1e293b' : '#1e293b'
                     }}
                 >
                   <span style={{ 
@@ -238,7 +242,7 @@ export default function CalendarPage() {
                         type="button" 
                         onClick={() => router.push("/clients/new")} 
                         style={miniAddBtn}
-                        title="Új ügyfél hozzáadása a rendszerhez"
+                        title="Új ügyfél felvétele"
                     >
                         +
                     </button>
@@ -249,7 +253,7 @@ export default function CalendarPage() {
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
             
             <label style={labelStyle}>MEGJEGYZÉS</label>
-            <textarea placeholder="Hiba leírása..." style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
+            <textarea placeholder="Hiba leírása, elvégzendő munka..." style={{...inputStyle, minHeight: '80px'}} value={newEntry.desc} onChange={e => setNewEntry({...newEntry, desc: e.target.value})} />
             
             <button onClick={handleSave} style={saveBtn}>MENTÉS</button>
             <button onClick={() => setShowModal(false)} style={cancelBtn}>MÉGSE</button>
@@ -260,7 +264,6 @@ export default function CalendarPage() {
   );
 }
 
-// Stílusok maradnak változatlanul...
 const miniAddBtn: React.CSSProperties = { background: '#0078d7', color: '#fff', border: 'none', padding: '0 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '20px' };
 const deleteBtnStyle: React.CSSProperties = { position: 'absolute', top: '18px', right: '18px', background: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' };
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '5px', display: 'block' };
