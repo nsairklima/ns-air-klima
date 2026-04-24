@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import PasswordGuard from "@/components/PasswordGuard"; // Védelem importálása
 
 type Client = {
   id: number;
@@ -72,66 +73,66 @@ export default function ClientsPage() {
   }
 
   return (
-    <div style={containerStyle}>
-      <div style={headerStyle}>
-        <h1 style={{ margin: 0, fontSize: "24px" }}>Ügyfelek</h1>
-        <Link href="/admin/calendar" style={backLinkStyle}>← Naptár</Link>
-      </div>
+    <PasswordGuard moduleKey="CLIENTS">
+      <div style={containerStyle}>
+        <div style={headerStyle}>
+          <h1 style={{ margin: 0, fontSize: "24px" }}>Ügyfelek</h1>
+          <Link href="/admin/calendar" style={backLinkStyle}>← Naptár</Link>
+        </div>
 
-      <div style={sectionStyle}>
-        <form onSubmit={addClient} style={formStyle}>
-          <h3 style={{ margin: "0 0 15px 0", color: "#fff" }}>Új ügyfél felvétele</h3>
-          <input placeholder="Ügyfél neve *" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-          <input placeholder="Telefonszám" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
-          <input placeholder="E-mail cím" type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
-          <textarea placeholder="Telepítési cím" value={address} onChange={(e) => setAddress(e.target.value)} style={{...inputStyle, minHeight: "80px", resize: "none"}} />
-          <button disabled={saving} style={{...btnPrimary, backgroundColor: saving ? "#444" : "#2ecc71"}}>
-            {saving ? "Mentés..." : "Ügyfél mentése"}
-          </button>
-        </form>
-      </div>
+        <div style={sectionStyle}>
+          <form onSubmit={addClient} style={formStyle}>
+            <h3 style={{ margin: "0 0 15px 0", color: "#fff" }}>Új ügyfél felvétele</h3>
+            <input placeholder="Ügyfél neve *" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+            <input placeholder="Telefonszám" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
+            <input placeholder="E-mail cím" type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+            <textarea placeholder="Telepítési cím" value={address} onChange={(e) => setAddress(e.target.value)} style={{...inputStyle, minHeight: "80px", resize: "none"}} />
+            <button disabled={saving} style={{...btnPrimary, backgroundColor: saving ? "#444" : "#2ecc71"}}>
+              {saving ? "Mentés..." : "Ügyfél mentése"}
+            </button>
+          </form>
+        </div>
 
-      <div style={{ marginTop: "30px" }}>
-        <input 
-          type="text"
-          placeholder="🔍 Keresés..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={searchFieldStyle}
-        />
+        <div style={{ marginTop: "30px" }}>
+          <input 
+            type="text"
+            placeholder="🔍 Keresés..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={searchFieldStyle}
+          />
 
-        <div style={{ display: "grid", gap: "15px", marginTop: "20px" }}>
-          {clients.map((c: any) => (
-            <div key={c.id} style={cardStyle}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div style={{ flex: 1 }}>
-                  {/* Itt javítottuk a színeket a jobb olvashatóságért */}
-                  <div style={{ fontWeight: "bold", fontSize: "18px", color: "#ffffff", marginBottom: "4px" }}>
-                    {c.name}
+          <div style={{ display: "grid", gap: "15px", marginTop: "20px" }}>
+            {clients.map((c: any) => (
+              <div key={c.id} style={cardStyle}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: "bold", fontSize: "18px", color: "#ffffff", marginBottom: "4px" }}>
+                      {c.name}
+                    </div>
+                    <div style={{ fontSize: "15px", color: "#2ecc71", marginBottom: "4px", fontWeight: "500" }}>
+                      {c.phone || "Nincs telefonszám"}
+                    </div>
+                    <div style={{ fontSize: "14px", color: "#dddddd", lineHeight: "1.4" }}>
+                      {c.address || "Nincs cím megadva"}
+                    </div>
                   </div>
-                  <div style={{ fontSize: "15px", color: "#2ecc71", marginBottom: "4px", fontWeight: "500" }}>
-                    {c.phone || "Nincs telefonszám"}
+                  
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginLeft: "10px" }}>
+                    <Link href={`/clients/${c.id}`} style={detailsBtnStyle}>Részletek</Link>
+                    <button onClick={() => handleDelete(c.id, c.name)} style={deleteBtnStyle}>Törlés</button>
                   </div>
-                  <div style={{ fontSize: "14px", color: "#dddddd", lineHeight: "1.4" }}>
-                    {c.address || "Nincs cím megadva"}
-                  </div>
-                </div>
-                
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginLeft: "10px" }}>
-                  <Link href={`/clients/${c.id}`} style={detailsBtnStyle}>Részletek</Link>
-                  <button onClick={() => handleDelete(c.id, c.name)} style={deleteBtnStyle}>Törlés</button>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </PasswordGuard>
   );
 }
 
-// --- JAVÍTOTT STÍLUSOK ---
-
+// --- STÍLUSOK (Változatlanok) ---
 const containerStyle: React.CSSProperties = {
   padding: "15px",
   backgroundColor: "#000",
@@ -155,7 +156,7 @@ const inputStyle: React.CSSProperties = {
   padding: "14px", borderRadius: "8px", border: "1px solid #444",
   marginBottom: "12px", display: "block", width: "100%", fontSize: "16px",
   backgroundColor: "#222", 
-  color: "#ffffff", // FEHÉR gépelt szöveg
+  color: "#ffffff",
   boxSizing: "border-box"
 };
 
@@ -170,7 +171,7 @@ const btnPrimary: React.CSSProperties = {
 
 const cardStyle: React.CSSProperties = {
   padding: "18px",
-  background: "#1a1a1a", // Kicsit világosabb fekete a kontraszt miatt
+  background: "#1a1a1a",
   borderRadius: "12px",
   border: "1px solid #333",
   boxShadow: "0 4px 10px rgba(0,0,0,0.5)"
