@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import PasswordGuard from "@/components/PasswordGuard"; // Védelem importálása
+import PasswordGuard from "@/components/PasswordGuard";
 
 type Client = {
   id: number;
@@ -105,20 +105,22 @@ export default function ClientsPage() {
           <div style={{ display: "grid", gap: "15px", marginTop: "20px" }}>
             {clients.map((c: any) => (
               <div key={c.id} style={cardStyle}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: "bold", fontSize: "18px", color: "#ffffff", marginBottom: "4px" }}>
+                {/* Flex-wrap hozzáadva a mobilos töréshez */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}>
+                  <div style={{ flex: "1 1 200px" }}> {/* Minimum 200px széles, utána törik */}
+                    <div style={{ fontWeight: "bold", fontSize: "19px", color: "#ffffff", marginBottom: "4px", wordBreak: "break-word" }}>
                       {c.name}
                     </div>
-                    <div style={{ fontSize: "15px", color: "#2ecc71", marginBottom: "4px", fontWeight: "500" }}>
+                    <div style={{ fontSize: "16px", color: "#2ecc71", marginBottom: "4px", fontWeight: "600" }}>
                       {c.phone || "Nincs telefonszám"}
                     </div>
-                    <div style={{ fontSize: "14px", color: "#dddddd", lineHeight: "1.4" }}>
+                    <div style={{ fontSize: "14px", color: "#cbd5e1", lineHeight: "1.4", wordBreak: "break-word" }}>
                       {c.address || "Nincs cím megadva"}
                     </div>
                   </div>
                   
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginLeft: "10px" }}>
+                  {/* Gombok konténere mobilon teljes szélességű lehet */}
+                  <div style={{ display: "flex", gap: "8px", flex: "1 1 auto", justifyContent: "flex-end", minWidth: "fit-content" }}>
                     <Link href={`/clients/${c.id}`} style={detailsBtnStyle}>Részletek</Link>
                     <button onClick={() => handleDelete(c.id, c.name)} style={deleteBtnStyle}>Törlés</button>
                   </div>
@@ -132,14 +134,15 @@ export default function ClientsPage() {
   );
 }
 
-// --- STÍLUSOK (Változatlanok) ---
+// --- JAVÍTOTT MOBILBARÁT STÍLUSOK ---
+
 const containerStyle: React.CSSProperties = {
-  padding: "15px",
+  padding: "10px", // Kisebb padding a széleken
   backgroundColor: "#000",
   minHeight: "100vh",
   color: "#fff",
   fontFamily: "sans-serif",
-  maxWidth: "600px",
+  maxWidth: "800px", // Megemeltük, de mobilon 100% lesz
   margin: "0 auto"
 };
 
@@ -150,14 +153,14 @@ const headerStyle: React.CSSProperties = {
 
 const backLinkStyle: React.CSSProperties = { color: "#2ecc71", textDecoration: "none", fontWeight: "bold" };
 const sectionStyle: React.CSSProperties = { marginBottom: "20px" };
-const formStyle: React.CSSProperties = { padding: "20px", borderRadius: "12px", background: "#111", border: "1px solid #333" };
+const formStyle: React.CSSProperties = { padding: "15px", borderRadius: "12px", background: "#111", border: "1px solid #333" };
 
 const inputStyle: React.CSSProperties = {
   padding: "14px", borderRadius: "8px", border: "1px solid #444",
   marginBottom: "12px", display: "block", width: "100%", fontSize: "16px",
   backgroundColor: "#222", 
   color: "#ffffff",
-  boxSizing: "border-box"
+  boxSizing: "border-box" // Ez gátolja meg a túlnyúlást!
 };
 
 const searchFieldStyle: React.CSSProperties = {
@@ -170,20 +173,22 @@ const btnPrimary: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  padding: "18px",
+  padding: "16px",
   background: "#1a1a1a",
   borderRadius: "12px",
   border: "1px solid #333",
-  boxShadow: "0 4px 10px rgba(0,0,0,0.5)"
+  boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+  width: "100%",
+  boxSizing: "border-box"
 };
 
 const detailsBtnStyle: React.CSSProperties = {
   backgroundColor: "#2ecc71", color: "#000", textDecoration: "none",
-  fontSize: "13px", fontWeight: "bold", padding: "8px 12px", borderRadius: "6px",
-  textAlign: "center"
+  fontSize: "14px", fontWeight: "bold", padding: "10px 16px", borderRadius: "8px",
+  textAlign: "center", display: "inline-block"
 };
 
 const deleteBtnStyle: React.CSSProperties = {
   background: "none", border: "1px solid #e74c3c", cursor: "pointer",
-  color: "#e74c3c", fontSize: "12px", padding: "6px", borderRadius: "6px"
+  color: "#e74c3c", fontSize: "14px", padding: "10px 16px", borderRadius: "8px"
 };
