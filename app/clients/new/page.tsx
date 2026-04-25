@@ -113,10 +113,17 @@ export default function NewClientAndUnitPage() {
             </div>
 
             <div style={{width: "100%"}}>
-              <label style={labelStyle}>KARBANTARTÁSI CIKLUS</label>
-              <select style={inputStyle} value={formData.periodMonths} onChange={e => setFormData({...formData, periodMonths: Number(e.target.value)})}>
-                <option value={6}>6 hónap</option>
-                <option value={12}>12 hónap</option>
+              <label style={labelStyle}>KARBANTARTÁSI CIKLUS (HÓNAP)</label>
+              <select 
+                style={inputStyle} 
+                value={formData.periodMonths} 
+                onChange={e => setFormData({...formData, periodMonths: Number(e.target.value)})}
+              >
+                {/* 1-től 12-ig tartó lista generálása */}
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                  <option key={month} value={month}>{month} hónap</option>
+                ))}
+                {/* Opcionális extra hosszú ciklus */}
                 <option value={24}>24 hónap</option>
               </select>
             </div>
@@ -132,7 +139,7 @@ export default function NewClientAndUnitPage() {
   );
 }
 
-// --- MODERN SÖTÉT STÍLUSOK (A naptárhoz igazítva) ---
+// --- MODERN SÖTÉT STÍLUSOK ---
 
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
