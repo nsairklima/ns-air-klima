@@ -8,6 +8,10 @@ interface PasswordGuardProps {
 }
 
 export default function PasswordGuard({ children, moduleKey }: PasswordGuardProps) {
+  // --- BYPASS KAPCSOLÓ ---
+  // Ha true, a jelszókérés ki van kapcsolva.
+  const BYPASS = true; 
+
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,6 +24,11 @@ export default function PasswordGuard({ children, moduleKey }: PasswordGuardProp
       setIsAuthorized(true);
     }
   }, [moduleKey]);
+
+  // Ha a bypass aktív, azonnal engedélyezzük a hozzáférést
+  if (BYPASS) {
+    return <>{children}</>;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
