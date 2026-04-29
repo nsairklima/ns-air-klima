@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendMaintenanceReminder } from "@/lib/mailer"; // A korábban írt mailer segédfájl
+import { sendAdminMaintenanceReminder } from "@/lib/mailer"; // Frissített név
 
 export async function GET(req: Request) {
   // Biztonsági ellenőrzés a headerből
@@ -31,8 +31,6 @@ export async function GET(req: Request) {
     let sentCount = 0;
 
     for (const unit of units) {
-      if (!unit.client?.email) continue;
-
       // Kiindulási pont: utolsó szerviz, vagy ha nem volt, akkor a telepítés
       const baseDate = unit.maintenance[0]?.performedDate || unit.installation;
       if (!baseDate) continue;
@@ -44,26 +42,27 @@ export async function GET(req: Request) {
       const reminderDay = new Date(nextDue);
       reminderDay.setMonth(reminderDay.getMonth() - 1);
 
-      // Ellenőrizzük, küldtünk-e már ebben a ciklusban értesítést
+      // Ellenőrizzük, küldtünk-e már ebben a ciklusban értesítést neked erről a gépről
       const lastNotifyDate = unit.emailNotifications[0]?.sentAt;
       const isAlreadyNotifiedThisCycle = lastNotifyDate && lastNotifyDate > baseDate;
 
-      // Ha elérkezett az idő és még nem küldtük ki
+      // Ha ma benne vagyunk az 1 hónapos ablakban és még nem kaptál levelet
       if (today >= reminderDay && today < nextDue && !isAlreadyNotifiedThisCycle) {
         
-        await sendMaintenanceReminder(
-          unit.client.email,
+        // ÉRTESÍTÉS KÜLDÉSE NEKED (karbantartas@nsairklima.hu)
+        await sendAdminMaintenanceReminder(
           unit.client.name,
+          unit.client.phone || "Nincs megadva",
           `${unit.brand} ${unit.model}`
         );
 
-        // Mentés a Neon-ba, hogy ne küldjük újra holnap
+        // Mentés a Neon-ba, hogy ne küldjük újra holnap ugyanerről
         await prisma.emailNotifications.create({
           data: {
             clientId: unit.clientId,
             clientUnitId: unit.id,
-            notificationType: "MAINTENANCE_PREVALENT",
-            sentToEmail: unit.client.email,
+            notificationType: "ADMIN_REMINDER",
+            sentToEmail: process.env.EMAIL_USER || "karbantartas@nsairklima.hu",
             status: "SUCCESS"
           }
         });
@@ -73,11 +72,12 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({ 
-      message: "Ellenőrzés kész", 
+      message: "Admin értesítések ellenőrzése kész", 
       emailsSent: sentCount,
       database: "Neon-PostgreSQL" 
     });
   } catch (error: any) {
+    console.error("Cron hiba:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
