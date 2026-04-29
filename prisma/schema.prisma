@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // <--- A Neon stabil kapcsolathoz ez kell!
 }
 
 model User {
@@ -42,10 +43,7 @@ model ClientUnit {
   periodMonths       Int                  @default(12)
   location           String?
   notes              String?
-  
-  // Állapot: PENDING (ajánlat), INSTALLED (saját telepítés), SERVICE_ONLY (csak karbantartás)
-  status             String               @default("PENDING") 
-
+  status             String               @default("PENDING")
   maintenance        MaintenanceLog[]
   emailNotifications EmailNotifications[]
   client             Client               @relation(fields: [clientId], references: [id])
@@ -56,27 +54,25 @@ model MaintenanceLog {
   unitId        Int
   performedDate DateTime
   description   String?
-  type          String   @default("MAINTENANCE") // <--- EZT ADD HOZZÁ
+  type          String   @default("MAINTENANCE")
   materials     String?
   costInternal  Int?
   technicianId  Int?
   nextDue       DateTime?
   photos        String?
-
-  unit ClientUnit @relation(fields: [unitId], references: [id])
+  unit          ClientUnit @relation(fields: [unitId], references: [id])
 }
 
 model EmailNotifications {
-  id               Int        @id @default(autoincrement())
+  id               Int      @id @default(autoincrement())
   clientId         Int
   clientUnitId     Int
   notificationType String
   sentToEmail      String
-  sentAt           DateTime   @default(now())
+  sentAt           DateTime @default(now())
   status           String
-
-  client Client     @relation(fields: [clientId], references: [id])
-  unit   ClientUnit @relation(fields: [clientUnitId], references: [id])
+  client           Client   @relation(fields: [clientId], references: [id])
+  unit             ClientUnit @relation(fields: [clientUnitId], references: [id])
 }
 
 enum QuoteStatus {
@@ -93,13 +89,10 @@ model Quote {
   title      String?
   status     QuoteStatus @default(draft)
   terms      String?
-
   netTotal   Decimal     @default(0)
   vatAmount  Decimal     @default(0)
   grossTotal Decimal     @default(0)
-
   items      QuoteItem[]
-
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }
@@ -108,21 +101,17 @@ model QuoteItem {
   id           Int      @id @default(autoincrement())
   quoteId      Int
   quote        Quote    @relation(fields: [quoteId], references: [id])
-
   description  String
   quantity     Decimal  @default(1)
   unit         String?  
   unitPriceNet Decimal  @default(0)
   vatRate      Decimal  @default(27)
-
   lineNet      Decimal  @default(0)
   lineVat      Decimal  @default(0)
   lineGross    Decimal  @default(0)
-
   costNet      Decimal? @default(0)
   profitAbs    Decimal? @default(0)
   profitPct    Decimal? @default(0)
-
   createdAt    DateTime @default(now())
 }
 
@@ -146,6 +135,5 @@ model CalendarEvent {
   unitId        Int
   performedDate DateTime
   description   String?
-  type          String   @default("MAINTENANCE") // Karbantartás (kék), Telepítés (zöld), Javítás (piros)
-  // ... többi mező
+  type          String   @default("MAINTENANCE")
 }
