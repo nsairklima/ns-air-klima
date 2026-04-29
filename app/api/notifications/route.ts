@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendMaintenanceReminder } from "@/lib/mailer";
+import { sendAdminMaintenanceReminder } from "@/lib/mailer";
 
 export async function GET(req: Request) {
-  // Vercel Cron biztonsági ellenőrzés
   const authHeader = req.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && process.env.NODE_ENV === 'production') {
     return new NextResponse('Unauthorized', { status: 401 });
@@ -12,7 +11,7 @@ export async function GET(req: Request) {
   try {
     const today = new Date();
     const units = await prisma.clientUnit.findMany({
-      where: { status: "INSTALLED", installation: { not: null } },
+      where: { status: "INSTALLED" },
       include: { 
         client: true, 
         maintenance: { orderBy: { performedDate: "desc" }, take: 1 },
@@ -23,26 +22,23 @@ export async function GET(req: Request) {
     let sentCount = 0;
 
     for (const unit of units) {
-      if (!unit.client?.email) continue;
-
       const baseDate = unit.maintenance[0]?.performedDate || unit.installation;
       if (!baseDate) continue;
 
-      // Számolás: Bázis dátum + ciklus hónap - 1 hónap értesítéshez
       const nextDue = new Date(baseDate);
       nextDue.setMonth(nextDue.getMonth() + (unit.periodMonths || 12));
       
-      const notifyDate = new Date(nextDue);
-      notifyDate.setMonth(notifyDate.getMonth() - 1);
+      const notifyWindowStart = new Date(nextDue);
+      notifyWindowStart.setMonth(notifyWindowStart.getMonth() - 1);
 
-      // Ellenőrzés: ma van-e az értesítési ablakban ÉS ebben a ciklusban még nem ment ki levél
-      const lastSent = unit.emailNotifications[0]?.sentAt;
-      const alreadyNotified = lastSent && lastSent > baseDate;
+      const lastNotify = unit.emailNotifications[0]?.sentAt;
+      const alreadyNotified = lastNotify && lastNotify > baseDate;
 
-      if (today >= notifyDate && today < nextDue && !alreadyNotified) {
-        await sendMaintenanceReminder(
-          unit.client.email,
+      // Ha ma benne vagyunk az 1 hónapos ablakban és még nem kaptál levelet ebben a ciklusban
+      if (today >= notifyWindowStart && today < nextDue && !alreadyNotified) {
+        await sendAdminMaintenanceReminder(
           unit.client.name,
+          unit.client.phone || "Nincs megadva",
           `${unit.brand} ${unit.model}`
         );
 
@@ -50,8 +46,8 @@ export async function GET(req: Request) {
           data: {
             clientId: unit.clientId,
             clientUnitId: unit.id,
-            notificationType: "1_MONTH_REMINDER",
-            sentToEmail: unit.client.email,
+            notificationType: "ADMIN_REMINDER",
+            sentToEmail: process.env.EMAIL_USER!,
             status: "SUCCESS"
           }
         });
@@ -59,9 +55,8 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, emailsSent: sentCount });
+    return NextResponse.json({ success: true, sent: sentCount });
   } catch (error: any) {
-    console.error("Cron hiba:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
