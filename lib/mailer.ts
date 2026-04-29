@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 
-export async function sendMaintenanceReminder(to: string, clientName: string, unitName: string) {
+export async function sendAdminMaintenanceReminder(clientName: string, clientPhone: string, unitName: string) {
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: Number(process.env.EMAIL_PORT),
@@ -9,20 +9,25 @@ export async function sendMaintenanceReminder(to: string, clientName: string, un
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    tls: {
+      rejectUnauthorized: false
+    }
   });
 
   await transporter.sendMail({
-    from: `"Klíma Szerviz" <${process.env.EMAIL_USER}>`,
-    to,
-    subject: "Emlékeztető: Esedékes karbantartás",
+    from: `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER, // Erre a címre érkezik: karbantartas@nsairklima.hu
+    subject: `⚠️ KARBANTARTÁS: ${clientName}`,
     html: `
-      <div style="font-family: sans-serif; padding: 20px; color: #333;">
-        <h2 style="color: #2ecc71;">Tisztelt ${clientName}!</h2>
-        <p>Ez egy automatikus emlékeztető, hogy a(z) <strong>${unitName}</strong> készülékének 
-        időszakos karbantartása 1 hónapon belül esedékessé válik.</p>
-        <p>Kérjük, vegye fel velünk a kapcsolatot időpont egyeztetés céljából.</p>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="font-size: 12px; color: #888;">Ez egy automatikus üzenet, kérjük ne válaszoljon rá.</p>
+      <div style="font-family: sans-serif; border: 2px solid #3498db; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #3498db;">Szia! Új karbantartás esedékes</h2>
+        <p>A rendszer elemezte az adatbázist, és az alábbi gépet találta:</p>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px;">
+          <p><strong>Ügyfél:</strong> ${clientName}</p>
+          <p><strong>Telefon:</strong> ${clientPhone || "Nincs megadva"}</p>
+          <p><strong>Készülék:</strong> ${unitName}</p>
+        </div>
+        <p style="margin-top: 15px;"><em>Időpont egyeztetés céljából hívd fel az ügyfelet!</em></p>
       </div>
     `,
   });
