@@ -10,6 +10,8 @@ export async function GET(req: Request) {
   }
 
   try {
+    await sendAdminMaintenanceReminder("TESZT ÜGYFÉL", "06301112222", "TESZT GÉP 123");
+console.log("Teszt email elküldve az adminnak!");
     const today = new Date();
     
     // Lekérjük az összes telepített gépet
