@@ -9,6 +9,9 @@ export async function GET(req: Request) {
   }
 
   try {
+    // Kényszerített csatlakozás a Neon felélesztéséhez
+    await prisma.$connect();
+
     const today = new Date();
     const units = await prisma.clientUnit.findMany({
       where: { status: "INSTALLED" },
@@ -34,7 +37,6 @@ export async function GET(req: Request) {
       const lastNotify = unit.emailNotifications[0]?.sentAt;
       const alreadyNotified = lastNotify && lastNotify > baseDate;
 
-      // Ha ma benne vagyunk az 1 hónapos ablakban és még nem kaptál levelet ebben a ciklusban
       if (today >= notifyWindowStart && today < nextDue && !alreadyNotified) {
         await sendAdminMaintenanceReminder(
           unit.client.name,
@@ -47,7 +49,7 @@ export async function GET(req: Request) {
             clientId: unit.clientId,
             clientUnitId: unit.id,
             notificationType: "ADMIN_REMINDER",
-            sentToEmail: process.env.EMAIL_USER!,
+            sentToEmail: process.env.EMAIL_USER || "karbantartas@nsairklima.hu",
             status: "SUCCESS"
           }
         });
@@ -57,6 +59,13 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, sent: sentCount });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Adatbázis kapcsolódási hiba:", error.message);
+    return NextResponse.json({ 
+      error: "Kapcsolódási hiba", 
+      details: error.message,
+      env_check: process.env.DATABASE_URL ? "URL beállítva" : "URL hiányzik"
+    }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
