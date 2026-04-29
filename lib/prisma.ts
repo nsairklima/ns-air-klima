@@ -1,19 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 
-const prismaClientSingleton = () => {
-  return new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
+// TESZT: Ha így sem megy, akkor a Neon blokkolja a portot!
+const testUrl = "postgresql://neondb_owner:npg_YniXAdMO0Ns8@ep-shy-rice-alkl3o0w-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true";
+
+export const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: testUrl,
     },
-  });
-};
-
-declare global {
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
-}
-
-export const prisma = globalThis.prisma ?? prismaClientSingleton();
-
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
+  },
+});
