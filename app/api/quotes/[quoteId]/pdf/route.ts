@@ -80,8 +80,19 @@ export async function GET(
     if (y > 750) y = 740; 
 
     doc.rect(350, y, 200, 38).stroke();
-    doc.fontSize(10).text(`Nettó: ${quote.netTotal.toLocaleString()} Ft`, 360, y + 6);
-    doc.fontSize(12).fillColor("#000").text(`BRUTTÓ: ${quote.grossTotal.toLocaleString()} Ft`, 360, y + 20, { fontWeight: 'bold' });
+    
+    // Nettó sor
+    doc.fillColor("#000")
+       .fontSize(10)
+       .text(`Nettó: ${quote.netTotal.toLocaleString()} Ft`, 360, y + 6);
+    
+    // BRUTTÓ sor - A 'fontWeight' helyett betűtípust váltunk (Helvetica-Bold)
+    doc.font('Helvetica-Bold')
+       .fontSize(12)
+       .text(`BRUTTÓ: ${quote.grossTotal.toLocaleString()} Ft`, 360, y + 20);
+
+    // Visszaállítjuk az alap betűtípust, hogy ne maradjon minden félkövér
+    doc.font('Helvetica');
 
     doc.end();
 
