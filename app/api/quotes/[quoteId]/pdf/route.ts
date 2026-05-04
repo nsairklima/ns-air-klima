@@ -90,7 +90,7 @@ export async function GET(
     doc.text(`${quote.grossTotal.toLocaleString()} Ft`, 460, y + 9, { align: 'right', width: 80 });
 
     // Lábléc blokk felhúzása (kevesebb térköz)
-    y += 15; 
+    y += 65; 
 
     doc.font(fontPath).fontSize(9).fillColor("#005eb8")
        .text("Köszönjük, hogy minket választott!", 50, y);
