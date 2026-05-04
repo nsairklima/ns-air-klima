@@ -16,13 +16,11 @@ export async function GET(
 
     if (!quote) return NextResponse.json({ error: "Hiba" }, { status: 404 });
 
-    // BUFFER ÉS DOKUMENTUM LÉTREHOZÁSA
-    // autoFirstPage: true, de a fontos: bufferPages: true, hogy tudjunk az oldallal babrálni
+    // Dokumentum létrehozása - bufferPages kell a belső manipulációhoz
     const doc = new PDFDocument({ 
       margin: 30, 
       size: 'A4',
-      bufferPages: true,
-      autoFirstPage: true 
+      bufferPages: true 
     });
     
     const chunks: any[] = [];
@@ -68,35 +66,35 @@ export async function GET(
       y += Math.max(textHeight, 13);
     });
 
-    // --- LÁBLÉC BLOKK KÉNYSZERÍTETT FELHÚZÁSA ---
-    // Ha y túl nagy lenne, megállítjuk 650-nél, hogy minden kiférjen alatta
-    if (y > 650) y = 650; 
-    y += 15;
+    // --- LÁBLÉC KÉNYSZERÍTETT POZÍCIONÁLÁSA ---
+    // A trükk: Meghatározunk egy maximális Y értéket (700), ami felett már lecsúszna a Megjegyzés.
+    // Ha a tételek lejjebb érnének, a láblécet "visszarántjuk" erre a pontra.
+    let footerY = Math.max(y + 15, 640); 
+    if (footerY > 700) footerY = 700; 
 
-    // ÖSSZESÍTŐ (A kép alapján: Fizetendő bruttó)
-    doc.rect(350, y, 200, 25).stroke();
-    doc.font(fontBoldPath).fontSize(10).text("Fizetendő bruttó:", 360, y + 8);
-    doc.text(`${quote.grossTotal.toLocaleString()} Ft`, 460, y + 8, { align: 'right', width: 80 });
+    // Fizetendő bruttó ablak
+    doc.rect(350, footerY, 200, 28).stroke();
+    doc.font(fontBoldPath).fontSize(10).text("Fizetendő bruttó:", 360, footerY + 9);
+    doc.text(`${quote.grossTotal.toLocaleString()} Ft`, 460, footerY + 9, { align: 'right', width: 80 });
 
-    y += 40; 
-
-    // ALSÓ SZÖVEGEK (Köszönjük, Érvényesség, Megjegyzés)
-    doc.font(fontPath).fontSize(9).fillColor("#005eb8").text("Köszönjük, hogy minket választott!", 50, y);
+    // Szöveges lábléc elemek
+    footerY += 35;
+    doc.font(fontPath).fontSize(9).fillColor("#005eb8").text("Köszönjük, hogy minket választott!", 50, footerY);
     
-    y += 12;
-    doc.fillColor("#444").fontSize(8).text("Árajánlatunkat az Ön igényeinek megfelelően állítottuk össze.", 50, y);
+    footerY += 12;
+    doc.fillColor("#444").fontSize(8).text("Árajánlatunkat az Ön igényeinek megfelelően állítottuk össze.", 50, footerY);
 
-    y += 15;
-    // Érvényesség
-    doc.rect(50, y, 500, 12).fill("#f8f9fa");
-    doc.fillColor("#000").font(fontBoldPath).text("Érvényesség:", 60, y + 2);
-    doc.font(fontPath).text(" 7 nap", 120, y + 2);
+    footerY += 15;
+    // Érvényesség sáv
+    doc.rect(50, footerY, 500, 12).fill("#f8f9fa");
+    doc.fillColor("#000").font(fontBoldPath).text("Érvényesség:", 60, footerY + 2);
+    doc.font(fontPath).text(" 7 nap", 120, footerY + 2);
 
-    y += 15;
-    // Megjegyzés - Ez már biztosan nem fog lecsúszni
-    doc.rect(50, y, 500, 12).fill("#f8f9fa");
-    doc.fillColor("#000").font(fontBoldPath).text("Megjegyzés:", 60, y + 2);
-    doc.font(fontPath).text(" Az ajánlat készítője alanyi adómentes, ezért a végösszeget az Áfa mértéke nem befolyásolja.", 115, y + 2);
+    footerY += 15;
+    // Megjegyzés sáv - Ez már garantáltan nem fog új oldalt nyitni
+    doc.rect(50, footerY, 500, 12).fill("#f8f9fa");
+    doc.fillColor("#000").font(fontBoldPath).text("Megjegyzés:", 60, footerY + 2);
+    doc.font(fontPath).text(" Az ajánlat készítője alanyi adómentes, ezért a végösszeget az Áfa mértéke nem befolyásolja.", 115, footerY + 2);
 
     doc.end();
 
