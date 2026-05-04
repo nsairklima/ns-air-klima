@@ -5,7 +5,7 @@ const prismaClientSingleton = () => {
     errorFormat: 'minimal',
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: process.env.POSTGRES_URL,
       },
     },
   });
