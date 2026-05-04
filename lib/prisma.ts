@@ -2,10 +2,9 @@ import { PrismaClient } from '@prisma/client';
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    errorFormat: 'minimal',
     datasources: {
       db: {
-        url: process.env.POSTGRES_URL,
+        url: process.env.DATABASE_URL,
       },
     },
   });
