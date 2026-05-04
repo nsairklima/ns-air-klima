@@ -11,107 +11,92 @@ export async function GET(
     const id = Number(params.quoteId);
     const quote = await prisma.quote.findUnique({
       where: { id },
-      include: {
-        client: true,
-        items: true,
-      },
+      include: { client: true, items: true },
     });
 
-    if (!quote) {
-      return NextResponse.json({ error: "Ajánlat nem található" }, { status: 404 });
-    }
+    if (!quote) return NextResponse.json({ error: "Hiba" }, { status: 404 });
 
-    // PDF létrehozása - Kisebb margókkal (25), hogy minden elférjen
+    // BUFFER ÉS DOKUMENTUM LÉTREHOZÁSA
+    // autoFirstPage: true, de a fontos: bufferPages: true, hogy tudjunk az oldallal babrálni
     const doc = new PDFDocument({ 
-      margin: 25,
-      size: 'A4'
+      margin: 30, 
+      size: 'A4',
+      bufferPages: true,
+      autoFirstPage: true 
     });
     
     const chunks: any[] = [];
     doc.on("data", (chunk) => chunks.push(chunk));
 
-    // Magyar karakterek támogatása (Roboto betűtípus betöltése a public mappából)
     const fontPath = path.join(process.cwd(), "public/fonts/Roboto-Regular.ttf");
     const fontBoldPath = path.join(process.cwd(), "public/fonts/Roboto-Bold.ttf");
     doc.font(fontPath);
 
-    // Fejléc
+    // FEJLÉC
     doc.fontSize(18).text("ÁRAJÁNLAT", { align: "center" });
-    
     let y = 60; 
-    const line = (text: string, size = 11) => {
+
+    const line = (text: string, size = 10) => {
       doc.fontSize(size).text(text, 50, y);
       y += size + 3;
     };
 
-    // Alapadatok
+    // ADATOK
     line(`Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`);
     line(`Ajánlat száma: #${quote.id}`);
-    line(`Státusz: ${quote.status === 'accepted' ? 'Elfogadva' : 'Folyamatban'}`);
-    y += 8;
-
-    // Ügyfél adatok
-    line("Ügyfél adatai:", 12);
-    line(`Név: ${quote.client.name}`);
-    line(`Cím: ${quote.client.address || "-"}`);
-    line(`Telefon: ${quote.client.phone || "-"}`);
+    y += 10;
+    line("Ügyfél adatai:", 11);
+    line(`${quote.client.name}`);
+    line(`${quote.client.address || "-"}`);
     y += 15;
 
-    // Tételek táblázat fejléce
-    line("Tételek:", 12);
-    doc.rect(50, y, 500, 18).fill("#f0f0f0");
-    doc.fillColor("#000").fontSize(9).text("Leírás", 60, y + 4);
-    doc.text("Menny.", 300, y + 4);
-    doc.text("Egységár", 380, y + 4);
-    doc.text("Összesen", 460, y + 4);
-    y += 22;
+    // TÁBLÁZAT FEJLÉC
+    doc.rect(50, y, 500, 15).fill("#f0f0f0");
+    doc.fillColor("#000").fontSize(9).text("Megnevezés", 60, y + 3);
+    doc.text("Menny.", 300, y + 3);
+    doc.text("Bruttó egységár", 380, y + 3);
+    doc.text("Bruttó összesen", 460, y + 3);
+    y += 20;
 
-    // Tételek listázása
+    // TÉTELEK
     quote.items.forEach((item) => {
       doc.fontSize(9).text(item.description, 60, y, { width: 230 });
       doc.text(`${item.quantity} ${item.unit || "db"}`, 300, y);
       doc.text(`${item.unitPriceNet.toLocaleString()} Ft`, 380, y);
       doc.text(`${item.lineGross.toLocaleString()} Ft`, 460, y);
-      
       const textHeight = doc.heightOfString(item.description, { width: 230 });
-      y += Math.max(textHeight, 13); 
+      y += Math.max(textHeight, 13);
     });
 
-    // Összesítő rész feljebb hozása
-    y += 10;
-    
-    // Ha az y túl közel érne az oldal aljához, itt korlátozzuk
-    if (y > 740) y = 730; 
+    // --- LÁBLÉC BLOKK KÉNYSZERÍTETT FELHÚZÁSA ---
+    // Ha y túl nagy lenne, megállítjuk 650-nél, hogy minden kiférjen alatta
+    if (y > 650) y = 650; 
+    y += 15;
 
-    // Fizetendő bruttó doboz
-    doc.rect(350, y, 200, 28).stroke();
-    doc.font(fontBoldPath).fontSize(10)
-       .text(`Fizetendő bruttó:`, 360, y + 9);
-    doc.text(`${quote.grossTotal.toLocaleString()} Ft`, 460, y + 9, { align: 'right', width: 80 });
+    // ÖSSZESÍTŐ (A kép alapján: Fizetendő bruttó)
+    doc.rect(350, y, 200, 25).stroke();
+    doc.font(fontBoldPath).fontSize(10).text("Fizetendő bruttó:", 360, y + 8);
+    doc.text(`${quote.grossTotal.toLocaleString()} Ft`, 460, y + 8, { align: 'right', width: 80 });
 
-    // Lábléc blokk felhúzása (kevesebb térköz)
-    y += -65; 
+    y += 40; 
 
-    doc.font(fontPath).fontSize(9).fillColor("#005eb8")
-       .text("Köszönjük, hogy minket választott!", 50, y);
+    // ALSÓ SZÖVEGEK (Köszönjük, Érvényesség, Megjegyzés)
+    doc.font(fontPath).fontSize(9).fillColor("#005eb8").text("Köszönjük, hogy minket választott!", 50, y);
     
     y += 12;
-    doc.fillColor("#444").fontSize(8)
-       .text("Árajánlatunkat az Ön igényeinek megfelelően állítottuk össze.", 50, y);
+    doc.fillColor("#444").fontSize(8).text("Árajánlatunkat az Ön igényeinek megfelelően állítottuk össze.", 50, y);
 
     y += 15;
-    // Érvényesség sáv
+    // Érvényesség
     doc.rect(50, y, 500, 12).fill("#f8f9fa");
     doc.fillColor("#000").font(fontBoldPath).text("Érvényesség:", 60, y + 2);
     doc.font(fontPath).text(" 7 nap", 120, y + 2);
 
-    // Megjegyzés sáv - Közvetlenül alá, hogy ne lógjon le a második oldalra
-    y += 15; 
+    y += 15;
+    // Megjegyzés - Ez már biztosan nem fog lecsúszni
     doc.rect(50, y, 500, 12).fill("#f8f9fa");
-    doc.fillColor("#000").font(fontBoldPath).fontSize(8)
-       .text("Megjegyzés:", 60, y + 2);
-    doc.font(fontPath)
-       .text(" Az ajánlat készítője alanyi adómentes, ezért a végösszeget az Áfa mértéke nem befolyásolja.", 115, y + 2);
+    doc.fillColor("#000").font(fontBoldPath).text("Megjegyzés:", 60, y + 2);
+    doc.font(fontPath).text(" Az ajánlat készítője alanyi adómentes, ezért a végösszeget az Áfa mértéke nem befolyásolja.", 115, y + 2);
 
     doc.end();
 
@@ -127,6 +112,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("PDF hiba:", error);
-    return NextResponse.json({ error: "PDF generálási hiba" }, { status: 500 });
+    return NextResponse.json({ error: "Hiba" }, { status: 500 });
   }
 }
