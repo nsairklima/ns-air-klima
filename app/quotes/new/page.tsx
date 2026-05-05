@@ -9,7 +9,7 @@ type DBItem = { id: number; name: string; price: number; unit: string; };
 export default function NewQuotePage() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
-  const [dbItems, setDbItems] = useState<DBItem[]>([]); // ÚJ: Mentett tételek
+  const [dbItems, setDbItems] = useState<DBItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
 
@@ -22,24 +22,24 @@ export default function NewQuotePage() {
   useEffect(() => {
     // Ügyfelek betöltése
     fetch("/api/clients").then(res => res.ok && res.json().then(setClients));
-    // ÚJ: Mentett termékek betöltése az adatbázisból
+    // Mentett termékek betöltése
     fetch("/api/items").then(res => res.ok && res.json().then(setDbItems));
   }, []);
 
-  // ÚJ: Automatikus kitöltés funkció
   const handleSelectDBItem = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = dbItems.find(i => i.id === Number(e.target.value));
     if (selected) {
-      // Szétszedjük a nevet, ha pl. "Gree Amber (3.5kW)" formátumban van
-      // Ha sima név, akkor a Modell mezőbe kerül
       setUnit({
         ...unit,
         model: selected.name,
-        brand: "", // Ezt manuálisan is finomíthatod
+        brand: "", 
         power: ""
       });
-      // Az ajánlat címét is frissítjük, hogy látszódjon az ár vagy a név
-      if (!quoteTitle) setQuoteTitle(`${mode === 'new' ? newClient.name : clients.find(c => c.id === Number(selectedClientId))?.name || "Ügyfél"} - ${selected.name}`);
+      
+      if (!quoteTitle) {
+        const cName = mode === 'new' ? newClient.name : clients.find(c => c.id === Number(selectedClientId))?.name || "Ügyfél";
+        setQuoteTitle(`${cName} - ${selected.name}`);
+      }
     }
   };
 
@@ -51,22 +51,28 @@ export default function NewQuotePage() {
       let clientId: number;
       let clientName = "";
 
+      // 1. Ügyfél kezelése
       if (mode === 'new') {
         const cRes = await fetch("/api/clients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newClient),
         });
-        if (!cRes.ok) throw new Error("Ügyfél hiba");
+        if (!cRes.ok) throw new Error("Ügyfél mentési hiba");
         const createdClient = await cRes.json();
         clientId = createdClient.id;
         clientName = newClient.name;
       } else {
-        if (!selectedClientId) return alert("Válassz ügyfelet!");
+        if (!selectedClientId) {
+          alert("Válassz ügyfelet!");
+          setLoading(false);
+          return;
+        }
         clientId = Number(selectedClientId);
         clientName = clients.find(c => c.id === clientId)?.name || "";
       }
 
+      // 2. Gép mentése az ügyfélhez (ha van megadva gép)
       if (unit.brand || unit.model) {
         const fullModel = unit.power ? `${unit.model} (${unit.power})` : unit.model;
         await fetch(`/api/clients/${clientId}/units`, {
@@ -80,6 +86,7 @@ export default function NewQuotePage() {
         });
       }
 
+      // 3. Ajánlat létrehozása
       const generatedTitle = quoteTitle || 
         `${clientName} - ${unit.brand} ${unit.model} ${unit.power ? `(${unit.power})` : ""}`.trim();
 
@@ -89,15 +96,22 @@ export default function NewQuotePage() {
         body: JSON.stringify({
           clientId,
           title: generatedTitle,
+          status: "draft",
+          items: [] // Üres tételekkel indul, amit majd a következő oldalon adsz hozzá
         }),
       });
 
       if (qRes.ok) {
         const qData = await qRes.json();
+        // Átirányítás a szerkesztő oldalra, ahol már ott lesznek a nyilak!
         router.push(`/quotes/${qData.id}`);
+      } else {
+        const errorData = await qRes.json();
+        throw new Error(errorData.details || "Hiba az ajánlat létrehozásakor");
       }
-    } catch (err) {
-      alert("Hiba történt a mentés során.");
+    } catch (err: any) {
+      console.error(err);
+      alert("Hiba: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -113,20 +127,32 @@ export default function NewQuotePage() {
       <h1 style={{ color: "#2c3e50", marginBottom: 10 }}>Új ajánlat indítása</h1>
 
       <div style={tabContainer}>
-        <button onClick={() => setMode('existing')} style={{ ...tabBtn, borderBottom: mode === 'existing' ? "3px solid #3498db" : "none" }}>Meglévő ügyfél</button>
-        <button onClick={() => setMode('new')} style={{ ...tabBtn, borderBottom: mode === 'new' ? "3px solid #3498db" : "none" }}>+ Új ügyfél</button>
+        <button 
+          type="button"
+          onClick={() => setMode('existing')} 
+          style={{ ...tabBtn, borderBottom: mode === 'existing' ? "3px solid #3498db" : "none", color: mode === 'existing' ? "#3498db" : "#7f8c8d" }}
+        >
+          Meglévő ügyfél
+        </button>
+        <button 
+          type="button"
+          onClick={() => setMode('new')} 
+          style={{ ...tabBtn, borderBottom: mode === 'new' ? "3px solid #3498db" : "none", color: mode === 'new' ? "#3498db" : "#7f8c8d" }}
+        >
+          + Új ügyfél
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} style={formCard}>
         <h3 style={sectionTitle}>👤 Ügyfél adatai</h3>
         {mode === 'existing' ? (
-          <select style={input} value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} required>
+          <select style={input} value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} required={mode === 'existing'}>
             <option value="">-- Válassz ügyfelet --</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         ) : (
           <div style={grid}>
-            <input style={input} placeholder="Név *" required value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} />
+            <input style={input} placeholder="Név *" required={mode === 'new'} value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} />
             <input style={input} placeholder="E-mail" type="email" value={newClient.email} onChange={e => setNewClient({...newClient, email: e.target.value})} />
             <input style={input} placeholder="Telefon" value={newClient.phone} onChange={e => setNewClient({...newClient, phone: e.target.value})} />
             <input style={input} placeholder="Cím" value={newClient.address} onChange={e => setNewClient({...newClient, address: e.target.value})} />
@@ -135,7 +161,6 @@ export default function NewQuotePage() {
 
         <h3 style={{ ...sectionTitle, marginTop: 30 }}>❄️ Gép adatai</h3>
         
-        {/* ÚJ: Választás az adatbázisból */}
         <div style={{marginBottom: 15}}>
             <label style={{fontSize: 12, color: "#3498db", fontWeight: "bold"}}>Betöltés az adatbázisból:</label>
             <select style={{...input, borderColor: "#3498db"}} onChange={handleSelectDBItem}>
@@ -169,7 +194,7 @@ export default function NewQuotePage() {
   );
 }
 
-// Stílusok (maradtak az eredetiek)
+// Stílusok (eredetiek megtartva)
 const wrap: React.CSSProperties = { padding: 24, maxWidth: 700, margin: "0 auto", fontFamily: "Arial" };
 const tabContainer = { display: "flex", gap: 20, marginBottom: 20 };
 const tabBtn = { background: "none", border: "none", padding: "10px", cursor: "pointer", fontWeight: "bold" as const };
