@@ -11,23 +11,28 @@ export async function GET(
     const id = Number(params.quoteId);
     const quote = await prisma.quote.findUnique({
       where: { id },
-      include: { client: true, items: true },
+      include: { 
+        client: true, 
+        items: {
+          orderBy: {
+            sortOrder: 'asc' // <--- A tételek sorrendjének érvényesítése
+          }
+        } 
+      },
     });
 
     if (!quote) return NextResponse.json({ error: "Hiba" }, { status: 404 });
 
-    // 1. DRASZTIKUS MEGOLDÁS: Kikapcsoljuk az automatikus oldalkezelést
+    // PDF Dokumentum beállítása (Auto Page Break kikapcsolva az egy oldal érdekében)
     const doc = new PDFDocument({ 
       size: 'A4',
       margins: { top: 20, left: 30, right: 30, bottom: 0 },
       bufferPages: true,
-      autoFirstPage: false // Mi adjuk hozzá az oldalt manuálisan
+      autoFirstPage: false 
     });
     
     const chunks: any[] = [];
     doc.on("data", (chunk) => chunks.push(chunk));
-
-    // Manuálisan hozzáadjuk az első (és egyetlen) oldalt
     doc.addPage();
 
     const fontPath = path.join(process.cwd(), "public/fonts/Roboto-Regular.ttf");
@@ -59,27 +64,26 @@ export async function GET(
     doc.text("Bruttó összesen", 460, y + 3);
     y += 20;
 
-    // TÉTELEK
-    doc.font(fontPath);
+    // TÉTELEK (Rendezett lista)
+    doc.font(fontPath).fillColor("#000");
     quote.items.forEach((item) => {
       doc.fontSize(9).text(item.description, 60, y, { width: 230 });
       doc.text(`${item.quantity} ${item.unit || "db"}`, 300, y);
-      doc.text(`${item.unitPriceNet.toLocaleString()} Ft`, 380, y);
-      doc.text(`${item.lineGross.toLocaleString()} Ft`, 460, y);
+      doc.text(`${Number(item.unitPriceNet).toLocaleString()} Ft`, 380, y);
+      doc.text(`${Number(item.lineGross).toLocaleString()} Ft`, 460, y);
+      
       const textHeight = doc.heightOfString(item.description, { width: 230 });
       y += Math.max(textHeight, 13);
     });
 
-    // --- FIX LÁBLÉC BLOKK ---
-    // Az A4-es lap 842 pont magas. 
-    // Ha a tételek belelógnának a láblécbe, a láblécet fixen az aljára tesszük (700-as pont)
+    // --- FIX LÁBLÉC BLOKK (Kényszerített pozíció az oldal alján) ---
     let footerY = Math.max(y + 15, 660);
     if (footerY > 715) footerY = 715; 
 
     // Végösszeg ablak
     doc.rect(350, footerY, 200, 26).stroke();
     doc.font(fontBoldPath).fontSize(10).text("Fizetendő bruttó:", 360, footerY + 8);
-    doc.text(`${quote.grossTotal.toLocaleString()} Ft`, 460, footerY + 8, { align: 'right', width: 80 });
+    doc.text(`${Number(quote.grossTotal).toLocaleString()} Ft`, 460, footerY + 8, { align: 'right', width: 80 });
 
     footerY += 32;
     doc.font(fontPath).fontSize(9).fillColor("#005eb8").text("Köszönjük, hogy minket választott!", 50, footerY);
