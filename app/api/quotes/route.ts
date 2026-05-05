@@ -12,8 +12,14 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(quotes);
-  } catch (error) {
-    return NextResponse.json({ error: "Hiba a lekéréskor" }, { status: 500 });
+  } catch (error: any) {
+    // ITT IS JAVÍTVA: Most már látni fogod a GET hibáját is a logban
+    console.error("GET API HIBA:", error);
+    return NextResponse.json({ 
+      error: "Hiba a lekéréskor", 
+      details: error.message,
+      code: error.code 
+    }, { status: 500 });
   }
 }
 
@@ -54,6 +60,8 @@ export async function POST(req: Request) {
             costNet: item.costNet || 0,
             profitAbs: item.profitAbs || 0,
             profitPct: item.profitPct || 0,
+            // Itt fontos: ha a sémában van sortOrder, ide is bekerülhet:
+            sortOrder: item.sortOrder || 0
           })) || []
         }
       },
@@ -63,8 +71,13 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(newQuote);
-} catch (error: any) {
-  console.error("DEBUG - Prisma hiba:", error); // Ez meg fog jelenni a Vercel Logban!
-  return NextResponse.json({ error: "Hiba a lekéréskor", details: error.message }, { status: 500 });
-}
+  } catch (error: any) {
+    // JAVÍTVA: Konzolos log és részletes válasz
+    console.error("POST API HIBA:", error); 
+    return NextResponse.json({ 
+      error: "Hiba az ajánlat mentésekor", 
+      details: error.message,
+      code: error.code 
+    }, { status: 500 });
+  }
 }
