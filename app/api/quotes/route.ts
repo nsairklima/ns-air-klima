@@ -63,8 +63,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(newQuote);
-  } catch (error: any) {
-    console.error("Szerver oldali hiba:", error);
-    return NextResponse.json({ error: "Hiba a mentéskor: " + error.message }, { status: 500 });
-  }
+} catch (error: any) {
+  console.error("DEBUG - Prisma hiba:", error); // Ez meg fog jelenni a Vercel Logban!
+  return NextResponse.json({ error: "Hiba a lekéréskor", details: error.message }, { status: 500 });
+}
 }
