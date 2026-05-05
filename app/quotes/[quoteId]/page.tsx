@@ -10,7 +10,7 @@ export default function QuoteEditPage() {
 
   const [q, setQ] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [dbItems, setDbItems] = useState<any[]>([]); // ÚJ: Adatbázis tételek állapota
+  const [dbItems, setDbItems] = useState<any[]>([]);
 
   // Kalkulátor állapotok
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -25,12 +25,15 @@ export default function QuoteEditPage() {
     const res = await fetch(`/api/quotes/${quoteId}`);
     if (res.ok) {
       const data = await res.json();
+      // Fontos: a tételeket sorrend szerint rendezve tároljuk el
+      if (data.items) {
+        data.items.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      }
       setQ(data);
     }
     setLoading(false);
   };
 
-  // ÚJ: Termékek betöltése az adatbázisból
   const loadDbItems = async () => {
     const res = await fetch("/api/items");
     if (res.ok) {
@@ -42,24 +45,55 @@ export default function QuoteEditPage() {
   useEffect(() => {
     if (quoteId) {
       loadQuote();
-      loadDbItems(); // Betöltjük az elmentett árakat is
+      loadDbItems();
     }
   }, [quoteId]);
 
-  // ÚJ: Beemelés az adatbázisból funkció
+  // --- MOZGATÁSI LOGIKA ---
+  const moveItem = async (index: number, direction: 'up' | 'down') => {
+    if (!q || !q.items) return;
+    
+    const newItems = [...q.items];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    if (targetIndex < 0 || targetIndex >= newItems.length) return;
+
+    // Csere a helyi állapotban
+    [newItems[index], newItems[targetIndex]] = [newItems[targetIndex], newItems[index]];
+
+    // Új sortOrder értékek kiosztása
+    const itemsWithNewOrder = newItems.map((item, idx) => ({
+      ...item,
+      sortOrder: idx
+    }));
+
+    // Optimista frissítés (azonnal látsszon a változás)
+    setQ({ ...q, items: itemsWithNewOrder });
+
+    // Mentés az adatbázisba
+    try {
+      await fetch(`/api/quotes/${quoteId}/items/reorder`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: itemsWithNewOrder.map(i => ({ id: i.id, sortOrder: i.sortOrder })) }),
+      });
+    } catch (err) {
+      console.error("Hiba a sorrend mentésekor", err);
+      loadQuote(); // Hiba esetén visszatöltjük az eredetit
+    }
+  };
+
   const handleSelectFromDB = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = dbItems.find(i => i.id === Number(e.target.value));
     if (selected) {
       setDesc(selected.name);
       setBasePriceNet(selected.price);
-      // Opcionálisan alaphelyzetbe állíthatod a hasznot ilyenkor
       setProfitValue(0);
     }
   };
 
   // --- ÉLŐ MATEMATIKA ---
   const basePriceGross = (Number(basePriceNet) || 0) * 1.27;
-  
   const profitGross = profitType === "percent" 
     ? basePriceGross * ((Number(profitValue) || 0) / 100)
     : (Number(profitValue) || 0);
@@ -76,6 +110,11 @@ export default function QuoteEditPage() {
     e.preventDefault();
     const method = editingId ? "PATCH" : "POST";
     
+    // Új tétel esetén a lista végére tesszük
+    const sortOrder = editingId 
+      ? q.items.find((i: any) => i.id === editingId)?.sortOrder 
+      : q.items.length;
+
     await fetch(`/api/quotes/${quoteId}/items`, {
       method,
       headers: { "Content-Type": "application/json" },
@@ -86,6 +125,7 @@ export default function QuoteEditPage() {
         unit,
         basePrice: basePriceNet,
         unitPriceNet: Math.round(sellPriceNet),
+        sortOrder
       }),
     });
     resetForm();
@@ -97,8 +137,7 @@ export default function QuoteEditPage() {
     setDesc(it.description);
     setQty(Number(it.quantity) || 1);
     setUnit(it.unit || "db");
-    const savedPrice = it.costNet ? Number(it.costNet) : Number(it.unitPriceNet);
-    setBasePriceNet(savedPrice);
+    setBasePriceNet(it.costNet || it.unitPriceNet);
     setProfitValue(0); 
     setProfitType("fix");
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -122,7 +161,7 @@ export default function QuoteEditPage() {
       
       {/* NAVIGÁCIÓ */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <button onClick={() => router.push(`/clients/${q.clientId}`)} style={navBtn}>⬅️ Ügyfél adatlap</button>
+        <button onClick={() => router.push(`/quotes`)} style={navBtn}>⬅️ Összes ajánlat</button>
         <button onClick={() => router.push("/")} style={{ ...navBtn, background: "#f8f9fa" }}>🏠 Főoldal</button>
       </div>
 
@@ -131,126 +170,97 @@ export default function QuoteEditPage() {
         <h1 style={{ margin: 0, color: "#2c3e50", fontSize: 28 }}>{q.title}</h1>
         <div style={{ display: "flex", gap: 12, marginTop: 15, flexWrap: "wrap" }}>
           <span style={badgeBlue}>👤 {q.client?.name}</span>
-          {q.client?.units && q.client.units.length > 0 && (
+          {q.client?.units?.length > 0 && (
             <span style={badgeGreen}>
-              ❄️ {q.client.units[q.client.units.length - 1].brand} {q.client.units[q.client.units.length - 1].model} 
-              {q.client.units[q.client.units.length - 1].power ? ` (${q.client.units[q.client.units.length - 1].power})` : ""}
+              ❄️ {q.client.units[0].brand} {q.client.units[0].model}
             </span>
           )}
         </div>
       </div>
 
-      {/* ÉLŐ KALKULÁTOR SZKCIÓ */}
+      {/* KALKULÁTOR */}
       <div style={{ background: editingId ? "#fff3e0" : "#ffffff", padding: 25, borderRadius: 15, border: editingId ? "2px solid #e67e22" : "1px solid #ddd", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: 40 }}>
-        <h3 style={{ marginTop: 0, marginBottom: 20, fontSize: 18, color: "#555" }}>
-          {editingId ? "✏️ Tétel módosítása" : "➕ Új tétel hozzáadása"}
-        </h3>
-
-        {/* ÚJ: GYORSVÁLASZTÓ AZ ADATBÁZISBÓL */}
-        {!editingId && (
-          <div style={{ marginBottom: 25, padding: "15px", background: "#f0f7ff", borderRadius: "10px", border: "1px solid #d0e3ff" }}>
-            <label style={{ ...labS, color: "#2980b9" }}>✨ Gyors betöltés az adatbázisból</label>
-            <select onChange={handleSelectFromDB} style={{ ...inputS, borderColor: "#3498db", cursor: "pointer" }}>
-              <option value="">-- Válassz elmentett klímát vagy tétel --</option>
-              {dbItems.map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.name} | {item.price.toLocaleString()} Ft (Nettó)
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 20 }}>
-          <div style={{ width: "100%" }}>
-            <label style={labS}>Megnevezés</label>
-            <input placeholder="pl. Gree Pulse 3.5kW telepítéssel" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
-          </div>
+          {/* Adatbázis választó */}
+          {!editingId && (
+            <div style={{ padding: "10px", background: "#f0f7ff", borderRadius: "10px" }}>
+              <label style={labS}>Gyors betöltés</label>
+              <select onChange={handleSelectFromDB} style={inputS}>
+                <option value="">-- Válassz az adatbázisból --</option>
+                {dbItems.map(item => (
+                  <option key={item.id} value={item.id}>{item.name} ({item.price} Ft)</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <input placeholder="Megnevezés" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
           
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            <div style={{ flex: "1 1 150px" }}>
-              <label style={labS}>Mennyiség</label>
-              <div style={{ display: "flex", gap: 5 }}>
-                <input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} style={inputS} />
-                <select value={unit} onChange={e => setUnit(e.target.value)} style={{ ...inputS, width: 90 }}>
-                  <option value="db">db</option>
-                  <option value="m">m</option>
-                  <option value="szett">szett</option>
-                  <option value="óra">óra</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ flex: "2 1 200px" }}>
-              <label style={labS}>Nettó Beszerzés (Ft)</label>
-              <input type="number" value={basePriceNet} onChange={e => setBasePriceNet(Number(e.target.value))} style={inputS} />
-              <div style={{ fontSize: 12, color: "#27ae60", marginTop: 6, fontWeight: "bold" }}>
-                Bruttó: {Math.round(basePriceGross).toLocaleString()} Ft
-              </div>
-            </div>
-
-            <div style={{ flex: "2 1 200px" }}>
-              <label style={labS}>Haszonkulcs (Bruttó)</label>
-              <div style={{ display: "flex", gap: 5 }}>
+          <div style={{ display: "flex", gap: 20 }}>
+            <input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} style={{...inputS, width: '100px'}} />
+            <input type="number" placeholder="Nettó beszerzés" value={basePriceNet} onChange={e => setBasePriceNet(Number(e.target.value))} style={inputS} />
+            <div style={{flex: 1}}>
+              <label style={labS}>Haszon (Bruttó)</label>
+              <div style={{display: 'flex', gap: 5}}>
                 <input type="number" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={inputS} />
-                <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{ ...inputS, width: 80 }}>
+                <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{...inputS, width: 80}}>
                   <option value="fix">Ft</option>
                   <option value="percent">%</option>
                 </select>
-              </div>
-              <div style={{ fontSize: 12, color: "#2980b9", marginTop: 6, fontWeight: "bold" }}>
-                Haszon értéke: +{Math.round(profitGross).toLocaleString()} Ft
               </div>
             </div>
           </div>
 
           <div style={resultBar}>
-            <div>
-              <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Ügyfél bruttó egységár:</div>
-              <strong style={{ fontSize: 22 }}>{Math.round(sellPriceGross).toLocaleString()} Ft</strong>
-            </div>
-            <div style={{ textAlign: "right", borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: 25 }}>
-              <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Tétel bruttó összesen:</div>
-              <strong style={{ fontSize: 26, color: "#2ecc71" }}>{Math.round(lineTotalGross).toLocaleString()} Ft</strong>
-            </div>
+            <strong>Bruttó egységár: {Math.round(sellPriceGross).toLocaleString()} Ft</strong>
+            <strong>Összesen: {Math.round(lineTotalGross).toLocaleString()} Ft</strong>
           </div>
 
-          <div style={{ display: "flex", gap: 12 }}>
-            <button type="submit" style={{ ...btnBase, flex: 2, background: editingId ? "#e67e22" : "#27ae60" }}>
-              {editingId ? "VÁLTOZTATÁSOK MENTÉSE" : "TÉTEL HOZZÁADÁSA AZ AJÁNLATHOZ"}
-            </button>
-            {editingId && (
-              <button onClick={resetForm} type="button" style={{ ...btnBase, flex: 1, background: "#95a5a6" }}>Mégse</button>
-            )}
-          </div>
+          <button type="submit" style={{ ...btnBase, background: editingId ? "#e67e22" : "#27ae60" }}>
+            {editingId ? "MENTÉS" : "HOZZÁADÁS"}
+          </button>
         </form>
       </div>
 
-      {/* TÁBLÁZAT ÉS ÖSSZESÍTŐ (Változatlan marad) */}
+      {/* TÁBLÁZAT */}
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ borderBottom: "2px solid #2c3e50", textAlign: "left", background: "#f8f9fa" }}>
-              <th style={{ padding: "15px 12px" }}>Megnevezés</th>
+            <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
+              <th style={{ padding: 12, width: "60px" }}></th> {/* Nyilak helye */}
+              <th style={{ padding: 12 }}>Megnevezés</th>
               <th>Menny.</th>
-              <th>Bruttó egység</th>
-              <th style={{ textAlign: "right" }}>Összesen (Bruttó)</th>
-              <th style={{ textAlign: "right", paddingRight: 15 }}>Művelet</th>
+              <th style={{ textAlign: "right" }}>Bruttó össz.</th>
+              <th style={{ textAlign: "right", paddingRight: 15 }}>Műveletek</th>
             </tr>
           </thead>
           <tbody>
-            {q.items.map((it: any) => (
+            {q.items.map((it: any, index: number) => (
               <tr key={it.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={{ padding: "15px 12px" }}>
+                {/* NYILAK */}
+                <td style={{ padding: "10px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <button 
+                      onClick={() => moveItem(index, 'up')} 
+                      disabled={index === 0}
+                      style={{ ...arrowBtn, opacity: index === 0 ? 0.2 : 1 }}
+                    >▲</button>
+                    <button 
+                      onClick={() => moveItem(index, 'down')} 
+                      disabled={index === q.items.length - 1}
+                      style={{ ...arrowBtn, opacity: index === q.items.length - 1 ? 0.2 : 1 }}
+                    >▼</button>
+                  </div>
+                </td>
+                <td style={{ padding: 12 }}>
                   <div style={{ fontWeight: "bold" }}>{it.description}</div>
-                  <div style={{ fontSize: 11, color: "#999" }}>Nettó: {Math.round(it.unitPriceNet).toLocaleString()} Ft</div>
+                  <div style={{ fontSize: 11, color: "#999" }}>Nettó egység: {Math.round(it.unitPriceNet).toLocaleString()} Ft</div>
                 </td>
                 <td>{it.quantity} {it.unit}</td>
-                <td>{Math.round(it.unitPriceNet * 1.27).toLocaleString()} Ft</td>
-                <td style={{ textAlign: "right", fontWeight: "bold", color: "#2c3e50" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
+                <td style={{ textAlign: "right", fontWeight: "bold" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
                 <td style={{ textAlign: "right", paddingRight: 15 }}>
                   <button onClick={() => startEdit(it)} style={iconBtn}>✏️</button>
-                  <button onClick={() => { if(confirm("Biztosan törlöd?")) fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote) }} style={{ ...iconBtn, color: "#e74c3c" }}>🗑️</button>
+                  <button onClick={() => { if(confirm("Törlöd?")) fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote) }} style={{ ...iconBtn, color: "#e74c3c" }}>🗑️</button>
                 </td>
               </tr>
             ))}
@@ -258,42 +268,33 @@ export default function QuoteEditPage() {
         </table>
       </div>
 
-      <div style={{ marginTop: 40, display: "flex", justifyContent: "flex-end" }}>
-        <div style={{ background: "#fdfdfd", border: "1px solid #ddd", padding: 25, borderRadius: 15, minWidth: 350, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-          <div style={summaryRow}>
-            <span style={{ color: "#666" }}>Összesen Nettó:</span>
-            <span>{Math.round(totalNet).toLocaleString()} Ft</span>
-          </div>
-          <div style={{ ...summaryRow, color: "#e74c3c", fontSize: 15, margin: "10px 0" }}>
-            <span>ÁFA (27%):</span>
-            <span>{Math.round(totalTax).toLocaleString()} Ft</span>
-          </div>
-          <div style={{ ...summaryRow, borderTop: "2px solid #2c3e50", paddingTop: 15, marginTop: 5 }}>
-            <span style={{ fontWeight: "bold", fontSize: 18 }}>Fizetendő Bruttó:</span>
-            <strong style={{ fontSize: 28, color: "#2c3e50" }}>{totalGross.toLocaleString()} Ft</strong>
+      {/* ÖSSZESÍTŐ */}
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ background: "#fdfdfd", border: "1px solid #ddd", padding: 20, borderRadius: 12, minWidth: 300 }}>
+          <div style={summaryRow}><span>Nettó:</span> <span>{Math.round(totalNet).toLocaleString()} Ft</span></div>
+          <div style={summaryRow}><span>ÁFA:</span> <span>{Math.round(totalTax).toLocaleString()} Ft</span></div>
+          <div style={{ ...summaryRow, borderTop: "2px solid #333", marginTop: 10, paddingTop: 10, fontWeight: "bold", fontSize: 20 }}>
+            <span>Bruttó:</span> <span>{totalGross.toLocaleString()} Ft</span>
           </div>
         </div>
-      </div>
-
-      <div style={{ marginTop: 50, textAlign: "right" }}>
-        <button 
-          onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')}
-          style={{ background: "#34495e", color: "#fff", padding: "18px 40px", border: "none", borderRadius: 12, cursor: "pointer", fontWeight: "bold", fontSize: 17, boxShadow: "0 4px 15px rgba(0,0,0,0.2)" }}
-        >
-          📄 HIVATALOS AJÁNLAT GENERÁLÁSA (PDF)
-        </button>
       </div>
     </div>
   );
 }
 
-// STÍLUSOK (A régiek + az új badge-ek)
-const navBtn: React.CSSProperties = { padding: "10px 18px", borderRadius: "10px", border: "1px solid #ddd", background: "#fff", color: "#555", cursor: "pointer", fontSize: "14px", fontWeight: "bold" };
-const inputS = { width: "100%", padding: "14px", borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box" as const, fontSize: "16px", outline: "none" };
-const labS = { fontSize: "12px", fontWeight: "bold", marginBottom: 6, display: "block", color: "#7f8c8d", textTransform: "uppercase" as const };
-const badgeBlue = { background: "#e1f5fe", color: "#0288d1", padding: "6px 14px", borderRadius: "20px", fontSize: "14px", fontWeight: "bold" as const };
-const badgeGreen = { background: "#f1f8e9", color: "#388e3c", padding: "6px 14px", borderRadius: "20px", fontSize: "14px", fontWeight: "bold" as const };
-const resultBar = { background: "#2c3e50", color: "#fff", padding: "20px 25px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 };
-const btnBase = { color: "#fff", padding: "16px", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "15px", transition: "all 0.2s" };
-const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "20px", marginLeft: "12px" };
-const summaryRow = { display: "flex", justifyContent: "space-between", alignItems: "center" };
+// ÚJ STÍLUSOK
+const arrowBtn: React.CSSProperties = { 
+  background: "#f0f0f0", border: "1px solid #ccc", borderRadius: "4px", 
+  cursor: "pointer", fontSize: "10px", padding: "2px 5px", color: "#666" 
+};
+
+// RÉGI STÍLUSOK (megtartva)
+const navBtn: React.CSSProperties = { padding: "10px 18px", borderRadius: "10px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontWeight: "bold" };
+const inputS = { width: "100%", padding: "12px", borderRadius: 8, border: "1px solid #ccc", boxSizing: "border-box" as const };
+const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const };
+const badgeBlue = { background: "#e1f5fe", color: "#0288d1", padding: "5px 12px", borderRadius: "15px", fontSize: "13px", fontWeight: "bold" as const };
+const badgeGreen = { background: "#f1f8e9", color: "#388e3c", padding: "5px 12px", borderRadius: "15px", fontSize: "13px", fontWeight: "bold" as const };
+const resultBar = { background: "#2c3e50", color: "#fff", padding: "15px", borderRadius: "10px", display: "flex", justifyContent: "space-between", marginTop: 10 };
+const btnBase = { color: "#fff", padding: "15px", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
+const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "18px", marginLeft: "10px" };
+const summaryRow = { display: "flex", justifyContent: "space-between", marginBottom: 5 };
