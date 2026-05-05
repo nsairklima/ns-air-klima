@@ -13,6 +13,7 @@ type Quote = {
   client: { name: string };
 };
 
+
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
