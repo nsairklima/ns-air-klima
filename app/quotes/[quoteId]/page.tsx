@@ -33,7 +33,7 @@ export default function QuoteEditPage() {
         setQ(data);
       }
     } catch (err) {
-      console.error("Hiba az ajánlat betöltésekor", err);
+      console.error("Hiba:", err);
     } finally {
       setLoading(false);
     }
@@ -54,7 +54,7 @@ export default function QuoteEditPage() {
     }
   }, [quoteId]);
 
-  // Sorrend mozgatása és mentése az új API-val
+  // Sorrend mozgatása és mentése
   const moveItem = async (index: number, direction: 'up' | 'down') => {
     if (!q || !q.items) return;
     const newItems = [...q.items];
@@ -73,7 +73,7 @@ export default function QuoteEditPage() {
         body: JSON.stringify({ items: itemsWithNewOrder.map(i => ({ id: i.id, sortOrder: i.sortOrder })) }),
       });
     } catch (err) {
-      console.error("Sorrend mentési hiba", err);
+      console.error("Mentési hiba:", err);
       loadQuote();
     }
   };
@@ -87,7 +87,7 @@ export default function QuoteEditPage() {
     }
   };
 
-  // --- MATEMATIKA ---
+  // Matematika
   const basePriceGross = (Number(basePriceNet) || 0) * 1.27;
   const profitGross = profitType === "percent" 
     ? basePriceGross * ((Number(profitValue) || 0) / 100)
@@ -140,10 +140,9 @@ export default function QuoteEditPage() {
   };
 
   if (loading) return <div style={{ padding: 40, textAlign: "center" }}>Betöltés...</div>;
-  if (!q) return <div style={{ padding: 40, textAlign: "center" }}>Az ajánlat nem található.</div>;
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial, sans-serif", color: "#333" }}>
+    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
       
       {/* NAVIGÁCIÓ */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
@@ -151,26 +150,26 @@ export default function QuoteEditPage() {
           <button onClick={() => router.push(`/quotes`)} style={navBtn}>⬅️ Lista</button>
           <button onClick={() => router.push("/")} style={navBtn}>🏠 Főoldal</button>
         </div>
-        <button onClick={() => alert("E-mail küldés fejlesztés alatt...")} style={{ ...navBtn, background: "#f39c12", color: "#fff", border: "none" }}>✉️ Ajánlat küldése</button>
+        <button onClick={() => alert("Küldés...")} style={{ ...navBtn, background: "#f39c12", color: "#fff", border: "none" }}>✉️ E-mail küldése</button>
       </div>
 
-      <div style={{ marginBottom: 30, borderBottom: "2px solid #eee", paddingBottom: 20 }}>
+      <div style={{ marginBottom: 30 }}>
         <h1 style={{ margin: 0, color: "#2c3e50" }}>{q.title}</h1>
-        <div style={{ display: "flex", gap: 12, marginTop: 15 }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <span style={badgeBlue}>👤 {q.client?.name}</span>
         </div>
       </div>
 
       {/* KALKULÁTOR */}
-      <div style={{ background: editingId ? "#fff3e0" : "#ffffff", padding: 25, borderRadius: 15, border: editingId ? "2px solid #e67e22" : "1px solid #ddd", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: 40 }}>
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 20 }}>
+      <div style={{ ...formCard, border: editingId ? "2px solid #e67e22" : "1px solid #ddd" }}>
+        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
           {!editingId && (
-            <div style={{ padding: "10px", background: "#f0f7ff", borderRadius: "10px" }}>
-              <label style={labS}>Gyors betöltés az adatbázisból</label>
+            <div>
+              <label style={labS}>Gyors választás</label>
               <select onChange={handleSelectFromDB} style={inputS}>
-                <option value="">-- Válassz --</option>
+                <option value="">-- Válassz az adatbázisból --</option>
                 {dbItems.map(item => (
-                  <option key={item.id} value={item.id}>{item.name} ({item.price.toLocaleString()} Ft)</option>
+                  <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </select>
             </div>
@@ -178,16 +177,16 @@ export default function QuoteEditPage() {
 
           <input placeholder="Megnevezés" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
           
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            <div style={{ flex: "1" }}>
+          <div style={{ display: "flex", gap: 15 }}>
+            <div style={{ flex: 1 }}>
               <label style={labS}>Mennyiség</label>
               <input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} style={inputS} />
             </div>
-            <div style={{ flex: "1" }}>
-              <label style={labS}>Nettó Beszerzés</label>
+            <div style={{ flex: 2 }}>
+              <label style={labS}>Nettó beszerzés</label>
               <input type="number" value={basePriceNet} onChange={e => setBasePriceNet(Number(e.target.value))} style={inputS} />
             </div>
-            <div style={{ flex: "1" }}>
+            <div style={{ flex: 2 }}>
               <label style={labS}>Haszon ({profitType === 'percent' ? '%' : 'Ft'})</label>
               <div style={{ display: "flex", gap: 5 }}>
                 <input type="number" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={inputS} />
@@ -200,32 +199,33 @@ export default function QuoteEditPage() {
           </div>
 
           <div style={resultBar}>
-            <span style={{ color: "#ffffff" }}>Bruttó egységár: <strong>{Math.round(sellPriceGross).toLocaleString()} Ft</strong></span>
-            <span style={{ color: "#ffffff" }}>Tétel összesen: <strong>{Math.round(lineTotalGross).toLocaleString()} Ft</strong></span>
+            <span>Bruttó egységár: <strong>{Math.round(sellPriceGross).toLocaleString()} Ft</strong></span>
+            <span>Tétel összesen: <strong>{Math.round(lineTotalGross).toLocaleString()} Ft</strong></span>
           </div>
 
           <button type="submit" style={{ ...btnBase, background: editingId ? "#e67e22" : "#27ae60" }}>
-            {editingId ? "VÁLTOZTATÁSOK MENTÉSE" : "TÉTEL HOZZÁADÁSA"}
+            {editingId ? "Tétel frissítése" : "Tétel hozzáadása"}
           </button>
+          {editingId && <button onClick={resetForm} style={{ background: "#95a5a6", ...btnBase }}>Mégse</button>}
         </form>
       </div>
 
       {/* TÁBLÁZAT */}
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ background: "#f8f9fa", textAlign: "left", borderBottom: "2px solid #ddd" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 20 }}>
+        <thead style={{ background: "#f8f9fa" }}>
+          <tr>
             <th style={{ padding: 10, width: 40 }}></th>
-            <th style={{ padding: 10 }}>Megnevezés</th>
-            <th>Menny.</th>
-            <th style={{ textAlign: "right" }}>Bruttó</th>
-            <th style={{ textAlign: "right", paddingRight: 10 }}>Művelet</th>
+            <th style={{ textAlign: "left", padding: 10 }}>Megnevezés</th>
+            <th style={{ width: 80 }}>Menny.</th>
+            <th style={{ textAlign: "right", width: 120 }}>Bruttó</th>
+            <th style={{ textAlign: "right", paddingRight: 10, width: 100 }}>Művelet</th>
           </tr>
         </thead>
         <tbody>
           {q.items.map((it: any, index: number) => (
             <tr key={it.id} style={{ borderBottom: "1px solid #eee" }}>
               <td>
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
                   <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={arrowBtn}>▲</button>
                   <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={arrowBtn}>▼</button>
                 </div>
@@ -234,7 +234,7 @@ export default function QuoteEditPage() {
                 <div style={itemText}>{it.description}</div>
                 <div style={subText}>Nettó egység: {Math.round(it.unitPriceNet).toLocaleString()} Ft</div>
               </td>
-              <td>{it.quantity} {it.unit}</td>
+              <td style={{ textAlign: "center" }}>{it.quantity} {it.unit}</td>
               <td style={{ textAlign: "right", fontWeight: "bold" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
               <td style={{ textAlign: "right" }}>
                 <button onClick={() => startEdit(it)} style={iconBtn}>✏️</button>
@@ -248,17 +248,12 @@ export default function QuoteEditPage() {
       {/* ÖSSZESÍTŐ */}
       <div style={{ marginTop: 40, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
         <div style={summaryBox}>
-          <div style={summaryRow}><span>Összesen Nettó:</span> <span>{Math.round(totalNet).toLocaleString()} Ft</span></div>
-          <div style={{ ...summaryRow, fontWeight: "bold", fontSize: 24, marginTop: 10, borderTop: "2px solid #333", paddingTop: 10 }}>
-            <span>Bruttó:</span> <span>{totalGross.toLocaleString()} Ft</span>
+          <div style={summaryRow}><span>Nettó összesen:</span> <span>{Math.round(totalNet).toLocaleString()} Ft</span></div>
+          <div style={{ ...summaryRow, fontSize: 22, fontWeight: "bold", borderTop: "2px solid #333", marginTop: 10, paddingTop: 10 }}>
+            <span>Bruttó összesen:</span> <span>{totalGross.toLocaleString()} Ft</span>
           </div>
         </div>
-        <button 
-          onClick={() => window.open(`/api/quotes/${quoteId}/pdf`, '_blank')}
-          style={pdfBtn}
-        >
-          📄 HIVATALOS PDF GENERÁLÁSA
-        </button>
+        <button onClick={() => window.open(`/api/quotes/${quoteId}/pdf`, '_blank')} style={pdfBtn}>📄 PDF GENERÁLÁSA</button>
       </div>
     </div>
   );
@@ -266,15 +261,16 @@ export default function QuoteEditPage() {
 
 // STÍLUSOK
 const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontWeight: "bold" as const };
-const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const };
-const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, marginBottom: "5px", display: "block" };
-const badgeBlue = { background: "#e1f5fe", color: "#0288d1", padding: "5px 12px", borderRadius: "15px", fontSize: "13px", fontWeight: "bold" as const };
-const resultBar = { background: "#2c3e50", color: "#ffffff", padding: "15px", borderRadius: "10px", display: "flex", justifyContent: "space-between", marginTop: 10 };
-const btnBase = { color: "#fff", padding: "15px", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, width: "100%" };
+const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" as const };
+const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, display: "block", marginBottom: 4 };
+const badgeBlue = { background: "#e1f5fe", color: "#0288d1", padding: "4px 10px", borderRadius: "10px", fontSize: "12px", fontWeight: "bold" as const };
+const formCard = { background: "#fff", padding: 20, borderRadius: 12, marginBottom: 30, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" };
+const resultBar = { background: "#2c3e50", color: "#ffffff", padding: "15px", borderRadius: "8px", display: "flex", justifyContent: "space-between", marginTop: 10 };
+const btnBase = { color: "#fff", padding: "12px", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" as const, marginTop: 10 };
 const arrowBtn = { background: "#eee", border: "1px solid #ccc", cursor: "pointer", fontSize: "10px", padding: "2px", borderRadius: "3px" };
-const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "18px", marginLeft: "10px" };
+const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "18px", marginLeft: "8px" };
 const itemText = { color: "#2c3e50", fontWeight: "bold", fontSize: "14px" };
 const subText = { color: "#7f8c8d", fontSize: "11px" };
-const summaryBox = { background: "#fdfdfd", padding: 20, borderRadius: 12, border: "1px solid #ddd", minWidth: 320, marginBottom: 20 };
-const summaryRow = { display: "flex", justifyContent: "space-between", marginBottom: 5 };
-const pdfBtn = { background: "#34495e", color: "#fff", padding: "18px 40px", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "17px", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" };
+const summaryBox = { background: "#f9f9f9", padding: 20, borderRadius: 12, border: "1px solid #ddd", minWidth: 300, marginBottom: 20 };
+const summaryRow = { display: "flex", justifyContent: "space-between" };
+const pdfBtn = { background: "#34495e", color: "#fff", padding: "15px 30px", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "16px" };
