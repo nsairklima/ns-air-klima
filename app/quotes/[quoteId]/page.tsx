@@ -12,6 +12,10 @@ export default function QuoteEditPage() {
   const [loading, setLoading] = useState(true);
   const [dbItems, setDbItems] = useState<any[]>([]);
 
+  // Cím szerkesztés állapotok
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState("");
+
   // Kalkulátor állapotok
   const [editingId, setEditingId] = useState<number | null>(null);
   const [desc, setDesc] = useState("");
@@ -30,6 +34,7 @@ export default function QuoteEditPage() {
           data.items.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
         }
         setQ(data);
+        setTempTitle(data.title || "");
       }
     } catch (err) {
       console.error("Hiba az ajánlat betöltésekor", err);
@@ -52,6 +57,27 @@ export default function QuoteEditPage() {
       loadDbItems();
     }
   }, [quoteId]);
+
+  // Cím mentése funkció
+  const saveTitle = async () => {
+    if (tempTitle === q.title) {
+      setIsEditingTitle(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/quotes/${quoteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: tempTitle }),
+      });
+      if (res.ok) {
+        setQ({ ...q, title: tempTitle });
+      }
+    } catch (err) {
+      console.error("Cím mentési hiba", err);
+    }
+    setIsEditingTitle(false);
+  };
 
   const moveItem = async (index: number, direction: 'up' | 'down') => {
     if (!q || !q.items) return;
@@ -158,7 +184,25 @@ export default function QuoteEditPage() {
       </div>
 
       <div style={{ marginBottom: 30, borderBottom: "2px solid #333", paddingBottom: 20 }}>
-        <h1 style={{ margin: 0, color: "#fff" }}>{q.title}</h1>
+        {isEditingTitle ? (
+          <input 
+            value={tempTitle}
+            onChange={(e) => setTempTitle(e.target.value)}
+            onBlur={saveTitle}
+            onKeyDown={(e) => e.key === "Enter" && saveTitle()}
+            autoFocus
+            style={{ ...inputS, fontSize: "2rem", fontWeight: "bold", background: "#333", color: "#fff", border: "1px solid #27ae60" }}
+          />
+        ) : (
+          <h1 
+            onClick={() => setIsEditingTitle(true)}
+            style={{ margin: 0, color: "#fff", cursor: "pointer", borderBottom: "1px dashed #555" }}
+            title="Kattints a módosításhoz"
+          >
+            {q.title} ✏️
+          </h1>
+        )}
+        
         <div style={{ display: "flex", gap: 12, marginTop: 15 }}>
           <span style={badgeBlue}>👤 {q.client?.name}</span>
           {q.client?.units?.length > 0 && (
