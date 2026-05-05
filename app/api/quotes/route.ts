@@ -13,8 +13,8 @@ export async function GET() {
     });
     return NextResponse.json(quotes);
   } catch (error: any) {
-    // ITT IS JAVÍTVA: Most már látni fogod a GET hibáját is a logban
-    console.error("GET API HIBA:", error);
+    // Részletes naplózás a Vercel logokhoz
+    console.error("GET API HIBA (Quotes):", error);
     return NextResponse.json({ 
       error: "Hiba a lekéréskor", 
       details: error.message,
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
             costNet: item.costNet || 0,
             profitAbs: item.profitAbs || 0,
             profitPct: item.profitPct || 0,
-            // Itt fontos: ha a sémában van sortOrder, ide is bekerülhet:
+            // Az új rendezési mező
             sortOrder: item.sortOrder || 0
           })) || []
         }
@@ -72,8 +72,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json(newQuote);
   } catch (error: any) {
-    // JAVÍTVA: Konzolos log és részletes válasz
-    console.error("POST API HIBA:", error); 
+    // Részletes hibaüzenet a mentési hibákhoz
+    console.error("POST API HIBA (Quotes Create):", error); 
     return NextResponse.json({ 
       error: "Hiba az ajánlat mentésekor", 
       details: error.message,
