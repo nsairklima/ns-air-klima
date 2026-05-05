@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect,核心 useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
 type Quote = {
@@ -27,7 +27,6 @@ export default function QuotesPage() {
         throw new Error(data.details || data.error || "Hiba a letöltéskor");
       }
 
-      // Ellenőrizzük, hogy tömböt kaptunk-e, hogy elkerüljük a .map() hibát
       if (Array.isArray(data)) {
         setQuotes(data);
       } else {
