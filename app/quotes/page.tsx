@@ -5,6 +5,7 @@ import Link from "next/link";
 
 type Quote = {
   id: number;
+  title?: string; // Hozzáadva az egyedi névhez
   status: string;
   netTotal: number;
   grossTotal: number;
@@ -59,49 +60,58 @@ export default function QuotesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
            <Link href="/" style={navBtn}>🏠</Link>
-           <h1 style={{ margin: 0 }}>Ajánlatok</h1>
+           <h1 style={{ margin: 0, color: "#fff" }}>Ajánlatok</h1>
         </div>
         <Link href="/quotes/new" style={btnPrimary}>+ Új ajánlat</Link>
       </div>
 
       <div style={{ display: "grid", gap: 12 }}>
         {quotes.length === 0 && (
-          <div style={{ textAlign: "center", padding: 40, border: "2px dashed #eee", borderRadius: 12 }}>
-            <p style={{ color: "#666" }}>Még nincsenek ajánlatok a rendszerben.</p>
+          <div style={{ textAlign: "center", padding: 40, border: "2px dashed #444", borderRadius: 12 }}>
+            <p style={{ color: "#aaa" }}>Még nincsenek ajánlatok a rendszerben.</p>
           </div>
         )}
         
-        {quotes.map((q) => (
-          <div key={q.id} style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <strong style={{ fontSize: 18, color: "#2c3e50" }}>
-                  {q.client?.name || "Névtelen ügyfél"}
-                </strong>
-                <div style={{ fontSize: 13, color: "#95a5a6", marginTop: 4 }}>
-                  #{q.id} • {new Date(q.createdAt).toLocaleDateString("hu-HU")}
-                </div>
-              </div>
-              <span style={statusBadge(q.status)}>{q.status}</span>
-            </div>
+        {quotes.map((q) => {
+          // Megnézzük, van-e egyedi cím, ha nincs, az ügyfél neve az elsődleges
+          const displayTitle = q.title && q.title.trim() !== "" ? q.title : q.client?.name;
+          const hasCustomTitle = q.title && q.title.trim() !== "" && q.title !== q.client?.name;
 
-            <div style={{ 
-              marginTop: 15, 
-              paddingTop: 15, 
-              borderTop: "1px solid #f8f9fa", 
-              display: "flex", 
-              justifyContent: "space-between",
-              alignItems: "center" 
-            }}>
-              <div style={{ fontWeight: "bold", fontSize: 16 }}>
-                Bruttó: <span style={{ color: "#2c3e50" }}>{q.grossTotal?.toLocaleString("hu-HU")} Ft</span>
+          return (
+            <div key={q.id} style={card}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <strong style={{ fontSize: 20, color: "#2c3e50", display: "block" }}>
+                    {displayTitle || "Névtelen ajánlat"}
+                  </strong>
+                  
+                  <div style={{ fontSize: 13, color: "#7f8c8d", marginTop: 4 }}>
+                    #{q.id} • {new Date(q.createdAt).toLocaleDateString("hu-HU")}
+                    {/* Ha egyedi címet írtunk ki fent, ide beszúrjuk az ügyfél nevét is */}
+                    {hasCustomTitle && ` • 👤 ${q.client?.name}`}
+                  </div>
+                </div>
+                <span style={statusBadge(q.status)}>{q.status}</span>
               </div>
-              <Link href={`/quotes/${q.id}`} style={detailsLink}>
-                Részletek és szerkesztés →
-              </Link>
+
+              <div style={{ 
+                marginTop: 15, 
+                paddingTop: 15, 
+                borderTop: "1px solid #f0f0f0", 
+                display: "flex", 
+                justifyContent: "space-between",
+                alignItems: "center" 
+              }}>
+                <div style={{ fontWeight: "bold", fontSize: 17 }}>
+                  Bruttó: <span style={{ color: "#2c3e50" }}>{q.grossTotal?.toLocaleString("hu-HU")} Ft</span>
+                </div>
+                <Link href={`/quotes/${q.id}`} style={detailsLink}>
+                  Részletek és szerkesztés →
+                </Link>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -109,10 +119,10 @@ export default function QuotesPage() {
 
 /* ---- Stílusok ---- */
 const wrap: React.CSSProperties = { padding: "24px 16px", maxWidth: 800, margin: "0 auto", fontFamily: "Arial, sans-serif" };
-const card: React.CSSProperties = { border: "1px solid #eee", padding: 20, borderRadius: 12, background: "#fff", boxShadow: "0 4px 6px rgba(0,0,0,0.02)" };
+const card: React.CSSProperties = { border: "1px solid #eee", padding: 20, borderRadius: 12, background: "#fff", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" };
 const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", padding: "10px 20px", borderRadius: 8, textDecoration: "none", fontWeight: "bold", fontSize: 14 };
-const navBtn: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", textDecoration: "none" };
-const detailsLink: React.CSSProperties = { color: "#4DA3FF", textDecoration: "none", fontSize: 14, fontWeight: "500" };
+const navBtn: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #444", background: "#333", color: "#fff", textDecoration: "none" };
+const detailsLink: React.CSSProperties = { color: "#4DA3FF", textDecoration: "none", fontSize: 14, fontWeight: "bold" };
 
 function statusBadge(status: string): React.CSSProperties {
   const base: React.CSSProperties = { padding: "5px 10px", borderRadius: 6, fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.5px" };
