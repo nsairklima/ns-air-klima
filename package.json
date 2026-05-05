@@ -25,4 +25,10 @@
     "@types/react": "18.2.37",
     "prisma": "^6.19.2"
   }
+
+  "scripts": {
+  "dev": "next dev",
+  "build": "prisma generate && next build",
+  "start": "next start"
+}
 }
