@@ -9,7 +9,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.2",
+    "@prisma/client": "^6.0.0",
     "next": "14.0.0",
     "nodemailer": "^6.9.0",
     "pdf-lib": "1.17.1",
@@ -23,12 +23,6 @@
     "@types/node": "20.10.5",
     "@types/pdfkit": "^0.13.4",
     "@types/react": "18.2.37",
-    "prisma": "^6.19.2"
+    "prisma": "^6.0.0"
   }
-
-  "scripts": {
-  "dev": "next dev",
-  "build": "prisma generate && next build",
-  "start": "next start"
-}
 }
