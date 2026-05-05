@@ -27,6 +27,7 @@ export default function QuoteEditPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.items) {
+          // Sorrend szerinti rendezés betöltéskor
           data.items.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
         }
         setQ(data);
@@ -53,6 +54,7 @@ export default function QuoteEditPage() {
     }
   }, [quoteId]);
 
+  // Sorrend mozgatása és mentése az új API-val
   const moveItem = async (index: number, direction: 'up' | 'down') => {
     if (!q || !q.items) return;
     const newItems = [...q.items];
@@ -97,7 +99,6 @@ export default function QuoteEditPage() {
 
   const totalGross = q?.items?.reduce((sum: number, it: any) => sum + Number(it.lineGross), 0) || 0;
   const totalNet = totalGross / 1.27;
-  const totalTax = totalGross - totalNet;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,11 +139,6 @@ export default function QuoteEditPage() {
     setEditingId(null); setDesc(""); setQty(1); setUnit("db"); setBasePriceNet(0); setProfitValue(0);
   };
 
-  const sendEmail = async () => {
-    if(!confirm("Biztosan elküldöd az ajánlatot az ügyfélnek?")) return;
-    alert("Funkció fejlesztés alatt...");
-  };
-
   if (loading) return <div style={{ padding: 40, textAlign: "center" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center" }}>Az ajánlat nem található.</div>;
 
@@ -155,16 +151,13 @@ export default function QuoteEditPage() {
           <button onClick={() => router.push(`/quotes`)} style={navBtn}>⬅️ Lista</button>
           <button onClick={() => router.push("/")} style={navBtn}>🏠 Főoldal</button>
         </div>
-        <button onClick={sendEmail} style={{ ...navBtn, background: "#f39c12", color: "#fff", border: "none" }}>✉️ Ajánlat küldése e-mailben</button>
+        <button onClick={() => alert("E-mail küldés fejlesztés alatt...")} style={{ ...navBtn, background: "#f39c12", color: "#fff", border: "none" }}>✉️ Ajánlat küldése</button>
       </div>
 
       <div style={{ marginBottom: 30, borderBottom: "2px solid #eee", paddingBottom: 20 }}>
         <h1 style={{ margin: 0, color: "#2c3e50" }}>{q.title}</h1>
         <div style={{ display: "flex", gap: 12, marginTop: 15 }}>
           <span style={badgeBlue}>👤 {q.client?.name}</span>
-          {q.client?.units?.length > 0 && (
-            <span style={badgeGreen}>❄️ {q.client.units[0].brand} {q.client.units[0].model}</span>
-          )}
         </div>
       </div>
 
@@ -207,8 +200,8 @@ export default function QuoteEditPage() {
           </div>
 
           <div style={resultBar}>
-            <strong>Bruttó egységár: {Math.round(sellPriceGross).toLocaleString()} Ft</strong>
-            <strong>Tétel összesen: {Math.round(lineTotalGross).toLocaleString()} Ft</strong>
+            <span style={{ color: "#ffffff" }}>Bruttó egységár: <strong>{Math.round(sellPriceGross).toLocaleString()} Ft</strong></span>
+            <span style={{ color: "#ffffff" }}>Tétel összesen: <strong>{Math.round(lineTotalGross).toLocaleString()} Ft</strong></span>
           </div>
 
           <button type="submit" style={{ ...btnBase, background: editingId ? "#e67e22" : "#27ae60" }}>
@@ -237,7 +230,10 @@ export default function QuoteEditPage() {
                   <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={arrowBtn}>▼</button>
                 </div>
               </td>
-              <td style={{ padding: 10 }}><strong>{it.description}</strong></td>
+              <td style={{ padding: 10 }}>
+                <div style={itemText}>{it.description}</div>
+                <div style={subText}>Nettó egység: {Math.round(it.unitPriceNet).toLocaleString()} Ft</div>
+              </td>
               <td>{it.quantity} {it.unit}</td>
               <td style={{ textAlign: "right", fontWeight: "bold" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
               <td style={{ textAlign: "right" }}>
@@ -258,7 +254,7 @@ export default function QuoteEditPage() {
           </div>
         </div>
         <button 
-          onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')}
+          onClick={() => window.open(`/api/quotes/${quoteId}/pdf`, '_blank')}
           style={pdfBtn}
         >
           📄 HIVATALOS PDF GENERÁLÁSA
@@ -268,16 +264,17 @@ export default function QuoteEditPage() {
   );
 }
 
-// STÍLUSOK DEFINÍCIÓJA - EZ HIÁNYZOTT!
+// STÍLUSOK
 const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontWeight: "bold" as const };
 const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const };
 const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, marginBottom: "5px", display: "block" };
 const badgeBlue = { background: "#e1f5fe", color: "#0288d1", padding: "5px 12px", borderRadius: "15px", fontSize: "13px", fontWeight: "bold" as const };
-const badgeGreen = { background: "#f1f8e9", color: "#388e3c", padding: "5px 12px", borderRadius: "15px", fontSize: "13px", fontWeight: "bold" as const };
-const resultBar = { background: "#2c3e50", color: "#fff", padding: "15px", borderRadius: "10px", display: "flex", justifyContent: "space-between", marginTop: 10 };
+const resultBar = { background: "#2c3e50", color: "#ffffff", padding: "15px", borderRadius: "10px", display: "flex", justifyContent: "space-between", marginTop: 10 };
 const btnBase = { color: "#fff", padding: "15px", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, width: "100%" };
 const arrowBtn = { background: "#eee", border: "1px solid #ccc", cursor: "pointer", fontSize: "10px", padding: "2px", borderRadius: "3px" };
 const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "18px", marginLeft: "10px" };
+const itemText = { color: "#2c3e50", fontWeight: "bold", fontSize: "14px" };
+const subText = { color: "#7f8c8d", fontSize: "11px" };
 const summaryBox = { background: "#fdfdfd", padding: 20, borderRadius: 12, border: "1px solid #ddd", minWidth: 320, marginBottom: 20 };
 const summaryRow = { display: "flex", justifyContent: "space-between", marginBottom: 5 };
 const pdfBtn = { background: "#34495e", color: "#fff", padding: "18px 40px", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "17px", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" };
