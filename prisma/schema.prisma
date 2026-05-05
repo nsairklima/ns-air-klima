@@ -112,6 +112,7 @@ model QuoteItem {
   costNet      Decimal? @default(0)
   profitAbs    Decimal? @default(0)
   profitPct    Decimal? @default(0)
+  sortOrder    Int      @default(0) // <--- Ez az új mező a sorrendhez
   createdAt    DateTime @default(now())
 }
 
