@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const items = await prisma.item.findMany({
-    orderBy: { createdAt: "desc" }
-  });
-  return NextResponse.json(items);
+  try {
+    const items = await prisma.item.findMany({
+      orderBy: { name: "asc" } // Alaptermékeknél jobb az ABC sorrend
+    });
+    return NextResponse.json(items);
+  } catch (error: any) {
+    return NextResponse.json({ error: "Hiba a termékek lekérésekor" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
@@ -18,7 +22,6 @@ export async function POST(req: Request) {
         sku: body.sku || null,
         stock: parseInt(body.stock) || 0,
         supplier: body.supplier || null,
-        // Az updatedAt-et a Prisma most már automatikusan kezeli a séma miatt
       },
     });
     return NextResponse.json(newItem);
@@ -42,15 +45,20 @@ export async function PATCH(req: Request) {
     });
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: "Hiba a módosítás során" }, { status: 500 });
+    console.error("PATCH hiba:", error);
+    return NextResponse.json({ error: "Hiba a módosítás során", details: error.message }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
-  if (!id) return NextResponse.json({ error: "Nincs ID" }, { status: 400 });
-  
-  await prisma.item.delete({ where: { id: parseInt(id) } });
-  return NextResponse.json({ success: true });
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Nincs ID" }, { status: 400 });
+    
+    await prisma.item.delete({ where: { id: parseInt(id) } });
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: "Hiba a törlés során", details: error.message }, { status: 500 });
+  }
 }
