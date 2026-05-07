@@ -78,6 +78,31 @@ export default function QuoteEditPage() {
     setIsEditingTitle(false);
   };
 
+  const moveItem = async (index: number, direction: 'up' | 'down') => {
+    if (!q || !q.items) return;
+    const newItems = [...q.items];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newItems.length) return;
+
+    [newItems[index], newItems[targetIndex]] = [newItems[targetIndex], newItems[index]];
+    
+    const itemsWithNewOrder = newItems.map((item, idx) => ({ ...item, sortOrder: idx }));
+    setQ({ ...q, items: itemsWithNewOrder });
+
+    try {
+      await fetch(`/api/quotes/${quoteId}/items/reorder`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          items: itemsWithNewOrder.map(i => ({ id: i.id, sortOrder: i.sortOrder })) 
+        }),
+      });
+    } catch (err) {
+      console.error("Sorrend mentési hiba", err);
+      loadQuote();
+    }
+  };
+
   const handleSelectFromDB = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = dbItems.find(i => i.id === Number(e.target.value));
     if (selected) {
@@ -87,26 +112,17 @@ export default function QuoteEditPage() {
     }
   };
 
-  // --- MATEMATIKA: ATOMBIZTOS VERZIÓ ---
   const n_beszerzes = Number(basePriceNet) || 0;
   const n_profit = Number(profitValue) || 0;
   const n_mennyiseg = Number(qty) || 0;
 
-  // 1. Bruttó beszerzési egységár
   const brutto_beszerzes = n_beszerzes * 1.27;
-
-  // 2. Bruttó haszon
   const brutto_haszon = profitType === "percent" 
     ? brutto_beszerzes * (n_profit / 100)
     : n_profit;
 
-  // 3. Bruttó eladási egységár
   const sellPriceGross = brutto_beszerzes + brutto_haszon;
-  
-  // 4. Nettó eladási egységár (ezt várja a unitPriceNet a backendben)
   const sellPriceNet = sellPriceGross / 1.27;
-  
-  // 5. Sor összesen bruttó
   const lineTotalGross = sellPriceGross * n_mennyiseg;
 
   const totalGross = q?.items?.reduce((sum: number, it: any) => sum + Number(it.lineGross), 0) || 0;
@@ -115,7 +131,6 @@ export default function QuoteEditPage() {
     e.preventDefault();
     const method = editingId ? "PATCH" : "POST";
     
-    // BACKEND SZINKRON: basePrice néven küldjük, amit a backend costNet-be ment
     await fetch(`/api/quotes/${quoteId}/items`, {
       method,
       headers: { "Content-Type": "application/json" },
@@ -125,7 +140,7 @@ export default function QuoteEditPage() {
         quantity: n_mennyiseg,
         unit,
         basePrice: n_beszerzes, 
-        unitPriceNet: sellPriceNet, // Nem kerekítjük itt, a backend majd számolja a lineNet-et
+        unitPriceNet: sellPriceNet,
         lineGross: Math.round(lineTotalGross),
         sortOrder: editingId ? q.items.find((i: any) => i.id === editingId)?.sortOrder : q.items.length
       }),
@@ -141,7 +156,6 @@ export default function QuoteEditPage() {
     setQty(m);
     setUnit(it.unit || "db");
     
-    // KRITIKUS JAVÍTÁS: A backend costNet néven küldi vissza a beszerzési árat!
     const mentettNettoAlap = Number(it.costNet) || 0;
     setBasePriceNet(mentettNettoAlap);
 
@@ -149,7 +163,6 @@ export default function QuoteEditPage() {
     const bruttoEladasiEgysegar = mentettTeljesBrutto / m;
     const bruttoBeszerzesiEgysegar = mentettNettoAlap * 1.27;
     
-    // Haszon visszakalkulálása
     const diff = bruttoEladasiEgysegar - bruttoBeszerzesiEgysegar;
 
     setProfitType("fix");
@@ -165,7 +178,6 @@ export default function QuoteEditPage() {
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
 
-  // Stílusok (maradtak a régiek a scannálhatóság miatt)
   const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #444", background: "#333", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
   const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const, color: "#333" };
   const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, marginBottom: "5px", display: "block" };
@@ -234,6 +246,7 @@ export default function QuoteEditPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#333", textAlign: "left" }}>
+              <th style={{ padding: 12, width: 50 }}></th>
               <th style={{ padding: 12 }}>Megnevezés</th>
               <th style={{ padding: 12 }}>Menny.</th>
               <th style={{ padding: 12, textAlign: "right" }}>Bruttó</th>
@@ -241,8 +254,14 @@ export default function QuoteEditPage() {
             </tr>
           </thead>
           <tbody>
-            {q.items.map((it: any) => (
+            {q.items.map((it: any, index: number) => (
               <tr key={it.id} style={{ borderBottom: "1px solid #333" }}>
+                <td style={{ padding: "8px 12px", textAlign: "center" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={{ background: index === 0 ? "#222" : "#444", border: "none", color: "#fff", cursor: "pointer", borderRadius: 4, padding: "2px 5px", fontSize: 10 }}>▲</button>
+                    <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={{ background: index === q.items.length - 1 ? "#222" : "#444", border: "none", color: "#fff", cursor: "pointer", borderRadius: 4, padding: "2px 5px", fontSize: 10 }}>▼</button>
+                  </div>
+                </td>
                 <td style={{ padding: 12 }}>{it.description}</td>
                 <td style={{ padding: 12 }}>{it.quantity} {it.unit}</td>
                 <td style={{ padding: 12, textAlign: "right" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
