@@ -5,14 +5,13 @@ import Link from "next/link";
 
 type Quote = {
   id: number;
-  title?: string; // Hozzáadva az egyedi névhez
+  title?: string;
   status: string;
   netTotal: number;
   grossTotal: number;
   createdAt: string;
   client: { name: string };
 };
-
 
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -42,16 +41,42 @@ export default function QuotesPage() {
     }
   }
 
+  // ÚJ: Törlési funkció
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault(); // Megakadályozza a navigációt
+    e.stopPropagation(); // Megakadályozza a kártyára kattintást
+
+    if (!confirm("Biztosan törölni szeretnéd ezt az ajánlatot? Ez a művelet végleges!")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/quotes/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setQuotes((prev) => prev.filter((q) => q.id !== id));
+      } else {
+        const errData = await res.json();
+        alert("Hiba: " + (errData.error || "Nem sikerült a törlés"));
+      }
+    } catch (err) {
+      console.error("Törlési hiba:", err);
+      alert("Hálózati hiba történt a törléskor.");
+    }
+  };
+
   useEffect(() => {
     loadQuotes();
   }, []);
 
-  if (loading) return <div style={wrap}><p>Betöltés...</p></div>;
+  if (loading) return <div style={wrap}><p style={{color: "#fff"}}>Betöltés...</p></div>;
   
   if (error) return (
     <div style={wrap}>
       <h1 style={{ color: "#c92a2a" }}>Hiba történt</h1>
-      <p>{error}</p>
+      <p style={{color: "#fff"}}>{error}</p>
       <button onClick={() => window.location.reload()} style={btnPrimary}>Újratöltés</button>
     </div>
   );
@@ -74,7 +99,6 @@ export default function QuotesPage() {
         )}
         
         {quotes.map((q) => {
-          // Megnézzük, van-e egyedi cím, ha nincs, az ügyfél neve az elsődleges
           const displayTitle = q.title && q.title.trim() !== "" ? q.title : q.client?.name;
           const hasCustomTitle = q.title && q.title.trim() !== "" && q.title !== q.client?.name;
 
@@ -88,11 +112,21 @@ export default function QuotesPage() {
                   
                   <div style={{ fontSize: 13, color: "#7f8c8d", marginTop: 4 }}>
                     #{q.id} • {new Date(q.createdAt).toLocaleDateString("hu-HU")}
-                    {/* Ha egyedi címet írtunk ki fent, ide beszúrjuk az ügyfél nevét is */}
                     {hasCustomTitle && ` • 👤 ${q.client?.name}`}
                   </div>
                 </div>
-                <span style={statusBadge(q.status)}>{q.status}</span>
+                
+                {/* STÁTUSZ ÉS TÖRLÉS CSOPORT */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={statusBadge(q.status)}>{q.status}</span>
+                    <button 
+                        onClick={(e) => handleDelete(e, q.id)}
+                        style={deleteBtn}
+                        title="Törlés"
+                    >
+                        🗑️
+                    </button>
+                </div>
               </div>
 
               <div style={{ 
@@ -103,7 +137,7 @@ export default function QuotesPage() {
                 justifyContent: "space-between",
                 alignItems: "center" 
               }}>
-                <div style={{ fontWeight: "bold", fontSize: 17 }}>
+                <div style={{ fontWeight: "bold", fontSize: 17, color: "#333" }}>
                   Bruttó: <span style={{ color: "#2c3e50" }}>{q.grossTotal?.toLocaleString("hu-HU")} Ft</span>
                 </div>
                 <Link href={`/quotes/${q.id}`} style={detailsLink}>
@@ -120,10 +154,25 @@ export default function QuotesPage() {
 
 /* ---- Stílusok ---- */
 const wrap: React.CSSProperties = { padding: "24px 16px", maxWidth: 800, margin: "0 auto", fontFamily: "Arial, sans-serif" };
-const card: React.CSSProperties = { border: "1px solid #eee", padding: 20, borderRadius: 12, background: "#fff", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" };
+const card: React.CSSProperties = { border: "1px solid #eee", padding: 20, borderRadius: 12, background: "#fff", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", position: "relative" };
 const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", padding: "10px 20px", borderRadius: 8, textDecoration: "none", fontWeight: "bold", fontSize: 14 };
 const navBtn: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #444", background: "#333", color: "#fff", textDecoration: "none" };
 const detailsLink: React.CSSProperties = { color: "#4DA3FF", textDecoration: "none", fontSize: 14, fontWeight: "bold" };
+
+// ÚJ: Törlés gomb stílus
+const deleteBtn: React.CSSProperties = {
+    background: "none",
+    border: "none",
+    color: "#e74c3c",
+    cursor: "pointer",
+    fontSize: "1.2rem",
+    padding: "5px",
+    borderRadius: "5px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "transform 0.1s"
+};
 
 function statusBadge(status: string): React.CSSProperties {
   const base: React.CSSProperties = { padding: "5px 10px", borderRadius: 6, fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.5px" };
