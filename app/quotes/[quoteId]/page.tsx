@@ -138,8 +138,9 @@ export default function QuoteEditPage() {
         description: desc,
         quantity: qty,
         unit,
-        basePrice: basePriceNet, // Elmentjük az aktuális alapárat
-        unitPriceNet: Math.round(sellPriceNet), // Elmentjük a kiszámolt eladási árat
+        basePrice: basePriceNet,
+        unitPriceNet: Math.round(sellPriceNet),
+        lineGross: Math.round(lineTotalGross), // Elmentjük a bruttó sortételt is a pontos visszaszámoláshoz
         sortOrder
       }),
     });
@@ -147,25 +148,31 @@ export default function QuoteEditPage() {
     loadQuote();
   };
 
-  // --- JAVÍTOTT SZERKESZTÉS INDÍTÁSA ---
+  // --- JAVÍTOTT SZERKESZTÉS INDÍTÁSA (PONTOS HASZONNAL) ---
   const startEdit = (it: any) => {
     setEditingId(it.id);
     setDesc(it.description);
-    setQty(Number(it.quantity) || 1);
+    const itemQty = Number(it.quantity) || 1;
+    setQty(itemQty);
     setUnit(it.unit || "db");
     
-    // 1. Az eredeti alapárat (beszerzést) töltjük be
-    const bPrice = Number(it.basePrice) || 0;
-    setBasePriceNet(bPrice);
+    // 1. Nettó beszerzés betöltése
+    const bPriceNet = Number(it.basePrice) || 0;
+    setBasePriceNet(bPriceNet);
 
-    // 2. Kiszámoljuk a meglévő hasznot az elmentett nettó eladási árból
-    // (A unitPriceNet tartalmazza a profitot, a basePrice az alapár)
-    const sellNet = Number(it.unitPriceNet) || 0;
-    const diffNet = sellNet - bPrice;
+    // 2. Kiszámoljuk a bruttó egységárat a mentett sorösszegből
+    // it.lineGross a teljes bruttó összeg, ezt osztjuk a mennyiséggel
+    const currentLineGross = Number(it.lineGross) || 0;
+    const sellPriceGrossPerUnit = currentLineGross / itemQty;
 
-    // 3. Profit visszatöltése (nettó különbséget bruttóra váltjuk, mert a kalkulátorod bruttó profittal számol)
-    if (diffNet > 0) {
-      setProfitValue(Math.round(diffNet * 1.27));
+    // 3. Kiszámoljuk a bruttó beszerzési árat
+    const bPriceGross = bPriceNet * 1.27;
+
+    // 4. A HASZON = Bruttó Eladási Egységár - Bruttó Beszerzési Egységár
+    const diffGross = sellPriceGrossPerUnit - bPriceGross;
+
+    if (Math.abs(diffGross) > 0.1) { // Ha van különbség (kerekítési hiba felett)
+      setProfitValue(Math.round(diffGross));
       setProfitType("fix"); 
     } else {
       setProfitValue(0);
@@ -329,7 +336,6 @@ export default function QuoteEditPage() {
   );
 }
 
-// STÍLUSOK (ugyanazok mint korábban)
 const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #444", background: "#333", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
 const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const, color: "#333" };
 const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, marginBottom: "5px", display: "block" };
