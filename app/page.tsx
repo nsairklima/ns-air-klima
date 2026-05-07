@@ -179,3 +179,72 @@ const footerText: React.CSSProperties = {
   textTransform: "uppercase",
   margin: 0
 };
+
+// ... importok maradnak ...
+import { useEffect, useState } from "react";
+
+export default function HomePage() {
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then(res => res.json())
+      .then(data => setStats(data));
+  }, []);
+
+  // Stílus a csempéknek
+  const cardStyle = {
+    background: "#1e1e1e",
+    padding: "20px",
+    borderRadius: "12px",
+    border: "1px solid #333",
+    marginBottom: "20px"
+  };
+
+  const statItem = {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "10px 0",
+    borderBottom: "1px solid #222"
+  };
+
+  return (
+    <div style={{ padding: "24px", maxWidth: "800px", margin: "0 auto", color: "#fff" }}>
+      <h1>Műszerfal</h1>
+
+      {/* ÚJ STATISZTIKA CSEMPE */}
+      <div style={cardStyle}>
+        <h2 style={{ marginTop: 0, color: "#27ae60", fontSize: "18px" }}>📊 Statisztika (E havi)</h2>
+        {stats ? (
+          <div>
+            <div style={statItem}>
+              <span>Havi bruttó forgalom:</span>
+              <span style={{ fontWeight: "bold" }}>{stats.monthlyGross?.toLocaleString()} Ft</span>
+            </div>
+            <div style={statItem}>
+              <span>Várható haszon (Profit):</span>
+              <span style={{ fontWeight: "bold", color: "#2ecc71" }}>{stats.monthlyProfit?.toLocaleString()} Ft</span>
+            </div>
+            <div style={statItem}>
+              <span>Átlagos árrés:</span>
+              <span style={{ fontWeight: "bold" }}>{stats.avgMargin}%</span>
+            </div>
+            <div style={statItem}>
+              <span>Kiadott ajánlatok:</span>
+              <span style={{ fontWeight: "bold" }}>{stats.quoteCount} db</span>
+            </div>
+          </div>
+        ) : (
+          <p>Betöltés...</p>
+        )}
+      </div>
+
+      {/* Ide jön a meglévő "Ajánlatok" listája vagy gombja */}
+      <div style={{ display: "grid", gap: "10px" }}>
+        <button onClick={() => window.location.href='/quotes'} style={{ padding: "15px", borderRadius: "8px", cursor: "pointer" }}>
+          Ajánlatok kezelése
+        </button>
+      </div>
+    </div>
+  );
+}
