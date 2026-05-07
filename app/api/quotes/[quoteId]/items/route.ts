@@ -1,265 +1,85 @@
-"use client";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-
-export default function QuoteEditPage() {
-  const params = useParams();
-  const router = useRouter();
-  const quoteId = params?.quoteId;
-
-  const [q, setQ] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [dbItems, setDbItems] = useState<any[]>([]);
-
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [tempTitle, setTempTitle] = useState("");
-
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [desc, setDesc] = useState("");
-  const [qty, setQty] = useState(1);
-  const [unit, setUnit] = useState("db");
-  const [basePriceNet, setBasePriceNet] = useState(0); 
-  const [profitValue, setProfitValue] = useState(0); 
-  const [profitType, setProfitType] = useState<"percent" | "fix">("fix");
-
-  const loadQuote = async () => {
-    try {
-      const res = await fetch(`/api/quotes/${quoteId}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.items) {
-          data.items.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        }
-        setQ(data);
-        setTempTitle(data.title || "");
-      }
-    } catch (err) {
-      console.error("Hiba az ajánlat betöltésekor", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadDbItems = async () => {
-    try {
-      const res = await fetch("/api/items");
-      if (res.ok) {
-        const data = await res.json();
-        setDbItems(data);
-      }
-    } catch (err) {
-      console.error("Adatbázis tételek betöltési hiba", err);
-    }
-  };
-
-  useEffect(() => {
-    if (quoteId) {
-      loadQuote();
-      loadDbItems();
-    }
-  }, [quoteId]);
-
-  const saveTitle = async () => {
-    if (tempTitle === q.title) {
-      setIsEditingTitle(false);
-      return;
-    }
-    try {
-      await fetch(`/api/quotes/${quoteId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: tempTitle }),
-      });
-      setQ({ ...q, title: tempTitle });
-    } catch (err) {
-      console.error("Cím mentési hiba", err);
-    }
-    setIsEditingTitle(false);
-  };
-
-  const handleSelectFromDB = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = dbItems.find(i => i.id === Number(e.target.value));
-    if (selected) {
-      setDesc(selected.name);
-      setBasePriceNet(selected.price);
-      setProfitValue(0);
-    }
-  };
-
-  // --- MATEMATIKA: ATOMBIZTOS VERZIÓ ---
-  const n_beszerzes = Number(basePriceNet) || 0;
-  const n_profit = Number(profitValue) || 0;
-  const n_mennyiseg = Number(qty) || 0;
-
-  // 1. Bruttó beszerzési egységár
-  const brutto_beszerzes = n_beszerzes * 1.27;
-
-  // 2. Bruttó haszon
-  const brutto_haszon = profitType === "percent" 
-    ? brutto_beszerzes * (n_profit / 100)
-    : n_profit;
-
-  // 3. Bruttó eladási egységár
-  const sellPriceGross = brutto_beszerzes + brutto_haszon;
+// Összesítő számoló segédfüggvény
+async function updateQuoteTotals(quoteId: number) {
+  const allItems = await prisma.quoteItem.findMany({ where: { quoteId } });
+  const netTotal = allItems.reduce((sum, item) => sum + Number(item.lineNet), 0);
+  const grossTotal = allItems.reduce((sum, item) => sum + Number(item.lineGross), 0);
   
-  // 4. Nettó eladási egységár (ezt várja a unitPriceNet a backendben)
-  const sellPriceNet = sellPriceGross / 1.27;
-  
-  // 5. Sor összesen bruttó
-  const lineTotalGross = sellPriceGross * n_mennyiseg;
+  await prisma.quote.update({ 
+    where: { id: quoteId }, 
+    data: { netTotal, grossTotal } 
+  });
+}
 
-  const totalGross = q?.items?.reduce((sum: number, it: any) => sum + Number(it.lineGross), 0) || 0;
+// ÚJ TÉTEL LÉTREHOZÁSA (POST)
+export async function POST(req: Request, { params }: { params: { quoteId: string } }) {
+  try {
+    const data = await req.json();
+    const qId = Number(params.quoteId);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const method = editingId ? "PATCH" : "POST";
-    
-    // BACKEND SZINKRON: basePrice néven küldjük, amit a backend costNet-be ment
-    await fetch(`/api/quotes/${quoteId}/items`, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: editingId,
-        description: desc,
-        quantity: n_mennyiseg,
-        unit,
-        basePrice: n_beszerzes, 
-        unitPriceNet: sellPriceNet, // Nem kerekítjük itt, a backend majd számolja a lineNet-et
-        lineGross: Math.round(lineTotalGross),
-        sortOrder: editingId ? q.items.find((i: any) => i.id === editingId)?.sortOrder : q.items.length
-      }),
+    const newItem = await prisma.quoteItem.create({
+      data: {
+        quoteId: qId,
+        description: data.description,
+        quantity: Number(data.quantity),
+        unit: data.unit,
+        costNet: Number(data.basePrice || 0), 
+        unitPriceNet: Number(data.unitPriceNet),
+        vatRate: 27,
+        lineNet: Number(data.quantity) * Number(data.unitPriceNet),
+        lineGross: Math.round(Number(data.quantity) * Number(data.unitPriceNet) * 1.27),
+      },
     });
-    resetForm();
-    loadQuote();
-  };
 
-  const startEdit = (it: any) => {
-    setEditingId(it.id);
-    setDesc(it.description);
-    const m = Number(it.quantity) || 1;
-    setQty(m);
-    setUnit(it.unit || "db");
-    
-    // KRITIKUS JAVÍTÁS: A backend costNet néven küldi vissza a beszerzési árat!
-    const mentettNettoAlap = Number(it.costNet) || 0;
-    setBasePriceNet(mentettNettoAlap);
+    await updateQuoteTotals(qId);
+    return NextResponse.json(newItem);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Hiba a mentéskor" }, { status: 500 });
+  }
+}
 
-    const mentettTeljesBrutto = Number(it.lineGross) || 0;
-    const bruttoEladasiEgysegar = mentettTeljesBrutto / m;
-    const bruttoBeszerzesiEgysegar = mentettNettoAlap * 1.27;
-    
-    // Haszon visszakalkulálása
-    const diff = bruttoEladasiEgysegar - bruttoBeszerzesiEgysegar;
+// TÉTEL MÓDOSÍTÁSA (PATCH)
+export async function PATCH(req: Request, { params }: { params: { quoteId: string } }) {
+  try {
+    const data = await req.json();
+    const qId = Number(params.quoteId);
 
-    setProfitType("fix");
-    setProfitValue(Math.round(diff));
+    const updatedItem = await prisma.quoteItem.update({
+      where: { id: Number(data.id) },
+      data: {
+        description: data.description,
+        quantity: Number(data.quantity),
+        unit: data.unit,
+        costNet: Number(data.basePrice || 0),
+        unitPriceNet: Number(data.unitPriceNet),
+        lineNet: Number(data.quantity) * Number(data.unitPriceNet),
+        lineGross: Math.round(Number(data.quantity) * Number(data.unitPriceNet) * 1.27),
+      },
+    });
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    await updateQuoteTotals(qId);
+    return NextResponse.json(updatedItem);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Hiba a módosításkor" }, { status: 500 });
+  }
+}
 
-  const resetForm = () => {
-    setEditingId(null); setDesc(""); setQty(1); setUnit("db"); setBasePriceNet(0); setProfitValue(0);
-  };
+// TÉTEL TÖRLÉSE (DELETE)
+export async function DELETE(req: Request, { params }: { params: { quoteId: string } }) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = Number(searchParams.get("id"));
 
-  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
-  if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
+    await prisma.quoteItem.delete({ where: { id } });
+    await updateQuoteTotals(Number(params.quoteId));
 
-  // Stílusok (maradtak a régiek a scannálhatóság miatt)
-  const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #444", background: "#333", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
-  const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const, color: "#333" };
-  const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, marginBottom: "5px", display: "block" };
-  const resultBar = { background: "#2c3e50", color: "#fff", padding: "15px", borderRadius: "10px", display: "flex", justifyContent: "space-between", marginTop: 10 };
-  const btnBase = { color: "#fff", padding: "15px", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, width: "100%" };
-
-  return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", color: "#fff" }}>
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <button onClick={() => router.push(`/quotes`)} style={navBtn}>⬅️ Lista</button>
-        <button onClick={() => router.push("/")} style={navBtn}>🏠 Főoldal</button>
-      </div>
-
-      <div style={{ marginBottom: 30 }}>
-        <h1 onClick={() => setIsEditingTitle(true)} style={{ cursor: "pointer" }}>
-          {isEditingTitle ? (
-            <input value={tempTitle} onChange={e => setTempTitle(e.target.value)} onBlur={saveTitle} autoFocus style={inputS} />
-          ) : (
-            <>{q.title} ✏️</>
-          )}
-        </h1>
-      </div>
-
-      <div style={{ background: "#fff", padding: 25, borderRadius: 15, marginBottom: 40, color: "#333" }}>
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 20 }}>
-          <div style={{ background: "#f0f7ff", padding: 10, borderRadius: 10 }}>
-            <label style={labS}>Gyors betöltés adatbázisból</label>
-            <select onChange={handleSelectFromDB} style={inputS}>
-              <option value="">-- Válassz --</option>
-              {dbItems.map(item => (
-                <option key={item.id} value={item.id}>{item.name} ({item.price} Ft)</option>
-              ))}
-            </select>
-          </div>
-
-          <input placeholder="Megnevezés" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
-          
-          <div style={{ display: "flex", gap: 20 }}>
-            <div style={{ flex: 1 }}><label style={labS}>Mennyiség</label><input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} style={inputS} /></div>
-            <div style={{ flex: 1 }}><label style={labS}>Nettó Beszerzés</label><input type="number" value={basePriceNet} onChange={e => setBasePriceNet(Number(e.target.value))} style={inputS} /></div>
-            <div style={{ flex: 1 }}>
-              <label style={labS}>Haszon ({profitType === 'percent' ? '%' : 'Ft'})</label>
-              <div style={{ display: "flex", gap: 5 }}>
-                <input type="number" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={inputS} />
-                <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{ ...inputS, width: 70 }}>
-                  <option value="fix">Ft</option>
-                  <option value="percent">%</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div style={resultBar}>
-            <div>Bruttó egységár: <strong>{Math.round(sellPriceGross).toLocaleString()} Ft</strong></div>
-            <div>Összesen: <strong>{Math.round(lineTotalGross).toLocaleString()} Ft</strong></div>
-          </div>
-
-          <button type="submit" style={{ ...btnBase, background: editingId ? "#e67e22" : "#27ae60" }}>
-            {editingId ? "MENTÉS" : "TÉTEL HOZZÁADÁSA"}
-          </button>
-          {editingId && <button type="button" onClick={resetForm} style={{ ...btnBase, background: "#7f8c8d", marginTop: -10 }}>MÉGSEM</button>}
-        </form>
-      </div>
-
-      <div style={{ background: "#1a1a1a", borderRadius: 10, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#333", textAlign: "left" }}>
-              <th style={{ padding: 12 }}>Megnevezés</th>
-              <th style={{ padding: 12 }}>Menny.</th>
-              <th style={{ padding: 12, textAlign: "right" }}>Bruttó</th>
-              <th style={{ padding: 12, textAlign: "right" }}>Művelet</th>
-            </tr>
-          </thead>
-          <tbody>
-            {q.items.map((it: any) => (
-              <tr key={it.id} style={{ borderBottom: "1px solid #333" }}>
-                <td style={{ padding: 12 }}>{it.description}</td>
-                <td style={{ padding: 12 }}>{it.quantity} {it.unit}</td>
-                <td style={{ padding: 12, textAlign: "right" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
-                <td style={{ padding: 12, textAlign: "right" }}>
-                  <button onClick={() => startEdit(it)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18 }}>✏️</button>
-                  <button onClick={() => { if(confirm("Törlöd?")) fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote) }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18 }}>🗑️</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div style={{ marginTop: 40, textAlign: "right" }}>
-        <div style={{ fontSize: 24, fontWeight: "bold" }}>Bruttó összesen: {totalGross.toLocaleString()} Ft</div>
-        <button onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')} style={{ marginTop: 20, padding: "15px 30px", borderRadius: 10, cursor: "pointer" }}>📄 PDF GENERÁLÁSA</button>
-      </div>
-    </div>
-  );
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Hiba a törléskor" }, { status: 500 });
+  }
 }
