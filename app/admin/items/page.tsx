@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // <--- Navigáció importálása
+import { useRouter } from "next/navigation";
 
 export default function AdminItemsPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const router = useRouter(); // <--- Router inicializálása
+  const router = useRouter();
 
-  // Állapotok az új mezőkhöz
   const [formData, setFormData] = useState({
     name: "",
     price: "",
@@ -67,33 +66,34 @@ export default function AdminItemsPage() {
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
       
-      {/* --- ÚJ VISSZA GOMB SOR --- */}
+      {/* VISSZA GOMB */}
       <div style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
         <button 
           onClick={() => router.push("/")} 
           style={{
-            padding: "8px 15px",
+            padding: "10px 20px",
             borderRadius: "8px",
-            border: "1px solid #ddd",
-            background: "#fff",
+            border: "1px solid #444",
+            background: "#333",
+            color: "#fff",
             cursor: "pointer",
             fontWeight: "bold",
             display: "flex",
             alignItems: "center",
-            gap: "8px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+            gap: "8px"
           }}
         >
           🏠 Főoldal
         </button>
       </div>
 
-      <h1 style={{ marginBottom: "25px", color: "#2c3e50" }}>📦 Raktárkészlet és Nyilvántartás</h1>
+      <h1 style={{ marginBottom: "25px", color: "#fff" }}>📦 Raktárkészlet és Nyilvántartás</h1>
 
+      {/* FORM KÁRTYA */}
       <form onSubmit={handleSubmit} style={formCard(!!editingId)}>
-        <h3 style={{marginTop: 0}}>{editingId ? "✏️ Tétel szerkesztése" : "➕ Új tétel rögzítése"}</h3>
+        <h3 style={{marginTop: 0, color: editingId ? "#333" : "#333"}}>{editingId ? "✏️ Tétel szerkesztése" : "➕ Új tétel rögzítése"}</h3>
         
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px" }}>
           <div style={{ gridColumn: "span 2" }}>
@@ -129,33 +129,33 @@ export default function AdminItemsPage() {
         </div>
       </form>
 
-      {/* TÁBLÁZAT BŐVÍTETT OSZLOPOKKAL */}
-      <div style={{ overflowX: "auto" }}>
+      {/* TÁBLÁZAT */}
+      <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #444", background: "#1a1a1a" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "2px solid #333", background: "#f4f4f4" }}>
+            <tr style={{ textAlign: "left", background: "#333", borderBottom: "2px solid #444" }}>
               <th style={thS}>Megnevezés / Cikkszám</th>
               <th style={thS}>Készlet</th>
               <th style={thS}>Nagyker</th>
               <th style={thS}>Nettó ár</th>
-              <th style={{ ...thS, textAlign: "right" }}>Műveletek</th>
+              <th style={{ ...thS, textAlign: "right", paddingRight: "20px" }}>Műveletek</th>
             </tr>
           </thead>
           <tbody>
             {items.map(item => (
-              <tr key={item.id} style={{ borderBottom: "1px solid #eee" }}>
+              <tr key={item.id} style={{ borderBottom: "1px solid #333" }}>
                 <td style={tdS}>
-                  <strong>{item.name}</strong><br/>
-                  <span style={{fontSize: "11px", color: "#888"}}>{item.sku || "Nincs cikkszám"}</span>
+                  <strong style={{ color: "#fff" }}>{item.name}</strong><br/>
+                  <span style={{fontSize: "11px", color: "#aaa"}}>{item.sku || "Nincs cikkszám"}</span>
                 </td>
                 <td style={tdS}>
-                  <span style={{ color: item.stock > 0 ? "#27ae60" : "#e74c3c", fontWeight: "bold" }}>
+                  <span style={{ color: item.stock > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold" }}>
                       {item.stock} db
                   </span>
                 </td>
-                <td style={tdS}>{item.supplier || "-"}</td>
-                <td style={tdS}>{item.price.toLocaleString()} Ft</td>
-                <td style={{ ...tdS, textAlign: "right", whiteSpace: "nowrap" }}>
+                <td style={{ ...tdS, color: "#ccc" }}>{item.supplier || "-"}</td>
+                <td style={{ ...tdS, color: "#fff", fontWeight: "bold" }}>{item.price.toLocaleString()} Ft</td>
+                <td style={{ ...tdS, textAlign: "right", whiteSpace: "nowrap", paddingRight: "20px" }}>
                   <button onClick={() => startEdit(item)} style={iconBtn}>✏️</button>
                   <button onClick={async () => { if(confirm("Valóban törlöd?")) { await fetch(`/api/items?id=${item.id}`, {method: "DELETE"}); loadItems(); } }} style={{ ...iconBtn, color: "#e74c3c" }}>🗑️</button>
                 </td>
@@ -169,10 +169,27 @@ export default function AdminItemsPage() {
 }
 
 // STÍLUSOK
-const formCard = (isEdit: boolean) => ({ background: isEdit ? "#fff8f0" : "#fff", padding: "25px", borderRadius: "12px", marginBottom: "30px", border: isEdit ? "2px solid #e67e22" : "1px solid #eee", boxShadow: "0 4px 6px rgba(0,0,0,0.05)" });
-const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" as const };
-const labelS = { fontSize: "12px", fontWeight: "bold" as const, color: "#666", marginBottom: "5px", display: "block" };
+const formCard = (isEdit: boolean) => ({ 
+  background: isEdit ? "#fff8f0" : "#fff", 
+  padding: "25px", 
+  borderRadius: "12px", 
+  marginBottom: "30px", 
+  border: isEdit ? "2px solid #e67e22" : "1px solid #eee", 
+  boxShadow: "0 4px 6px rgba(0,0,0,0.2)" 
+});
+
+const inputS = { 
+  width: "100%", 
+  padding: "10px", 
+  borderRadius: "6px", 
+  border: "1px solid #ccc", 
+  boxSizing: "border-box" as const,
+  color: "#333", // Beviteli mezőben maradjon sötét a betű
+  background: "#fff" 
+};
+
+const labelS = { fontSize: "12px", fontWeight: "bold" as const, color: "#555", marginBottom: "5px", display: "block" };
 const btnS = { padding: "12px", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" as const };
-const thS = { padding: "12px" };
-const tdS = { padding: "12px" };
-const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "18px", marginLeft: "10px" };
+const thS = { padding: "15px", color: "#fff", fontWeight: "bold" as const };
+const tdS = { padding: "15px", color: "#eee" };
+const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "18px", marginLeft: "10px", filter: "brightness(1.5)" };
