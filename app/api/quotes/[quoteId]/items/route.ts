@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Összesítő számoló segédfüggvény
 async function updateQuoteTotals(quoteId: number) {
   const allItems = await prisma.quoteItem.findMany({ where: { quoteId } });
   const netTotal = allItems.reduce((sum, item) => sum + Number(item.lineNet), 0);
@@ -12,10 +13,12 @@ async function updateQuoteTotals(quoteId: number) {
   });
 }
 
+// ÚJ TÉTEL LÉTREHOZÁSA (POST)
 export async function POST(req: Request, { params }: { params: { quoteId: string } }) {
   try {
     const data = await req.json();
     const qId = Number(params.quoteId);
+    
     const newItem = await prisma.quoteItem.create({
       data: {
         quoteId: qId,
@@ -27,18 +30,38 @@ export async function POST(req: Request, { params }: { params: { quoteId: string
         vatRate: 27,
         lineNet: Number(data.quantity) * Number(data.unitPriceNet),
         lineGross: Math.round(Number(data.quantity) * Number(data.unitPriceNet) * 1.27),
+        sortOrder: data.sortOrder || 0,
       },
     });
+    
     await updateQuoteTotals(qId);
     return NextResponse.json(newItem);
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: "Hiba a mentéskor" }, { status: 500 });
   }
 }
 
+// TÉTEL MÓDOSÍTÁSA VAGY SORRENDEZÉS (PATCH)
 export async function PATCH(req: Request, { params }: { params: { quoteId: string } }) {
   try {
     const data = await req.json();
+    const qId = Number(params.quoteId);
+
+    // HA A FRONTEND EGY LISTÁT KÜLD (Sorrendezés)
+    if (data.items && Array.isArray(data.items)) {
+      // Minden egyes elemre lefuttatjuk a sorrend frissítést
+      const updates = data.items.map((item: any) =>
+        prisma.quoteItem.update({
+          where: { id: Number(item.id) },
+          data: { sortOrder: item.sortOrder },
+        })
+      );
+      await Promise.all(updates);
+      return NextResponse.json({ success: true });
+    }
+
+    // HA CSAK EGY TÉTELT MÓDOSÍTUNK (Szerkesztés)
     const updatedItem = await prisma.quoteItem.update({
       where: { id: Number(data.id) },
       data: {
@@ -51,21 +74,28 @@ export async function PATCH(req: Request, { params }: { params: { quoteId: strin
         lineGross: Math.round(Number(data.quantity) * Number(data.unitPriceNet) * 1.27),
       },
     });
-    await updateQuoteTotals(Number(params.quoteId));
+
+    await updateQuoteTotals(qId);
     return NextResponse.json(updatedItem);
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: "Hiba a módosításkor" }, { status: 500 });
   }
 }
 
+// TÉTEL TÖRLÉSE (DELETE)
 export async function DELETE(req: Request, { params }: { params: { quoteId: string } }) {
   try {
     const { searchParams } = new URL(req.url);
     const id = Number(searchParams.get("id"));
+    const qId = Number(params.quoteId);
+
     await prisma.quoteItem.delete({ where: { id } });
-    await updateQuoteTotals(Number(params.quoteId));
+    await updateQuoteTotals(qId);
+
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: "Hiba a törléskor" }, { status: 500 });
   }
 }
