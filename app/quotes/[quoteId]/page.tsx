@@ -87,26 +87,26 @@ export default function QuoteEditPage() {
     }
   };
 
-  // --- MATEMATIKA: FIXÁLT ÉS TESZTELT VERZIÓ ---
+  // --- MATEMATIKA: ATOMBIZTOS VERZIÓ ---
   const n_beszerzes = Number(basePriceNet) || 0;
   const n_profit = Number(profitValue) || 0;
   const n_mennyiseg = Number(qty) || 0;
 
-  // 1. Bruttó beszerzési egységár (Nettó * 1.27)
+  // 1. Bruttó beszerzési egységár
   const brutto_beszerzes = n_beszerzes * 1.27;
 
-  // 2. Bruttó haszon kiszámítása (Beszerzésre rakódik rá)
+  // 2. Bruttó haszon
   const brutto_haszon = profitType === "percent" 
     ? brutto_beszerzes * (n_profit / 100)
     : n_profit;
 
-  // 3. Bruttó eladási egységár (Bruttó Beszerzés + Bruttó Haszon)
+  // 3. Bruttó eladási egységár
   const sellPriceGross = brutto_beszerzes + brutto_haszon;
   
-  // 4. Nettó eladási egységár a mentéshez
+  // 4. Nettó eladási egységár (ezt várja a unitPriceNet a backendben)
   const sellPriceNet = sellPriceGross / 1.27;
   
-  // 5. Sor összesen bruttó (Egységár * Mennyiség)
+  // 5. Sor összesen bruttó
   const lineTotalGross = sellPriceGross * n_mennyiseg;
 
   const totalGross = q?.items?.reduce((sum: number, it: any) => sum + Number(it.lineGross), 0) || 0;
@@ -115,6 +115,7 @@ export default function QuoteEditPage() {
     e.preventDefault();
     const method = editingId ? "PATCH" : "POST";
     
+    // BACKEND SZINKRON: basePrice néven küldjük, amit a backend costNet-be ment
     await fetch(`/api/quotes/${quoteId}/items`, {
       method,
       headers: { "Content-Type": "application/json" },
@@ -124,7 +125,7 @@ export default function QuoteEditPage() {
         quantity: n_mennyiseg,
         unit,
         basePrice: n_beszerzes, 
-        unitPriceNet: Math.round(sellPriceNet),
+        unitPriceNet: sellPriceNet, // Nem kerekítjük itt, a backend majd számolja a lineNet-et
         lineGross: Math.round(lineTotalGross),
         sortOrder: editingId ? q.items.find((i: any) => i.id === editingId)?.sortOrder : q.items.length
       }),
@@ -140,14 +141,15 @@ export default function QuoteEditPage() {
     setQty(m);
     setUnit(it.unit || "db");
     
-    const mentettNettoAlap = Number(it.basePrice) || 0;
+    // KRITIKUS JAVÍTÁS: A backend costNet néven küldi vissza a beszerzési árat!
+    const mentettNettoAlap = Number(it.costNet) || 0;
     setBasePriceNet(mentettNettoAlap);
 
     const mentettTeljesBrutto = Number(it.lineGross) || 0;
     const bruttoEladasiEgysegar = mentettTeljesBrutto / m;
     const bruttoBeszerzesiEgysegar = mentettNettoAlap * 1.27;
     
-    // Haszon visszanyerése: Eladási bruttó - Beszerzési bruttó
+    // Haszon visszakalkulálása
     const diff = bruttoEladasiEgysegar - bruttoBeszerzesiEgysegar;
 
     setProfitType("fix");
@@ -163,6 +165,7 @@ export default function QuoteEditPage() {
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
 
+  // Stílusok (maradtak a régiek a scannálhatóság miatt)
   const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #444", background: "#333", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
   const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const, color: "#333" };
   const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, marginBottom: "5px", display: "block" };
