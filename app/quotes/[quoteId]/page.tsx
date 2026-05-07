@@ -56,7 +56,7 @@ export default function QuoteEditPage() {
   useEffect(() => {
     if (quoteId) {
       loadQuote();
-      loadDbItems(); // VISSZARAKVA: Ez tölti be a listát
+      loadDbItems();
     }
   }, [quoteId]);
 
@@ -87,30 +87,29 @@ export default function QuoteEditPage() {
     }
   };
 
-  // --- MATEMATIKA: ATOMBIZTOS VERZIÓ ---
+  // --- MATEMATIKA: FIXÁLT ÉS TESZTELT VERZIÓ ---
   const n_beszerzes = Number(basePriceNet) || 0;
   const n_profit = Number(profitValue) || 0;
   const n_mennyiseg = Number(qty) || 0;
 
-  // 1. Bruttó beszerzési egységár
+  // 1. Bruttó beszerzési egységár (Nettó * 1.27)
   const brutto_beszerzes = n_beszerzes * 1.27;
 
-  // 2. Bruttó haszon kiszámítása
+  // 2. Bruttó haszon kiszámítása (Beszerzésre rakódik rá)
   const brutto_haszon = profitType === "percent" 
     ? brutto_beszerzes * (n_profit / 100)
     : n_profit;
 
-  // 3. Bruttó eladási egységár (Beszerzés + Haszon)
+  // 3. Bruttó eladási egységár (Bruttó Beszerzés + Bruttó Haszon)
   const sellPriceGross = brutto_beszerzes + brutto_haszon;
   
-  // 4. Nettó eladási egységár (visszaosztva a mentéshez)
+  // 4. Nettó eladási egységár a mentéshez
   const sellPriceNet = sellPriceGross / 1.27;
   
-  // 5. Sor összesen bruttó
+  // 5. Sor összesen bruttó (Egységár * Mennyiség)
   const lineTotalGross = sellPriceGross * n_mennyiseg;
 
   const totalGross = q?.items?.reduce((sum: number, it: any) => sum + Number(it.lineGross), 0) || 0;
-  const totalNet = totalGross / 1.27;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,15 +140,15 @@ export default function QuoteEditPage() {
     setQty(m);
     setUnit(it.unit || "db");
     
-    const mentettNettóAlap = Number(it.basePrice) || 0;
-    setBasePriceNet(mentettNettóAlap);
+    const mentettNettoAlap = Number(it.basePrice) || 0;
+    setBasePriceNet(mentettNettoAlap);
 
     const mentettTeljesBrutto = Number(it.lineGross) || 0;
-    const bruttoEladásiEgységár = mentettTeljesBrutto / m;
-    const bruttoBeszerzésiEgységár = mentettNettóAlap * 1.27;
+    const bruttoEladasiEgysegar = mentettTeljesBrutto / m;
+    const bruttoBeszerzesiEgysegar = mentettNettoAlap * 1.27;
     
-    // Haszon visszanyerése
-    const diff = bruttoEladásiEgységár - bruttoBeszerzésiEgységár;
+    // Haszon visszanyerése: Eladási bruttó - Beszerzési bruttó
+    const diff = bruttoEladasiEgysegar - bruttoBeszerzesiEgysegar;
 
     setProfitType("fix");
     setProfitValue(Math.round(diff));
@@ -164,7 +163,6 @@ export default function QuoteEditPage() {
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
 
-  // Stílusok (maradtak a régiek)
   const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #444", background: "#333", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
   const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const, color: "#333" };
   const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, marginBottom: "5px", display: "block" };
@@ -190,7 +188,6 @@ export default function QuoteEditPage() {
 
       <div style={{ background: "#fff", padding: 25, borderRadius: 15, marginBottom: 40, color: "#333" }}>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 20 }}>
-          {/* VISSZARAKOTT ADATBÁZIS VÁLASZTÓ */}
           <div style={{ background: "#f0f7ff", padding: 10, borderRadius: 10 }}>
             <label style={labS}>Gyors betöltés adatbázisból</label>
             <select onChange={handleSelectFromDB} style={inputS}>
