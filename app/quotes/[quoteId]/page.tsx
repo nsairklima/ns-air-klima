@@ -12,11 +12,9 @@ export default function QuoteEditPage() {
   const [loading, setLoading] = useState(true);
   const [dbItems, setDbItems] = useState<any[]>([]);
 
-  // Cím szerkesztés állapotok
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
 
-  // Kalkulátor állapotok
   const [editingId, setEditingId] = useState<number | null>(null);
   const [desc, setDesc] = useState("");
   const [qty, setQty] = useState(1);
@@ -110,15 +108,18 @@ export default function QuoteEditPage() {
     }
   };
 
-  // --- MATEMATIKA ---
-  const basePriceGross = (Number(basePriceNet) || 0) * 1.27;
+  // --- MATEMATIKA (A SZÁMÍTÁSI LOGIKA) ---
+  const currentBasePriceNet = Number(basePriceNet) || 0;
+  const currentQty = Number(qty) || 0;
+  
+  const basePriceGross = currentBasePriceNet * 1.27;
   const profitGross = profitType === "percent" 
     ? basePriceGross * ((Number(profitValue) || 0) / 100)
     : (Number(profitValue) || 0);
 
   const sellPriceGross = basePriceGross + profitGross;
   const sellPriceNet = sellPriceGross / 1.27;
-  const lineTotalGross = sellPriceGross * (Number(qty) || 0);
+  const lineTotalGross = sellPriceGross * currentQty;
 
   const totalGross = q?.items?.reduce((sum: number, it: any) => sum + Number(it.lineGross), 0) || 0;
   const totalNet = totalGross / 1.27;
@@ -136,11 +137,11 @@ export default function QuoteEditPage() {
       body: JSON.stringify({
         id: editingId,
         description: desc,
-        quantity: qty,
+        quantity: currentQty,
         unit,
-        basePrice: basePriceNet,
-        unitPriceNet: Math.round(sellPriceNet),
-        lineGross: Math.round(lineTotalGross), // Elmentjük a bruttó sortételt is a pontos visszaszámoláshoz
+        basePrice: currentBasePriceNet, // Nettó beszerzés mentése
+        unitPriceNet: Math.round(sellPriceNet), // Nettó eladási mentése
+        lineGross: Math.round(lineTotalGross), // Teljes bruttó mentése
         sortOrder
       }),
     });
@@ -148,7 +149,7 @@ export default function QuoteEditPage() {
     loadQuote();
   };
 
-  // --- JAVÍTOTT SZERKESZTÉS INDÍTÁSA (PONTOS HASZONNAL) ---
+  // --- VÉGLEGESEN JAVÍTOTT SZERKESZTÉS INDÍTÁSA ---
   const startEdit = (it: any) => {
     setEditingId(it.id);
     setDesc(it.description);
@@ -156,28 +157,23 @@ export default function QuoteEditPage() {
     setQty(itemQty);
     setUnit(it.unit || "db");
     
-    // 1. Nettó beszerzés betöltése
-    const bPriceNet = Number(it.basePrice) || 0;
-    setBasePriceNet(bPriceNet);
+    // 1. Nettó beszerzés betöltése az elmentett értékből
+    const savedBasePriceNet = Number(it.basePrice) || 0;
+    setBasePriceNet(savedBasePriceNet);
 
-    // 2. Kiszámoljuk a bruttó egységárat a mentett sorösszegből
-    // it.lineGross a teljes bruttó összeg, ezt osztjuk a mennyiséggel
-    const currentLineGross = Number(it.lineGross) || 0;
-    const sellPriceGrossPerUnit = currentLineGross / itemQty;
+    // 2. Kiszámoljuk az elmentett egységnyi bruttó árat
+    const savedLineGross = Number(it.lineGross) || 0;
+    const savedSellPriceGrossPerUnit = savedLineGross / itemQty;
 
-    // 3. Kiszámoljuk a bruttó beszerzési árat
-    const bPriceGross = bPriceNet * 1.27;
+    // 3. Kiszámoljuk a bruttó beszerzést
+    const currentBasePriceGross = savedBasePriceNet * 1.27;
 
-    // 4. A HASZON = Bruttó Eladási Egységár - Bruttó Beszerzési Egységár
-    const diffGross = sellPriceGrossPerUnit - bPriceGross;
+    // 4. A HASZON kiszámítása (Bruttó eladási - Bruttó alapár)
+    const calculatedProfit = savedSellPriceGrossPerUnit - currentBasePriceGross;
 
-    if (Math.abs(diffGross) > 0.1) { // Ha van különbség (kerekítési hiba felett)
-      setProfitValue(Math.round(diffGross));
-      setProfitType("fix"); 
-    } else {
-      setProfitValue(0);
-      setProfitType("fix");
-    }
+    // Beállítjuk az értéket (kerekítve, hogy ne legyen 0.000001 típusú hiba)
+    setProfitType("fix");
+    setProfitValue(Math.round(calculatedProfit));
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -280,6 +276,7 @@ export default function QuoteEditPage() {
           <button type="submit" style={{ ...btnBase, background: editingId ? "#e67e22" : "#27ae60" }}>
             {editingId ? "VÁLTOZTATÁSOK MENTÉSE" : "TÉTEL HOZZÁADÁSA"}
           </button>
+          {editingId && <button type="button" onClick={resetForm} style={{background: "#95a5a6", ...btnBase}}>MÉGSEM</button>}
         </form>
       </div>
 
