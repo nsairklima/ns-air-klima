@@ -36,7 +36,7 @@ export default function MainDashboard() {
       </header>
 
       <div style={gridStyle}>
-        {/* STATISZTIKA - ÚJ CSEMPE */}
+        {/* STATISZTIKA - 2 oszlop széles */}
         <div 
           onClick={() => router.push("/stats")}
           onMouseEnter={onEnter}
@@ -57,7 +57,7 @@ export default function MainDashboard() {
         {/* ÁRAJÁNLATOK */}
         <div onClick={() => router.push("/quotes")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#00bcf2" }}>
           <span style={iconStyle}>📄</span>
-          <div style={tileLabelStyle}>Árajánlatok</div>
+          <div style={tileLabelStyle}>Ajánlatok</div>
         </div>
 
         {/* RAKTÁR */}
@@ -73,15 +73,15 @@ export default function MainDashboard() {
         </div>
 
         {/* ÜGYFELEK */}
-        <div onClick={() => router.push("/clients")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#d83b01", gridColumn: "span 2" }}>
+        <div onClick={() => router.push("/clients")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#d83b01" }}>
           <span style={iconStyle}>👥</span>
-          <div style={tileLabelStyle}>Ügyfelek kezelése</div>
+          <div style={tileLabelStyle}>Ügyfelek</div>
         </div>
 
         {/* BIZTONSÁGI MENTÉS */}
-        <div onClick={handleBackup} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#2ecc71", gridColumn: "span 2" }}>
+        <div onClick={handleBackup} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#2ecc71" }}>
           <span style={iconStyle}>🛡️</span>
-          <div style={tileLabelStyle}>Rendszermentés</div>
+          <div style={tileLabelStyle}>Mentés</div>
         </div>
       </div>
 
@@ -93,16 +93,67 @@ export default function MainDashboard() {
   );
 }
 
-// STÍLUSOK (ugyanazok, amiket használsz)
-const containerStyle: React.CSSProperties = { minHeight: "100vh", backgroundColor: "#000", color: "#fff", fontFamily: "'Segoe UI', sans-serif", padding: "40px 20px" };
-const headerStyle: React.CSSProperties = { maxWidth: "800px", margin: "0 auto 40px auto", display: "flex", justifyContent: "space-between", alignItems: "baseline" };
+// STÍLUSOK - 4 OSZLOPOSRA OPTIMALIZÁLVA
+const containerStyle: React.CSSProperties = { 
+  minHeight: "100vh", 
+  backgroundColor: "#000", 
+  color: "#fff", 
+  fontFamily: "'Segoe UI', sans-serif", 
+  padding: "40px 20px" 
+};
+
+const headerStyle: React.CSSProperties = { 
+  maxWidth: "1000px", 
+  margin: "0 auto 40px auto", 
+  display: "flex", 
+  justifyContent: "space-between", 
+  alignItems: "baseline" 
+};
+
 const titleStyle: React.CSSProperties = { fontSize: "32px", fontWeight: "lighter", margin: 0 };
 const statusDot: React.CSSProperties = { fontSize: "12px", color: "#2ecc71", textTransform: "uppercase", letterSpacing: "1px" };
-const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gridAutoRows: "140px", gap: "10px", maxWidth: "800px", margin: "0 auto" };
-const tileStyle: React.CSSProperties = { padding: "15px", display: "flex", flexDirection: "column", justifyContent: "space-between", cursor: "pointer", transition: "all 0.2s ease" };
-const iconStyle: React.CSSProperties = { fontSize: "28px" };
-const tileLabelStyle: React.CSSProperties = { fontSize: "18px", fontWeight: "600" };
-const smallLabelStyle: React.CSSProperties = { fontSize: "11px", opacity: 0.7 };
-const footerContainer: React.CSSProperties = { textAlign: "center", marginTop: "80px", width: "100%", maxWidth: "800px", margin: "80px auto 0 auto" };
-const footerLine: React.CSSProperties = { height: "1px", background: "linear-gradient(90deg, transparent, #333, transparent)", marginBottom: "15px" };
-const footerText: React.CSSProperties = { fontSize: "12px", color: "#2ecc71", fontWeight: "bold", letterSpacing: "1.5px", textTransform: "uppercase", margin: 0 };
+
+const gridStyle: React.CSSProperties = { 
+  display: "grid", 
+  gridTemplateColumns: "repeat(4, 1fr)", 
+  gridAutoRows: "140px", 
+  gap: "10px", 
+  maxWidth: "1000px", 
+  margin: "0 auto" 
+};
+
+const tileStyle: React.CSSProperties = { 
+  padding: "15px", 
+  display: "flex", 
+  flexDirection: "column", 
+  justifyContent: "space-between", 
+  cursor: "pointer", 
+  transition: "all 0.2s ease" 
+};
+
+const iconStyle: React.CSSProperties = { fontSize: "24px" };
+const tileLabelStyle: React.CSSProperties = { fontSize: "16px", fontWeight: "600" };
+const smallLabelStyle: React.CSSProperties = { fontSize: "10px", opacity: 0.7 };
+
+const footerContainer: React.CSSProperties = { 
+  textAlign: "center", 
+  marginTop: "80px", 
+  width: "100%", 
+  maxWidth: "1000px", 
+  margin: "80px auto 0 auto" 
+};
+
+const footerLine: React.CSSProperties = { 
+  height: "1px", 
+  background: "linear-gradient(90deg, transparent, #333, transparent)", 
+  marginBottom: "15px" 
+};
+
+const footerText: React.CSSProperties = { 
+  fontSize: "12px", 
+  color: "#2ecc71", 
+  fontWeight: "bold", 
+  letterSpacing: "1.5px", 
+  textTransform: "uppercase", 
+  margin: 0 
+};
