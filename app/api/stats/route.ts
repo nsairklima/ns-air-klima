@@ -5,8 +5,9 @@ export async function GET() {
   try {
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
 
-    // 1. ÜGYFÉL ÉS GÉP STATISZTIKÁK (Eredeti kódod)
+    // 1. ÜGYFÉL ÉS GÉP STATISZTIKÁK
     const totalClients = await prisma.client.count();
     const units = await prisma.clientUnit.findMany({
       include: {
@@ -24,47 +25,71 @@ export async function GET() {
       return diffDays >= 330;
     }).length;
 
-    // 2. PÉNZÜGYI STATISZTIKÁK (Új kód az 1-es és 2-es ponthoz)
-    // Lekérjük az e havi összes tétel adatot
-    const monthlyItems = await prisma.quoteItem.findMany({
+    // 2. PÉNZÜGYI STATISZTIKÁK LEKÉRÉSE (Év elejétől kezdve)
+    const yearlyItems = await prisma.quoteItem.findMany({
       where: {
         quote: {
-          createdAt: { gte: firstDayOfMonth }
+          createdAt: { gte: firstDayOfYear }
         }
+      },
+      include: {
+        quote: true
       }
     });
 
-    let monthlyGross = 0;
-    let totalCostNet = 0;
+    // Segédfüggvény az összesítéshez
+    const calculateTotals = (items: any[]) => {
+      let gross = 0;
+      let totalCostBrutto = 0;
 
-    monthlyItems.forEach(item => {
-      monthlyGross += Number(item.lineGross || 0);
-      // Költség kiszámítása: (mennyiség * beszerzési nettó) * ÁFA
-      const itemCostBrutto = (Number(item.quantity || 0) * Number(item.costNet || 0)) * 1.27;
-      totalCostNet += itemCostBrutto;
-    });
+      items.forEach(item => {
+        gross += Number(item.lineGross || 0);
+        const costBrutto = (Number(item.quantity || 0) * Number(item.costNet || 0)) * 1.27;
+        totalCostBrutto += costBrutto;
+      });
 
-    const monthlyProfit = monthlyGross - totalCostNet;
-    const avgMargin = monthlyGross > 0 ? Math.round((monthlyProfit / monthlyGross) * 100) : 0;
+      const profit = gross - totalCostBrutto;
+      const margin = gross > 0 ? Math.round((profit / gross) * 100) : 0;
+      
+      return {
+        gross: Math.round(gross),
+        profit: Math.round(profit),
+        margin
+      };
+    };
 
-    // Ajánlatok száma ebben a hónapban
+    // Havi vs Éves szétválogatás
+    const monthlyItems = yearlyItems.filter(item => new Date(item.quote.createdAt) >= firstDayOfMonth);
+    
+    const monthlyStats = calculateTotals(monthlyItems);
+    const yearlyStats = calculateTotals(yearlyItems);
+
+    // Ajánlatok száma
     const monthlyQuoteCount = await prisma.quote.count({
-      where: {
-        createdAt: { gte: firstDayOfMonth }
-      }
+      where: { createdAt: { gte: firstDayOfMonth } }
+    });
+    const yearlyQuoteCount = await prisma.quote.count({
+      where: { createdAt: { gte: firstDayOfYear } }
     });
 
     // 3. VÁLASZ ÖSSZEÁLLÍTÁSA
     return NextResponse.json({
-      // Ügyfél adatok
+      // Alapadatok
       totalClients,
       totalUnits: units.length,
       urgentCount,
-      // Pénzügyi adatok
-      monthlyGross: Math.round(monthlyGross),
-      monthlyProfit: Math.round(monthlyProfit),
-      avgMargin,
-      monthlyQuoteCount
+      
+      // Havi bontás
+      monthly: {
+        ...monthlyStats,
+        count: monthlyQuoteCount
+      },
+      
+      // Éves bontás
+      yearly: {
+        ...yearlyStats,
+        count: yearlyQuoteCount
+      }
     });
 
   } catch (error) {
