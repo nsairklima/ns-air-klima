@@ -36,16 +36,16 @@ export default function MainDashboard() {
       </header>
 
       <div style={gridStyle}>
-        {/* STATISZTIKA - 2 oszlop széles */}
+        {/* STATISZTIKA */}
         <div 
           onClick={() => router.push("/stats")}
           onMouseEnter={onEnter}
           onMouseLeave={onLeave}
-          style={{ ...tileStyle, background: "#f39c12", gridColumn: "span 2" }}
+          style={{ ...tileStyle, background: "#f39c12" }}
         >
           <span style={iconStyle}>📊</span>
           <div style={tileLabelStyle}>Statisztika</div>
-          <span style={smallLabelStyle}>Forgalom, haszon és jelentések</span>
+          <span style={smallLabelStyle}>Jelentések</span>
         </div>
 
         {/* NAPTÁR */}
@@ -93,7 +93,7 @@ export default function MainDashboard() {
   );
 }
 
-// STÍLUSOK - 4 OSZLOPOSRA OPTIMALIZÁLVA
+// STÍLUSOK - EGYFORMA MÉRETEKHEZ
 const containerStyle: React.CSSProperties = { 
   minHeight: "100vh", 
   backgroundColor: "#000", 
@@ -115,7 +115,7 @@ const statusDot: React.CSSProperties = { fontSize: "12px", color: "#2ecc71", tex
 
 const gridStyle: React.CSSProperties = { 
   display: "grid", 
-  gridTemplateColumns: "repeat(4, 1fr)", 
+  gridTemplateColumns: "repeat(4, 1fr)", // 4 egyenlő oszlop
   gridAutoRows: "140px", 
   gap: "10px", 
   maxWidth: "1000px", 
@@ -128,7 +128,8 @@ const tileStyle: React.CSSProperties = {
   flexDirection: "column", 
   justifyContent: "space-between", 
   cursor: "pointer", 
-  transition: "all 0.2s ease" 
+  transition: "all 0.2s ease",
+  // Nincs span, minden elem 1 egységet foglal el
 };
 
 const iconStyle: React.CSSProperties = { fontSize: "24px" };
