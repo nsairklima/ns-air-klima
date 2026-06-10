@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // 1. Lekérjük a már elvégzett karbantartások naplóit (MÚLT/JELEN)
+    // 1. MEGLÉVŐ SZERVIZNAPLÓK LEKÉRÉSE (Múltbeli / Elvégzett munkák)
     const maintenances = await prisma.maintenanceLog.findMany({
       include: {
         unit: {
@@ -17,24 +17,24 @@ export async function GET() {
       orderBy: { performedDate: 'asc' }
     });
 
-    // Átalakítjuk a meglévő naplókat naptár eseményekké
     const pastEvents = maintenances.map(m => ({
       id: `log-${m.id}`,
       unitId: m.unitId,
       date: m.performedDate ? m.performedDate.toISOString() : null,
-      title: `${m.unit.client.name} - ${m.unit.brand} ${m.unit.model}`,
+      title: `${m.unit?.client?.name || "Ügyfél"} - ${m.unit?.brand || ""} ${m.unit?.model || ""}`,
       description: m.description || "",
-      type: m.type || "MAINTENANCE", // pl. elvégzett karbantartás
+      type: m.type || "MAINTENANCE",
       unit: m.unit 
     })).filter(e => e.date !== null);
 
-    // 2. Lekérjük az ÖSSZES GÉPET a legfrissebb naplójukkal együtt (JÖVŐBELI TERVEZÉS)
-    const units = await prisma.unit.findMany({
+    // 2. AUTOMATIKUS JÖVŐBELI TERVEZÉS (Telepítés vagy legutolsó szerviz alapján)
+    // A séma szerint a táblád: clientUnit, a logok kapcsolat neve pedig: maintenance
+    const units = await prisma.clientUnit.findMany({
       include: {
         client: true,
-        maintenanceLogs: {
+        maintenance: {
           orderBy: { performedDate: 'desc' },
-          take: 1 // Csak a legutolsó elvégzett szerviz kell a számításhoz
+          take: 1 // Csak a legfrissebb elvégzett szerviz kell nekünk
         }
       }
     });
@@ -42,36 +42,34 @@ export async function GET() {
     const plannedEvents: any[] = [];
 
     units.forEach(u => {
-      // Megnézzük, van-e utolsó szerviz, ha nincs, a telepítési dátumot vesszük alapul (FALLBACK)
-      const lastLog = u.maintenanceLogs[0];
+      const lastLog = u.maintenance?.[0];
+      // HA volt már szerviz, akkor abból számolunk. HA még nem volt, akkor a TELEPÍTÉS (installation) dátumából!
       const baseDate = lastLog?.performedDate || u.installation;
 
-      // Csak akkor számolunk jövőbeli alkalmat, ha van kiindulási alapunk (vagy telepítve van, vagy volt már szervizelve)
       if (baseDate) {
         const nextMaintenanceDate = new Date(baseDate);
         
-        // Hozzáadjuk a karbantartási ciklust (ha nincs megadva a gépnél a periodMonths, alapértelmezetten 12 hónap)
-        const periodMonths = (u as any).periodMonths || 12; 
-        nextMaintenanceDate.setMonth(nextMaintenanceDate.getMonth() + periodMonths);
+        // A sémád szerinti ciklusidő (hónapokban), alapértelmezetten 12 hónap
+        const monthsToAdd = u.periodMonths ?? 12;
+        nextMaintenanceDate.setMonth(nextMaintenanceDate.getMonth() + monthsToAdd);
 
         plannedEvents.push({
           id: `planned-${u.id}`,
           unitId: u.id,
           date: nextMaintenanceDate.toISOString(),
-          title: `⚠️ KÖV. KARBANTARTÁS: ${u.client.name}`,
-          description: `Gyártó/Modell: ${u.brand} ${u.model}\nUtolsó esemény alapja: ${new Date(baseDate).toLocaleDateString('hu-HU')}`,
-          type: "PLANNED", // Szuperül különválasztható a frontend naptárban (pl. sárga színnel)
+          title: `⚠️ KÖV. KARBANTARTÁS: ${u.client?.name || "Ügyfél"}`,
+          description: `Gép: ${u.brand} ${u.model}\nUtolsó esemény alapja: ${new Date(baseDate).toLocaleDateString('hu-HU')}`,
+          type: "PLANNED", // A frontend naptáradban sárga vagy eltérő színnel jelölhető
           unit: u
         });
       }
     });
 
-    // Összefésüljük a múltbeli elvégzett naplókat és a jövőbeli tervezett időpontokat
-    const allEvents = [...pastEvents, ...plannedEvents];
+    // Összefésüljük a múltbeli naplókat és a kiszámolt jövőbeli időpontokat
+    return NextResponse.json([...pastEvents, ...plannedEvents]);
 
-    return NextResponse.json(allEvents);
   } catch (error) {
-    console.error("GET hiba:", error);
+    console.error("Naptár GET hiba:", error);
     return NextResponse.json({ error: "Hiba az adatok lekérésekor" }, { status: 500 });
   }
 }
