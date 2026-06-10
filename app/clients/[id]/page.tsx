@@ -11,6 +11,15 @@ export default function ClientDetailsPage() {
 
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobilnézet figyelése
+  useEffect(() => {
+    const checkSize = () => setIsMobile(window.innerWidth < 768);
+    checkSize();
+    window.addEventListener("resize", checkSize);
+    return () => window.removeEventListener("resize", checkSize);
+  }, []);
 
   // --- ÜGYFÉL SZERKESZTÉS ÁLLAPOT ---
   const [isEditingClient, setIsEditingClient] = useState(false);
@@ -117,30 +126,30 @@ export default function ClientDetailsPage() {
   if (!client) return <div style={containerStyle}>Ügyfél nem található.</div>;
 
   return (
-    <div style={containerStyle}>
+    <div style={{ ...containerStyle, padding: isMobile ? "12px" : "24px" }}>
       {/* NAVIGÁCIÓ */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "25px" }}>
         <button onClick={() => router.push("/clients")} style={navBtn}>⬅️ Vissza</button>
         <button onClick={() => router.push("/")} style={navBtn}>🏠 Főoldal</button>
       </div>
 
-      {/* ÜGYFÉL ADATOK - JAVÍTOTT OLVASHATÓSÁG */}
-      <div style={headerS}>
-        <div style={{ flex: 1 }}>
+      {/* ÜGYFÉL ADATOK */}
+      <div style={{ ...headerS, flexDirection: isMobile ? "column" : "row", gap: "15px" }}>
+        <div style={{ width: "100%", flex: 1 }}>
           {!isEditingClient ? (
             <>
-              <h1 style={clientNameStyle}>{client.name}</h1>
-              <div style={contactRow}>
+              <h1 style={{ ...clientNameStyle, fontSize: isMobile ? "26px" : "32px" }}>{client.name}</h1>
+              <div style={{ ...contactRow, flexDirection: isMobile ? "column" : "row", alignItems: "flex-start", gap: isMobile ? "6px" : "0" }}>
                 <span style={{ color: "#2ecc71", marginRight: "20px" }}>📞 {client.phone || "Nincs telefonszám"}</span>
                 <span style={{ color: "#bbb" }}>✉️ {client.email || "Nincs email"}</span>
               </div>
-              <div style={{ ...contactRow, marginTop: "8px", color: "#fff", fontSize: "16px" }}>
+              <div style={{ ...contactRow, marginTop: "8px", color: "#fff", fontSize: "15px" }}>
                 🏠 {client.address || "Nincs cím megadva"}
               </div>
             </>
           ) : (
             <div style={editBoxS}>
-              <h3 style={{marginTop: 0, color: "#fff"}}>Ügyfél módosítása</h3>
+              <h3 style={{ marginTop: 0, color: "#fff" }}>Ügyfél módosítása</h3>
               <input style={inputS} value={editClientData.name} onChange={e => setEditClientData({...editClientData, name: e.target.value})} placeholder="Név" />
               <input style={inputS} value={editClientData.phone} onChange={e => setEditClientData({...editClientData, phone: e.target.value})} placeholder="Telefon" />
               <input style={inputS} value={editClientData.email} onChange={e => setEditClientData({...editClientData, email: e.target.value})} placeholder="Email" />
@@ -149,24 +158,25 @@ export default function ClientDetailsPage() {
           )}
         </div>
 
-        <div style={{ display: "flex", gap: "12px" }}>
+        {/* Szerkesztő gombok a fejlécben */}
+        <div style={{ display: "flex", gap: "10px", width: isMobile ? "100%" : "auto", justifyContent: "flex-end" }}>
           {!isEditingClient ? (
             <>
-              <button onClick={() => setIsEditingClient(true)} style={btnEditHeader}>✏️ Szerkesztés</button>
+              <button onClick={() => setIsEditingClient(true)} style={{ ...btnEditHeader, flex: isMobile ? 1 : "none" }}>✏️ Szerkesztés</button>
               <button onClick={handleDeleteClient} style={btnDeleteHeader}>🗑️</button>
             </>
           ) : (
             <>
-              <button onClick={handleUpdateClient} style={btnGreen}>✅ Mentés</button>
-              <button onClick={() => setIsEditingClient(false)} style={btnCancel}>Mégse</button>
+              <button onClick={handleUpdateClient} style={{ ...btnGreen, flex: isMobile ? 1 : "none" }}>✅ Mentés</button>
+              <button onClick={() => setIsEditingClient(false)} style={{ ...btnCancel, flex: isMobile ? 1 : "none" }}>Mégse</button>
             </>
           )}
         </div>
       </div>
 
-      {/* GÉPEK SZEKCIÓ */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h2 style={{ margin: 0, color: "#fff" }}>🛠️ Gépek kezelése</h2>
+      {/* GÉPEK SZEKCIÓ CÍM */}
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", marginBottom: "20px" }}>
+        <h2 style={{ margin: 0, color: "#fff", fontSize: isMobile ? "20px" : "24px" }}>🛠️ Gépek kezelése</h2>
         <button onClick={() => { if(showUnitForm) resetUnitForm(); else setShowUnitForm(true); }} style={btnGreen}>
           {showUnitForm ? "Mégse" : "+ Új gép felvétele"}
         </button>
@@ -183,31 +193,36 @@ export default function ClientDetailsPage() {
                 <option value="SERVICE_ONLY">🔵 Hozott gép (Csak javítás/napló)</option>
               </select>
             </div>
-            <div style={{display: "flex", gap: "10px"}}>
-              <div style={{flex: 1}}>
+            
+            {/* Gyártó és Modell sor - mobilon egymás alá esnek */}
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "10px" }}>
+              <div style={{ flex: 1 }}>
                 <label style={labS}>Gyártó</label>
                 <input placeholder="pl. Daikin" value={brand} onChange={e => setBrand(e.target.value)} style={inputS} required />
               </div>
-              <div style={{flex: 1}}>
+              <div style={{ flex: 1 }}>
                 <label style={labS}>Modell</label>
                 <input placeholder="pl. Sensira" value={model} onChange={e => setModel(e.target.value)} style={inputS} required />
               </div>
             </div>
-            <div style={{display: "flex", gap: "10px"}}>
-              <div style={{flex: 1}}>
+
+            {/* Gyári szám és Helyszín sor - mobilon szintén egymás alá esnek */}
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "10px" }}>
+              <div style={{ flex: 1 }}>
                 <label style={labS}>Gyári szám</label>
                 <input placeholder="S/N kód" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
               </div>
-              <div style={{flex: 1}}>
+              <div style={{ flex: 1 }}>
                 <label style={labS}>Helyszín</label>
                 <input placeholder="pl. Nappali" value={location} onChange={e => setLocation(e.target.value)} style={inputS} />
               </div>
             </div>
+
             <div>
               <label style={labS}>Dátum:</label>
               <input type="date" value={installation} onChange={e => setInstallation(e.target.value)} style={inputS} />
             </div>
-            <button type="submit" style={btnGreen}>MENTÉS</button>
+            <button type="submit" style={{ ...btnGreen, width: "100%", padding: "14px" }}>GÉP MENTÉSE</button>
           </form>
         </div>
       )}
@@ -216,28 +231,30 @@ export default function ClientDetailsPage() {
       <div style={{ display: "grid", gap: "12px", marginBottom: "50px" }}>
         {client.units?.length > 0 ? (
           client.units.map((unit: any) => (
-            <div key={unit.id} style={unitCard}>
+            <div key={unit.id} style={{ ...unitCard, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: "12px" }}>
               <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
                   <strong style={{ fontSize: "18px", color: "#000" }}>{unit.brand} {unit.model}</strong>
                   <span style={{
                     fontSize: "12px", padding: "2px 8px", borderRadius: "10px", fontWeight: "bold",
                     background: unit.status === "SERVICE_ONLY" ? "#e3f2fd" : (unit.installation ? "#e8f5e9" : "#fff3e0"),
                     color: unit.status === "SERVICE_ONLY" ? "#1976d2" : (unit.installation ? "#2e7d32" : "#ef6c00"),
                   }}>
-                    {unit.status === "SERVICE_ONLY" ? "🔵 Hozott gép" : (unit.installation ? "✅ Telepítve" : "⏳ Telepítésre vár")}
+                    {unit.status === "SERVICE_ONLY" ? "🔵 Hozott gép" : (unit.installation ? "✅ Telepítve" : "⏳ Várakozik")}
                   </span>
                 </div>
-                <div style={{ fontSize: "14px", color: "#666", marginTop: "4px" }}>
+                <div style={{ fontSize: "13px", color: "#555", marginTop: "6px", lineHeight: "1.4" }}>
                   SN: {unit.serialNumber || "---"} | Hely: {unit.location || "Nincs megadva"}
-                  {unit.installation && <span> | 📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
+                  {unit.installation && <span> <br isMobile />📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: "8px" }}>
+
+              {/* Gép akciógombok sora */}
+              <div style={{ display: "flex", gap: "6px", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "stretch" : "flex-end" }}>
                 {unit.status === "INSTALLED" && !unit.installation && (
-                  <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={btnGreenSmall}>✅ Telepítés kész</button>
+                  <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={{ ...btnGreenSmall, flex: isMobile ? 1 : "none" }}>✅ Kész</button>
                 )}
-                <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={btnBlueSmall}>Napló →</button>
+                <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={{ ...btnBlueSmall, flex: isMobile ? 1 : "none", textAlign: "center" }}>Napló</button>
                 <button onClick={() => startEditUnit(unit)} style={btnOrangeSmall}>✏️</button>
                 <button onClick={() => handleDeleteUnit(unit.id)} style={btnRedSmall}>🗑️</button>
               </div>
@@ -248,21 +265,21 @@ export default function ClientDetailsPage() {
         )}
       </div>
 
-      {/* ÁRAJÁNLATOK */}
+      {/* ÁRAJÁNLATOK SZEKCIÓ */}
       <div>
-        <h2 style={{ borderBottom: "1px solid #333", paddingBottom: "10px", marginBottom: "20px", color: "#fff" }}>📄 Árajánlatok</h2>
+        <h2 style={{ borderBottom: "1px solid #333", paddingBottom: "10px", marginBottom: "20px", color: "#fff", fontSize: isMobile ? "20px" : "24px" }}>📄 Árajánlatok</h2>
         <div style={{ display: "grid", gap: "10px" }}>
           {client.quotes?.length > 0 ? (
             client.quotes.map((quote: any) => (
-              <div key={quote.id} style={quoteCard}>
-                <div>
-                  <strong style={{ color: "#000" }}>{quote.title || "Ajánlat"}</strong>
-                  <div style={{ fontSize: "12px", color: "#666" }}>Státusz: {quote.status}</div>
+              <div key={quote.id} style={{ ...quoteCard, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: "10px" }}>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: "#000", fontSize: "16px" }}>{quote.title || "Ajánlat"}</strong>
+                  <div style={{ fontSize: "13px", color: "#666", marginTop: "2px" }}>Státusz: {quote.status}</div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                  <div style={{ fontWeight: "bold", fontSize: "16px", color: "#000" }}>{Number(quote.grossTotal).toLocaleString()} Ft</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "15px", width: isMobile ? "100%" : "auto", borderTop: isMobile ? "1px solid #eee" : "none", paddingTop: isMobile ? "10px" : "0" }}>
+                  <div style={{ fontWeight: "bold", fontSize: "16px", color: "#2e7d32" }}>{Number(quote.grossTotal).toLocaleString()} Ft</div>
                   <div style={{ display: "flex", gap: "8px" }}>
-                    <button onClick={() => router.push(`/quotes/${quote.id}`)} style={btnOrangeSmall}>✏️</button>
+                    <button onClick={() => router.push(`/quotes/${quote.id}`)} style={btnOrangeSmall}>✏️ Módosítás</button>
                     <button onClick={() => handleDeleteQuote(quote.id)} style={btnRedSmall}>🗑️</button>
                   </div>
                 </div>
@@ -277,20 +294,20 @@ export default function ClientDetailsPage() {
   );
 }
 
-// --- JAVÍTOTT STÍLUSOK SÖTÉT MÓDHOZ ---
+// --- RESPONSIVE-ALAPÚ STÍLUSOK SÖTÉT MÓDHOZ ---
 
 const containerStyle: React.CSSProperties = {
   backgroundColor: "#000",
   minHeight: "100vh",
-  padding: "24px",
   maxWidth: "1000px",
   margin: "0 auto",
   fontFamily: "sans-serif",
-  color: "#fff"
+  color: "#fff",
+  width: "100%",
+  boxSizing: "border-box"
 };
 
 const clientNameStyle: React.CSSProperties = {
-  fontSize: "32px",
   margin: "0 0 10px 0",
   color: "#ffffff",
   fontWeight: "bold"
@@ -298,7 +315,6 @@ const clientNameStyle: React.CSSProperties = {
 
 const contactRow: React.CSSProperties = {
   display: "flex",
-  alignItems: "center",
   fontSize: "15px",
   fontWeight: "500"
 };
@@ -309,15 +325,18 @@ const headerS: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
-  borderBottom: "1px solid #333"
+  borderBottom: "1px solid #333",
+  width: "100%",
+  boxSizing: "border-box"
 };
 
 const navBtn = {
-  padding: "8px 15px",
+  padding: "10px 16px",
   borderRadius: "8px",
   border: "none",
-  background: "#fff",
-  color: "#000",
+  background: "#1e293b",
+  borderBackground: "1px solid #334155",
+  color: "#fff",
   cursor: "pointer",
   fontWeight: "bold" as const,
   fontSize: "14px"
@@ -325,29 +344,48 @@ const navBtn = {
 
 const inputS = {
   width: "100%",
-  padding: "12px",
-  borderRadius: "8px",
+  padding: "14px",
+  borderRadius: "10px",
   border: "1px solid #444",
-  backgroundColor: "#222",
+  backgroundColor: "#111",
   color: "#fff",
   outline: "none",
-  boxSizing: "border-box" as const
+  fontSize: "16px", // Fix iOS zoom ellen!
+  boxSizing: "border-box" as const,
+  display: "block"
 };
 
-const editBoxS = { display: "grid", gap: "10px", width: "100%", background: "#111", padding: "20px", borderRadius: "15px", border: "1px solid #333" };
-const formBoxS = { background: "#111", padding: "20px", borderRadius: "12px", marginBottom: "30px", border: "1px solid #2ecc71" };
+const editBoxS = { 
+  display: "grid", 
+  gap: "12px", 
+  width: "100%", 
+  background: "#111", 
+  padding: "15px", 
+  borderRadius: "15px", 
+  border: "1px solid #333",
+  boxSizing: "border-box" as const 
+};
 
-const btnEditHeader = { background: "#e3f2fd", color: "#1976d2", border: "none", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
-const btnDeleteHeader = { background: "#ffebee", color: "#c62828", border: "none", padding: "10px 15px", borderRadius: "10px", cursor: "pointer" };
+const formBoxS = { 
+  background: "#111", 
+  padding: "20px", 
+  borderRadius: "12px", 
+  marginBottom: "30px", 
+  border: "1px solid #2ecc71",
+  boxSizing: "border-box" as const 
+};
 
-const btnGreen = { background: "#2ecc71", color: "#fff", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const };
-const btnCancel = { background: "#444", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "10px", cursor: "pointer" };
+const btnEditHeader = { background: "#e3f2fd", color: "#1976d2", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
+const btnDeleteHeader = { background: "#ffebee", color: "#c62828", border: "none", padding: "12px 16px", borderRadius: "10px", cursor: "pointer" };
 
-const unitCard = { padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", marginBottom: "10px" };
-const quoteCard = { padding: "15px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff" };
+const btnGreen = { background: "#2ecc71", color: "#000", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
+const btnCancel = { background: "#444", color: "#fff", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer" };
 
-const labS = { fontSize: "12px", color: "#aaa", fontWeight: "bold" as const, marginBottom: "4px", display: "block" };
-const btnBlueSmall = { background: "#3498db", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" as const };
-const btnGreenSmall = { background: "#2ecc71", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" as const };
-const btnOrangeSmall = { background: "#f39c12", color: "#fff", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" };
-const btnRedSmall = { background: "#ffebee", color: "#e74c3c", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" };
+const unitCard = { padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", background: "#fff", marginBottom: "10px", boxSizing: "border-box" as const };
+const quoteCard = { padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", background: "#fff", boxSizing: "border-box" as const };
+
+const labS = { fontSize: "11px", color: "#aaa", fontWeight: "bold" as const, marginBottom: "5px", display: "block", textTransform: "uppercase" as const };
+const btnBlueSmall = { background: "#3498db", color: "#fff", border: "none", padding: "10px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" as const };
+const btnGreenSmall = { background: "#2ecc71", color: "#000", border: "none", padding: "10px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" as const };
+const btnOrangeSmall = { background: "#f39c12", color: "#fff", border: "none", padding: "10px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" as const, display: "inline-flex", alignItems: "center", gap: "4px" };
+const btnRedSmall = { background: "#ffebee", color: "#e74c3c", border: "1px solid #e74c3c", padding: "10px 14px", borderRadius: "8px", cursor: "pointer" };
