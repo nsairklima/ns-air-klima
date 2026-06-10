@@ -10,11 +10,12 @@ export async function GET(req: Request) {
 
   try {
     // --- TESZT ÜZENET ---
-    // Ez minden futáskor küld egy emailt, hogy lásd: a kapcsolat él!
-    await sendAdminMaintenanceReminder("RENDSZER TESZT", "000", "ADATBÁZIS KAPCSOLÓDÁS OK");
+    await sendAdminMaintenanceReminder("RENDSZER TESZT", "000", "ADATBÁZIS KAPCSOLÓDÁS OK - FIX CÍM");
     // --------------------
 
     const today = new Date();
+    
+    // Lekérjük az összes INSTALLED gépet, aminek van telepítési dátuma
     const units = await prisma.clientUnit.findMany({
       where: { status: "INSTALLED", installation: { not: null } },
       include: {
@@ -25,6 +26,7 @@ export async function GET(req: Request) {
     });
 
     let sentCount = 0;
+    const targetEmail = "karbantartas@nsairklima.hu";
 
     for (const unit of units) {
       const baseDate = unit.maintenance[0]?.performedDate || unit.installation;
@@ -32,25 +34,35 @@ export async function GET(req: Request) {
 
       const nextDue = new Date(baseDate);
       nextDue.setMonth(nextDue.getMonth() + (unit.periodMonths || 12));
+      
+      // Emlékeztető ablak kezdete: 1 hónappal a határidő előtt
       const reminderDay = new Date(nextDue);
       reminderDay.setMonth(reminderDay.getMonth() - 1);
 
       const lastNotifyDate = unit.emailNotifications[0]?.sentAt;
       const isAlreadyNotified = lastNotifyDate && lastNotifyDate > baseDate;
 
-      if (today >= reminderDay && today < nextDue && !isAlreadyNotified) {
+      // JAVÍTOTT FELTÉTEL: 
+      // Ha benne vagyunk az 1 hónapos ablakban VAGY a mai nap már későbbi, mint a határidő (LEJÁRT/ELMARADT)
+      // ÉS még nem küldtünk erről értesítést az utolsó szerviz óta
+      const isTimeForReminder = today >= reminderDay; 
+
+      if (isTimeForReminder && !isAlreadyNotified) {
+        const isOverdue = today >= nextDue;
+        const statusPrefix = isOverdue ? "🚨 [LEJÁRT/ELMARADT] " : "⚠️ [1 HÓNAP MÚLVA] ";
+
         await sendAdminMaintenanceReminder(
-          unit.client.name,
+          `${statusPrefix}${unit.client.name}`,
           unit.client.phone || "Nincs tel.",
-          `${unit.brand} ${unit.model}`
+          `${unit.brand} ${unit.model} (Határidő: ${nextDue.toLocaleDateString('hu-HU')})`
         );
 
         await prisma.emailNotifications.create({
           data: {
             clientId: unit.clientId,
             clientUnitId: unit.id,
-            notificationType: "ADMIN_REMINDER",
-            sentToEmail: process.env.EMAIL_USER || "karbantartas@nsairklima.hu",
+            notificationType: isOverdue ? "ADMIN_OVERDUE_REMINDER" : "ADMIN_REMINDER",
+            sentToEmail: targetEmail,
             status: "SUCCESS"
           }
         });
