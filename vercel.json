@@ -6,3 +6,15 @@
     }
   ]
 }
+{
+  "crons": [
+    {
+      "path": "/api/notifications",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/check-reminders",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
