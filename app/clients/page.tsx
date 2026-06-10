@@ -54,9 +54,14 @@ export default function ClientsPage() {
   return (
     <PasswordGuard moduleKey="CLIENTS">
       <div style={{ ...containerStyle, padding: isMobile ? "12px" : "15px" }}>
+        
+        {/* NAVIGÁCIÓS FEJLÉC */}
         <div style={headerStyle}>
           <h1 style={{ margin: 0, fontSize: isMobile ? "22px" : "24px" }}>Ügyfelek</h1>
-          <Link href="/admin/calendar" style={backLinkStyle}>← Naptár</Link>
+          <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+            <Link href="/" style={backLinkStyle}>🏠 Főmenü</Link>
+            <Link href="/admin/calendar" style={backLinkStyle}>📅 Naptár</Link>
+          </div>
         </div>
 
         {/* ÚJ ÜGYFÉL GOMB */}
@@ -70,7 +75,7 @@ export default function ClientsPage() {
         </div>
 
         <div style={{ marginTop: "10px" }}>
-          {/* KERESŐMEZŐ - 16px font-size az iOS zoom ellen */}
+          {/* KERESŐMEZŐ */}
           <input 
             type="text"
             placeholder="🔍 Keresés az ügyfelek között..."
@@ -85,7 +90,6 @@ export default function ClientsPage() {
             ) : (
               clients.map((c) => (
                 <div key={c.id} style={cardStyle}>
-                  {/* Dinamikus flex irány: mobilon egymás alá rakja az infót és a gombokat */}
                   <div style={{ ...cardFlex, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "flex-start" }}>
                     <div style={{ flex: 1, marginBottom: isMobile ? "12px" : "0" }}>
                       <div style={{ fontWeight: "bold", fontSize: "18px", color: "#fff" }}>{c.name}</div>
@@ -93,7 +97,7 @@ export default function ClientsPage() {
                       <div style={{ color: "#94a3b8", fontSize: "13px" }}>{c.address || "Nincs cím"}</div>
                     </div>
                     
-                    {/* Akciógombok - mobilon egymás mellé kerülnek és szélesek */}
+                    {/* Akciógombok */}
                     <div style={{ ...actionBox, flexDirection: isMobile ? "row" : "column", width: isMobile ? "100%" : "auto" }}>
                       <Link href={`/clients/${c.id}`} style={{ ...detailsBtnStyle, flex: isMobile ? 1 : "none" }}>Részletek</Link>
                       <button onClick={() => handleDelete(c.id, c.name)} style={{ ...deleteBtnStyle, flex: isMobile ? 1 : "none" }}>Törlés</button>
@@ -109,7 +113,7 @@ export default function ClientsPage() {
   );
 }
 
-// --- JAVÍTOTT, GARANTÁLTAN RESPONSIVE STÍLUSOK ---
+// --- MODERN STÍLUSOK ---
 
 const containerStyle: React.CSSProperties = {
   backgroundColor: "#000", 
@@ -143,7 +147,12 @@ const bigAddBtnStyle: React.CSSProperties = {
   boxSizing: "border-box"
 };
 
-const backLinkStyle: React.CSSProperties = { color: "#2ecc71", textDecoration: "none", fontWeight: "bold" };
+const backLinkStyle: React.CSSProperties = { 
+  color: "#2ecc71", 
+  textDecoration: "none", 
+  fontWeight: "bold",
+  fontSize: "15px"
+};
 
 const searchFieldStyle: React.CSSProperties = {
   width: "100%", 
@@ -152,7 +161,7 @@ const searchFieldStyle: React.CSSProperties = {
   border: "2px solid #2ecc71",
   backgroundColor: "#111", 
   color: "#fff", 
-  fontSize: "16px", // Megakadályozza, hogy az iPhone automatikusan ránagyítson a beviteli mezőre
+  fontSize: "16px", 
   boxSizing: "border-box",
   display: "block"
 };
@@ -183,7 +192,7 @@ const detailsBtnStyle: React.CSSProperties = {
   textDecoration: "none",
   fontSize: "13px", 
   fontWeight: "bold", 
-  padding: "10px 12px", // Kicsit nagyobb padding a könnyebb érintéshez
+  padding: "10px 12px", 
   borderRadius: "6px", 
   textAlign: "center",
   display: "inline-block",
@@ -194,7 +203,7 @@ const deleteBtnStyle: React.CSSProperties = {
   background: "none", 
   border: "1px solid #e74c3c", 
   color: "#e74c3c",
-  fontSize: "13px", // 11px-ről megemelve, hogy mobilon olvashatóbb legyen
+  fontSize: "13px", 
   padding: "10px", 
   borderRadius: "6px", 
   cursor: "pointer",
