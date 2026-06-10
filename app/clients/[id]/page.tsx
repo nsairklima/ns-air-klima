@@ -245,7 +245,7 @@ export default function ClientDetailsPage() {
                 </div>
                 <div style={{ fontSize: "13px", color: "#555", marginTop: "6px", lineHeight: "1.4" }}>
                   SN: {unit.serialNumber || "---"} | Hely: {unit.location || "Nincs megadva"}
-                  {unit.installation && <span> <br isMobile />📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
+                 {unit.installation && <span> {isMobile && <br />}📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
                 </div>
               </div>
 
