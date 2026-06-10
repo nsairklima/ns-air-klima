@@ -3,14 +3,6 @@
     {
       "path": "/api/notifications",
       "schedule": "0 7 * * *"
-    }
-  ]
-}
-{
-  "crons": [
-    {
-      "path": "/api/notifications",
-      "schedule": "0 7 * * *"
     },
     {
       "path": "/api/cron/check-reminders",
