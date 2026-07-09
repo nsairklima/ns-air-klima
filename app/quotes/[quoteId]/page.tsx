@@ -37,7 +37,7 @@ export default function QuoteEditPage() {
     } catch (err) {
       console.error("Hiba az ajánlat betöltésekor", err);
     } finally {
-      setLoading(false);
+      loading(false);
     }
   };
 
@@ -178,21 +178,43 @@ export default function QuoteEditPage() {
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
 
+  /* ---- Javított, reszponzív stílusok ---- */
   const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #444", background: "#333", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
-  const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const, color: "#333" };
+  const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const, color: "#333", fontSize: "15px" };
   const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, marginBottom: "5px", display: "block" };
-  const resultBar = { background: "#2c3e50", color: "#fff", padding: "15px", borderRadius: "10px", display: "flex", justifyContent: "space-between", marginTop: 10 };
+  
+  // Mobilon egymás alá törő kék sáv
+  const resultBar = { 
+    background: "#2c3e50", 
+    color: "#fff", 
+    padding: "15px", 
+    borderRadius: "10px", 
+    display: "flex", 
+    flexWrap: "wrap" as const, 
+    gap: "10px", 
+    justifyContent: "space-between", 
+    marginTop: 10 
+  };
+  
   const btnBase = { color: "#fff", padding: "15px", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, width: "100%" };
 
+  // Automata elrendezésű grid a Mennyiség, Beszerzés és Haszon mezőknek
+  const responsiveGrid = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    gap: "15px",
+    width: "100%"
+  };
+
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto", color: "#fff" }}>
+    <div style={{ padding: "20px 12px", maxWidth: 1000, margin: "0 auto", color: "#fff", boxSizing: "border-box" }}>
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
         <button onClick={() => router.push(`/quotes`)} style={navBtn}>⬅️ Lista</button>
         <button onClick={() => router.push("/")} style={navBtn}>🏠 Főoldal</button>
       </div>
 
       <div style={{ marginBottom: 30 }}>
-        <h1 onClick={() => setIsEditingTitle(true)} style={{ cursor: "pointer" }}>
+        <h1 onClick={() => setIsEditingTitle(true)} style={{ cursor: "pointer", fontSize: "1.8rem", wordBreak: "break-word" }}>
           {isEditingTitle ? (
             <input value={tempTitle} onChange={e => setTempTitle(e.target.value)} onBlur={saveTitle} autoFocus style={inputS} />
           ) : (
@@ -201,9 +223,9 @@ export default function QuoteEditPage() {
         </h1>
       </div>
 
-      <div style={{ background: "#fff", padding: 25, borderRadius: 15, marginBottom: 40, color: "#333" }}>
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 20 }}>
-          <div style={{ background: "#f0f7ff", padding: 10, borderRadius: 10 }}>
+      <div style={{ background: "#fff", padding: "20px 16px", borderRadius: 15, marginBottom: 40, color: "#333", boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
+        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
+          <div style={{ background: "#f0f7ff", padding: 12, borderRadius: 10 }}>
             <label style={labS}>Gyors betöltés adatbázisból</label>
             <select onChange={handleSelectFromDB} style={inputS}>
               <option value="">-- Válassz --</option>
@@ -213,16 +235,26 @@ export default function QuoteEditPage() {
             </select>
           </div>
 
-          <input placeholder="Megnevezés" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
+          <div>
+            <label style={labS}>Megnevezés</label>
+            <input placeholder="Megnevezés" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
+          </div>
           
-          <div style={{ display: "flex", gap: 20 }}>
-            <div style={{ flex: 1 }}><label style={labS}>Mennyiség</label><input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} style={inputS} /></div>
-            <div style={{ flex: 1 }}><label style={labS}>Nettó Beszerzés</label><input type="number" value={basePriceNet} onChange={e => setBasePriceNet(Number(e.target.value))} style={inputS} /></div>
-            <div style={{ flex: 1 }}>
+          {/* Javított flexbox helyetti okos Grid rész */}
+          <div style={responsiveGrid}>
+            <div>
+              <label style={labS}>Mennyiség</label>
+              <input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} style={inputS} />
+            </div>
+            <div>
+              <label style={labS}>Nettó Beszerzés</label>
+              <input type="number" value={basePriceNet} onChange={e => setBasePriceNet(Number(e.target.value))} style={inputS} />
+            </div>
+            <div>
               <label style={labS}>Haszon ({profitType === 'percent' ? '%' : 'Ft'})</label>
               <div style={{ display: "flex", gap: 5 }}>
                 <input type="number" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={inputS} />
-                <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{ ...inputS, width: 70 }}>
+                <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{ ...inputS, width: 75, padding: "12px 6px" }}>
                   <option value="fix">Ft</option>
                   <option value="percent">%</option>
                 </select>
@@ -235,15 +267,16 @@ export default function QuoteEditPage() {
             <div>Összesen: <strong>{Math.round(lineTotalGross).toLocaleString()} Ft</strong></div>
           </div>
 
-          <button type="submit" style={{ ...btnBase, background: editingId ? "#e67e22" : "#27ae60" }}>
+          <button type="submit" style={{ ...btnBase, background: editingId ? "#e67e22" : "#27ae60", marginTop: 10 }}>
             {editingId ? "MENTÉS" : "TÉTEL HOZZÁADÁSA"}
           </button>
-          {editingId && <button type="button" onClick={resetForm} style={{ ...btnBase, background: "#7f8c8d", marginTop: -10 }}>MÉGSEM</button>}
+          {editingId && <button type="button" onClick={resetForm} style={{ ...btnBase, background: "#7f8c8d", marginTop: -5 }}>MÉGSEM</button>}
         </form>
       </div>
 
-      <div style={{ background: "#1a1a1a", borderRadius: 10, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      {/* Görgethető táblázat wrapper, hogy ne tolja szét a mobilt */}
+      <div style={{ background: "#1a1a1a", borderRadius: 10, overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "500px" }}>
           <thead>
             <tr style={{ background: "#333", textAlign: "left" }}>
               <th style={{ padding: 12, width: 50 }}></th>
@@ -258,15 +291,15 @@ export default function QuoteEditPage() {
               <tr key={it.id} style={{ borderBottom: "1px solid #333" }}>
                 <td style={{ padding: "8px 12px", textAlign: "center" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={{ background: index === 0 ? "#222" : "#444", border: "none", color: "#fff", cursor: "pointer", borderRadius: 4, padding: "2px 5px", fontSize: 10 }}>▲</button>
-                    <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={{ background: index === q.items.length - 1 ? "#222" : "#444", border: "none", color: "#fff", cursor: "pointer", borderRadius: 4, padding: "2px 5px", fontSize: 10 }}>▼</button>
+                    <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={{ background: index === 0 ? "#222" : "#444", border: "none", color: "#fff", cursor: "pointer", borderRadius: 4, padding: "4px 6px", fontSize: 10 }}>▲</button>
+                    <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={{ background: index === q.items.length - 1 ? "#222" : "#444", border: "none", color: "#fff", cursor: "pointer", borderRadius: 4, padding: "4px 6px", fontSize: 10 }}>▼</button>
                   </div>
                 </td>
-                <td style={{ padding: 12 }}>{it.description}</td>
-                <td style={{ padding: 12 }}>{it.quantity} {it.unit}</td>
-                <td style={{ padding: 12, textAlign: "right" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
-                <td style={{ padding: 12, textAlign: "right" }}>
-                  <button onClick={() => startEdit(it)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18 }}>✏️</button>
+                <td style={{ padding: 12, wordBreak: "break-word" }}>{it.description}</td>
+                <td style={{ padding: 12, whiteSpace: "nowrap" }}>{it.quantity} {it.unit}</td>
+                <td style={{ padding: 12, textAlign: "right", whiteSpace: "nowrap" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
+                <td style={{ padding: 12, textAlign: "right", whiteSpace: "nowrap" }}>
+                  <button onClick={() => startEdit(it)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, marginRight: 8 }}>✏️</button>
                   <button onClick={() => { if(confirm("Törlöd?")) fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote) }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18 }}>🗑️</button>
                 </td>
               </tr>
@@ -275,9 +308,14 @@ export default function QuoteEditPage() {
         </table>
       </div>
 
-      <div style={{ marginTop: 40, textAlign: "right" }}>
-        <div style={{ fontSize: 24, fontWeight: "bold" }}>Bruttó összesen: {totalGross.toLocaleString()} Ft</div>
-        <button onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')} style={{ marginTop: 20, padding: "15px 30px", borderRadius: 10, cursor: "pointer" }}>📄 PDF GENERÁLÁSA</button>
+      <div style={{ marginTop: 40, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+        <div style={{ fontSize: "1.4rem", fontWeight: "bold" }}>Bruttó összesen: {totalGross.toLocaleString()} Ft</div>
+        <button 
+          onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')} 
+          style={{ marginTop: 20, padding: "15px 30px", borderRadius: 10, cursor: "pointer", background: "#e5e5ea", color: "#000", border: "none", fontWeight: "bold", width: "100%", maxWidth: "300px" }}
+        >
+          📄 PDF GENERÁLÁSA
+        </button>
       </div>
     </div>
   );
