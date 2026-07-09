@@ -37,7 +37,7 @@ export default function QuoteEditPage() {
     } catch (err) {
       console.error("Hiba az ajánlat betöltésekor", err);
     } finally {
-      loading(false);
+      setLoading(false); // JAVÍTVA: loading(false) helyett setLoading(false)
     }
   };
 
@@ -178,12 +178,11 @@ export default function QuoteEditPage() {
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
 
-  /* ---- Javított, reszponzív stílusok ---- */
+  /* ---- Reszponzív stílusok ---- */
   const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #444", background: "#333", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
   const inputS = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" as const, color: "#333", fontSize: "15px" };
   const labS = { fontSize: "11px", fontWeight: "bold", color: "#7f8c8d", textTransform: "uppercase" as const, marginBottom: "5px", display: "block" };
   
-  // Mobilon egymás alá törő kék sáv
   const resultBar = { 
     background: "#2c3e50", 
     color: "#fff", 
@@ -198,7 +197,6 @@ export default function QuoteEditPage() {
   
   const btnBase = { color: "#fff", padding: "15px", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, width: "100%" };
 
-  // Automata elrendezésű grid a Mennyiség, Beszerzés és Haszon mezőknek
   const responsiveGrid = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
@@ -240,7 +238,6 @@ export default function QuoteEditPage() {
             <input placeholder="Megnevezés" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
           </div>
           
-          {/* Javított flexbox helyetti okos Grid rész */}
           <div style={responsiveGrid}>
             <div>
               <label style={labS}>Mennyiség</label>
@@ -274,7 +271,6 @@ export default function QuoteEditPage() {
         </form>
       </div>
 
-      {/* Görgethető táblázat wrapper, hogy ne tolja szét a mobilt */}
       <div style={{ background: "#1a1a1a", borderRadius: 10, overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "500px" }}>
           <thead>
