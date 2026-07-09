@@ -10,7 +10,7 @@ interface PasswordGuardProps {
 export default function PasswordGuard({ children, moduleKey }: PasswordGuardProps) {
   // --- BYPASS KAPCSOLÓ ---
   // Ha true, a jelszókérés ki van kapcsolva.
-  const BYPASS = true; 
+  const BYPASS = false; 
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [password, setPassword] = useState("");
