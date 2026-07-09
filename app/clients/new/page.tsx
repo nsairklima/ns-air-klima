@@ -1,19 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function NewClientAndUnitPage() {
   const router = useRouter();
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Mobilnézet figyelése a reszponzív belső terekhez
-  useEffect(() => {
-    const checkSize = () => setIsMobile(window.innerWidth < 768);
-    checkSize();
-    window.addEventListener("resize", checkSize);
-    return () => window.removeEventListener("resize", checkSize);
-  }, []);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -75,18 +66,18 @@ export default function NewClientAndUnitPage() {
   };
 
   return (
-    <div style={{ ...pageStyle, padding: isMobile ? "12px" : "20px" }}>
+    <div style={pageStyle}>
       <header style={headerStyle}>
         <button onClick={() => router.back()} style={backBtn}>← Vissza</button>
-        <h1 style={{ fontSize: isMobile ? '22px' : '26px', margin: '15px 0 0 0', fontWeight: '800' }}>Új ügyfél és gép</h1>
+        <h1 style={{ fontSize: "1.6rem", margin: '15px 0 0 0', fontWeight: '800' }}>Új ügyfél és gép</h1>
       </header>
 
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "15px", marginTop: "10px" }}>
+      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "20px", marginTop: "10px" }}>
         
-        {/* ÜGYFÉL ADATOK */}
-        <div style={{ ...cardStyle, padding: isMobile ? "15px" : "20px" }}>
+        {/* ÜGYFÉL ADATOK CARD */}
+        <div style={cardStyle}>
           <h2 style={titleStyle}>👤 Ügyfél adatai</h2>
-          <div style={formGrid}>
+          <div style={responsiveGrid}>
             <input style={inputStyle} required placeholder="Név *" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
             <input style={inputStyle} placeholder="Cím" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
             <input style={inputStyle} type="tel" placeholder="Telefon" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
@@ -94,31 +85,32 @@ export default function NewClientAndUnitPage() {
           </div>
         </div>
 
-        {/* GÉP ADATOK */}
-        <div style={{ ...cardStyle, padding: isMobile ? "15px" : "20px", borderLeft: "6px solid #2ecc71" }}>
+        {/* GÉP ADATOK CARD */}
+        <div style={{ ...cardStyle, borderLeft: "6px solid #2ecc71" }}>
           <h2 style={titleStyle}>❄️ Első gép adatai</h2>
           
           <div style={statusBoxStyle}>
             <label style={labelStyle}>GÉP TÍPUSA</label>
-            <div style={{ display: "flex", gap: "20px", marginTop: "8px" }}>
+            <div style={radioContainer}>
               <label style={radioLabel}>
-                <input type="radio" name="status" value="INSTALLED" checked={formData.status === "INSTALLED"} onChange={e => setFormData({...formData, status: e.target.value})} />
+                <input type="radio" name="status" value="INSTALLED" checked={formData.status === "INSTALLED"} onChange={e => setFormData({...formData, status: e.target.value})} style={radioInput} />
                 Saját telepítés
               </label>
               <label style={radioLabel}>
-                <input type="radio" name="status" value="SERVICE_ONLY" checked={formData.status === "SERVICE_ONLY"} onChange={e => setFormData({...formData, status: e.target.value})} />
+                <input type="radio" name="status" value="SERVICE_ONLY" checked={formData.status === "SERVICE_ONLY"} onChange={e => setFormData({...formData, status: e.target.value})} style={radioInput} />
                 Csak szerviz
               </label>
             </div>
           </div>
 
-          <div style={formGrid}>
-            <input style={inputStyle} required placeholder="Márka *" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} />
-            <input style={inputStyle} required placeholder="Modell *" value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} />
+          <div style={responsiveGrid}>
+            {/* JAVÍTVA: Nem kötelező mezők */}
+            <input style={inputStyle} placeholder="Márka (opcionális)" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} />
+            <input style={inputStyle} placeholder="Modell (opcionális)" value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} />
             
             <div style={{ width: "100%" }}>
               <label style={labelStyle}>TELEPÍTÉS DÁTUMA</label>
-              <input type="date" style={inputStyle} required={formData.status === "INSTALLED"} value={formData.installation} onChange={e => setFormData({...formData, installation: e.target.value})} />
+              <input type="date" style={inputStyle} value={formData.installation} onChange={e => setFormData({...formData, installation: e.target.value})} />
             </div>
 
             <div style={{ width: "100%" }}>
@@ -137,26 +129,27 @@ export default function NewClientAndUnitPage() {
           </div>
         </div>
 
-        {/* GOMBOK - Mobilon egymás alá ugranak ha nincs hely, de szélesek */}
-        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px", marginBottom: "40px" }}>
+        {/* AKCIÓ GOMBOK */}
+        <div style={buttonGroupStyle}>
           <button type="submit" style={saveBtnStyle}>Minden mentése</button>
-          <button type="button" onClick={() => router.back()} style={{ ...cancelBtnStyle, padding: isMobile ? "14px" : "16px" }}>Mégse</button>
+          <button type="button" onClick={() => router.back()} style={cancelBtnStyle}>Mégse</button>
         </div>
       </form>
     </div>
   );
 }
 
-// --- JAVÍTOTT MODERN SÖTÉT STÍLUSOK ---
+// --- TISZTA, BIZTONSÁGOS ÉS RESZPONZÍV STÍLUSOK ---
 
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
   backgroundColor: "#121826",
   color: "#f8fafc",
   fontFamily: "sans-serif",
-  maxWidth: "600px",
-  width: "100%",            // Garancia, hogy mobilon nem megy össze
+  maxWidth: "1000px",
+  width: "100%",
   margin: "0 auto",
+  padding: "16px 12px",
   boxSizing: "border-box"
 };
 
@@ -170,7 +163,7 @@ const backBtn: React.CSSProperties = {
   background: "#1e293b",
   border: "1px solid #334155",
   color: "#fff",
-  padding: "8px 16px",
+  padding: "10px 18px",
   borderRadius: "10px",
   cursor: "pointer",
   fontWeight: "600",
@@ -182,22 +175,23 @@ const cardStyle: React.CSSProperties = {
   borderRadius: "16px",
   border: "1px solid #334155",
   boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
+  padding: "20px 16px",
   boxSizing: "border-box",
-  width: "100%"             // Kitölti a teljes rendelkezésre álló szélességet
+  width: "100%"
 };
 
 const titleStyle: React.CSSProperties = {
   fontSize: "18px",
   marginTop: 0,
-  marginBottom: "15px",
+  marginBottom: "18px",
   color: "#fff",
   fontWeight: "bold"
 };
 
-const formGrid: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "14px",              // Egy hajszállal nagyobb térköz mobilon a könnyebb olvashatóságért
+const responsiveGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+  gap: "16px",
   width: "100%"
 };
 
@@ -206,11 +200,12 @@ const inputStyle: React.CSSProperties = {
   padding: "14px",
   borderRadius: "10px",
   border: "1px solid #334155",
-  fontSize: "16px",         // 16px -> Megakadályozza az iOS Safari kényszerített zoomolását!
+  fontSize: "16px",
   backgroundColor: "#0f172a",
   color: "#fff",
   boxSizing: "border-box",
-  display: "block"
+  display: "block",
+  outline: "none"
 };
 
 const labelStyle: React.CSSProperties = {
@@ -225,24 +220,52 @@ const labelStyle: React.CSSProperties = {
 
 const statusBoxStyle: React.CSSProperties = {
   background: "#161e2d",
-  padding: "15px",
+  padding: "16px",
   borderRadius: "10px",
-  marginBottom: "15px",
+  marginBottom: "18px",
   border: "1px solid #2d3748",
   boxSizing: "border-box"
+};
+
+const radioContainer: React.CSSProperties = {
+  display: "flex", 
+  gap: "16px", 
+  marginTop: "8px",
+  flexWrap: "wrap"
 };
 
 const radioLabel: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "8px",
+  gap: "10px",
   cursor: "pointer",
-  fontSize: "14px",
-  userSelect: "none"
+  fontSize: "15px",
+  userSelect: "none",
+  background: "#1e293b",
+  padding: "10px 14px",
+  borderRadius: "8px",
+  border: "1px solid #334155",
+  flex: 1,
+  minWidth: "140px"
+};
+
+const radioInput: React.CSSProperties = {
+  width: "18px",
+  height: "18px",
+  cursor: "pointer"
+};
+
+const buttonGroupStyle: React.CSSProperties = {
+  display: "flex", 
+  flexDirection: "row", 
+  gap: "12px", 
+  marginBottom: "40px",
+  flexWrap: "wrap-reverse"
 };
 
 const saveBtnStyle: React.CSSProperties = {
   flex: 2,
+  minWidth: "200px",
   padding: "16px",
   background: "#2ecc71",
   color: "white",
@@ -255,6 +278,8 @@ const saveBtnStyle: React.CSSProperties = {
 
 const cancelBtnStyle: React.CSSProperties = {
   flex: 1,
+  minWidth: "100px",
+  padding: "16px",
   background: "#334155",
   color: "#fff",
   border: "none",
