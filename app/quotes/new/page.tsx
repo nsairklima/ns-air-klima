@@ -123,27 +123,27 @@ export default function NewQuotePage() {
         <button onClick={() => router.push("/")} style={navBtn}>🏠 Főoldal</button>
       </div>
 
-      <h1 style={{ color: "#2c3e50", marginBottom: 15, fontSize: "1.8rem" }}>Új ajánlat indítása</h1>
+      <h1 style={{ color: "#fff", marginBottom: 15, fontSize: "1.8rem", fontWeight: "800" }}>Új ajánlat indítása</h1>
 
       {/* FÜLEK / TABS */}
       <div style={tabContainer}>
         <button 
           type="button"
           onClick={() => setMode('existing')} 
-          style={{ ...tabBtn, borderBottom: mode === 'existing' ? "3px solid #3498db" : "3px solid transparent", color: mode === 'existing' ? "#3498db" : "#7f8c8d" }}
+          style={{ ...tabBtn, borderBottom: mode === 'existing' ? "3px solid #2ecc71" : "3px solid transparent", color: mode === 'existing' ? "#2ecc71" : "#94a3b8" }}
         >
           Meglévő ügyfél
         </button>
         <button 
           type="button"
           onClick={() => setMode('new')} 
-          style={{ ...tabBtn, borderBottom: mode === 'new' ? "3px solid #3498db" : "3px solid transparent", color: mode === 'new' ? "#3498db" : "#7f8c8d" }}
+          style={{ ...tabBtn, borderBottom: mode === 'new' ? "3px solid #2ecc71" : "3px solid transparent", color: mode === 'new' ? "#2ecc71" : "#94a3b8" }}
         >
           + Új ügyfél
         </button>
       </div>
 
-      {/* FORM MASZK */}
+      {/* SÖTÉT FORM MASZK */}
       <form onSubmit={handleSubmit} style={formCard}>
         <h3 style={sectionTitle}>👤 Ügyfél adatai</h3>
         {mode === 'existing' ? (
@@ -163,8 +163,8 @@ export default function NewQuotePage() {
         <h3 style={{ ...sectionTitle, marginTop: 25 }}>❄️ Gép adatai</h3>
         
         <div style={{ marginBottom: 15 }}>
-            <label style={{ fontSize: 11, color: "#3498db", fontWeight: "bold", textTransform: "uppercase", display: "block", marginBottom: 5 }}>Betöltés az adatbázisból:</label>
-            <select style={{ ...input, borderColor: "#3498db" }} onChange={handleSelectDBItem}>
+            <label style={{ fontSize: 11, color: "#2ecc71", fontWeight: "bold", textTransform: "uppercase", display: "block", marginBottom: 6, letterSpacing: "0.5px" }}>Betöltés az adatbázisból:</label>
+            <select style={{ ...input, borderColor: "#2ecc71" }} onChange={handleSelectDBItem}>
                 <option value="">-- Válassz elmentett típust (opcionális) --</option>
                 {dbItems.map(item => (
                     <option key={item.id} value={item.id}>{item.name} ({item.price.toLocaleString()} Ft)</option>
@@ -195,32 +195,51 @@ export default function NewQuotePage() {
   );
 }
 
-// --- TELJESEN RESZPONZÍV STÍLUSOK ---
-const wrap: React.CSSProperties = { padding: "20px 12px", maxWidth: 700, margin: "0 auto", fontFamily: "Arial, sans-serif", boxSizing: "border-box" };
-const tabContainer = { display: "flex", gap: 10, marginBottom: 20, borderBottom: "1px solid #eee" };
-const tabBtn = { background: "none", border: "none", padding: "12px 16px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "15px", transition: "all 0.2s" };
-const formCard = { background: "#fff", padding: "20px 16px", borderRadius: 15, boxShadow: "0 4px 20px rgba(0,0,0,0.1)", boxSizing: "border-box" as const };
-const sectionTitle = { fontSize: 14, color: "#7f8c8d", marginBottom: 15, borderBottom: "1px solid #eee", paddingBottom: 6, textTransform: "uppercase" as const, fontWeight: "bold" };
+// --- JAVÍTOTT MODERN SÖTÉT STÍLUSOK ---
+const wrap: React.CSSProperties = { 
+  minHeight: "100vh",
+  backgroundColor: "#121826",
+  color: "#f8fafc",
+  padding: "20px 12px", 
+  maxWidth: 700, 
+  margin: "0 auto", 
+  fontFamily: "sans-serif", 
+  boxSizing: "border-box" 
+};
 
-// Ez a grid intézi az űrlapot: mobilon egymás alá teszi a mezőket, asztalon 2 oszlopos marad
+const tabContainer = { display: "flex", gap: 10, marginBottom: 20, borderBottom: "1px solid #334155" };
+const tabBtn = { background: "none", border: "none", padding: "12px 16px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "15px", transition: "all 0.2s" };
+const formCard = { background: "#1e293b", padding: "20px 16px", borderRadius: 16, border: "1px solid #334155", boxShadow: "0 4px 15px rgba(0,0,0,0.3)", boxSizing: "border-box" as const };
+const sectionTitle = { fontSize: 11, color: "#94a3b8", marginBottom: 15, borderBottom: "1px solid #334155", paddingBottom: 6, textTransform: "uppercase" as const, fontWeight: "bold", letterSpacing: "0.5px" };
+
 const grid = { 
   display: "grid", 
   gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", 
-  gap: "12px",
+  gap: "14px",
   marginBottom: 10
 };
 
 const input = { 
   width: "100%", 
   padding: "14px", 
-  borderRadius: 8, 
-  border: "1px solid #ddd", 
+  borderRadius: 10, 
+  border: "1px solid #334155", 
   boxSizing: "border-box" as const,
-  fontSize: "16px", // Megakadályozza az iOS kényszerített közelítését!
-  color: "#333",
-  background: "#fff",
+  fontSize: "16px", // iOS Zoom fix
+  backgroundColor: "#0f172a",
+  color: "#fff",
   outline: "none"
 };
 
-const btnPrimary = { width: "100%", background: "#2c3e50", color: "#fff", border: "none", padding: "16px", borderRadius: 10, fontWeight: "bold", cursor: "pointer", marginTop: 20, fontSize: "16px" };
-const navBtn = { padding: "10px 18px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontWeight: "bold", fontSize: "14px" };
+const btnPrimary = { width: "100%", background: "#2ecc71", color: "#fff", border: "none", padding: "16px", borderRadius: 12, fontWeight: "bold", cursor: "pointer", marginTop: 25, fontSize: "16px" };
+
+const navBtn = { 
+  background: "#1e293b",
+  border: "1px solid #334155",
+  color: "#fff",
+  padding: "10px 18px",
+  borderRadius: "10px",
+  cursor: "pointer",
+  fontWeight: "600",
+  fontSize: "14px"
+};
