@@ -37,7 +37,7 @@ export default function QuoteEditPage() {
     } catch (err) {
       console.error("Hiba az ajánlat betöltésekor", err);
     } finally {
-      setLoading(false); // JAVÍTVA: loading(false) helyett setLoading(false)
+      setLoading(false);
     }
   };
 
@@ -204,6 +204,16 @@ export default function QuoteEditPage() {
     width: "100%"
   };
 
+  const arrowBtn = (disabled: boolean) => ({
+    background: disabled ? "#222" : "#444", 
+    border: "none", 
+    color: disabled ? "#666" : "#fff", 
+    cursor: disabled ? "default" : "pointer", 
+    borderRadius: 4, 
+    padding: "6px 10px", 
+    fontSize: 12
+  });
+
   return (
     <div style={{ padding: "20px 12px", maxWidth: 1000, margin: "0 auto", color: "#fff", boxSizing: "border-box" }}>
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
@@ -221,6 +231,7 @@ export default function QuoteEditPage() {
         </h1>
       </div>
 
+      {/* Felső Űrlap Maszk */}
       <div style={{ background: "#fff", padding: "20px 16px", borderRadius: 15, marginBottom: 40, color: "#333", boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
           <div style={{ background: "#f0f7ff", padding: 12, borderRadius: 10 }}>
@@ -271,39 +282,57 @@ export default function QuoteEditPage() {
         </form>
       </div>
 
-      <div style={{ background: "#1a1a1a", borderRadius: 10, overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "500px" }}>
-          <thead>
-            <tr style={{ background: "#333", textAlign: "left" }}>
-              <th style={{ padding: 12, width: 50 }}></th>
-              <th style={{ padding: 12 }}>Megnevezés</th>
-              <th style={{ padding: 12 }}>Menny.</th>
-              <th style={{ padding: 12, textAlign: "right" }}>Bruttó</th>
-              <th style={{ padding: 12, textAlign: "right" }}>Művelet</th>
-            </tr>
-          </thead>
-          <tbody>
-            {q.items.map((it: any, index: number) => (
-              <tr key={it.id} style={{ borderBottom: "1px solid #333" }}>
-                <td style={{ padding: "8px 12px", textAlign: "center" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={{ background: index === 0 ? "#222" : "#444", border: "none", color: "#fff", cursor: "pointer", borderRadius: 4, padding: "4px 6px", fontSize: 10 }}>▲</button>
-                    <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={{ background: index === q.items.length - 1 ? "#222" : "#444", border: "none", color: "#fff", cursor: "pointer", borderRadius: 4, padding: "4px 6px", fontSize: 10 }}>▼</button>
-                  </div>
-                </td>
-                <td style={{ padding: 12, wordBreak: "break-word" }}>{it.description}</td>
-                <td style={{ padding: 12, whiteSpace: "nowrap" }}>{it.quantity} {it.unit}</td>
-                <td style={{ padding: 12, textAlign: "right", whiteSpace: "nowrap" }}>{Number(it.lineGross).toLocaleString()} Ft</td>
-                <td style={{ padding: 12, textAlign: "right", whiteSpace: "nowrap" }}>
-                  <button onClick={() => startEdit(it)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, marginRight: 8 }}>✏️</button>
-                  <button onClick={() => { if(confirm("Törlöd?")) fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote) }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18 }}>🗑️</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* JAVÍTOTT, TELJESEN RESZPONZÍV TÉTEL LISTÁZÁS (CSS @media nélkül, tiszta struktúra váltással) */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {q.items.map((it: any, index: number) => (
+          <div 
+            key={it.id} 
+            style={{ 
+              background: "#1a1a1a", 
+              borderRadius: 12, 
+              padding: 16, 
+              border: "1px solid #333",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12
+            }}
+          >
+            {/* Felső sor: Sorrend nyilak és Megnevezés */}
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <div style={{ display: "flex", flexDirection: "row", gap: 4 }}>
+                <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={arrowBtn(index === 0)}>▲</button>
+                <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={arrowBtn(index === q.items.length - 1)}>▼</button>
+              </div>
+              <div style={{ fontWeight: "bold", fontSize: 15, flex: 1, wordBreak: "break-word" }}>
+                {it.description}
+              </div>
+            </div>
+
+            {/* Alsó sor: Adatok és Műveleti gombok elosztva */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center", 
+              borderTop: "1px solid #2a2a2a", 
+              paddingTop: 10,
+              flexWrap: "wrap",
+              gap: 10
+            }}>
+              <div style={{ display: "flex", gap: 20, fontSize: 14, color: "#aaa" }}>
+                <div>Mennyiség: <span style={{ color: "#fff", fontWeight: "bold" }}>{it.quantity} {it.unit}</span></div>
+                <div>Bruttó ár: <span style={{ color: "#27ae60", fontWeight: "bold" }}>{Number(it.lineGross).toLocaleString()} Ft</span></div>
+              </div>
+              
+              <div style={{ display: "flex", gap: 15 }}>
+                <button onClick={() => startEdit(it)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20 }} title="Szerkesztés">✏️</button>
+                <button onClick={() => { if(confirm("Törlöd?")) fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote) }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20 }} title="Törlés">🗑️</button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
+      {/* Alsó összesítő rész */}
       <div style={{ marginTop: 40, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
         <div style={{ fontSize: "1.4rem", fontWeight: "bold" }}>Bruttó összesen: {totalGross.toLocaleString()} Ft</div>
         <button 
