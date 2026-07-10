@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 const TYPE_COLORS: Record<string, string> = {
   INSTALLATION: "#2ecc71",
@@ -154,8 +154,8 @@ export default function CalendarPage() {
   const monthNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
   const dailyEvents = events.filter(e => e.date && e.date.startsWith(selectedDate || "---"));
 
-  // Framer Motion variációk a csúszó animációhoz
-  const slideVariants = {
+  // Szigorú típusmeghatározás (Variants), így a TypeScript build átengedi
+  const slideVariants: Variants = {
     enter: (dir: number) => ({
       x: dir > 0 ? 100 : -100,
       opacity: 0
@@ -163,12 +163,18 @@ export default function CalendarPage() {
     center: {
       x: 0,
       opacity: 1,
-      transition: { x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }
+      transition: { 
+        x: { type: "spring", stiffness: 300, damping: 30 }, 
+        opacity: { duration: 0.2 } 
+      }
     },
     exit: (dir: number) => ({
       x: dir > 0 ? -100 : 100,
       opacity: 0,
-      transition: { x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }
+      transition: { 
+        x: { type: "spring", stiffness: 300, damping: 30 }, 
+        opacity: { duration: 0.2 } 
+      }
     })
   };
 
@@ -331,7 +337,7 @@ export default function CalendarPage() {
                 )}
             </div>
             
-            <label style={labelStyle}>IDÕPONT</label>
+            <label style={labelStyle}>IDŐPONT</label>
             <input type="datetime-local" style={inputStyle} value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
             
             <label style={labelStyle}>MEGJEGYZÉS</label>
@@ -363,6 +369,6 @@ const dailyCard: React.CSSProperties = { background: '#1e293b', padding: '18px',
 const addFullBtn: React.CSSProperties = { background: '#2ecc71', color: '#fff', border: 'none', padding: '16px', borderRadius: '14px', fontWeight: 'bold', cursor: 'pointer' };
 const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContent: React.CSSProperties = { background: '#1e293b', padding: '25px', borderRadius: '20px', width: '90%', maxWidth: '420px', border: '1px solid #334155' };
-const inputStyle: React.CSSProperties = { width: '100%', padding: '14px', marginBottom: '12px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '10px', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '14px', marginBottom: '12px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '10px', boxSizing: 'box-sizing' };
 const saveBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#2ecc71', border: 'none', color: '#fff', borderRadius: '10px', fontWeight: 'bold', marginBottom: '10px', cursor: 'pointer' };
 const cancelBtn: React.CSSProperties = { width: '100%', padding: '14px', background: '#334155', border: 'none', color: '#fff', borderRadius: '10px', cursor: 'pointer' };
