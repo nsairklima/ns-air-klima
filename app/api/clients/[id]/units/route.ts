@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// ÚJ GÉP LÉTREHOZÁSA
+// ÚJ GÉP LÉTREHOZÁSA ÉS HOZZÁRENDELÉSE AZ ÜGYFÉLHEZ
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } } // Az 'id' a mappaszerkezeted alapján a clientId
+  { params }: { params: { id: string } }
 ) {
   try {
     const data = await req.json();
@@ -12,29 +12,28 @@ export async function POST(
     const unit = await prisma.clientUnit.create({
       data: {
         clientId: Number(params.id),
-        brand: data.brand,
-        model: data.model,
-        location: data.location,
-        serialNumber: data.serialNumber,
+        brand: data.brand || "Ismeretlen",
+        model: data.model || "Ismeretlen",
+        location: data.location || "Nincs megadva",
+        serialNumber: data.serialNumber || "Nincs gyári szám",
         installation: data.installation ? new Date(data.installation) : null,
         periodMonths: Number(data.periodMonths) || 12,
-        // Mentjük a státuszt (INSTALLED vagy SERVICE_ONLY)
         status: data.status || "INSTALLED", 
-        notes: data.notes
+        notes: data.notes || null // Ide fog bekerülni a "Beszerzési forrás: ..." szöveg automatikusan
       },
     });
 
     return NextResponse.json(unit);
   } catch (error: any) {
     console.error("Gép mentési hiba:", error);
-    return NextResponse.json({ error: "Hiba a gép mentésekor" }, { status: 500 });
+    return NextResponse.json({ error: "Hiba a gép mentésekor", details: error.message }, { status: 500 });
   }
 }
 
 // ÜGYFÉL GÉPEINEK LEKÉRÉSE
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } } // Itt is 'id'-t használunk a mappa neve alapján
+  { params }: { params: { id: string } }
 ) {
   try {
     const units = await prisma.clientUnit.findMany({
