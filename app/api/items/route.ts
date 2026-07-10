@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Gyári számok tisztítása és formázása
+function formatSerialNumbers(snString: string): string {
+  if (!snString) return "";
+  return snString
+    .split(",")
+    .map((sn) => sn.trim())
+    .filter((sn) => sn.length > 0)
+    .join(", ");
+}
+
 export async function GET() {
   try {
     const items = await prisma.item.findMany({
-      orderBy: { name: "asc" } // Alaptermékeknél jobb az ABC sorrend
+      orderBy: { name: "asc" }
     });
     return NextResponse.json(items);
   } catch (error: any) {
@@ -15,12 +25,18 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const formattedSN = formatSerialNumbers(body.serialNumber);
+    
+    // Ha adtak meg gyári számokat, a készlet automatikusan a gyári számok száma legyen
+    const finalStock = formattedSN ? formattedSN.split(", ").length : (parseInt(body.stock) || 0);
+
     const newItem = await prisma.item.create({
       data: {
         name: body.name,
         price: parseFloat(body.price) || 0,
         sku: body.sku || null,
-        stock: parseInt(body.stock) || 0,
+        serialNumber: formattedSN || null,
+        stock: finalStock,
         supplier: body.supplier || null,
       },
     });
@@ -33,13 +49,17 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
+    const formattedSN = formatSerialNumbers(body.serialNumber);
+    const finalStock = formattedSN ? formattedSN.split(", ").length : (parseInt(body.stock) || 0);
+
     const updated = await prisma.item.update({
       where: { id: body.id },
       data: {
         name: body.name,
         price: parseFloat(body.price),
         sku: body.sku,
-        stock: parseInt(body.stock),
+        serialNumber: formattedSN || null,
+        stock: finalStock,
         supplier: body.supplier,
       },
     });
