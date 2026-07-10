@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import PasswordGuard from "@/components/PasswordGuard";
+
 
 type Client = {
   id: number;
@@ -52,7 +52,6 @@ export default function ClientsPage() {
   }
 
   return (
-    <PasswordGuard moduleKey="CLIENTS">
       <div style={{ ...containerStyle, padding: isMobile ? "12px" : "15px" }}>
         
         {/* NAVIGÁCIÓS FEJLÉC */}
@@ -109,7 +108,6 @@ export default function ClientsPage() {
           </div>
         </div>
       </div>
-    </PasswordGuard>
   );
 }
 
