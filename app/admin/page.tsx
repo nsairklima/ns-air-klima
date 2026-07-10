@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 export default function AdminDashboard() {
   const router = useRouter();
   const [restoring, setRestoring] = useState(false);
-  const [showRestoreArea, setShowRestoreArea] = useState(false);
 
   // Biztonsági mentés kezelő (Export emailbe)
   const handleBackup = async (e: React.MouseEvent) => {
@@ -20,7 +19,6 @@ export default function AdminDashboard() {
 
       if (response.ok) {
         alert("A mentés sikeresen elindult, nézd meg az emailed pár perc múlva!");
-        setShowRestoreArea(true); // Aktiváljuk a visszaállító zónát hátha szükség van rá
       } else {
         alert("Hiba történt a mentés során.");
       }
@@ -56,7 +54,6 @@ export default function AdminDashboard() {
 
         if (res.ok) {
           alert("🎉 SIKER!\nAz adatbázis visszaállítása tökéletesen lezajlott!");
-          setShowRestoreArea(false);
         } else {
           alert(`Hiba történt: ${data.error}`);
         }
@@ -159,53 +156,45 @@ export default function AdminDashboard() {
           <div style={tileLabelStyle}>Ügyfelek</div>
         </div>
 
-        {/* MENTÉS CSEMPE (Itt nyitja meg a visszaállító panelt is másodlagos funkcióként) */}
+        {/* MENTÉS CSEMPE */}
         <div 
           onClick={handleBackup}
           onMouseEnter={onEnter}
           onMouseLeave={onLeave}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setShowRestoreArea(!showRestoreArea); // Jobb klikkre vagy hosszú nyomásra is előjön a titkos panel
-          }}
           style={{ ...tileStyle, background: "#2ecc71" }}
         >
           <span style={iconStyle}>🛡️</span>
           <div style={tileLabelStyle}>Mentés</div>
-          <span style={{ fontSize: "11px", opacity: 0.7 }}>Mentés indítása / Visszatöltés</span>
+          <span style={{ fontSize: "11px", opacity: 0.7 }}>Adatbázis küldése emailben</span>
         </div>
+
+        {/* ÚJ: VISSZAÁLLÍTÁS CSEMPE */}
+        <label 
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ 
+            ...tileStyle, 
+            background: restoring ? "#475569" : "#c0392b", 
+            cursor: restoring ? "not-allowed" : "pointer" 
+          }}
+        >
+          <span style={iconStyle}>⚠️</span>
+          <div>
+            <div style={tileLabelStyle}>
+              {restoring ? "Visszaállítás..." : "Visszaállítás"}
+            </div>
+            <span style={{ fontSize: "11px", opacity: 0.7 }}>JSON fájl betöltése</span>
+          </div>
+          <input 
+            type="file" 
+            accept=".json" 
+            onChange={handleFileChange} 
+            disabled={restoring} 
+            style={{ display: "none" }} 
+          />
+        </label>
 
       </div>
-
-      {/* INTELLIGENS ADATBÁZIS VISSZAÁLLÍTÓ PANEL */}
-      {showRestoreArea && (
-        <div style={restoreSectionStyle}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "bold", color: "#e74c3c" }}>
-              ⚠️ Rendszer Visszaállítása Fájlból
-            </h3>
-            <button onClick={() => setShowRestoreArea(false)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "16px" }}>✕</button>
-          </div>
-          <p style={{ margin: "0 0 15px 0", fontSize: "13px", color: "#94a3b8", lineHeight: "1.4" }}>
-            Válaszd ki az emailben kapott legutóbbi <code style={{ background: "#0f172a", padding: "2px 6px", borderRadius: 4, color: "#fff" }}>.json</code> mentési fájlt. A feltöltés teljesen felülírja a jelenlegi adatbázist!
-          </p>
-          
-          <label style={{
-            ...restoreBtnStyle,
-            backgroundColor: restoring ? "#475569" : "#e74c3c",
-            cursor: restoring ? "not-allowed" : "pointer"
-          }}>
-            {restoring ? "🔄 Visszaállítás folyamatban..." : "📂 Mentési JSON fájl betöltése..."}
-            <input 
-              type="file" 
-              accept=".json" 
-              onChange={handleFileChange} 
-              disabled={restoring} 
-              style={{ display: "none" }} 
-            />
-          </label>
-        </div>
-      )}
 
       <footer style={footerStyle}>
         NS-AIR KLÍMA RENDSZER v2.0 | 2026
@@ -275,6 +264,7 @@ const tileStyle: React.CSSProperties = {
   justifyContent: "space-between",
   cursor: "pointer",
   transition: "all 0.15s ease",
+  boxSizing: "border-box"
 };
 
 const iconStyle: React.CSSProperties = {
@@ -284,27 +274,6 @@ const iconStyle: React.CSSProperties = {
 const tileLabelStyle: React.CSSProperties = {
   fontSize: "20px",
   fontWeight: "600",
-};
-
-const restoreSectionStyle: React.CSSProperties = {
-  maxWidth: "1100px",
-  margin: "25px auto 0 auto",
-  background: "#111",
-  border: "1px solid #e74c3c",
-  padding: "20px",
-  borderRadius: "4px",
-  boxSizing: "border-box"
-};
-
-const restoreBtnStyle: React.CSSProperties = {
-  display: "block",
-  textAlign: "center",
-  padding: "14px",
-  color: "#fff",
-  borderRadius: "4px",
-  fontWeight: "bold",
-  fontSize: "14px",
-  transition: "background 0.2s"
 };
 
 const footerStyle: React.CSSProperties = {
