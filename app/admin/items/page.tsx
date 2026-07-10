@@ -7,6 +7,7 @@ export default function AdminItemsPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -25,6 +26,14 @@ export default function AdminItemsPage() {
   };
 
   useEffect(() => { loadItems(); }, []);
+
+  // Automatikusan számolja a készletet a bevitt gyári számok alapján, ha van megadva
+  useEffect(() => {
+    if (formData.serialNumber.trim()) {
+      const count = formData.serialNumber.split(",").map(s => s.trim()).filter(s => s.length > 0).length;
+      setFormData(prev => ({ ...prev, stock: count.toString() }));
+    }
+  }, [formData.serialNumber]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +107,6 @@ export default function AdminItemsPage() {
         </h3>
         
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: "15px", width: "100%" }}>
-          {/* Reszponzív Grid elrendezés a beviteli mezőknek */}
           <div style={responsiveFormGrid}>
             <div style={{ gridColumn: "span 1" }}>
               <label style={labelS}>Termék megnevezése *</label>
@@ -113,12 +121,23 @@ export default function AdminItemsPage() {
               <input style={inputS} value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} />
             </div>
             <div>
-              <label style={labelS}>Gyári szám (S/N)</label>
-              <input style={inputS} value={formData.serialNumber} onChange={e => setFormData({...formData, serialNumber: e.target.value})} />
+              <label style={labelS}>Gyári számok (S/N) <span style={{color: "#3498db", textTransform: "none"}}>(Vesszővel elválasztva ha több van)</span></label>
+              <input 
+                style={inputS} 
+                placeholder="pl. SN123, SN124, SN125" 
+                value={formData.serialNumber} 
+                onChange={e => setFormData({...formData, serialNumber: e.target.value})} 
+              />
             </div>
             <div>
-              <label style={labelS}>Készlet (db)</label>
-              <input style={inputS} type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
+              <label style={labelS}>Készlet (db) {formData.serialNumber.trim() && <span style={{color: "#2ecc71", textTransform: "none"}}>(S/N alapján számolva)</span>}</label>
+              <input 
+                style={inputS} 
+                type="number" 
+                value={formData.stock} 
+                onChange={e => setFormData({...formData, stock: e.target.value})} 
+                disabled={!!formData.serialNumber.trim()}
+              />
             </div>
             <div>
               <label style={labelS}>Beszerzési forrás (Nagyker)</label>
@@ -126,7 +145,6 @@ export default function AdminItemsPage() {
             </div>
           </div>
 
-          {/* Akció gombok */}
           <div style={{ display: "flex", gap: "10px", marginTop: "5px", flexWrap: "wrap" }}>
             <button type="submit" disabled={loading} style={{ ...btnS, background: editingId ? "#e67e22" : "#2ecc71", flex: 1, minWidth: "120px" }}>
               {editingId ? "Mentés" : "Rögzítés"}
@@ -140,78 +158,104 @@ export default function AdminItemsPage() {
         </form>
       </div>
 
-      {/* JAVÍTOTT, TELJESEN RESZPONZÍV LISTÁZÁS */}
+      {/* TERMÉK LISTA */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {items.map(item => (
-          <div 
-            key={item.id} 
-            style={{ 
-              background: "#1a1a1a", 
-              borderRadius: "12px", 
-              padding: "16px", 
-              border: "1px solid #333",
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px"
-            }}
-          >
-            {/* Felső szekció: Név és Cikkszám */}
-            <div>
-              <div style={{ fontWeight: "bold", fontSize: "16px", color: "#fff", wordBreak: "break-word", marginBottom: "4px" }}>
-                {item.name}
-              </div>
-              <div style={{ fontSize: "12px", color: "#aaa" }}>
-                SKU: <span style={{ color: "#fff" }}>{item.sku || "Nincs megadva"}</span>
-                {item.serialNumber && ` | S/N: ${item.serialNumber}`}
-              </div>
-            </div>
+        {items.map(item => {
+          const serials = item.serialNumber ? item.serialNumber.split(", ").filter(Boolean) : [];
+          const isExpanded = expandedItemId === item.id;
 
-            {/* Középső adatsor reszponzív elrendezésben */}
-            <div style={{ 
-              display: "flex", 
-              justifyContent: "space-between", 
-              alignItems: "center", 
-              background: "#222", 
-              padding: "10px 14px", 
-              borderRadius: "8px",
-              flexWrap: "wrap",
-              gap: "10px"
-            }}>
+          return (
+            <div 
+              key={item.id} 
+              style={{ 
+                background: "#1a1a1a", 
+                borderRadius: "12px", 
+                padding: "16px", 
+                border: "1px solid #333",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px"
+              }}
+            >
+              {/* Felső szekció */}
               <div>
-                <span style={{ fontSize: "12px", color: "#aaa", display: "block" }}>KÉSZLET</span>
-                <span style={{ color: item.stock > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold", fontSize: "15px" }}>
-                  {item.stock} db
-                </span>
+                <div style={{ fontWeight: "bold", fontSize: "16px", color: "#fff", wordBreak: "break-word", marginBottom: "4px" }}>
+                  {item.name}
+                </div>
+                <div style={{ fontSize: "12px", color: "#aaa" }}>
+                  SKU: <span style={{ color: "#fff" }}>{item.sku || "Nincs megadva"}</span>
+                  {serials.length > 0 && (
+                    <span 
+                      onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+                      style={{ color: "#3498db", marginLeft: "8px", cursor: "pointer", textDecoration: "underline" }}
+                    >
+                      {isExpanded ? "🔍 Gyári számok elrejtése" : `🔍 Gyári számok kilistázása (${serials.length} db)`}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <span style={{ fontSize: "12px", color: "#aaa", display: "block" }}>FORRÁS</span>
-                <span style={{ color: "#ccc", fontWeight: "500" }}>
-                  {item.supplier || "-"}
-                </span>
+              {/* Gyári számok al-listája (Akkor nyílik le, ha rákattintanak) */}
+              {isExpanded && serials.length > 0 && (
+                <div style={{ background: "#111", padding: "10px", borderRadius: "8px", border: "1px dashed #444" }}>
+                  <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: "bold", textTransform: "uppercase" }}>Raktáron lévő egyedi darabok:</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                    {serials.map((sn: string, index: number) => (
+                      <div key={index} style={{ fontSize: "13px", color: "#fff", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ color: "#2ecc71" }}>•</span> <span>{sn}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Középső adatsor */}
+              <div style={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center", 
+                background: "#222", 
+                padding: "10px 14px", 
+                borderRadius: "8px",
+                flexWrap: "wrap",
+                gap: "10px"
+              }}>
+                <div>
+                  <span style={{ fontSize: "12px", color: "#aaa", display: "block" }}>KÉSZLET</span>
+                  <span style={{ color: item.stock > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold", fontSize: "15px" }}>
+                    {item.stock} db
+                  </span>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: "12px", color: "#aaa", display: "block" }}>FORRÁS</span>
+                  <span style={{ color: "#ccc", fontWeight: "500" }}>
+                    {item.supplier || "-"}
+                  </span>
+                </div>
+
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: "12px", color: "#aaa", display: "block" }}>NETTÓ ÁR</span>
+                  <span style={{ color: "#fff", fontWeight: "bold", fontSize: "15px" }}>
+                    {item.price.toLocaleString()} Ft
+                  </span>
+                </div>
               </div>
 
-              <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: "12px", color: "#aaa", display: "block" }}>NETTÓ ÁR</span>
-                <span style={{ color: "#fff", fontWeight: "bold", fontSize: "15px" }}>
-                  {item.price.toLocaleString()} Ft
-                </span>
+              {/* Alsó rész: Gombok */}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "15px", borderTop: "1px solid #2a2a2a", paddingTop: "10px" }}>
+                <button onClick={() => startEdit(item)} style={{ ...iconBtn, margin: 0 }} title="Szerkesztés">✏️ Szerkesztés</button>
+                <button 
+                  onClick={async () => { if(confirm("Valóban törlöd?")) { await fetch(`/api/items?id=${item.id}`, {method: "DELETE"}); loadItems(); } }} 
+                  style={{ ...iconBtn, color: "#e74c3c", margin: 0 }}
+                  title="Törlés"
+                >
+                  🗑️ Törlés
+                </button>
               </div>
             </div>
-
-            {/* Alsó rész: Műveleti gombok */}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "15px", borderTop: "1px solid #2a2a2a", paddingTop: "10px" }}>
-              <button onClick={() => startEdit(item)} style={{ ...iconBtn, margin: 0 }} title="Szerkesztés">✏️ Szerkesztés</button>
-              <button 
-                onClick={async () => { if(confirm("Valóban törlöd?")) { await fetch(`/api/items?id=${item.id}`, {method: "DELETE"}); loadItems(); } }} 
-                style={{ ...iconBtn, color: "#e74c3c", margin: 0 }}
-                title="Törlés"
-              >
-                🗑️ Törlés
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -229,7 +273,6 @@ const formCard = (isEdit: boolean) => ({
   width: "100%"
 });
 
-// Ez a grid intézi a form mezőit: mobilon 1 oszlop, nagyobb kijelzőkön (350px felett cellánként) automatikusan egymás mellé tördeli őket
 const responsiveFormGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
