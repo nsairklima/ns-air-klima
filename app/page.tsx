@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import PasswordGuard from "@/components/PasswordGuard"; // Beimportáljuk a jelszóvédőt
 
 export default function MainDashboard() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function MainDashboard() {
     }
   };
 
-  // ÚJ: Visszaállítás kezelő (Import JSON fájlból)
+  // Visszaállítás kezelő (Import JSON fájlból)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -70,7 +71,6 @@ export default function MainDashboard() {
     reader.readAsText(file);
   };
 
-  // FIX: HTMLElement-re cserélve, így div és label felett is hiba nélkül működik
   const onEnter = (e: React.MouseEvent<HTMLElement>) => {
     e.currentTarget.style.transform = "scale(0.97)";
     e.currentTarget.style.opacity = "0.9";
@@ -92,87 +92,89 @@ export default function MainDashboard() {
   };
 
   return (
-    <div style={containerStyle}>
-      <header style={headerStyle}>
-        <h1 style={{ ...titleStyle, fontSize: isMobile ? "24px" : "32px" }}>NS-AIR KÖZPONT</h1>
-        <div style={statusDot}>Online</div>
-      </header>
+    <PasswordGuard moduleKey="MASTER">
+      <div style={containerStyle}>
+        <header style={headerStyle}>
+          <h1 style={{ ...titleStyle, fontSize: isMobile ? "24px" : "32px" }}>NS-AIR KÖZPONT</h1>
+          <div style={statusDot}>Online</div>
+        </header>
 
-      <div style={dynamicGridStyle}>
-        {/* STATISZTIKA */}
-        <div onClick={() => router.push("/stats")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#f39c12" }}>
-          <span style={iconStyle}>📊</span>
-          <div style={tileLabelStyle}>Statisztika</div>
-          <span style={smallLabelStyle}>Jelentések</span>
-        </div>
-
-        {/* NAPTÁR */}
-        <div onClick={() => router.push("/admin/calendar")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#008272" }}>
-          <span style={iconStyle}>📅</span>
-          <div style={tileLabelStyle}>Naptár</div>
-        </div>
-
-        {/* ÁRAJÁNLATOK */}
-        <div onClick={() => router.push("/quotes")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#00bcf2" }}>
-          <span style={iconStyle}>📄</span>
-          <div style={tileLabelStyle}>Ajánlatok</div>
-        </div>
-
-        {/* RAKTÁR */}
-        <div onClick={() => router.push("/admin/items")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#0078d7" }}>
-          <span style={iconStyle}>📦</span>
-          <div style={tileLabelStyle}>Raktár</div>
-        </div>
-
-        {/* ÜTEMTERV */}
-        <div onClick={() => router.push("/maintenance")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#a4379f" }}>
-          <span style={iconStyle}>🗓️</span>
-          <div style={tileLabelStyle}>Ütemterv</div>
-        </div>
-
-        {/* ÜGYFELEK */}
-        <div onClick={() => router.push("/clients")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#d83b01" }}>
-          <span style={iconStyle}>👥</span>
-          <div style={tileLabelStyle}>Ügyfelek</div>
-        </div>
-
-        {/* BIZTONSÁGI MENTÉS */}
-        <div onClick={handleBackup} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#2ecc71" }}>
-          <span style={iconStyle}>🛡️</span>
-          <div style={tileLabelStyle}>Mentés</div>
-          <span style={smallLabelStyle}>Küldés emailben</span>
-        </div>
-
-        {/* ÚJ: VISSZAÁLLÍTÁS CSEMPE */}
-        <label 
-          onMouseEnter={onEnter} 
-          onMouseLeave={onLeave} 
-          style={{ 
-            ...tileStyle, 
-            background: restoring ? "#475569" : "#c0392b",
-            cursor: restoring ? "not-allowed" : "pointer"
-          }}
-        >
-          <span style={iconStyle}>⚠️</span>
-          <div>
-            <div style={tileLabelStyle}>{restoring ? "Visszaállítás..." : "Visszaállítás"}</div>
-            <span style={smallLabelStyle}>JSON fájl betöltése</span>
+        <div style={dynamicGridStyle}>
+          {/* STATISZTIKA */}
+          <div onClick={() => router.push("/stats")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#f39c12" }}>
+            <span style={iconStyle}>📊</span>
+            <div style={tileLabelStyle}>Statisztika</div>
+            <span style={smallLabelStyle}>Jelentések</span>
           </div>
-          <input 
-            type="file" 
-            accept=".json" 
-            onChange={handleFileChange} 
-            disabled={restoring} 
-            style={{ display: "none" }} 
-          />
-        </label>
-      </div>
 
-      <footer style={footerContainer}>
-        <div style={footerLine} />
-        <p style={footerText}>NS-Air Klíma Rendszer v2.0 | 2026</p>
-      </footer>
-    </div>
+          {/* NAPTÁR */}
+          <div onClick={() => router.push("/admin/calendar")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#008272" }}>
+            <span style={iconStyle}>📅</span>
+            <div style={tileLabelStyle}>Naptár</div>
+          </div>
+
+          {/* ÁRAJÁNLATOK */}
+          <div onClick={() => router.push("/quotes")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#00bcf2" }}>
+            <span style={iconStyle}>📄</span>
+            <div style={tileLabelStyle}>Ajánlatok</div>
+          </div>
+
+          {/* RAKTÁR */}
+          <div onClick={() => router.push("/admin/items")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#0078d7" }}>
+            <span style={iconStyle}>📦</span>
+            <div style={tileLabelStyle}>Raktár</div>
+          </div>
+
+          {/* ÜTEMTERV */}
+          <div onClick={() => router.push("/maintenance")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#a4379f" }}>
+            <span style={iconStyle}>🗓️</span>
+            <div style={tileLabelStyle}>Ütemterv</div>
+          </div>
+
+          {/* ÜGYFELEK */}
+          <div onClick={() => router.push("/clients")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#d83b01" }}>
+            <span style={iconStyle}>👥</span>
+            <div style={tileLabelStyle}>Ügyfelek</div>
+          </div>
+
+          {/* BIZTONSÁGI MENTÉS */}
+          <div onClick={handleBackup} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#2ecc71" }}>
+            <span style={iconStyle}>🛡️</span>
+            <div style={tileLabelStyle}>Mentés</div>
+            <span style={smallLabelStyle}>Küldés emailben</span>
+          </div>
+
+          {/* VISSZAÁLLÍTÁS CSEMPE */}
+          <label 
+            onMouseEnter={onEnter} 
+            onMouseLeave={onLeave} 
+            style={{ 
+              ...tileStyle, 
+              background: restoring ? "#475569" : "#c0392b",
+              cursor: restoring ? "not-allowed" : "pointer"
+            }}
+          >
+            <span style={iconStyle}>⚠️</span>
+            <div>
+              <div style={tileLabelStyle}>{restoring ? "Visszaállítás..." : "Visszaállítás"}</div>
+              <span style={smallLabelStyle}>JSON fájl betöltése</span>
+            </div>
+            <input 
+              type="file" 
+              accept=".json" 
+              onChange={handleFileChange} 
+              disabled={restoring} 
+              style={{ display: "none" }} 
+            />
+          </label>
+        </div>
+
+        <footer style={footerContainer}>
+          <div style={footerLine} />
+          <p style={footerText}>NS-Air Klíma Rendszer v2.0 | 2026</p>
+        </footer>
+      </div>
+    </PasswordGuard>
   );
 }
 
