@@ -31,6 +31,10 @@ export default function CalendarPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [activeType, setActiveType] = useState("MAINTENANCE");
   
+  // Swipe állapotok az ujjmozdulat követéséhez
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
   const [newEntry, setNewEntry] = useState({ 
     unitId: "", 
     date: "", 
@@ -55,6 +59,41 @@ export default function CalendarPage() {
     fetchEvents();
     fetchUnits();
   }, []);
+
+  // Hónapváltó segédfüggvények
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  // Swipe logika kezelése
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;  // Balra húzás -> Következő hónap
+    const isRightSwipe = distance < -50; // Jobbra húzás -> Előző hónap
+
+    if (!selectedDate) { // Csak a fő naptárnézetben lapozzon ujjhúzásra
+      if (isLeftSwipe) {
+        nextMonth();
+      }
+      if (isRightSwipe) {
+        prevMonth();
+      }
+    }
+  };
 
   const handleSave = async () => {
     if (!newEntry.unitId && !editingId) return alert("Válassz ügyfelet!");
@@ -84,7 +123,6 @@ export default function CalendarPage() {
     e.stopPropagation();
     if (!confirm("Biztosan törölni szeretnéd ezt a bejegyzést?")) return;
 
-    // Ha az ID string és tartalmazza a 'planned' vagy 'overdue' szót, azt nem az adatbázisból töröljük
     if (typeof id === 'string' && (id.startsWith('planned') || id.startsWith('overdue'))) {
       alert("Az automatikusan tervezett időpontok nem törölhetők így. Végezz el rajta karbantartást vagy módosítsd a gép telepítési dátumát!");
       return;
@@ -104,16 +142,13 @@ export default function CalendarPage() {
   const openEdit = (e: React.MouseEvent, eventData: any) => {
     e.stopPropagation();
     
-    // Ha automatikusan generált jövőbeli esemény, akkor ne engedjük a hagyományos szerkesztést modalból
     if (typeof eventData.id === 'string' && (eventData.id.startsWith('planned') || eventData.id.startsWith('log-') === false)) {
-      // Elküldjük az ügyfél adatlapjára, hogy ott rögzíthessen új szervizt
       if (confirm(`Ez egy automatikusan tervezett időpont.\nSzeretnél elnavigálni a gép adatlapjára új karbantartás rögzítéséhez?`)) {
         router.push(`/clients/${eventData.unitId || eventData.unit?.id}`);
       }
       return;
     }
 
-    // Normál múltbéli log szerkesztése
     const cleanId = typeof eventData.id === 'string' ? parseInt(eventData.id.replace('log-', '')) : eventData.id;
     setEditingId(cleanId);
     setActiveType(eventData.type || "MAINTENANCE");
@@ -150,8 +185,8 @@ export default function CalendarPage() {
                 {!selectedDate && (
                   <>
                     <button onClick={() => router.push("/clients/new")} style={{...backBtn, background: '#0078d7', borderColor: '#0078d7'}}>+ ÚJ ÜGYFÉL</button>
-                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={navBtn}>‹</button>
-                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={navBtn}>›</button>
+                    <button onClick={prevMonth} style={navBtn}>‹</button>
+                    <button onClick={nextMonth} style={navBtn}>›</button>
                   </>
                 )}
             </div>
@@ -160,9 +195,17 @@ export default function CalendarPage() {
           <h1 style={{ fontSize: '28px', marginTop: '20px', marginBottom: 0, fontWeight: '800', letterSpacing: '-0.5px' }}>
             {selectedDate ? `📅 ${selectedDate}` : `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
           </h1>
+          {/* Kis segédszöveg a mobilosoknak */}
+          {!selectedDate && <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>💡 Mobilon csúsztatással is lapozhatsz</p>}
         </header>
 
-        <main style={{ flex: 1 }}>
+        {/* HOZZÁADVA: Érintésfigyelők a naptár területére */}
+        <main 
+          style={{ flex: 1 }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           {selectedDate ? (
             <div style={dailyContainer}>
               <button onClick={() => {
@@ -294,7 +337,6 @@ export default function CalendarPage() {
   );
 }
 
-// Stílusok változatlanok maradtak...
 const miniAddBtn: React.CSSProperties = { background: '#0078d7', color: '#fff', border: 'none', padding: '0 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '20px' };
 const deleteBtnStyle: React.CSSProperties = { position: 'absolute', top: '18px', right: '18px', background: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' };
 const labelStyle: React.CSSProperties = { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '5px', display: 'block' };
