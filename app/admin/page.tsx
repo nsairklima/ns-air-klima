@@ -1,16 +1,18 @@
+
+
+
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [restoring, setRestoring] = useState(false);
 
-  // Biztonsági mentés kezelő (Export emailbe)
+  // Biztonsági mentés kezelő
   const handleBackup = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!confirm("Biztonsági mentés indítása? Ennek eredményét emailben fogod megkapni.")) return;
+    if (!confirm("Biztonsági mentés indítása?")) return;
 
     try {
       const response = await fetch(`/api/admin/backup?t=${Date.now()}`, {
@@ -18,7 +20,7 @@ export default function AdminDashboard() {
       });
 
       if (response.ok) {
-        alert("A mentés sikeresen elindult, nézd meg az emailed pár perc múlva!");
+        alert("A mentés sikeresen elindult!");
       } else {
         alert("Hiba történt a mentés során.");
       }
@@ -27,47 +29,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Visszaállítás kezelő (Import JSON fájlból)
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!confirm("⚠️ FIGYELEM!\nEz a művelet TELJESEN FELÜLÍRJA a jelenlegi adatbázist a fájlban lévő adatokkal!\n\nBiztosan folytatod?")) {
-      e.target.value = "";
-      return;
-    }
-
-    setRestoring(true);
-    const reader = new FileReader();
-    
-    reader.onload = async (event) => {
-      try {
-        const json = JSON.parse(event.target.result as string);
-        
-        const res = await fetch("/api/admin/restore", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(json),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          alert("🎉 SIKER!\nAz adatbázis visszaállítása tökéletesen lezajlott!");
-        } else {
-          alert(`Hiba történt: ${data.error}`);
-        }
-      } catch (err) {
-        alert("Hibás vagy sérült mentési fájl! Csak a letöltött .json fájllal működik.");
-      } finally {
-        setRestoring(false);
-        e.target.value = "";
-      }
-    };
-
-    reader.readAsText(file);
-  };
-
+  // Egyszerűsített hover effekt (inline style változtatással)
   const onEnter = (e: React.MouseEvent<HTMLDivElement>) => {
     e.currentTarget.style.transform = "scale(0.97)";
     e.currentTarget.style.opacity = "0.9";
@@ -81,27 +43,27 @@ export default function AdminDashboard() {
   return (
     <div style={containerStyle}>
       <header style={headerStyle}>
-        <h1 style={titleStyle}>NS-AIR KÖZPONT</h1>
-        <div style={onlineStatusStyle}>
-          <span style={dotStyle}></span> ONLINE
-        </div>
+        <h1 style={titleStyle}>NS-AIR ADMIN</h1>
+        <button onClick={() => router.push("/")} style={homeButtonStyle}>
+          főoldal
+        </button>
       </header>
 
       <div style={gridStyle}>
         
-        {/* STATISZTIKA CSEMPE */}
+        {/* MENTÉS CSEMPE */}
         <div 
-          onClick={() => router.push("/stats")}
+          onClick={handleBackup}
           onMouseEnter={onEnter}
           onMouseLeave={onLeave}
-          style={{ ...tileStyle, background: "#f39c12" }}
+          style={{ ...tileStyle, background: "#2ecc71", gridColumn: "span 2" }}
         >
-          <span style={iconStyle}>📊</span>
-          <div style={tileLabelStyle}>Statisztika</div>
-          <span style={{ fontSize: "11px", opacity: 0.7 }}>Jelentések</span>
+          <span style={iconStyle}>🛡️</span>
+          <div style={tileLabelStyle}>Rendszerjelentés</div>
+          <span style={{ fontSize: "12px", opacity: 0.8 }}>Adatbázis mentés küldése</span>
         </div>
 
-        {/* NAPTÁR CSEMPE */}
+        {/* NAPTÁR CSEMPE (AZ ÚJ!) */}
         <div 
           onClick={() => router.push("/admin/calendar")}
           onMouseEnter={onEnter}
@@ -110,17 +72,7 @@ export default function AdminDashboard() {
         >
           <span style={iconStyle}>📅</span>
           <div style={tileLabelStyle}>Naptár</div>
-        </div>
-
-        {/* AJÁNLATOK CSEMPE */}
-        <div 
-          onClick={() => router.push("/quotes")}
-          onMouseEnter={onEnter}
-          onMouseLeave={onLeave}
-          style={{ ...tileStyle, background: "#00b0ff" }}
-        >
-          <span style={iconStyle}>📄</span>
-          <div style={tileLabelStyle}>Ajánlatok</div>
+          <span style={{ fontSize: "11px", opacity: 0.7 }}>Munkaterv</span>
         </div>
 
         {/* RAKTÁR CSEMPE */}
@@ -156,131 +108,77 @@ export default function AdminDashboard() {
           <div style={tileLabelStyle}>Ügyfelek</div>
         </div>
 
-        {/* MENTÉS CSEMPE */}
-        <div 
-          onClick={handleBackup}
-          onMouseEnter={onEnter}
-          onMouseLeave={onLeave}
-          style={{ ...tileStyle, background: "#2ecc71" }}
-        >
-          <span style={iconStyle}>🛡️</span>
-          <div style={tileLabelStyle}>Mentés</div>
-          <span style={{ fontSize: "11px", opacity: 0.7 }}>Adatbázis küldése emailben</span>
-        </div>
-
-        {/* ÚJ: VISSZAÁLLÍTÁS CSEMPE */}
-        <label 
-          onMouseEnter={onEnter}
-          onMouseLeave={onLeave}
-          style={{ 
-            ...tileStyle, 
-            background: restoring ? "#475569" : "#c0392b", 
-            cursor: restoring ? "not-allowed" : "pointer" 
-          }}
-        >
-          <span style={iconStyle}>⚠️</span>
-          <div>
-            <div style={tileLabelStyle}>
-              {restoring ? "Visszaállítás..." : "Visszaállítás"}
-            </div>
-            <span style={{ fontSize: "11px", opacity: 0.7 }}>JSON fájl betöltése</span>
-          </div>
-          <input 
-            type="file" 
-            accept=".json" 
-            onChange={handleFileChange} 
-            disabled={restoring} 
-            style={{ display: "none" }} 
-          />
-        </label>
-
       </div>
 
       <footer style={footerStyle}>
-        NS-AIR KLÍMA RENDSZER v2.0 | 2026
+        NS-Air Klíma Rendszer v2.0 | 2026
       </footer>
     </div>
   );
 }
 
-// --- STÍLUSOK (IGAZÍTVA A KÉPEDHEZ) ---
+// --- STÍLUSOK (FIXÁLVA) ---
+
 const containerStyle: React.CSSProperties = {
   minHeight: "100vh",
   backgroundColor: "#000",
   color: "#fff",
   fontFamily: "'Segoe UI', sans-serif",
   padding: "40px 20px",
-  boxSizing: "border-box"
 };
 
 const headerStyle: React.CSSProperties = {
-  maxWidth: "1100px",
-  margin: "0 auto 30px auto",
+  maxWidth: "800px",
+  margin: "0 auto 40px auto",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: "36px",
-  fontWeight: "300",
+  fontSize: "32px",
+  fontWeight: "lighter",
   margin: 0,
-  letterSpacing: "1px"
 };
 
-const onlineStatusStyle: React.CSSProperties = {
-  border: "1px solid #2ecc71",
-  color: "#2ecc71",
-  padding: "4px 10px",
-  borderRadius: "4px",
-  fontSize: "11px",
-  fontWeight: "bold",
-  display: "flex",
-  alignItems: "center",
-  gap: "6px"
-};
-
-const dotStyle: React.CSSProperties = {
-  width: "6px",
-  height: "6px",
-  backgroundColor: "#2ecc71",
-  borderRadius: "50%",
-  display: "inline-block"
+const homeButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "1px solid #fff",
+  color: "#fff",
+  padding: "5px 15px",
+  cursor: "pointer",
 };
 
 const gridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-  gridAutoRows: "160px",
-  gap: "12px",
-  maxWidth: "1100px",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gridAutoRows: "140px",
+  gap: "10px",
+  maxWidth: "800px",
   margin: "0 auto",
 };
 
 const tileStyle: React.CSSProperties = {
-  padding: "20px",
+  padding: "15px",
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
   cursor: "pointer",
-  transition: "all 0.15s ease",
-  boxSizing: "border-box"
+  transition: "all 0.2s ease",
 };
 
 const iconStyle: React.CSSProperties = {
-  fontSize: "24px",
+  fontSize: "28px",
 };
 
 const tileLabelStyle: React.CSSProperties = {
-  fontSize: "20px",
+  fontSize: "18px",
   fontWeight: "600",
 };
 
 const footerStyle: React.CSSProperties = {
   textAlign: "center",
-  marginTop: "60px",
-  fontSize: "12px",
-  color: "#2ecc71",
-  fontWeight: "bold",
-  letterSpacing: "1px"
+  marginTop: "50px",
+  fontSize: "11px",
+  color: "#444",
 };
