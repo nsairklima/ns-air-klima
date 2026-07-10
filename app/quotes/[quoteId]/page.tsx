@@ -17,10 +17,10 @@ export default function QuoteEditPage() {
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [desc, setDesc] = useState("");
-  const [qty, setQty] = useState(1);
-  const [unit, setUnit] = useState("db"); // Ez kezeli a db / m állapotot
-  const [basePriceNet, setBasePriceNet] = useState(0); 
-  const [profitValue, setProfitValue] = useState(0); 
+  const [qty, setQty] = useState<number | "">(1);
+  const [unit, setUnit] = useState("db");
+  const [basePriceNet, setBasePriceNet] = useState<number | "">(""); // Alapból üres a 0 helyett
+  const [profitValue, setProfitValue] = useState<number | "">(""); // Alapból üres a 0 helyett
   const [profitType, setProfitType] = useState<"percent" | "fix">("fix");
 
   const loadQuote = async () => {
@@ -108,15 +108,15 @@ export default function QuoteEditPage() {
     if (selected) {
       setDesc(selected.name);
       setBasePriceNet(selected.price);
-      setProfitValue(0);
-      // Ha az adatbázisban el van mentve egység (pl. m), töltse be, amúgy legyen db
+      setProfitValue(""); // Adatbázisból betöltéskor üres legyen a haszon
       setUnit(selected.unit || "db"); 
     }
   };
 
-  const n_beszerzes = Number(basePriceNet) || 0;
-  const n_profit = Number(profitValue) || 0;
-  const n_mennyiseg = Number(qty) || 0;
+  // Biztonságos matematikai átalakítások
+  const n_beszerzes = basePriceNet === "" ? 0 : Number(basePriceNet);
+  const n_profit = profitValue === "" ? 0 : Number(profitValue);
+  const n_mennyiseg = qty === "" ? 0 : Number(qty);
 
   const brutto_beszerzes = n_beszerzes * 1.27;
   const brutto_haszon = profitType === "percent" 
@@ -140,7 +140,7 @@ export default function QuoteEditPage() {
         id: editingId,
         description: desc,
         quantity: n_mennyiseg,
-        unit, // Ez küldi be a 'db' vagy 'm' értéket az API-nak
+        unit,
         basePrice: n_beszerzes, 
         unitPriceNet: sellPriceNet,
         lineGross: Math.round(lineTotalGross),
@@ -156,31 +156,31 @@ export default function QuoteEditPage() {
     setDesc(it.description);
     const m = Number(it.quantity) || 1;
     setQty(m);
-    setUnit(it.unit || "db"); // Szerkesztésnél beolvassa a mentett egységet
+    setUnit(it.unit || "db");
     
     const mentettNettoAlap = Number(it.costNet) || 0;
-    setBasePriceNet(mentettNettoAlap);
+    setBasePriceNet(mentettNettoAlap === 0 ? "" : mentettNettoAlap);
 
     const mentettTeljesBrutto = Number(it.lineGross) || 0;
     const bruttoEladasiEgysegar = mentettTeljesBrutto / m;
     const bruttoBeszerzesiEgysegar = mentettNettoAlap * 1.27;
     
-    const diff = bruttoEladasiEgysegar - bruttoBeszerzesiEgysegar;
+    const diff = Math.round(bruttoEladasiEgysegar - bruttoBeszerzesiEgysegar);
 
     setProfitType("fix");
-    setProfitValue(Math.round(diff));
+    setProfitValue(diff === 0 ? "" : diff);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
-    setEditingId(null); setDesc(""); setQty(1); setUnit("db"); setBasePriceNet(0); setProfitValue(0);
+    setEditingId(null); setDesc(""); setQty(1); setUnit("db"); setBasePriceNet(""); setProfitValue("");
   };
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
 
-  /* ---- Javított Sötét Reszponzív Stílusok ---- */
+  /* ---- Stílusok ---- */
   const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #334155", background: "#1e293b", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
   const inputS = { width: "100%", padding: "13px", borderRadius: "10px", border: "1px solid #334155", boxSizing: "border-box" as const, color: "#fff", backgroundColor: "#0f172a", fontSize: "16px", outline: "none" };
   const labS = { fontSize: "11px", fontWeight: "bold", color: "#94a3b8", textTransform: "uppercase" as const, marginBottom: "6px", display: "block", letterSpacing: "0.5px" };
@@ -235,7 +235,7 @@ export default function QuoteEditPage() {
         </h1>
       </div>
 
-      {/* Modernizált Sötét Űrlap Maszk */}
+      {/* Űrlap Maszk */}
       <div style={{ background: "#1e293b", padding: "20px 16px", borderRadius: 16, marginBottom: 30, border: "1px solid #334155", boxShadow: "0 4px 15px rgba(0,0,0,0.3)" }}>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
           <div style={{ background: "#141b2b", padding: 14, borderRadius: 10, border: "1px solid #2d3748" }}>
@@ -254,12 +254,15 @@ export default function QuoteEditPage() {
           </div>
           
           <div style={responsiveGrid}>
-            {/* Mennyiség és Egység egy mezőcsoportban a szebb elrendezésért */}
             <div>
               <label style={labS}>Mennyiség és Egység</label>
               <div style={{ display: "flex", gap: 8 }}>
-                <input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} style={inputS} />
-                {/* ÚJ: Mértékegység választó */}
+                <input 
+                  type="number" 
+                  value={qty} 
+                  onChange={e => setQty(e.target.value === "" ? "" : Number(e.target.value))} 
+                  style={inputS} 
+                />
                 <select value={unit} onChange={e => setUnit(e.target.value)} style={{ ...inputS, width: 90, padding: "13px 8px" }}>
                   <option value="db">db</option>
                   <option value="m">méter (m)</option>
@@ -268,12 +271,24 @@ export default function QuoteEditPage() {
             </div>
             <div>
               <label style={labS}>Nettó Beszerzés (Ft)</label>
-              <input type="number" value={basePriceNet} onChange={e => setBasePriceNet(Number(e.target.value))} style={inputS} />
+              <input 
+                type="number" 
+                placeholder="0"
+                value={basePriceNet} 
+                onChange={e => setBasePriceNet(e.target.value === "" ? "" : Number(e.target.value))} 
+                style={inputS} 
+              />
             </div>
             <div>
               <label style={labS}>Haszon ({profitType === 'percent' ? '%' : 'Ft'})</label>
               <div style={{ display: "flex", gap: 8 }}>
-                <input type="number" value={profitValue} onChange={e => setProfitValue(Number(e.target.value))} style={inputS} />
+                <input 
+                  type="number" 
+                  placeholder="0"
+                  value={profitValue} 
+                  onChange={e => setProfitValue(e.target.value === "" ? "" : Number(e.target.value))} 
+                  style={inputS} 
+                />
                 <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{ ...inputS, width: 80, padding: "13px 6px" }}>
                   <option value="fix">Ft</option>
                   <option value="percent">%</option>
@@ -309,7 +324,6 @@ export default function QuoteEditPage() {
               gap: 12
             }}
           >
-            {/* Felső sor: Sorrend nyilak és Megnevezés */}
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <div style={{ display: "flex", flexDirection: "row", gap: 6 }}>
                 <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={arrowBtn(index === 0)}>▲</button>
@@ -320,7 +334,6 @@ export default function QuoteEditPage() {
               </div>
             </div>
 
-            {/* Alsó sor: Adatok és Műveleti gombok */}
             <div style={{ 
               display: "flex", 
               justifyContent: "space-between", 
@@ -331,7 +344,6 @@ export default function QuoteEditPage() {
               gap: 10
             }}>
               <div style={{ display: "flex", gap: 20, fontSize: 14, color: "#94a3b8" }}>
-                {/* Itt írja ki dinamikusan a darabot vagy a métert */}
                 <div>Mennyiség: <span style={{ color: "#fff", fontWeight: "bold" }}>{it.quantity} {it.unit || "db"}</span></div>
                 <div>Bruttó ár: <span style={{ color: "#2ecc71", fontWeight: "bold" }}>{Number(it.lineGross).toLocaleString()} Ft</span></div>
               </div>
