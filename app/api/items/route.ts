@@ -1,33 +1,29 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// Formázza és tisztítja a gyári számokat
-function formatSerialNumbers(snString: string, defaultSupplier: string): string {
-  if (!snString) return "";
-  const supplier = defaultSupplier ? defaultSupplier.trim() : "";
+// Segédfüggvény: string-ből tömbbé alakít [ {sn, src}, ... ]
+function parseSerials(serialString: string | null): { sn: string; src: string }[] {
+  if (!serialString) return [];
+  return serialString
+    .split(", ")
+    .filter(Boolean)
+    .map((raw) => {
+      const [sn, src] = raw.split("@");
+      return { sn: sn?.trim() || "", src: src?.trim() || "" };
+    });
+}
 
-  return snString
-    .split(",")
-    .map((sn) => {
-      const trimmed = sn.trim();
-      if (!trimmed) return "";
-      if (trimmed.includes("@")) {
-        const [num, src] = trimmed.split("@");
-        return `${num.trim()}@${src.trim()}`;
-      }
-      return supplier ? `${trimmed}@${supplier}` : trimmed;
-    })
-    .filter((sn) => sn.length > 0)
-    .join(", ");
+// Segédfüggvény: tömbből vissza stringgé adatbázis mentéshez
+function serializeSerials(serialsArr: { sn: string; src: string }[]): string | null {
+  if (serialsArr.length === 0) return null;
+  return serialsArr.map((item) => `${item.sn}@${item.src}`).join(", ");
 }
 
 export async function GET() {
   try {
-    const items = await prisma.item.findMany({
-      orderBy: { name: "asc" }
-    });
+    const items = await prisma.item.findMany({ orderBy: { name: "asc" } });
     return NextResponse.json(items);
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json({ error: "Hiba a termékek lekérésekor" }, { status: 500 });
   }
 }
@@ -35,118 +31,115 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const formattedSN = formatSerialNumbers(body.serialNumber, body.supplier);
-    const finalStock = formattedSN ? formattedSN.split(", ").length : (parseInt(body.stock) || 0);
+    let serialsList: { sn: string; src: string }[] = [];
+
+    // Ha az első rögzítéskor adnak meg gyári számot
+    if (body.newSerial?.trim()) {
+      serialsList.push({
+        sn: body.newSerial.trim(),
+        src: body.newSupplier?.trim() || body.supplier?.trim() || "Ismeretlen"
+      });
+    }
+
+    const finalStock = serialsList.length > 0 ? serialsList.length : (parseInt(body.stock) || 0);
 
     const newItem = await prisma.item.create({
       data: {
         name: body.name,
         price: parseFloat(body.price) || 0,
         sku: body.sku || null,
-        serialNumber: formattedSN || null,
+        serialNumber: serializeSerials(serialsList),
         stock: finalStock,
         supplier: body.supplier || null,
       },
     });
     return NextResponse.json(newItem);
   } catch (error: any) {
-    return NextResponse.json({ error: "Hiba a mentés során", details: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Hiba a mentés során" }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { action, id, serialNumber, supplier, qtyToDeduct } = body;
+    const { action, id, newSerial, newSupplier, deleteSerial, qtyToDeduct } = body;
 
-    // 1. ESET: ÜGYFÉLHEZ RENDELÉS (LEVONÁS A RAKTÁRBÓL)
-    if (action === "deduct") {
-      const currentItem = await prisma.item.findUnique({ where: { id } });
-      if (!currentItem) return NextResponse.json({ error: "A termék nem található" }, { status: 404 });
+    const currentItem = await prisma.item.findUnique({ where: { id: Number(id) } });
+    if (!currentItem) return NextResponse.json({ error: "Termék nem található" }, { status: 404 });
 
-      let currentSerials = currentItem.serialNumber ? currentItem.serialNumber.split(", ").filter(Boolean) : [];
-      
-      // Ha konkrét gyári számot vonunk le
-      if (serialNumber) {
-        // Kiszedjük azt a gyári számot, aminek a száma egyezik (levágva az @ utáni részt a kereséshez)
-        currentSerials = currentSerials.filter(rawSn => {
-          const [snNum] = rawSn.split("@");
-          return snNum.trim() !== serialNumber.trim();
+    let serials = parseSerials(currentItem.serialNumber);
+
+    // 1. UTASÍTÁS: ÚJ GYÁRI SZÁM HOZZÁADÁSA (BEVÉTELEZÉS)
+    if (action === "add_serial") {
+      if (newSerial?.trim()) {
+        serials.push({
+          sn: newSerial.trim(),
+          src: newSupplier?.trim() || currentItem.supplier || "Ismeretlen"
         });
       }
-
-      // Készlet csökkentése (ha van S/N, akkor az új S/N hossza, ha nincs, sima levonás)
-      const newStock = currentItem.serialNumber 
-        ? currentSerials.length 
-        : Math.max(0, (currentItem.stock || 0) - (qtyToDeduct || 1));
-
-      const updated = await prisma.item.update({
-        where: { id },
-        data: {
-          stock: newStock,
-          serialNumber: currentSerials.length > 0 ? currentSerials.join(", ") : null
-        }
-      });
-      return NextResponse.json(updated);
-    }
-
-    // 2. ESET: BEVÉTELEZÉS / HOZZÁADÁS MEGLÉVŐHÖZ
-    if (action === "add_stock") {
-      const currentItem = await prisma.item.findUnique({ where: { id } });
-      if (!currentItem) return NextResponse.json({ error: "A termék nem található" }, { status: 404 });
-
-      const newSerialsFormatted = formatSerialNumbers(serialNumber, supplier);
+      const newStock = serials.length > 0 ? serials.length : ((currentItem.stock || 0) + (parseInt(body.stock) || 0));
       
-      let finalSerials = currentItem.serialNumber ? currentItem.serialNumber.split(", ").filter(Boolean) : [];
-      if (newSerialsFormatted) {
-        finalSerials = [...finalSerials, ...newSerialsFormatted.split(", ").filter(Boolean)];
-      }
-
-      const finalStock = finalSerials.length > 0 ? finalSerials.length : ((currentItem.stock || 0) + (parseInt(body.stock) || 0));
-
       const updated = await prisma.item.update({
         where: { id },
         data: {
-          serialNumber: finalSerials.length > 0 ? finalSerials.join(", ") : null,
-          stock: finalStock,
-          // Ha adtak meg új fő beszállítót, frissítjük, ha nem, marad a régi
-          supplier: supplier || currentItem.supplier
+          serialNumber: serializeSerials(serials),
+          stock: newStock
         }
       });
       return NextResponse.json(updated);
     }
 
-    // 3. ESET: SIMA SZERKESZTÉS (Mentés gomb)
-    const formattedSN = formatSerialNumbers(body.serialNumber, body.supplier);
-    const finalStock = formattedSN ? formattedSN.split(", ").length : (parseInt(body.stock) || 0);
+    // 2. UTASÍTÁS: KÉZI TÖRLÉS LENYÍLÓBÓL (SELEJTEZÉS / JAVÍTÁS)
+    if (action === "delete_serial") {
+      serials = serials.filter(s => s.sn !== deleteSerial);
+      const newStock = currentItem.serialNumber ? serials.length : Math.max(0, (currentItem.stock || 0) - 1);
 
+      const updated = await prisma.item.update({
+        where: { id },
+        data: {
+          serialNumber: serializeSerials(serials),
+          stock: newStock
+        }
+      });
+      return NextResponse.json(updated);
+    }
+
+    // 3. UTASÍTÁS: ÜGYFÉLNEK ELADVA (AUTOMATIKUS LEVONÁS)
+    if (action === "deduct") {
+      if (deleteSerial) {
+        // Megkeressük a törlendő gyári számot, hogy lássuk a forrását
+        const found = serials.find(s => s.sn === deleteSerial);
+        serials = serials.filter(s => s.sn !== deleteSerial);
+        
+        const updated = await prisma.item.update({
+          where: { id },
+          data: {
+            serialNumber: serializeSerials(serials),
+            stock: serials.length
+          }
+        });
+        // Visszaadjuk a forrást is, hogy az ügyfél oldal elmenthesse magának!
+        return NextResponse.json({ updated, deductedSource: found ? found.src : "Ismeretlen" });
+      } else {
+        // Gyári szám nélküli anyag (pl. cső) sima levonása
+        const newStock = Math.max(0, (currentItem.stock || 0) - (qtyToDeduct || 1));
+        const updated = await prisma.item.update({ where: { id }, data: { stock: newStock } });
+        return NextResponse.json(updated);
+      }
+    }
+
+    // SIMA MENEDZSMENT SZERKESZTÉS (Ár, név módosítása)
     const updated = await prisma.item.update({
-      where: { id: body.id },
+      where: { id },
       data: {
         name: body.name,
         price: parseFloat(body.price),
         sku: body.sku,
-        serialNumber: formattedSN || null,
-        stock: finalStock,
-        supplier: body.supplier,
+        supplier: body.supplier
       },
     });
     return NextResponse.json(updated);
   } catch (error: any) {
-    console.error("PATCH hiba:", error);
-    return NextResponse.json({ error: "Hiba a módosítás során", details: error.message }, { status: 500 });
-  }
-}
-
-export async function DELETE(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    if (!id) return NextResponse.json({ error: "Nincs ID" }, { status: 400 });
-    
-    await prisma.item.delete({ where: { id: parseInt(id) } });
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: "Hiba a törlés során", details: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Hiba a frissítés során" }, { status: 500 });
   }
 }
