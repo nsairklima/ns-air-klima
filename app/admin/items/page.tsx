@@ -1,28 +1,23 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "navigation";
+import { useRouter } from "next/navigation";
 
 export default function AdminItemsPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
-  
-  // ÚJ: Kiválasztási üzemmód (create = teljesen új, add_stock = meglévő bővítése)
-  const [formMode, setFormMode] = useState<"create" | "add_stock">("create");
   const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
+
+  // Beviteli mezők állapota
+  const [newSerial, setNewSerial] = useState("");
+  const [newSupplier, setNewSupplier] = useState("");
+  const [serialToDelete, setSerialToDelete] = useState("");
+  const [simpleStockToAdd, setSimpleStockToAdd] = useState("0");
+
+  const [newItemData, setNewItemData] = useState({ name: "", price: "", sku: "", supplier: "" });
 
   const router = useRouter();
-
-  const [formData, setFormData] = useState({
-    name: "",
-    price: "",
-    sku: "",
-    serialNumber: "",
-    stock: "0",
-    supplier: ""
-  });
 
   const loadItems = async () => {
     const res = await fetch("/api/items");
@@ -32,222 +27,183 @@ export default function AdminItemsPage() {
 
   useEffect(() => { loadItems(); }, []);
 
-  // Számolja a darabszámot beírás közben
-  useEffect(() => {
-    if (formData.serialNumber.trim()) {
-      const count = formData.serialNumber.split(",").map(s => s.trim()).filter(s => s.length > 0).length;
-      setFormData(prev => ({ ...prev, stock: count.toString() }));
-    }
-  }, [formData.serialNumber]);
+  const selectedItem = items.find(i => i.id === Number(selectedItemId));
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Gyári számok listája a kiválasztott tételhez
+  const currentSerials = selectedItem?.serialNumber 
+    ? selectedItem.serialNumber.split(", ").map((s: string) => {
+        const [sn, src] = s.split("@");
+        return { sn, src: src || "Nincs" };
+      })
+    : [];
+
+  // ÚJ GYÁRI SZÁM HOZZÁADÁSA MEGLÉVŐHÖZ
+  const handleAddSerial = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedItemId) return;
     setLoading(true);
 
-    let res;
-    if (editingId) {
-      // Sima szerkesztés mentése
-      res = await fetch("/api/items", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, id: editingId, price: Number(formData.price), stock: Number(formData.stock) }),
-      });
-    } else if (formMode === "add_stock") {
-      // MEGLÉVŐ HÖZ HOZZÁADÁS
-      res = await fetch("/api/items", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "add_stock",
-          id: Number(selectedItemId),
-          serialNumber: formData.serialNumber,
-          supplier: formData.supplier,
-          stock: Number(formData.stock)
-        }),
-      });
-    } else {
-      // TELJESEN ÚJ LÉTREHOZÁSA
-      res = await fetch("/api/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, price: Number(formData.price), stock: Number(formData.stock) }),
-      });
-    }
+    const res = await fetch("/api/items", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "add_serial",
+        id: Number(selectedItemId),
+        newSerial: newSerial,
+        newSupplier: newSupplier,
+        stock: Number(simpleStockToAdd)
+      })
+    });
 
-    if (res && res.ok) {
-      setFormData({ name: "", price: "", sku: "", serialNumber: "", stock: "0", supplier: "" });
-      setEditingId(null);
-      setSelectedItemId("");
+    if (res.ok) {
+      setNewSerial("");
+      setNewSupplier("");
+      setSimpleStockToAdd("0");
       loadItems();
     }
     setLoading(false);
   };
 
-  const startEdit = (item: any) => {
-    setEditingId(item.id);
-    setFormMode("create");
-    setFormData({
-      name: item.name,
-      price: item.price.toString(),
-      sku: item.sku || "",
-      serialNumber: item.serialNumber || "",
-      stock: item.stock?.toString() || "0",
-      supplier: item.supplier || ""
+  // GYÁRI SZÁM TÖRLESE LENYÍLÓBÓL
+  const handleDeleteSerial = async () => {
+    if (!selectedItemId || !serialToDelete) return;
+    if (!confirm(`Biztosan törlöd a(z) ${serialToDelete} gyári számot a raktárból?`)) return;
+
+    setLoading(true);
+    const res = await fetch("/api/items", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "delete_serial",
+        id: Number(selectedItemId),
+        deleteSerial: serialToDelete
+      })
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (res.ok) {
+      setSerialToDelete("");
+      loadItems();
+    }
+    setLoading(false);
+  };
+
+  // TELJESEN ÚJ TERMÉK REGISZTRÁCIÓJA
+  const handleCreateNewItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const res = await fetch("/api/items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newItemData)
+    });
+    if (res.ok) {
+      setNewItemData({ name: "", price: "", sku: "", supplier: "" });
+      loadItems();
+    }
+    setLoading(false);
   };
 
   return (
-    <div style={{ padding: "20px 12px", maxWidth: 1200, margin: "0 auto", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
+    <div style={{ padding: "20px 12px", maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#000", minHeight: "100vh", color: "#fff" }}>
+      <button onClick={() => router.push("/")} style={{ padding: "10px 20px", background: "#333", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", marginBottom: "20px" }}>🏠 Főmenü</button>
       
-      {/* FŐOLDAL GOMB */}
-      <div style={{ marginBottom: "20px" }}>
-        <button onClick={() => router.push("/")} style={{ padding: "10px 20px", borderRadius: "8px", border: "1px solid #444", background: "#333", color: "#fff", cursor: "pointer", fontWeight: "bold" }}>
-          HN Főoldal
-        </button>
-      </div>
+      <h1 style={{ color: "#2ecc71" }}>📦 Raktárkezelő Központ</h1>
 
-      <h1 style={{ marginBottom: "25px", color: "#fff", fontSize: "1.8rem" }}>📦 Raktárkészlet kezelése</h1>
-
-      {/* MÓDVÁLASZTÓ FÜLEK (Csak ha nem szerkesztünk épp) */}
-      {!editingId && (
-        <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-          <button 
-            onClick={() => { setFormMode("create"); setFormData({ name: "", price: "", sku: "", serialNumber: "", stock: "0", supplier: "" }); }}
-            style={{ ...tabBtn, background: formMode === "create" ? "#2ecc71" : "#333" }}
-          >
-            ➕ Új anyagtípus regisztrálása
-          </button>
-          <button 
-            onClick={() => { setFormMode("add_stock"); setFormData({ name: "Kiválasztott", price: "0", sku: "", serialNumber: "", stock: "0", supplier: "" }); }}
-            style={{ ...tabBtn, background: formMode === "add_stock" ? "#3498db" : "#333" }}
-          >
-            📥 Meglévő tétel bővítése (Bevételezés)
-          </button>
-        </div>
-      )}
-
-      {/* DINAMIKUS ŰRLAP KÁRTYA */}
-      <div style={formCard(!!editingId, formMode)}>
-        <h3 style={{ marginTop: 0, marginBottom: "15px", color: "#333" }}>
-          {editingId ? "✏️ Tétel módosítása" : formMode === "create" ? "➕ Új tétel rögzítése" : "📥 Készlet hozzáadása meglévő anyaghoz"}
-        </h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px", marginBottom: "30px" }}>
         
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "15px", width: "100%" }}>
-          <div style={responsiveFormGrid}>
-            
-            {/* HA BŐVÍTÉS VAN: LENYÍLÓ LISTA JELENIK MEG */}
-            {formMode === "add_stock" && !editingId ? (
-              <div style={{ gridColumn: "span 1" }}>
-                <label style={labelS}>Válaszd ki a raktáron lévő anyagot *</label>
-                <select 
-                  style={inputS} 
-                  value={selectedItemId} 
-                  onChange={e => setSelectedItemId(e.target.value)}
-                  required
-                >
-                  <option value="">-- Válassz anyagot/klímát --</option>
-                  {items.map(i => (
-                    <option key={i.id} value={i.id}>{i.name} (Jelenleg: {i.stock} db)</option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              // HA ÚJ VAN: SIMA SZÖVEGES BEVITEL
-              <div>
-                <label style={labelS}>Termék megnevezése *</label>
-                <input style={inputS} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-              </div>
-            )}
+        {/* PANEL 1: MEGLÉVŐ ANYAG KEZELÉSE (BEVÉTELEZÉS ÉS TÖRLES) */}
+        <div style={panelCard}>
+          <h3 style={{ margin: "0 0 15px 0", color: "#4DA3FF" }}>📥 Készlet módosítása (Kiválasztással)</h3>
+          
+          <label style={labelS}>Válaszd ki az anyagot/gépet:</label>
+          <select style={inputS} value={selectedItemId} onChange={e => { setSelectedItemId(e.target.value); setSerialToDelete(""); }}>
+            <option value="">-- Válassz a raktárból --</option>
+            {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.stock} db raktáron)</option>)}
+          </select>
 
-            {formMode === "create" && (
-              <>
-                <div>
-                  <label style={labelS}>Nettó eladási ár (Ft) *</label>
-                  <input style={inputS} type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required />
+          {selectedItemId && (
+            <>
+              <hr style={{ border: "0", borderTop: "1px solid #333", margin: "15px 0" }} />
+              
+              {/* Új gép hozzáadása */}
+              <form onSubmit={handleAddSerial} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <span style={{ fontSize: "12px", fontWeight: "bold", color: "#2ecc71" }}>➕ ÚJ DARAB BEVÉTELEZÉSE:</span>
+                <input style={inputS} placeholder="Gyári szám (elhagyható ha sima anyag)" value={newSerial} onChange={e => setNewSerial(e.target.value)} />
+                <input style={inputS} placeholder="Beszerzési forrás (pl. Gree Hungary)" value={newSupplier} onChange={e => setNewSupplier(e.target.value)} />
+                {!newSerial && (
+                  <input style={inputS} type="number" placeholder="Mennyiség hozzáadása (db)" value={simpleStockToAdd} onChange={e => setSimpleStockToAdd(e.target.value)} />
+                )}
+                <button type="submit" disabled={loading} style={{ ...btnS, background: "#2ecc71" }}>Hozzáadás a készlethez</button>
+              </form>
+
+              {/* Meglévő törlése lenyílóból */}
+              {currentSerials.length > 0 && (
+                <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", padding: "12px", background: "#111", borderRadius: "8px", border: "1px dashed #e74c3c" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "bold", color: "#e74c3c" }}>🗑️ RAKTÁRON LÉVŐ GYÁRI SZÁM TÖRLÉSE:</span>
+                  <select style={inputS} value={serialToDelete} onChange={e => setSerialToDelete(e.target.value)}>
+                    <option value="">-- Válaszd ki a törlendőt --</option>
+                    {currentSerials.map((s, idx) => <option key={idx} value={s.sn}>{s.sn} (Forrás: {s.src})</option>)}
+                  </select>
+                  <button type="button" onClick={handleDeleteSerial} disabled={!serialToDelete || loading} style={{ ...btnS, background: "#e74c3c" }}>Kiválasztott szám végleges törlése</button>
                 </div>
-                <div>
-                  <label style={labelS}>Cikkszám (SKU)</label>
-                  <input style={inputS} value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} />
-                </div>
-              </>
-            )}
+              )}
+            </>
+          )}
+        </div>
 
-            <div>
-              <label style={labelS}>Gyári számok <span style={{color: "#2980b9", textTransform: "none"}}>(Formátum: SN123@Nagyker, SN124@Nagyker)</span></label>
-              <input style={inputS} placeholder="pl. SN992@GreeKft, SN993@GreeKft" value={formData.serialNumber} onChange={e => setFormData({...formData, serialNumber: e.target.value})} />
-            </div>
-
-            <div>
-              <label style={labelS}>Hozzáadni kívánt Mennyiség (db)</label>
-              <input style={inputS} type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} disabled={!!formData.serialNumber.trim()} />
-            </div>
-
-            <div>
-              <label style={labelS}>{formMode === "add_stock" ? "Beszállító ehhez a szállítmányhoz" : "Alapértelmezett Beszerzési forrás"}</label>
-              <input style={inputS} placeholder="pl. Sinclair nagyker" value={formData.supplier} onChange={e => setFormData({...formData, supplier: e.target.value})} />
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button type="submit" disabled={loading || (formMode === "add_stock" && !selectedItemId && !editingId)} style={{ ...btnS, background: editingId ? "#e67e22" : formMode === "add_stock" ? "#3498db" : "#2ecc71", flex: 1 }}>
-              {editingId ? "Módosítás Mentése" : formMode === "add_stock" ? "Készlet bevételezése" : "Rögzítés"}
-            </button>
-            {editingId && (
-              <button type="button" onClick={() => { setEditingId(null); setFormData({ name: "", price: "", sku: "", serialNumber: "", stock: "0", supplier: "" }); }} style={{ ...btnS, background: "#95a5a6" }}>
-                Mégse
-              </button>
-            )}
-          </div>
-        </form>
+        {/* PANEL 2: TELJESEN ÚJ TERMÉKFAJTA LÉTREHOZÁSA */}
+        <div style={panelCard}>
+          <h3 style={{ margin: "0 0 15px 0", color: "#2ecc71" }}>✨ Teljesen új anyagtípus regisztrálása</h3>
+          <form onSubmit={handleCreateNewItem} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <input style={inputS} placeholder="Termék megnevezése (pl. Comfort X 3.5kW) *" value={newItemData.name} onChange={e => setNewItemData({...newItemData, name: e.target.value})} required />
+            <input style={inputS} type="number" placeholder="Nettó eladási ár (Ft) *" value={newItemData.price} onChange={e => setNewItemData({...newItemData, price: e.target.value})} required />
+            <input style={inputS} placeholder="Cikkszám (SKU)" value={newItemData.sku} onChange={e => setNewItemData({...newItemData, sku: e.target.value})} />
+            <input style={inputS} placeholder="Alapértelmezett nagyker" value={newItemData.supplier} onChange={e => setNewItemData({...newItemData, supplier: e.target.value})} />
+            <button type="submit" disabled={loading} style={{ ...btnS, background: "#4DA3FF" }}>Alaptípus létrehozása</button>
+          </form>
+        </div>
       </div>
 
       {/* RAKTÁR LISTA */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <h2 style={{ color: "#fff", fontSize: "1.3rem", marginBottom: "15px" }}>Aktuális Raktárkészlet listája:</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {items.map(item => {
           const serials = item.serialNumber ? item.serialNumber.split(", ").filter(Boolean) : [];
           const isExpanded = expandedItemId === item.id;
 
           return (
-            <div key={item.id} style={{ background: "#1a1a1a", borderRadius: "12px", padding: "16px", border: "1px solid #333", display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div>
-                <div style={{ fontWeight: "bold", fontSize: "16px", color: "#fff" }}>{item.name}</div>
-                <div style={{ fontSize: "12px", color: "#aaa" }}>
-                  SKU: <span style={{ color: "#fff" }}>{item.sku || "Nincs"}</span>
-                  {serials.length > 0 && (
-                    <span onClick={() => setExpandedItemId(isExpanded ? null : item.id)} style={{ color: "#3498db", marginLeft: "8px", cursor: "pointer", textDecoration: "underline" }}>
-                      {isExpanded ? "🔍 Gyári számok elrejtése" : `🔍 Gyári számok kilistázása (${serials.length} db)`}
-                    </span>
-                  )}
+            <div key={item.id} style={{ background: "#1a1a1a", padding: "16px", borderRadius: "10px", border: "1px solid #333" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <strong style={{ fontSize: "16px" }}>{item.name}</strong>
+                  <div style={{ fontSize: "12px", color: "#aaa", marginTop: "4px" }}>
+                    SKU: {item.sku || "Nincs"} 
+                    {serials.length > 0 && (
+                      <span onClick={() => setExpandedItemId(isExpanded ? null : item.id)} style={{ color: "#4DA3FF", marginLeft: "10px", cursor: "pointer", textDecoration: "underline" }}>
+                        {isExpanded ? "Bezár" : `Gyári számok mutatása (${serials.length} db)`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ color: item.stock > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold" }}>{item.stock} db</span>
+                  <div style={{ fontSize: "13px", color: "#ccc", marginTop: "4px" }}>{item.price.toLocaleString()} Ft</div>
                 </div>
               </div>
 
               {isExpanded && serials.length > 0 && (
-                <div style={{ background: "#111", padding: "12px", borderRadius: "8px", border: "1px dashed #444" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {serials.map((rawSn: string, index: number) => {
-                      const [sn, src] = rawSn.split("@");
-                      return (
-                        <div key={index} style={{ fontSize: "13px", color: "#fff", display: "flex", justifyContent: "space-between", background: "#181818", padding: "6px 10px", borderRadius: "4px" }}>
-                          <span><span style={{ color: "#2ecc71" }}>•</span> <strong>{sn}</strong></span>
-                          <span style={{ fontSize: "11px", background: "#2c3e50", color: "#bdc3c7", padding: "2px 6px", borderRadius: "4px" }}>🏢 {src || item.supplier || "Nincs megadva"}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div style={{ background: "#050505", padding: "10px", borderRadius: "6px", marginTop: "10px", border: "1px dashed #444" }}>
+                  {serials.map((s: string, idx: number) => {
+                    const [sn, src] = s.split("@");
+                    return (
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", padding: "4px 0", borderBottom: idx !== serials.length - 1 ? "1px solid #222" : "none" }}>
+                        <span>• <code style={{ color: "#2ecc71" }}>{sn}</code></span>
+                        <span style={{ color: "#aaa", fontSize: "11px" }}>🏢 {src || "Ismeretlen"}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-
-              <div style={{ display: "flex", justifyContent: "space-between", background: "#222", padding: "10px 14px", borderRadius: "8px" }}>
-                <div><span style={{ fontSize: "12px", color: "#aaa", display: "block" }}>KÉSZLET</span><span style={{ color: item.stock > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold" }}>{item.stock} db</span></div>
-                <div><span style={{ fontSize: "12px", color: "#aaa", display: "block" }}>FŐ FORRÁS</span><span style={{ color: "#ccc" }}>{item.supplier || "-"}</span></div>
-                <div style={{ textAlign: "right" }}><span style={{ fontSize: "12px", color: "#aaa", display: "block" }}>ÁR</span><span style={{ color: "#fff", fontWeight: "bold" }}>{item.price.toLocaleString()} Ft</span></div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "15px", borderTop: "1px solid #2a2a2a", paddingTop: "10px" }}>
-                <button onClick={() => startEdit(item)} style={iconBtn}>✏️ Szerkesztés</button>
-                <button onClick={async () => { if(confirm("Törlöd?")) { await fetch(`/api/items?id=${item.id}`, {method: "DELETE"}); loadItems(); } }} style={{ ...iconBtn, color: "#e74c3c" }}>🗑️ Törlés</button>
-              </div>
             </div>
           );
         })}
@@ -256,18 +212,7 @@ export default function AdminItemsPage() {
   );
 }
 
-// STÍLUSOK
-const formCard = (isEdit: boolean, mode: string) => ({ 
-  background: "#fff", 
-  padding: "20px 16px", 
-  borderRadius: "12px", 
-  marginBottom: "30px", 
-  border: isEdit ? "2px solid #e67e22" : mode === "add_stock" ? "2px solid #3498db" : "2px solid #2ecc71",
-  boxSizing: "border-box" as const, width: "100%"
-});
-const tabBtn = { padding: "10px 15px", border: "none", borderRadius: "6px", color: "#fff", fontWeight: "bold" as const, cursor: "pointer", fontSize: "13px" };
-const responsiveFormGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "15px", width: "100%" };
-const inputS = { width: "100%", padding: "12px", borderRadius: "6px", border: "1px solid #ccc", color: "#333", background: "#fff", fontSize: "15px" };
-const labelS = { fontSize: "11px", fontWeight: "bold" as const, color: "#555", marginBottom: "5px", display: "block" };
-const btnS = { padding: "14px", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" as const };
-const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "14px", color: "#3498db", fontWeight: "bold" };
+const panelCard = { background: "#141414", padding: "20px", borderRadius: "12px", border: "1px solid #222" };
+const labelS = { fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" };
+const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #333", background: "#222", color: "#fff", boxSizing: "border-box" as const };
+const btnS = { padding: "12px", border: "none", borderRadius: "6px", color: "#000", fontWeight: "bold" as const, cursor: "pointer", marginTop: "5px" };
