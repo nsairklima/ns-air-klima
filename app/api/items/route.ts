@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// Gyári számok tisztítása és formázása
-function formatSerialNumbers(snString: string): string {
+// Formázza és tisztítja a gyári számokat
+function formatSerialNumbers(snString: string, defaultSupplier: string): string {
   if (!snString) return "";
+  const supplier = defaultSupplier ? defaultSupplier.trim() : "";
+
   return snString
     .split(",")
-    .map((sn) => sn.trim())
+    .map((sn) => {
+      const trimmed = sn.trim();
+      if (!trimmed) return "";
+      if (trimmed.includes("@")) {
+        const [num, src] = trimmed.split("@");
+        return `${num.trim()}@${src.trim()}`;
+      }
+      return supplier ? `${trimmed}@${supplier}` : trimmed;
+    })
     .filter((sn) => sn.length > 0)
     .join(", ");
 }
@@ -25,9 +35,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const formattedSN = formatSerialNumbers(body.serialNumber);
-    
-    // Ha adtak meg gyári számokat, a készlet automatikusan a gyári számok száma legyen
+    const formattedSN = formatSerialNumbers(body.serialNumber, body.supplier);
     const finalStock = formattedSN ? formattedSN.split(", ").length : (parseInt(body.stock) || 0);
 
     const newItem = await prisma.item.create({
@@ -49,7 +57,67 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const formattedSN = formatSerialNumbers(body.serialNumber);
+    const { action, id, serialNumber, supplier, qtyToDeduct } = body;
+
+    // 1. ESET: ÜGYFÉLHEZ RENDELÉS (LEVONÁS A RAKTÁRBÓL)
+    if (action === "deduct") {
+      const currentItem = await prisma.item.findUnique({ where: { id } });
+      if (!currentItem) return NextResponse.json({ error: "A termék nem található" }, { status: 404 });
+
+      let currentSerials = currentItem.serialNumber ? currentItem.serialNumber.split(", ").filter(Boolean) : [];
+      
+      // Ha konkrét gyári számot vonunk le
+      if (serialNumber) {
+        // Kiszedjük azt a gyári számot, aminek a száma egyezik (levágva az @ utáni részt a kereséshez)
+        currentSerials = currentSerials.filter(rawSn => {
+          const [snNum] = rawSn.split("@");
+          return snNum.trim() !== serialNumber.trim();
+        });
+      }
+
+      // Készlet csökkentése (ha van S/N, akkor az új S/N hossza, ha nincs, sima levonás)
+      const newStock = currentItem.serialNumber 
+        ? currentSerials.length 
+        : Math.max(0, (currentItem.stock || 0) - (qtyToDeduct || 1));
+
+      const updated = await prisma.item.update({
+        where: { id },
+        data: {
+          stock: newStock,
+          serialNumber: currentSerials.length > 0 ? currentSerials.join(", ") : null
+        }
+      });
+      return NextResponse.json(updated);
+    }
+
+    // 2. ESET: BEVÉTELEZÉS / HOZZÁADÁS MEGLÉVŐHÖZ
+    if (action === "add_stock") {
+      const currentItem = await prisma.item.findUnique({ where: { id } });
+      if (!currentItem) return NextResponse.json({ error: "A termék nem található" }, { status: 404 });
+
+      const newSerialsFormatted = formatSerialNumbers(serialNumber, supplier);
+      
+      let finalSerials = currentItem.serialNumber ? currentItem.serialNumber.split(", ").filter(Boolean) : [];
+      if (newSerialsFormatted) {
+        finalSerials = [...finalSerials, ...newSerialsFormatted.split(", ").filter(Boolean)];
+      }
+
+      const finalStock = finalSerials.length > 0 ? finalSerials.length : ((currentItem.stock || 0) + (parseInt(body.stock) || 0));
+
+      const updated = await prisma.item.update({
+        where: { id },
+        data: {
+          serialNumber: finalSerials.length > 0 ? finalSerials.join(", ") : null,
+          stock: finalStock,
+          // Ha adtak meg új fő beszállítót, frissítjük, ha nem, marad a régi
+          supplier: supplier || currentItem.supplier
+        }
+      });
+      return NextResponse.json(updated);
+    }
+
+    // 3. ESET: SIMA SZERKESZTÉS (Mentés gomb)
+    const formattedSN = formatSerialNumbers(body.serialNumber, body.supplier);
     const finalStock = formattedSN ? formattedSN.split(", ").length : (parseInt(body.stock) || 0);
 
     const updated = await prisma.item.update({
