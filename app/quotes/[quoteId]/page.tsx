@@ -196,7 +196,8 @@ export default function QuoteEditPage() {
     setQty(m);
     setUnit(it.unit || "db");
     
-    const mentettNettoAlap = Number(it.costNet) || 0;
+    // Javítva: costNet helyett basePrice vagy costNet fallback használata
+    const mentettNettoAlap = Number(it.basePrice || it.costNet || 0);
     setBasePriceNet(mentettNettoAlap === 0 ? "" : mentettNettoAlap);
 
     const mentettTeljesBrutto = Number(it.lineGross) || 0;
