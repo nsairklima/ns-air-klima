@@ -10,14 +10,13 @@ export async function GET(
   try {
     const id = Number(params.quoteId);
     
-    // Lekérjük az ajánlatot a kifejezett sorrenddel
     const quote = await prisma.quote.findUnique({
       where: { id },
       include: { 
         client: true, 
         items: {
           orderBy: {
-            sortOrder: 'asc' // Ez biztosítja, hogy a PDF-ben is a mentett sorrend legyen
+            sortOrder: 'asc'
           }
         } 
       },
@@ -25,7 +24,7 @@ export async function GET(
 
     if (!quote) return NextResponse.json({ error: "Az ajánlat nem található" }, { status: 404 });
 
-    // PDF létrehozása standard A4 méretben
+    // PDF létrehozása szigorú A4 méretezéssel és fix 40 pontos margóval
     const doc = new PDFDocument({ 
       size: 'A4',
       margins: { top: 40, left: 40, right: 40, bottom: 40 },
@@ -71,10 +70,11 @@ export async function GET(
     doc.font(fontPath).fillColor("#000");
     quote.items.forEach((item) => {
       const textHeight = doc.heightOfString(item.description, { width: 230 });
-      const rowHeight = Math.max(textHeight + 10, 20);
+      const rowHeight = Math.max(textHeight + 15, 25);
 
-      // Biztonságos ellenőrzés: ha az aktuális y + a sor magassága túl közel van a lap aljához (700 pont), új oldalra rakjuk
-      if (y + rowHeight > 700) {
+      // MOBIL BIZTONSÁGI JAVÍTÁS: Ha a tétel magasságával átlépjük a 660-as y-t, 
+      // még azelőtt új oldalt nyitunk, hogy a PDFKit elkezdene rálógni a margóra.
+      if (y + rowHeight > 660) {
         doc.addPage();
         y = 50;
       }
@@ -82,21 +82,19 @@ export async function GET(
       doc.fontSize(9).text(item.description, 60, y, { width: 230 });
       doc.text(`${item.quantity} ${item.unit || "db"}`, 300, y);
       
-      // Egységár kalkuláció
       const unitGross = Math.round(Number(item.unitPriceNet) * 1.27);
       doc.text(`${unitGross.toLocaleString()} Ft`, 380, y);
       doc.text(`${Number(item.lineGross).toLocaleString()} Ft`, 465, y);
       
       y += rowHeight;
       
-      // Elválasztó vonal
       doc.strokeColor("#eee").lineWidth(0.5).moveTo(50, y - 5).lineTo(550, y - 5).stroke();
     });
 
-    // ÖSSZESÍTŐ ÉS LÁBLÉC BLOKK HELYELLENŐRZÉSE
-    // Az összesítőnek és a láblécnek összesen kb. 120-130 pont hely kell. 
-    // Ha y > 630, akkor inkább áttesszük egy tiszta új oldalra, hogy biztosan ne lógjon le az alsó sor.
-    if (y > 630) { 
+    // ÖSSZESÍTŐ ÉS LÁBLÉC BLOKK JAVÍTÁSA
+    // Ha az y koordináta nagyobb, mint 610, akkor a lábléc alja (ami kb. 120 pont magas) 
+    // biztosan átlépné a kritikus mobil-renderelési zónát. Ekkor új oldalt kérünk.
+    if (y > 610) { 
       doc.addPage(); 
       y = 50; 
     }
@@ -121,7 +119,6 @@ export async function GET(
       doc.on("end", () => resolve(Buffer.concat(chunks)));
     });
 
-    // Válasz küldése PDF-ként, cache letiltással
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
