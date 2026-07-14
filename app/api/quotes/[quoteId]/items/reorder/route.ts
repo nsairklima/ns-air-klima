@@ -6,15 +6,20 @@ export async function PATCH(
   { params }: { params: { quoteId: string } }
 ) {
   try {
+    // Feloldjuk a paramétereket, hogy biztosan elérhető legyen a quoteId
+    const resolvedParams = await params;
     const { items } = await req.json();
 
-    // Megvárjuk, amíg az összes tétel sorrendje frissül az adatbázisban
-    // A tranzakció (transaction) biztosítja, hogy vagy minden frissül, vagy semmi
+    if (!items || !Array.isArray(items)) {
+      return NextResponse.json({ error: "Hibás adatformátum." }, { status: 400 });
+    }
+
+    // Tranzakcióban hajtjuk végre a frissítéseket a konzisztencia érdekében
     await prisma.$transaction(
       items.map((item: { id: number; sortOrder: number }) =>
         prisma.quoteItem.update({
-          where: { id: item.id },
-          data: { sortOrder: item.sortOrder },
+          where: { id: Number(item.id) },
+          data: { sortOrder: Number(item.sortOrder) },
         })
       )
     );
