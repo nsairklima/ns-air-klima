@@ -17,10 +17,12 @@ export default function QuoteEditPage() {
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [desc, setDesc] = useState("");
-  const [qty, setQty] = useState<number | "">(1);
+  
+  // A gépelési akadások elkerülésére stringként tároljuk a beviteli mezőket
+  const [qty, setQty] = useState<string>("1");
   const [unit, setUnit] = useState("db");
-  const [basePriceNet, setBasePriceNet] = useState<number | "">(""); 
-  const [profitValue, setProfitValue] = useState<number | "">(""); 
+  const [basePriceNet, setBasePriceNet] = useState<string>(""); 
+  const [profitValue, setProfitValue] = useState<string>(""); 
   const [profitType, setProfitType] = useState<"percent" | "fix">("fix");
 
   const loadQuote = async () => {
@@ -137,12 +139,13 @@ export default function QuoteEditPage() {
     const selected = dbItems.find(i => i.id === Number(e.target.value));
     if (selected) {
       setDesc(selected.name);
-      setBasePriceNet(selected.price);
+      setBasePriceNet(String(selected.price || ""));
       setProfitValue(""); 
       setUnit(selected.unit || "db"); 
     }
   };
 
+  // Biztonságos számmá alakítás a kalkulációkhoz
   const n_beszerzes = basePriceNet === "" ? 0 : Number(basePriceNet);
   const n_profit = profitValue === "" ? 0 : Number(profitValue);
   const n_mennyiseg = qty === "" ? 0 : Number(qty);
@@ -193,12 +196,11 @@ export default function QuoteEditPage() {
     setEditingId(it.id);
     setDesc(it.description);
     const m = Number(it.quantity) || 1;
-    setQty(m);
+    setQty(String(m));
     setUnit(it.unit || "db");
     
-    // Javítva: costNet helyett basePrice vagy costNet fallback használata
     const mentettNettoAlap = Number(it.basePrice || it.costNet || 0);
-    setBasePriceNet(mentettNettoAlap === 0 ? "" : mentettNettoAlap);
+    setBasePriceNet(mentettNettoAlap === 0 ? "" : String(mentettNettoAlap));
 
     const mentettTeljesBrutto = Number(it.lineGross) || 0;
     const bruttoEladasiEgysegar = mentettTeljesBrutto / m;
@@ -207,13 +209,18 @@ export default function QuoteEditPage() {
     const diff = Math.round(bruttoEladasiEgysegar - bruttoBeszerzesiEgysegar);
 
     setProfitType("fix");
-    setProfitValue(diff === 0 ? "" : diff);
+    setProfitValue(diff === 0 ? "" : String(diff));
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
-    setEditingId(null); setDesc(""); setQty(1); setUnit("db"); setBasePriceNet(""); setProfitValue("");
+    setEditingId(null); 
+    setDesc(""); 
+    setQty("1"); 
+    setUnit("db"); 
+    setBasePriceNet(""); 
+    setProfitValue("");
   };
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
@@ -299,7 +306,7 @@ export default function QuoteEditPage() {
                 <input 
                   type="number" 
                   value={qty} 
-                  onChange={e => setQty(e.target.value === "" ? "" : Number(e.target.value))} 
+                  onChange={e => setQty(e.target.value)} 
                   style={inputS} 
                 />
                 <select value={unit} onChange={e => setUnit(e.target.value)} style={{ ...inputS, width: 90, padding: "13px 8px" }}>
@@ -314,7 +321,7 @@ export default function QuoteEditPage() {
                 type="number" 
                 placeholder="0"
                 value={basePriceNet} 
-                onChange={e => setBasePriceNet(e.target.value === "" ? "" : Number(e.target.value))} 
+                onChange={e => setBasePriceNet(e.target.value)} 
                 style={inputS} 
               />
             </div>
@@ -325,7 +332,7 @@ export default function QuoteEditPage() {
                   type="number" 
                   placeholder="0"
                   value={profitValue} 
-                  onChange={e => setProfitValue(e.target.value === "" ? "" : Number(e.target.value))} 
+                  onChange={e => setProfitValue(e.target.value)} 
                   style={inputS} 
                 />
                 <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{ ...inputS, width: 80, padding: "13px 6px" }}>
