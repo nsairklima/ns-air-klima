@@ -1,6 +1,3 @@
-
-
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import PDFDocument from "pdfkit";
@@ -28,10 +25,29 @@ export async function GET(
 
     if (!quote) return NextResponse.json({ error: "Az ajánlat nem található" }, { status: 404 });
 
+    const itemCount = quote.items.length;
+
+    // --- DINAMIKUS SKÁLÁZÁSI LOGIKA (Garantáltan 1 oldalas PDF) ---
+    // Ha sok a tétel, visszavesszük a betűméreteket és a sormagasságokat, hogy ne csússzon át a 2. oldalra.
+    const isCrowded = itemCount > 5;
+    const isVeryCrowded = itemCount > 10;
+
+    const baseFontSize = isVeryCrowded ? 8 : (isCrowded ? 9 : 10);
+    const titleFontSize = isVeryCrowded ? 16 : (isCrowded ? 18 : 20);
+    const tableHeaderFontSize = isVeryCrowded ? 8 : 9;
+    const itemFontSize = isVeryCrowded ? 7.5 : (isCrowded ? 8.5 : 9);
+    
+    const lineSpacing = isVeryCrowded ? 10 : (isCrowded ? 14 : 18); // Távolság a tételek között
+    const paddingMultiplier = isVeryCrowded ? 0.7 : (isCrowded ? 0.85 : 1);
+
+    // Margók csökkentése, ha sok a tétel, hogy több legyen a hasznos hely függőlegesen
+    const topMargin = isVeryCrowded ? 20 : 30;
+    const bottomMargin = isVeryCrowded ? 20 : 30;
+
     // PDF létrehozása
     const doc = new PDFDocument({ 
       size: 'A4',
-      margins: { top: 30, left: 40, right: 40, bottom: 30 },
+      margins: { top: topMargin, left: 40, right: 40, bottom: bottomMargin },
       bufferPages: true,
       autoFirstPage: false 
     });
@@ -45,69 +61,82 @@ export async function GET(
     doc.font(fontPath);
 
     // FEJLÉC
-    doc.fontSize(20).font(fontBoldPath).text("ÁRAJÁNLAT", { align: "center" });
-    let y = 60; 
+    doc.fontSize(titleFontSize).font(fontBoldPath).text("ÁRAJÁNLAT", { align: "center" });
+    let y = isVeryCrowded ? 45 : 60; 
 
     // ADATOK
-    doc.fontSize(10).font(fontPath).text(`Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`, 50, y);
-    y += 15;
+    doc.fontSize(baseFontSize).font(fontPath).text(`Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`, 50, y);
+    y += isVeryCrowded ? 12 : 15;
     doc.text(`Ajánlat száma: #${quote.id}`, 50, y);
-    y += 25;
+    y += isVeryCrowded ? 18 : 25;
 
-    doc.fontSize(11).font(fontBoldPath).text("Ügyfél adatai:", 50, y);
-    doc.font(fontPath).fontSize(10);
-    y += 15;
+    doc.fontSize(baseFontSize + 1).font(fontBoldPath).text("Ügyfél adatai:", 50, y);
+    doc.font(fontPath).fontSize(baseFontSize);
+    y += isVeryCrowded ? 12 : 15;
     doc.text(`${quote.client.name}`, 50, y);
-    y += 12;
+    y += isVeryCrowded ? 10 : 12;
     doc.text(`${quote.client.address || "-"}`, 50, y);
-    y += 30;
+    y += isVeryCrowded ? 18 : 30;
 
     // TÁBLÁZAT FEJLÉC
-    doc.rect(50, y, 500, 18).fill("#f0f0f0");
-    doc.fillColor("#000").fontSize(9).font(fontBoldPath).text("Megnevezés", 60, y + 5);
-    doc.text("Menny.", 300, y + 5);
-    doc.text("Bruttó egységár", 380, y + 5);
-    doc.text("Bruttó összesen", 465, y + 5);
-    y += 25;
+    const headerHeight = isVeryCrowded ? 14 : 18;
+    doc.rect(50, y, 500, headerHeight).fill("#f0f0f0");
+    doc.fillColor("#000").fontSize(tableHeaderFontSize).font(fontBoldPath).text("Megnevezés", 60, y + (isVeryCrowded ? 3 : 5));
+    doc.text("Menny.", 300, y + (isVeryCrowded ? 3 : 5));
+    doc.text("Bruttó egységár", 380, y + (isVeryCrowded ? 3 : 5));
+    doc.text("Bruttó összesen", 465, y + (isVeryCrowded ? 3 : 5));
+    y += headerHeight + (isVeryCrowded ? 5 : 10);
 
     // TÉTELEK KIÍRÁSA
     doc.font(fontPath).fillColor("#000");
     quote.items.forEach((item) => {
-      // Megnézzük, elfér-e még a tétel, vagy új oldal kell
-      if (y > 700) {
+      // Dinamikus sormagasság és szövegmagasság kalkuláció
+      doc.fontSize(itemFontSize);
+      const textHeight = doc.heightOfString(item.description, { width: 230 });
+      
+      // Megnézzük, elfér-e még a tétel, vagy új oldal kell (csak ha nagyon muszáj)
+      const safetyLimit = isVeryCrowded ? 780 : 700;
+      if (y > safetyLimit) {
         doc.addPage();
-        y = 50;
+        y = isVeryCrowded ? 30 : 50;
       }
 
-      doc.fontSize(9).text(item.description, 60, y, { width: 230 });
+      doc.text(item.description, 60, y, { width: 230 });
       doc.text(`${item.quantity} ${item.unit || "db"}`, 300, y);
       
-      // Egységár kalkuláció (ha az adatbázisban csak nettó van, akkor bruttósítva)
+      // Egységár kalkuláció
       const unitGross = Math.round(Number(item.unitPriceNet) * 1.27);
       doc.text(`${unitGross.toLocaleString()} Ft`, 380, y);
       doc.text(`${Number(item.lineGross).toLocaleString()} Ft`, 465, y);
       
-      const textHeight = doc.heightOfString(item.description, { width: 230 });
-      y += Math.max(textHeight + 10, 20);
+      y += Math.max(textHeight + (isVeryCrowded ? 4 : 6), lineSpacing);
       
       // Elválasztó vonal
-      doc.strokeColor("#eee").lineWidth(0.5).moveTo(50, y - 5).lineTo(550, y - 5).stroke();
+      doc.strokeColor("#eee").lineWidth(0.5).moveTo(50, y - (isVeryCrowded ? 2 : 4)).lineTo(550, y - (isVeryCrowded ? 2 : 4)).stroke();
     });
 
     // ÖSSZESÍTŐ BLOKK
-    y += 20;
-    if (y > 650) { doc.addPage(); y = 50; }
+    y += isVeryCrowded ? 10 : 15;
+    
+    // Biztosítjuk, hogy az összesítő is ráférjen
+    if (y > (isVeryCrowded ? 790 : 720)) { 
+      doc.addPage(); 
+      y = isVeryCrowded ? 30 : 50; 
+    }
 
-    doc.rect(340, y, 210, 30).lineWidth(1).strokeColor("#2c3e50").stroke();
-    doc.font(fontBoldPath).fontSize(11).text("Fizetendő bruttó:", 350, y + 10);
-    doc.fontSize(12).text(`${Number(quote.grossTotal).toLocaleString()} Ft`, 450, y + 10, { align: 'right', width: 90 });
+    const totalBoxHeight = isVeryCrowded ? 22 : 30;
+    const totalBoxPadding = isVeryCrowded ? 6 : 10;
+    
+    doc.rect(340, y, 210, totalBoxHeight).lineWidth(1).strokeColor("#2c3e50").stroke();
+    doc.font(fontBoldPath).fontSize(baseFontSize + 1).text("Fizetendő bruttó:", 350, y + totalBoxPadding);
+    doc.fontSize(baseFontSize + 2).text(`${Number(quote.grossTotal).toLocaleString()} Ft`, 450, y + totalBoxPadding, { align: 'right', width: 90 });
 
     // LÁBLÉC INFORMÁCIÓK
-    y += 50;
-    doc.font(fontPath).fontSize(9).fillColor("#005eb8").text("Köszönjük bizalmát!", 50, y);
-    y += 15;
-    doc.fillColor("#444").fontSize(8).text("Az ajánlat 7 napig érvényes.", 50, y);
-    y += 12;
+    y += totalBoxHeight + (isVeryCrowded ? 15 : 30);
+    doc.font(fontPath).fontSize(baseFontSize).fillColor("#005eb8").text("Köszönjük bizalmát!", 50, y);
+    y += isVeryCrowded ? 10 : 15;
+    doc.fillColor("#444").fontSize(baseFontSize - 1).text("Az ajánlat 7 napig érvényes.", 50, y);
+    y += isVeryCrowded ? 8 : 12;
     doc.text("Készítette: Klíma Kezelő Rendszer", 50, y);
 
     doc.end();
