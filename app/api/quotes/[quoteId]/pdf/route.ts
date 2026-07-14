@@ -1,5 +1,5 @@
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+
+
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -13,19 +13,25 @@ export async function GET(
   try {
     const id = Number(params.quoteId);
     
+    // Lekérjük az ajánlatot a kifejezett sorrenddel
     const quote = await prisma.quote.findUnique({
       where: { id },
       include: { 
         client: true, 
-        items: { orderBy: { sortOrder: 'asc' } } 
+        items: {
+          orderBy: {
+            sortOrder: 'asc' // Ez biztosítja, hogy a PDF-ben is a mentett sorrend legyen
+          }
+        } 
       },
     });
 
     if (!quote) return NextResponse.json({ error: "Az ajánlat nem található" }, { status: 404 });
 
+    // PDF létrehozása
     const doc = new PDFDocument({ 
       size: 'A4',
-      margins: { top: 30, left: 35, right: 35, bottom: 60 },
+      margins: { top: 30, left: 40, right: 40, bottom: 30 },
       bufferPages: true,
       autoFirstPage: false 
     });
@@ -38,65 +44,71 @@ export async function GET(
     const fontBoldPath = path.join(process.cwd(), "public/fonts/Roboto-Bold.ttf");
     doc.font(fontPath);
 
-    // Fejléc
-    doc.fontSize(14).font(fontBoldPath).text("BRUTTÓ ÁRAJÁNLAT", 35, 30);
-    doc.fontSize(8).font(fontPath).fillColor("#555");
-    doc.text(`Sorszám: #${quote.id}  |  Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`, 35, 47);
+    // FEJLÉC
+    doc.fontSize(20).font(fontBoldPath).text("ÁRAJÁNLAT", { align: "center" });
+    let y = 60; 
 
-    // Vevő
-    doc.font(fontBoldPath).fillColor("#000").text("Megrendelő:", 320, 30);
-    doc.font(fontPath).text(`${quote.client.name} (${quote.client.address || "-"})`, 320, 42, { width: 240 });
+    // ADATOK
+    doc.fontSize(10).font(fontPath).text(`Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`, 50, y);
+    y += 15;
+    doc.text(`Ajánlat száma: #${quote.id}`, 50, y);
+    y += 25;
 
-    // Táblázat
-    let y = 75;
-    doc.rect(35, y, 525, 14).fill("#eef2f5");
-    doc.fillColor("#000").fontSize(8).font(fontBoldPath).text("Megnevezés", 42, y + 3);
-    doc.text("Menny.", 310, y + 3);
-    doc.text("Egységár", 385, y + 3);
-    doc.text("Összesen", 475, y + 3);
-    y += 18;
+    doc.fontSize(11).font(fontBoldPath).text("Ügyfél adatai:", 50, y);
+    doc.font(fontPath).fontSize(10);
+    y += 15;
+    doc.text(`${quote.client.name}`, 50, y);
+    y += 12;
+    doc.text(`${quote.client.address || "-"}`, 50, y);
+    y += 30;
 
-    doc.font(fontPath).fontSize(8).fillColor("#222");
-    
+    // TÁBLÁZAT FEJLÉC
+    doc.rect(50, y, 500, 18).fill("#f0f0f0");
+    doc.fillColor("#000").fontSize(9).font(fontBoldPath).text("Megnevezés", 60, y + 5);
+    doc.text("Menny.", 300, y + 5);
+    doc.text("Bruttó egységár", 380, y + 5);
+    doc.text("Bruttó összesen", 465, y + 5);
+    y += 25;
+
+    // TÉTELEK KIÍRÁSA
+    doc.font(fontPath).fillColor("#000");
     quote.items.forEach((item) => {
-      if (y > 420) {
+      // Megnézzük, elfér-e még a tétel, vagy új oldal kell
+      if (y > 700) {
         doc.addPage();
-        y = 40;
+        y = 50;
       }
 
-      const textHeight = doc.heightOfString(item.description, { width: 250 });
-      const rowHeight = Math.max(textHeight + 4, 14);
-
-      doc.text(item.description, 42, y, { width: 250 });
-      doc.text(`${item.quantity} ${item.unit || "db"}`, 310, y);
+      doc.fontSize(9).text(item.description, 60, y, { width: 230 });
+      doc.text(`${item.quantity} ${item.unit || "db"}`, 300, y);
       
+      // Egységár kalkuláció (ha az adatbázisban csak nettó van, akkor bruttósítva)
       const unitGross = Math.round(Number(item.unitPriceNet) * 1.27);
-      doc.text(`${unitGross.toLocaleString()} Ft`, 385, y);
-      doc.text(`${Number(item.lineGross).toLocaleString()} Ft`, 475, y);
+      doc.text(`${unitGross.toLocaleString()} Ft`, 380, y);
+      doc.text(`${Number(item.lineGross).toLocaleString()} Ft`, 465, y);
       
-      y += rowHeight;
-      doc.strokeColor("#e0e0e0").lineWidth(0.5).moveTo(35, y - 2).lineTo(560, y - 2).stroke();
+      const textHeight = doc.heightOfString(item.description, { width: 230 });
+      y += Math.max(textHeight + 10, 20);
+      
+      // Elválasztó vonal
+      doc.strokeColor("#eee").lineWidth(0.5).moveTo(50, y - 5).lineTo(550, y - 5).stroke();
     });
 
-    if (y > 400) {
-      doc.addPage();
-      y = 40;
-    }
+    // ÖSSZESÍTŐ BLOKK
+    y += 20;
+    if (y > 650) { doc.addPage(); y = 50; }
 
-    const footerStartY = Math.max(y + 20, 450); 
+    doc.rect(340, y, 210, 30).lineWidth(1).strokeColor("#2c3e50").stroke();
+    doc.font(fontBoldPath).fontSize(11).text("Fizetendő bruttó:", 350, y + 10);
+    doc.fontSize(12).text(`${Number(quote.grossTotal).toLocaleString()} Ft`, 450, y + 10, { align: 'right', width: 90 });
 
-    doc.strokeColor("#2c3e50").lineWidth(1).moveTo(35, footerStartY).lineTo(560, footerStartY).stroke();
-
-    let infoY = footerStartY + 15;
-    doc.font(fontBoldPath).fontSize(8.5).fillColor("#005eb8").text("Köszönjük a megkeresést!", 35, infoY);
-    doc.font(fontPath).fontSize(7.5).fillColor("#555");
-    doc.text("Az ajánlatunk 7 napig érvényes.", 35, infoY + 14);
-    doc.font(fontBoldPath).text("Megjegyzés: ", 35, infoY + 28, { continued: true });
-    doc.font(fontPath).text("Alanyi adómentes értékesítés, a végösszeget ÁFA nem terheli.");
-
-    doc.rect(340, infoY, 220, 24).fill("#2c3e50");
-    doc.font(fontBoldPath).fontSize(8.5).fillColor("#fff").text("Fizetendő bruttó végösszeg:", 348, infoY + 8);
-    doc.fontSize(9.5).text(`${Number(quote.grossTotal).toLocaleString()} Ft`, 450, infoY + 8, { align: 'right', width: 100 });
+    // LÁBLÉC INFORMÁCIÓK
+    y += 50;
+    doc.font(fontPath).fontSize(9).fillColor("#005eb8").text("Köszönjük bizalmát!", 50, y);
+    y += 15;
+    doc.fillColor("#444").fontSize(8).text("Az ajánlat 7 napig érvényes.", 50, y);
+    y += 12;
+    doc.text("Készítette: Klíma Kezelő Rendszer", 50, y);
 
     doc.end();
 
@@ -104,14 +116,12 @@ export async function GET(
       doc.on("end", () => resolve(Buffer.concat(chunks)));
     });
 
+    // Válasz küldése PDF-ként, cache letiltással
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        // KIKÉNYSZERÍTETT LETÖLTÉS (Már nem a böngésző rendereli, így nem tud elcsúszni)
-        "Content-Disposition": `attachment; filename=ajanlat_${quote.id}.pdf`,
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0",
+        "Content-Disposition": `inline; filename=ajanlat_${quote.id}.pdf`,
+        "Cache-Control": "no-store, max-age=0",
       },
     });
 
