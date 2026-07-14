@@ -25,10 +25,10 @@ export async function GET(
 
     if (!quote) return NextResponse.json({ error: "Az ajánlat nem található" }, { status: 404 });
 
-    // PDF létrehozása
+    // PDF létrehozása standard A4 méretben
     const doc = new PDFDocument({ 
       size: 'A4',
-      margins: { top: 30, left: 40, right: 40, bottom: 30 },
+      margins: { top: 40, left: 40, right: 40, bottom: 40 },
       bufferPages: true,
       autoFirstPage: false 
     });
@@ -43,7 +43,7 @@ export async function GET(
 
     // FEJLÉC
     doc.fontSize(20).font(fontBoldPath).text("ÁRAJÁNLAT", { align: "center" });
-    let y = 60; 
+    let y = 70; 
 
     // ADATOK
     doc.fontSize(10).font(fontPath).text(`Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`, 50, y);
@@ -70,8 +70,11 @@ export async function GET(
     // TÉTELEK KIÍRÁSA
     doc.font(fontPath).fillColor("#000");
     quote.items.forEach((item) => {
-      // Megnézzük, elfér-e még a tétel, vagy új oldal kell
-      if (y > 700) {
+      const textHeight = doc.heightOfString(item.description, { width: 230 });
+      const rowHeight = Math.max(textHeight + 10, 20);
+
+      // Biztonságos ellenőrzés: ha az aktuális y + a sor magassága túl közel van a lap aljához (700 pont), új oldalra rakjuk
+      if (y + rowHeight > 700) {
         doc.addPage();
         y = 50;
       }
@@ -79,28 +82,33 @@ export async function GET(
       doc.fontSize(9).text(item.description, 60, y, { width: 230 });
       doc.text(`${item.quantity} ${item.unit || "db"}`, 300, y);
       
-      // Egységár kalkuláció (ha az adatbázisban csak nettó van, akkor bruttósítva)
+      // Egységár kalkuláció
       const unitGross = Math.round(Number(item.unitPriceNet) * 1.27);
       doc.text(`${unitGross.toLocaleString()} Ft`, 380, y);
       doc.text(`${Number(item.lineGross).toLocaleString()} Ft`, 465, y);
       
-      const textHeight = doc.heightOfString(item.description, { width: 230 });
-      y += Math.max(textHeight + 10, 20);
+      y += rowHeight;
       
       // Elválasztó vonal
       doc.strokeColor("#eee").lineWidth(0.5).moveTo(50, y - 5).lineTo(550, y - 5).stroke();
     });
 
-    // ÖSSZESÍTŐ BLOKK
-    y += 20;
-    if (y > 650) { doc.addPage(); y = 50; }
+    // ÖSSZESÍTŐ ÉS LÁBLÉC BLOKK HELYELLENŐRZÉSE
+    // Az összesítőnek és a láblécnek összesen kb. 120-130 pont hely kell. 
+    // Ha y > 630, akkor inkább áttesszük egy tiszta új oldalra, hogy biztosan ne lógjon le az alsó sor.
+    if (y > 630) { 
+      doc.addPage(); 
+      y = 50; 
+    }
 
+    // ÖSSZESÍTŐ BLOKK
+    y += 15;
     doc.rect(340, y, 210, 30).lineWidth(1).strokeColor("#2c3e50").stroke();
     doc.font(fontBoldPath).fontSize(11).text("Fizetendő bruttó:", 350, y + 10);
     doc.fontSize(12).text(`${Number(quote.grossTotal).toLocaleString()} Ft`, 450, y + 10, { align: 'right', width: 90 });
 
     // LÁBLÉC INFORMÁCIÓK
-    y += 50;
+    y += 45;
     doc.font(fontPath).fontSize(9).fillColor("#005eb8").text("Köszönjük bizalmát!", 50, y);
     y += 15;
     doc.fillColor("#444").fontSize(8).text("Az ajánlat 7 napig érvényes.", 50, y);
