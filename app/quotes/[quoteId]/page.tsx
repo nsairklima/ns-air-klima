@@ -19,8 +19,8 @@ export default function QuoteEditPage() {
   const [desc, setDesc] = useState("");
   const [qty, setQty] = useState<number | "">(1);
   const [unit, setUnit] = useState("db");
-  const [basePriceNet, setBasePriceNet] = useState<number | "">(""); // Alapból üres a 0 helyett
-  const [profitValue, setProfitValue] = useState<number | "">(""); // Alapból üres a 0 helyett
+  const [basePriceNet, setBasePriceNet] = useState<number | "">(""); 
+  const [profitValue, setProfitValue] = useState<number | "">(""); 
   const [profitType, setProfitType] = useState<"percent" | "fix">("fix");
 
   const loadQuote = async () => {
@@ -84,17 +84,13 @@ export default function QuoteEditPage() {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= newItems.length) return;
 
-    // 1. Megcseréljük a két elemet a lokális tömbben
     [newItems[index], newItems[targetIndex]] = [newItems[targetIndex], newItems[index]];
     
-    // 2. Újraosztjuk a sortOrder értékeket a tiszta indexek alapján (0, 1, 2...)
     const itemsWithNewOrder = newItems.map((item, idx) => ({ ...item, sortOrder: idx }));
     
-    // 3. OPTIMISTA KLIENS-FRISSÍTÉS: Azonnal megmutatjuk a képernyőn a jó sorrendet
     setQ({ ...q, items: itemsWithNewOrder });
 
     try {
-      // 4. MENTÉS: Elküldjük és megvárjuk, amíg a szerver elvégzi az adatbázis tranzakciót
       const res = await fetch(`/api/quotes/${quoteId}/items/reorder`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -109,24 +105,12 @@ export default function QuoteEditPage() {
       if (!res.ok) {
         throw new Error("Sikertelen mentés a szerveren.");
       }
-
-      // 5. SZINKRONIZÁLÁS: Csak a sikeres mentés után töltjük újra az adatokat, hogy minden szinkronban legyen
-      const checkRes = await fetch(`/api/quotes/${quoteId}`);
-      if (checkRes.ok) {
-        const freshData = await checkRes.json();
-        if (freshData.items) {
-          freshData.items.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        }
-        setQ(freshData);
-      }
     } catch (err) {
-      console.error("Sorrend mentési hiba", err);
-      // Hiba esetén visszaállítjuk az utolsó stabil állapotot a szerverről
+      console.error("Sorrend mentési hiba, visszaállítás...", err);
       loadQuote();
     }
   };
 
-  // --- AJÁNLAT DUPLIKÁLÁSA / MÁSOLÁSA ---
   const handleCloneQuote = async () => {
     if (!quoteId) return;
     if (!confirm("Biztosan le szeretnéd másolni ezt az ajánlatot egy új változatba?")) return;
@@ -145,7 +129,7 @@ export default function QuoteEditPage() {
       }
     } catch (err) {
       console.error("Másolási hiba:", err);
-      alert("Sikertelen kapcsolódás a szerverhez a másolás közben.");
+      alert("Sikertelen kapcsolódás a szerverhez.");
     }
   };
 
@@ -154,12 +138,11 @@ export default function QuoteEditPage() {
     if (selected) {
       setDesc(selected.name);
       setBasePriceNet(selected.price);
-      setProfitValue(""); // Adatbázisból betöltéskor üres legyen a haszon
+      setProfitValue(""); 
       setUnit(selected.unit || "db"); 
     }
   };
 
-  // Biztonságos matematikai átalakítások
   const n_beszerzes = basePriceNet === "" ? 0 : Number(basePriceNet);
   const n_profit = profitValue === "" ? 0 : Number(profitValue);
   const n_mennyiseg = qty === "" ? 0 : Number(qty);
@@ -179,22 +162,31 @@ export default function QuoteEditPage() {
     e.preventDefault();
     const method = editingId ? "PATCH" : "POST";
     
-    await fetch(`/api/quotes/${quoteId}/items`, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: editingId,
-        description: desc,
-        quantity: n_mennyiseg,
-        unit,
-        basePrice: n_beszerzes, 
-        unitPriceNet: sellPriceNet,
-        lineGross: Math.round(lineTotalGross),
-        sortOrder: editingId ? q.items.find((i: any) => i.id === editingId)?.sortOrder : q.items.length
-      }),
-    });
-    resetForm();
-    loadQuote();
+    try {
+      const res = await fetch(`/api/quotes/${quoteId}/items`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingId,
+          description: desc,
+          quantity: n_mennyiseg,
+          unit,
+          basePrice: n_beszerzes, 
+          unitPriceNet: sellPriceNet,
+          lineGross: Math.round(lineTotalGross),
+          sortOrder: editingId ? q.items.find((i: any) => i.id === editingId)?.sortOrder : q.items.length
+        }),
+      });
+
+      if (res.ok) {
+        resetForm();
+        loadQuote();
+      } else {
+        alert("Nem sikerült menteni a tételt.");
+      }
+    } catch (err) {
+      console.error("Tétel mentési hiba:", err);
+    }
   };
 
   const startEdit = (it: any) => {
@@ -226,7 +218,6 @@ export default function QuoteEditPage() {
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
 
-  /* ---- Stílusok ---- */
   const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #334155", background: "#1e293b", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
   const cloneBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #9b59b6", background: "#8e44ad", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
   const inputS = { width: "100%", padding: "13px", borderRadius: "10px", border: "1px solid #334155", boxSizing: "border-box" as const, color: "#fff", backgroundColor: "#0f172a", fontSize: "16px", outline: "none" };
@@ -262,7 +253,7 @@ export default function QuoteEditPage() {
     borderRadius: 6, 
     padding: "8px 12px", 
     fontSize: 13,
-    fontWeight: "bold"
+    fontWeight: "bold" as const
   });
 
   return (
@@ -283,7 +274,6 @@ export default function QuoteEditPage() {
         </h1>
       </div>
 
-      {/* Űrlap Maszk */}
       <div style={{ background: "#1e293b", padding: "20px 16px", borderRadius: 16, marginBottom: 30, border: "1px solid #334155", boxShadow: "0 4px 15px rgba(0,0,0,0.3)" }}>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
           <div style={{ background: "#141b2b", padding: 14, borderRadius: 10, border: "1px solid #2d3748" }}>
@@ -357,9 +347,8 @@ export default function QuoteEditPage() {
         </form>
       </div>
 
-      {/* TÉTEL LISTÁZÁS */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {q.items.map((it: any, index: number) => (
+        {q.items && q.items.map((it: any, index: number) => (
           <div 
             key={it.id} 
             style={{ 
@@ -398,14 +387,23 @@ export default function QuoteEditPage() {
               
               <div style={{ display: "flex", gap: 18 }}>
                 <button onClick={() => startEdit(it)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20 }} title="Szerkesztés">✏️</button>
-                <button onClick={() => { if(confirm("Biztosan törlöd ezt a tételt?")) fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote) }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20 }} title="Törlés">🗑️</button>
+                <button 
+                  onClick={() => { 
+                    if(confirm("Biztosan törlöd ezt a tételt?")) {
+                      fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote);
+                    }
+                  }} 
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20 }} 
+                  title="Törlés"
+                >
+                  🗑️
+                </button>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Alsó összesítő rész */}
       <div style={{ marginTop: 35, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", borderTop: "1px solid #334155", paddingTop: "20px" }}>
         <div style={{ fontSize: "1.4rem", fontWeight: "900" }}>Bruttó összesen: <span style={{ color: "#2ecc71" }}>{totalGross.toLocaleString()} Ft</span></div>
         <button 
