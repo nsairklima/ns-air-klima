@@ -84,21 +84,44 @@ export default function QuoteEditPage() {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= newItems.length) return;
 
+    // 1. Megcseréljük a két elemet a lokális tömbben
     [newItems[index], newItems[targetIndex]] = [newItems[targetIndex], newItems[index]];
     
+    // 2. Újraosztjuk a sortOrder értékeket a tiszta indexek alapján (0, 1, 2...)
     const itemsWithNewOrder = newItems.map((item, idx) => ({ ...item, sortOrder: idx }));
+    
+    // 3. OPTIMISTA KLIENS-FRISSÍTÉS: Azonnal megmutatjuk a képernyőn a jó sorrendet
     setQ({ ...q, items: itemsWithNewOrder });
 
     try {
-      await fetch(`/api/quotes/${quoteId}/items/reorder`, {
+      // 4. MENTÉS: Elküldjük és megvárjuk, amíg a szerver elvégzi az adatbázis tranzakciót
+      const res = await fetch(`/api/quotes/${quoteId}/items/reorder`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          items: itemsWithNewOrder.map(i => ({ id: i.id, sortOrder: i.sortOrder })) 
+          items: itemsWithNewOrder.map(i => ({ 
+            id: Number(i.id), 
+            sortOrder: Number(i.sortOrder) 
+          })) 
         }),
       });
+
+      if (!res.ok) {
+        throw new Error("Sikertelen mentés a szerveren.");
+      }
+
+      // 5. SZINKRONIZÁLÁS: Csak a sikeres mentés után töltjük újra az adatokat, hogy minden szinkronban legyen
+      const checkRes = await fetch(`/api/quotes/${quoteId}`);
+      if (checkRes.ok) {
+        const freshData = await checkRes.json();
+        if (freshData.items) {
+          freshData.items.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        }
+        setQ(freshData);
+      }
     } catch (err) {
       console.error("Sorrend mentési hiba", err);
+      // Hiba esetén visszaállítjuk az utolsó stabil állapotot a szerverről
       loadQuote();
     }
   };
@@ -116,7 +139,6 @@ export default function QuoteEditPage() {
       if (res.ok) {
         const data = await res.json();
         alert("Ajánlat sikeresen lemásolva!");
-        // Navigálás az újonnan létrehozott másolat szerkesztő oldalára
         router.push(`/quotes/${data.newQuoteId}`);
       } else {
         alert("Hiba történt a másolás során.");
