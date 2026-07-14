@@ -24,9 +24,10 @@ export async function GET(
 
     if (!quote) return NextResponse.json({ error: "Az ajánlat nem található" }, { status: 404 });
 
+    // SZUPER-KOMPAKT MARGÓK (A4: 595 x 842 pt). 30 pontos margóval maximalizáljuk a helyet.
     const doc = new PDFDocument({ 
       size: 'A4',
-      margins: { top: 35, left: 40, right: 40, bottom: 35 },
+      margins: { top: 30, left: 35, right: 35, bottom: 30 },
       bufferPages: true,
       autoFirstPage: false 
     });
@@ -39,91 +40,90 @@ export async function GET(
     const fontBoldPath = path.join(process.cwd(), "public/fonts/Roboto-Bold.ttf");
     doc.font(fontPath);
 
-    // FEJLÉC
-    doc.fontSize(20).font(fontBoldPath).text("ÁRAJÁNLAT", { align: "center" });
-    let y = 65; 
+    // 1. FEJLÉC SZEKCIÓ (Kétoszlopos elrendezés a helytakarékosságért)
+    doc.fontSize(16).font(fontBoldPath).text("ÁRAJÁNLAT", 35, 30);
+    
+    doc.fontSize(8.5).font(fontPath).fillColor("#555");
+    doc.text(`Ajánlat száma: #${quote.id}`, 35, 50);
+    doc.text(`Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`, 35, 62);
 
-    // ADATOK
-    doc.fontSize(10).font(fontPath).text(`Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`, 50, y);
-    y += 14;
-    doc.text(`Ajánlat száma: #${quote.id}`, 50, y);
-    y += 22;
+    // Vevő adatai a jobb oldalon, egy magasságban a fejléccel
+    doc.font(fontBoldPath).fillColor("#000").text("Megrendelő:", 320, 30);
+    doc.font(fontPath).text(quote.client.name, 320, 42, { width: 240 });
+    doc.text(quote.client.address || "-", 320, 54, { width: 240 });
 
-    doc.fontSize(11).font(fontBoldPath).text("Ügyfél adatai:", 50, y);
-    doc.font(fontPath).fontSize(10);
-    y += 14;
-    doc.text(`${quote.client.name}`, 50, y);
-    y += 12;
-    doc.text(`${quote.client.address || "-"}`, 50, y);
-    y += 25;
+    // 2. TÁBLÁZAT FEJLÉC (Feljebb hozva y = 85-re)
+    let y = 85;
+    doc.rect(35, y, 525, 14).fill("#f5f5f5");
+    doc.fillColor("#000").fontSize(8).font(fontBoldPath).text("Megnevezés", 42, y + 3);
+    doc.text("Menny.", 310, y + 3);
+    doc.text("Bruttó egységár", 385, y + 3);
+    doc.text("Bruttó összesen", 475, y + 3);
+    y += 18;
 
-    // TÁBLÁZAT FEJLÉC
-    doc.rect(50, y, 500, 18).fill("#f0f0f0");
-    doc.fillColor("#000").fontSize(9).font(fontBoldPath).text("Megnevezés", 60, y + 5);
-    doc.text("Menny.", 300, y + 5);
-    doc.text("Bruttó egységár", 380, y + 5);
-    doc.text("Bruttó összesen", 465, y + 5);
-    y += 22;
-
-    // TÉTELEK KIÍRÁSA
-    doc.font(fontPath).fillColor("#000");
+    // 3. TÉTELEK KIÍRÁSA (Rendkívül kompakt sorközökkel)
+    doc.font(fontPath).fontSize(8).fillColor("#222");
+    
     quote.items.forEach((item) => {
-      const textHeight = doc.heightOfString(item.description, { width: 230 });
-      const rowHeight = Math.max(textHeight + 8, 18);
+      // Kiszámoljuk, hogy a leírás hány soros. Ha 1 soros, a magasság minimális.
+      const textHeight = doc.heightOfString(item.description, { width: 250 });
+      const rowHeight = Math.max(textHeight + 4, 13); // Nagyon szűk, de jól olvasható padding
 
-      // Ha a tétel már nem férne el a lapon (A4 magasság ~842, 740 fölé nem megyünk)
-      if (y + rowHeight > 740) {
+      // Ha átlépnénk a 15 tétel feletti fizikai határt (itt már lapváltás kell)
+      if (y + rowHeight > 670) {
         doc.addPage();
-        y = 50;
+        y = 40;
       }
 
-      doc.fontSize(9).text(item.description, 60, y, { width: 230 });
-      doc.text(`${item.quantity} ${item.unit || "db"}`, 300, y);
+      doc.text(item.description, 42, y, { width: 250 });
+      doc.text(`${item.quantity} ${item.unit || "db"}`, 310, y);
       
       const unitGross = Math.round(Number(item.unitPriceNet) * 1.27);
-      doc.text(`${unitGross.toLocaleString()} Ft`, 380, y);
-      doc.text(`${Number(item.lineGross).toLocaleString()} Ft`, 465, y);
+      doc.text(`${unitGross.toLocaleString()} Ft`, 385, y);
+      doc.text(`${Number(item.lineGross).toLocaleString()} Ft`, 475, y);
       
       y += rowHeight;
       
-      doc.strokeColor("#eee").lineWidth(0.5).moveTo(50, y - 3).lineTo(550, y - 3).stroke();
+      // Halvány elválasztó vonal
+      doc.strokeColor("#f0f0f0").lineWidth(0.5).moveTo(35, y - 2).lineTo(560, y - 2).stroke();
     });
 
-    // LÁBLÉC ÉS ÖSSZESÍTŐ RAJZOLÓ FÜGGVÉNY
-    const renderFooter = (startY: number) => {
-      let currentY = startY + 15;
-      
-      // ÖSSZESÍTŐ BLOKK
-      doc.rect(340, currentY, 210, 26).lineWidth(1).strokeColor("#2c3e50").stroke();
-      doc.font(fontBoldPath).fontSize(10).fillColor("#000").text("Fizetendő bruttó:", 350, currentY + 8);
-      doc.fontSize(11).text(`${Number(quote.grossTotal).toLocaleString()} Ft`, 450, currentY + 8, { align: 'right', width: 90 });
-
-      // LÁBLÉC SZÖVEGEK
-      currentY += 40;
-      doc.font(fontPath).fontSize(9).fillColor("#005eb8").text("Köszönjük, hogy minket választott!", 50, currentY);
-      
-      currentY += 15;
-      doc.fillColor("#444").fontSize(8).text("Árajánlatunkat az Ön igényeinek megfelelően állítottuk össze. Bízunk benne, hogy segítségére lesz a döntéshozatalban.", 50, currentY, { width: 500 });
-      
-      currentY += 16;
-      doc.font(fontBoldPath).text("Érvényesség:", 50, currentY);
-      doc.font(fontPath).text("7 nap", 110, currentY);
-      
-      // MEGJEGYZÉS BLOKK
-      currentY += 20;
-      doc.strokeColor("#eee").lineWidth(0.5).moveTo(50, currentY - 5).lineTo(550, currentY - 5).stroke();
-      doc.font(fontBoldPath).fontSize(8).fillColor("#444").text("Megjegyzés: ", 50, currentY, { continued: true });
-      doc.font(fontPath).text("Az ajánlat készítője alanyi adómentes, ezért a végösszeget az Áfa mértéke nem befolyásolja.");
-    };
-
-    // FŐ LOGIKA: Elég hely van az aktuális oldalon a teljes láblécnek? (Körülbelül 180 pont kell neki)
-    // Az A4 magassága 842 pont, így ha y > 640, akkor már nincs elég biztonságos helyünk.
-    if (y > 640) {
+    // 4. LÁBLÉC ÉS ÖSSZESÍTŐ (Fixen az 1. oldal aljára kényszerítve, ha belefér, de maximum a 2. oldalra)
+    // Ha 15 tételünk van, az y kb. 350-450 között lesz, így kényelmesen elfér az alján.
+    if (y > 670) {
       doc.addPage();
-      renderFooter(40); // Ha új oldalra kényszerül, a lap tetejétől indítjuk az egészet
-    } else {
-      renderFooter(y);   // Ha befér, közvetlenül a tételek alá rajzoljuk
+      y = 40;
     }
+
+    // Összesítőt fixen lejjebb toljuk a lap alja felé, hogy ne lebegjen középen, ha kevés a tétel
+    const footerStartY = Math.max(y + 15, 680); 
+
+    // ÖSSZESÍTŐ DOBOZ (Kompaktabb méretben)
+    doc.rect(340, footerStartY, 220, 22).lineWidth(1).strokeColor("#2c3e50").stroke();
+    doc.font(fontBoldPath).fontSize(9).fillColor("#000").text("Fizetendő bruttó:", 348, footerStartY + 7);
+    doc.fontSize(10).text(`${Number(quote.grossTotal).toLocaleString()} Ft`, 450, footerStartY + 7, { align: 'right', width: 100 });
+
+    // KÖSZÖNJÜK + ÉRVÉNYESSÉG (Egymás mellett, egy sorban, hogy spóroljunk a hellyel!)
+    let infoY = footerStartY + 30;
+    doc.font(fontBoldPath).fontSize(8).fillColor("#005eb8").text("Köszönjük, hogy minket választott!", 35, infoY);
+    
+    doc.font(fontBoldPath).fontSize(7.5).fillColor("#444").text("Érvényesség:", 320, infoY);
+    doc.font(fontPath).text("7 nap", 380, infoY);
+
+    // HOSSZÚ JÓTÁLLÁSI / TÁJÉKOZTATÓ SZÖVEG
+    infoY += 12;
+    doc.font(fontPath).fontSize(7).fillColor("#666").text(
+      "Árajánlatunkat az Ön igényeinek megfelelően állítottuk össze. Bízunk benne, hogy segítségére lesz a döntéshozatalban.", 
+      35, 
+      infoY, 
+      { width: 525 }
+    );
+
+    // ALANYI ADÓMENTES MEGJEGYZÉS (Legalsó sor)
+    infoY += 14;
+    doc.strokeColor("#eee").lineWidth(0.5).moveTo(35, infoY - 3).lineTo(560, infoY - 3).stroke();
+    doc.font(fontBoldPath).fontSize(7).fillColor("#444").text("Megjegyzés: ", 35, infoY, { continued: true });
+    doc.font(fontPath).text("Az ajánlat készítője alanyi adómentes, ezért a végösszeget az Áfa mértéke nem befolyásolja.");
 
     doc.end();
 
