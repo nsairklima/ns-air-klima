@@ -1,3 +1,7 @@
+app/quotes/[quoteId]/page.tsx
+
+
+
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -19,39 +23,9 @@ export default function QuoteEditPage() {
   const [desc, setDesc] = useState("");
   const [qty, setQty] = useState<number | "">(1);
   const [unit, setUnit] = useState("db");
-  const [basePriceNet, setBasePriceNet] = useState<number | "">(""); 
-  const [profitValue, setProfitValue] = useState<number | "">(""); 
+  const [basePriceNet, setBasePriceNet] = useState<number | "">(""); // Alapból üres a 0 helyett
+  const [profitValue, setProfitValue] = useState<number | "">(""); // Alapból üres a 0 helyett
   const [profitType, setProfitType] = useState<"percent" | "fix">("fix");
-
-  // --- ANDROID-BIZTOS NYOMTATÁS / MENTÉS LOGIKA ---
-  const handleDownloadPdf = () => {
-    if (!quoteId) return;
-    
-    const iframeId = "pdf-print-iframe";
-    let iframe = document.getElementById(iframeId) as HTMLIFrameElement;
-    
-    if (!iframe) {
-      iframe = document.createElement("iframe");
-      iframe.id = iframeId;
-      iframe.style.position = "fixed";
-      iframe.style.right = "0";
-      iframe.style.bottom = "0";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "none";
-      document.body.appendChild(iframe);
-    }
-    
-    iframe.src = `/quotes/${quoteId}/print`;
-    
-    iframe.onload = () => {
-      setTimeout(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-      }, 500); // Időt hagyunk a háttérben történő renderelésre
-    };
-  };
-  // --------------------------------------------------
 
   const loadQuote = async () => {
     try {
@@ -138,11 +112,12 @@ export default function QuoteEditPage() {
     if (selected) {
       setDesc(selected.name);
       setBasePriceNet(selected.price);
-      setProfitValue(""); 
+      setProfitValue(""); // Adatbázisból betöltéskor üres legyen a haszon
       setUnit(selected.unit || "db"); 
     }
   };
 
+  // Biztonságos matematikai átalakítások
   const n_beszerzes = basePriceNet === "" ? 0 : Number(basePriceNet);
   const n_profit = profitValue === "" ? 0 : Number(profitValue);
   const n_mennyiseg = qty === "" ? 0 : Number(qty);
@@ -389,13 +364,11 @@ export default function QuoteEditPage() {
       {/* Alsó összesítő rész */}
       <div style={{ marginTop: 35, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", borderTop: "1px solid #334155", paddingTop: "20px" }}>
         <div style={{ fontSize: "1.4rem", fontWeight: "900" }}>Bruttó összesen: <span style={{ color: "#2ecc71" }}>{totalGross.toLocaleString()} Ft</span></div>
-        
-        {/* ANDROID-BIZTOS INTEGRÁLT NYOMTATÓ GOMB */}
         <button 
-          onClick={handleDownloadPdf} 
+          onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')} 
           style={{ marginTop: 20, padding: "16px 30px", borderRadius: 12, cursor: "pointer", background: "#f1f5f9", color: "#0f172a", border: "none", fontWeight: "bold", width: "100%", maxWidth: "300px", fontSize: "15px" }}
         >
-          📄 PDF LETÖLTÉSE
+          📄 PDF GENERÁLÁSA
         </button>
       </div>
     </div>
