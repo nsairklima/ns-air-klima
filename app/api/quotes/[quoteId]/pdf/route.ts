@@ -23,7 +23,6 @@ export async function GET(
 
     if (!quote) return NextResponse.json({ error: "Az ajánlat nem található" }, { status: 404 });
 
-    // Manuális oldalkezelés, hogy mi diktáljunk az Androidnak
     const doc = new PDFDocument({ 
       size: 'A4',
       margins: { top: 30, left: 35, right: 35, bottom: 60 },
@@ -33,24 +32,22 @@ export async function GET(
     
     const chunks: any[] = [];
     doc.on("data", (chunk) => chunks.push(chunk));
-    
-    // Első oldal indítása
     doc.addPage();
 
     const fontPath = path.join(process.cwd(), "public/fonts/Roboto-Regular.ttf");
     const fontBoldPath = path.join(process.cwd(), "public/fonts/Roboto-Bold.ttf");
     doc.font(fontPath);
 
-    // Fejléc fix pozíción
+    // Fejléc
     doc.fontSize(14).font(fontBoldPath).text("BRUTTÓ ÁRAJÁNLAT", 35, 30);
     doc.fontSize(8).font(fontPath).fillColor("#555");
     doc.text(`Sorszám: #${quote.id}  |  Dátum: ${new Date(quote.createdAt).toLocaleDateString("hu-HU")}`, 35, 47);
 
-    // Vevő adatai
+    // Vevő
     doc.font(fontBoldPath).fillColor("#000").text("Megrendelő:", 320, 30);
     doc.font(fontPath).text(`${quote.client.name} (${quote.client.address || "-"})`, 320, 42, { width: 240 });
 
-    // Táblázat fejléc
+    // Táblázat
     let y = 75;
     doc.rect(35, y, 525, 14).fill("#eef2f5");
     doc.fillColor("#000").fontSize(8).font(fontBoldPath).text("Megnevezés", 42, y + 3);
@@ -61,13 +58,10 @@ export async function GET(
 
     doc.font(fontPath).fontSize(8).fillColor("#222");
     
-    // Tételek listázása kőkemény magassági korláttal
     quote.items.forEach((item) => {
-      // BRUTÁLIS ANDROID KORLÁT: Ha az Y elérné a 420-at (ami a lapnak még csak a KÖZEPE!), 
-      // azonnal új lapot nyitunk. Így fizikai képtelenség, hogy elérje az alját.
       if (y > 420) {
         doc.addPage();
-        y = 40; // Az új oldalon fent kezdünk
+        y = 40;
       }
 
       const textHeight = doc.heightOfString(item.description, { width: 250 });
@@ -84,19 +78,15 @@ export async function GET(
       doc.strokeColor("#e0e0e0").lineWidth(0.5).moveTo(35, y - 2).lineTo(560, y - 2).stroke();
     });
 
-    // Ha a tételek után az Y túl magas lenne, a láblécet egy teljesen üres, tiszta új lapra rakjuk
     if (y > 400) {
       doc.addPage();
       y = 40;
     }
 
-    // A lábléc kezdetét fixen bebetonozzuk 450-re (Hatalmas üres tér marad alul!)
     const footerStartY = Math.max(y + 20, 450); 
 
-    // Elválasztó vonal
     doc.strokeColor("#2c3e50").lineWidth(1).moveTo(35, footerStartY).lineTo(560, footerStartY).stroke();
 
-    // Bal oldali szövegek
     let infoY = footerStartY + 15;
     doc.font(fontBoldPath).fontSize(8.5).fillColor("#005eb8").text("Köszönjük a megkeresést!", 35, infoY);
     doc.font(fontPath).fontSize(7.5).fillColor("#555");
@@ -104,7 +94,6 @@ export async function GET(
     doc.font(fontBoldPath).text("Megjegyzés: ", 35, infoY + 28, { continued: true });
     doc.font(fontPath).text("Alanyi adómentes értékesítés, a végösszeget ÁFA nem terheli.");
 
-    // Jobb oldali összesítő doboz
     doc.rect(340, infoY, 220, 24).fill("#2c3e50");
     doc.font(fontBoldPath).fontSize(8.5).fillColor("#fff").text("Fizetendő bruttó végösszeg:", 348, infoY + 8);
     doc.fontSize(9.5).text(`${Number(quote.grossTotal).toLocaleString()} Ft`, 450, infoY + 8, { align: 'right', width: 100 });
@@ -118,7 +107,8 @@ export async function GET(
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename=ajanlat_${quote.id}.pdf`,
+        // KIKÉNYSZERÍTETT LETÖLTÉS (Már nem a böngésző rendereli, így nem tud elcsúszni)
+        "Content-Disposition": `attachment; filename=ajanlat_${quote.id}.pdf`,
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
         "Pragma": "no-cache",
         "Expires": "0",
