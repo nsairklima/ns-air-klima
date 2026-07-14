@@ -3,10 +3,13 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: Promise<{ quoteId: string }> }
+  { params }: { params: any }
 ) {
   try {
-    const { quoteId } = await params;
+    // Univerzális feloldás: működik Next.js 13, 14 és 15+ verziókkal is
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const quoteId = resolvedParams?.quoteId;
+
     const { items } = await req.json();
 
     if (!items || !Array.isArray(items)) {
