@@ -23,44 +23,33 @@ export default function QuoteEditPage() {
   const [profitValue, setProfitValue] = useState<number | "">(""); 
   const [profitType, setProfitType] = useState<"percent" | "fix">("fix");
 
-  // --- ANDROID KIKÉNYSZERÍTETT PDF LETÖLTÉS LOGIKA ---
-  const handleDownloadPdf = async () => {
+  // --- ANDROID-BIZTOS NYOMTATÁS / MENTÉS LOGIKA ---
+  const handleDownloadPdf = () => {
     if (!quoteId) return;
-    try {
-      // Az előzőleg beállított API útvonalat hívjuk meg (vagy a print útvonalat, amelyik az API-d)
-      // Feltételezve, hogy a PDF generáló API-d a /api/quotes/[id]/pdf vagy a /api/quotes/[id]/print címen van
-      const res = await fetch(`/api/quotes/${quoteId}/pdf`, {
-        method: "GET",
-        cache: "no-store" // Letiltjuk a böngésző gyorsítótárát
-      });
-
-      if (!res.ok) {
-        // Ha az API-d máshol van, megpróbáljuk a print végpontot háttérben meghívni
-        const fallbackRes = await fetch(`/api/quotes/${quoteId}/print`, { method: "GET", cache: "no-store" });
-        if (!fallbackRes.ok) throw new Error("Hiba a szerveroldali PDF generálásakor");
-        
-        const blob = await fallbackRes.blob();
-        triggerDownload(blob);
-        return;
-      }
-
-      const blob = await res.blob();
-      triggerDownload(blob);
-    } catch (err) {
-      console.error("PDF letöltési hiba:", err);
-      alert("Nem sikerült a PDF közvetlen letöltése. Ellenőrizd az API útvonalat!");
+    
+    const iframeId = "pdf-print-iframe";
+    let iframe = document.getElementById(iframeId) as HTMLIFrameElement;
+    
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.id = iframeId;
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "none";
+      document.body.appendChild(iframe);
     }
-  };
-
-  const triggerDownload = (blob: Blob) => {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ajanlat_${quoteId}.pdf`; // Erőszakkal fájlként menti el az Android
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    
+    iframe.src = `/quotes/${quoteId}/print`;
+    
+    iframe.onload = () => {
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      }, 500); // Időt hagyunk a háttérben történő renderelésre
+    };
   };
   // --------------------------------------------------
 
@@ -401,7 +390,7 @@ export default function QuoteEditPage() {
       <div style={{ marginTop: 35, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", borderTop: "1px solid #334155", paddingTop: "20px" }}>
         <div style={{ fontSize: "1.4rem", fontWeight: "900" }}>Bruttó összesen: <span style={{ color: "#2ecc71" }}>{totalGross.toLocaleString()} Ft</span></div>
         
-        {/* ÁTALAKÍTOTT, ANDROID-BIZTOS LETÖLTŐ GOMB */}
+        {/* ANDROID-BIZTOS INTEGRÁLT NYOMTATÓ GOMB */}
         <button 
           onClick={handleDownloadPdf} 
           style={{ marginTop: 20, padding: "16px 30px", borderRadius: 12, cursor: "pointer", background: "#f1f5f9", color: "#0f172a", border: "none", fontWeight: "bold", width: "100%", maxWidth: "300px", fontSize: "15px" }}
