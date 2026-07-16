@@ -1,39 +1,59 @@
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/lib/prisma";
 
+
+
 export async function PATCH(
+
   req: Request,
-  { params }: { params: any }
+
+  { params }: { params: { quoteId: string } }
+
 ) {
+
   try {
-    // Univerzális feloldás: működik Next.js 13, 14 és 15+ verziókkal is
-    const resolvedParams = params instanceof Promise ? await params : params;
-    const quoteId = resolvedParams?.quoteId;
 
     const { items } = await req.json();
 
-    if (!items || !Array.isArray(items)) {
-      return NextResponse.json({ error: "Hibás adatformátum." }, { status: 400 });
-    }
+
+
+    // Megvárjuk, amíg az összes tétel sorrendje frissül az adatbázisban
+
+    // A tranzakció (transaction) biztosítja, hogy vagy minden frissül, vagy semmi
 
     await prisma.$transaction(
+
       items.map((item: { id: number; sortOrder: number }) =>
+
         prisma.quoteItem.update({
-          where: { 
-            id: Number(item.id),
-            quoteId: String(quoteId) 
-          },
-          data: { sortOrder: Number(item.sortOrder) },
+
+          where: { id: item.id },
+
+          data: { sortOrder: item.sortOrder },
+
         })
+
       )
+
     );
 
+
+
     return NextResponse.json({ success: true });
+
   } catch (error) {
+
     console.error("Hiba a sorrend mentésekor:", error);
+
     return NextResponse.json(
+
       { error: "Nem sikerült menteni a sorrendet." },
+
       { status: 500 }
+
     );
+
   }
+
 }
