@@ -17,8 +17,6 @@ export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // ÚJ: Keresőmező állapota
   const [searchQuery, setSearchQuery] = useState("");
 
   async function loadQuotes() {
@@ -44,10 +42,9 @@ export default function QuotesPage() {
     }
   }
 
-  // Törlési funkció
   const handleDelete = async (e: React.MouseEvent, id: number) => {
-    e.preventDefault(); // Megakadályozza a navigációt
-    e.stopPropagation(); // Megakadályozza a kártyára kattintást
+    e.preventDefault();
+    e.stopPropagation();
 
     if (!confirm("Biztosan törölni szeretnéd ezt az ajánlatot? Ez a művelet végleges!")) {
       return;
@@ -74,7 +71,6 @@ export default function QuotesPage() {
     loadQuotes();
   }, []);
 
-  // ÚJ: Szűrési logika ügyfélnév, elnevezés, azonosító és cím alapján
   const filteredQuotes = quotes.filter((q) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
@@ -112,7 +108,6 @@ export default function QuotesPage() {
         <Link href="/quotes/new" style={btnPrimary}>+ Új ajánlat</Link>
       </div>
 
-      {/* ÚJ: Kereső mező elhelyezése */}
       <div style={{ marginBottom: 20, position: "relative" }}>
         <input
           type="text"
@@ -178,7 +173,6 @@ export default function QuotesPage() {
                   </div>
                 </div>
                 
-                {/* STÁTUSZ ÉS TÖRLÉS CSOPORT */}
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <span style={statusBadge(q.status)}>{q.status}</span>
                     <button 
@@ -221,7 +215,7 @@ const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", 
 const navBtn: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #444", background: "#333", color: "#fff", textDecoration: "none" };
 const detailsLink: React.CSSProperties = { color: "#4DA3FF", textDecoration: "none", fontSize: 14, fontWeight: "bold" };
 
-// Törlés gomb stílus
+// Javított törlés gomb stílus (justify -> justifyContent)
 const deleteBtn: React.CSSProperties = {
     background: "none",
     border: "none",
@@ -232,7 +226,7 @@ const deleteBtn: React.CSSProperties = {
     borderRadius: "5px",
     display: "flex",
     alignItems: "center",
-    justify: "center",
+    justifyContent: "center",
     transition: "transform 0.1s"
 };
 
