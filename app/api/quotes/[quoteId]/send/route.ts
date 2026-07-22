@@ -38,13 +38,11 @@ export async function POST(
     };
 
     line(`Dátum: ${new Date().toLocaleDateString("hu-HU")}`);
-    // JAVÍTÁS: quoteNo helyett id
     line(`Ajánlat száma: #${quote.id}`); 
     line(`Státusz: Folyamatban`);
     y += 20;
     line(`Ügyfél: ${quote.client.name}`);
     
-    // ... (többi PDF tartalom rövidítve, hogy biztosan lefusson)
     y += 20;
     line("Tételek:");
     quote.items.forEach(it => {
@@ -60,10 +58,11 @@ export async function POST(
       doc.on("end", () => resolve(Buffer.concat(chunks)));
     });
 
-    // E-mail küldése a Resend-del
+    // E-mail küldése a Resend-del (+ BCC másolat az info@nsairklima.hu címre)
     await resend.emails.send({
-      from: "Klíma Szerelő <onboarding@resend.dev>", // Később ezt le tudod cserélni saját domainre
+      from: "Klíma Szerelő <onboarding@resend.dev>", // Ha a saját domain el van igazolva a Resendben, cserélheted "NS Air Klíma <info@nsairklima.hu>" címre
       to: quote.client.email,
+      bcc: ["info@nsairklima.hu"], // 👈 ÚJ: Titkos másolat neked
       subject: `Árajánlat - #${quote.id}`,
       html: `<p>Tisztelt ${quote.client.name}!</p><p>Mellékelten küldjük a kért árajánlatot.</p>`,
       attachments: [
