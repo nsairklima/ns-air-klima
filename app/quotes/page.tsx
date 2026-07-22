@@ -10,13 +10,16 @@ type Quote = {
   netTotal: number;
   grossTotal: number;
   createdAt: string;
-  client: { name: string };
+  client: { name: string; address?: string };
 };
 
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // ÚJ: Keresőmező állapota
+  const [searchQuery, setSearchQuery] = useState("");
 
   async function loadQuotes() {
     try {
@@ -41,7 +44,7 @@ export default function QuotesPage() {
     }
   }
 
-  // ÚJ: Törlési funkció
+  // Törlési funkció
   const handleDelete = async (e: React.MouseEvent, id: number) => {
     e.preventDefault(); // Megakadályozza a navigációt
     e.stopPropagation(); // Megakadályozza a kártyára kattintást
@@ -71,6 +74,24 @@ export default function QuotesPage() {
     loadQuotes();
   }, []);
 
+  // ÚJ: Szűrési logika ügyfélnév, elnevezés, azonosító és cím alapján
+  const filteredQuotes = quotes.filter((q) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+
+    const clientName = q.client?.name?.toLowerCase() || "";
+    const clientAddress = q.client?.address?.toLowerCase() || "";
+    const title = q.title?.toLowerCase() || "";
+    const quoteId = String(q.id);
+
+    return (
+      clientName.includes(query) ||
+      clientAddress.includes(query) ||
+      title.includes(query) ||
+      quoteId.includes(query)
+    );
+  });
+
   if (loading) return <div style={wrap}><p style={{color: "#fff"}}>Betöltés...</p></div>;
   
   if (error) return (
@@ -86,19 +107,60 @@ export default function QuotesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
            <Link href="/" style={navBtn}>🏠</Link>
-           <h1 style={{ margin: 0, color: "#fff" }}>Ajánlatok</h1>
+           <h1 style={{ margin: 0, color: "#fff" }}>Ajánlatok ({filteredQuotes.length})</h1>
         </div>
         <Link href="/quotes/new" style={btnPrimary}>+ Új ajánlat</Link>
       </div>
 
+      {/* ÚJ: Kereső mező elhelyezése */}
+      <div style={{ marginBottom: 20, position: "relative" }}>
+        <input
+          type="text"
+          placeholder="🔍 Keresés ügyfélnév, cím, azonosító (#) vagy elnevezés alapján..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "12px 40px 12px 14px",
+            borderRadius: "10px",
+            border: "1px solid #444",
+            backgroundColor: "#222",
+            color: "#fff",
+            fontSize: "14px",
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              color: "#aaa",
+              fontSize: "16px",
+              cursor: "pointer",
+            }}
+          >
+            ✖
+          </button>
+        )}
+      </div>
+
       <div style={{ display: "grid", gap: 12 }}>
-        {quotes.length === 0 && (
+        {filteredQuotes.length === 0 && (
           <div style={{ textAlign: "center", padding: 40, border: "2px dashed #444", borderRadius: 12 }}>
-            <p style={{ color: "#aaa" }}>Még nincsenek ajánlatok a rendszerben.</p>
+            <p style={{ color: "#aaa" }}>
+              {searchQuery ? "Nincs a keresésnek megfelelő ajánlat." : "Még nincsenek ajánlatok a rendszerben."}
+            </p>
           </div>
         )}
         
-        {quotes.map((q) => {
+        {filteredQuotes.map((q) => {
           const displayTitle = q.title && q.title.trim() !== "" ? q.title : q.client?.name;
           const hasCustomTitle = q.title && q.title.trim() !== "" && q.title !== q.client?.name;
 
@@ -159,7 +221,7 @@ const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", 
 const navBtn: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #444", background: "#333", color: "#fff", textDecoration: "none" };
 const detailsLink: React.CSSProperties = { color: "#4DA3FF", textDecoration: "none", fontSize: 14, fontWeight: "bold" };
 
-// ÚJ: Törlés gomb stílus
+// Törlés gomb stílus
 const deleteBtn: React.CSSProperties = {
     background: "none",
     border: "none",
@@ -170,7 +232,7 @@ const deleteBtn: React.CSSProperties = {
     borderRadius: "5px",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
+    justify: "center",
     transition: "transform 0.1s"
 };
 
