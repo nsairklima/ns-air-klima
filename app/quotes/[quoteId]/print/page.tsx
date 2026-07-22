@@ -12,13 +12,18 @@ export default function QuotePrintPage() {
   const brandBlue = "#3498db"; 
   const brandDark = "#2c3e50";
   const brandRed = "#e74c3c";
-  const brandGreen = "#2ecc71";
 
   useEffect(() => {
     if (quoteId) {
       fetch(`/api/quotes/${quoteId}`)
         .then(res => res.json())
-        .then(data => setQ(data));
+        .then(data => {
+          if (data && data.items && Array.isArray(data.items)) {
+            // DUPLA BIZTOSÍTÁS: Kliens oldalon is sorrendbe állítjuk a sortOrder alapján
+            data.items.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+          }
+          setQ(data);
+        });
     }
   }, [quoteId]);
 
@@ -137,7 +142,7 @@ export default function QuotePrintPage() {
         </tbody>
       </table>
 
-      {/* 5. ÖSSZESÍTÉS - MINDIG ALUL */}
+      {/* 5. ÖSSZESÍTÉS */}
       <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
         <div style={{ width: "280px", padding: "10px", border: `1.5px solid ${brandBlue}`, borderRadius: "8px", background: "#fcfdff" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -162,22 +167,21 @@ export default function QuotePrintPage() {
         </div>
       </div>
 
-      {/* GOMBOK - Fixen a képernyő alján */}
-     {/* Csak akkor mutatjuk a gombokat, ha NINCS a linkben a "?mode=view" */}
-{typeof window !== 'undefined' && !window.location.search.includes('mode=view') && (
-  <div className="no-print" style={{ position: "fixed", bottom: "30px", right: "30px", display: "flex", gap: "15px", zIndex: 1000 }}>
-    <button 
-      onClick={handleSendEmail} 
-      disabled={sending}
-      style={actionBtnS(sending ? "#bdc3c7" : "#2ecc71")}
-    >
-      {sending ? "⏳ KÜLDÉS..." : "📧 EMAIL KÜLDÉSE"}
-    </button>
-    <button onClick={() => window.print()} style={actionBtnS("#3498db")}>
-      📥 PDF MENTÉS
-    </button>
-  </div>
-)}
+      {/* GOMBOK */}
+      {typeof window !== 'undefined' && !window.location.search.includes('mode=view') && (
+        <div className="no-print" style={{ position: "fixed", bottom: "30px", right: "30px", display: "flex", gap: "15px", zIndex: 1000 }}>
+          <button 
+            onClick={handleSendEmail} 
+            disabled={sending}
+            style={actionBtnS(sending ? "#bdc3c7" : "#2ecc71")}
+          >
+            {sending ? "⏳ KÜLDÉS..." : "📧 EMAIL KÜLDÉSE"}
+          </button>
+          <button onClick={() => window.print()} style={actionBtnS("#3498db")}>
+            📥 PDF MENTÉS
+          </button>
+        </div>
+      )}
 
       <style jsx global>{`
         @media screen {
@@ -208,7 +212,6 @@ export default function QuotePrintPage() {
 const cellS = { padding: "8px 6px" };
 const labelStyle = { display: "block", color: "#bdc3c7", fontWeight: "bold" as const, textTransform: "uppercase" as const, fontSize: "9px", letterSpacing: "0.5px", marginBottom: "4px" };
 
-// Közös gomb stílus függvény
 const actionBtnS = (bgColor: string) => ({
   background: bgColor,
   color: "#fff",
