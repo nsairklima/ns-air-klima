@@ -4,34 +4,42 @@ import { prisma } from "@/lib/prisma";
 // --- AJÁNLAT LEKÉRÉSE ---
 export async function GET(
   req: Request,
-  { params }: { params: { quoteId: string } }
+  { params }: { params: any }
 ) {
   try {
-    const id = parseInt(params.quoteId);
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const id = parseInt(resolvedParams.quoteId);
+    
     if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
 
     const quote = await prisma.quote.findUnique({
       where: { id: id },
       include: {
-        items: true,
-        client: { include: { units: true } }, // Így a klíma adatai is jönnek
+        items: {
+          orderBy: {
+            sortOrder: "asc" // GARANTÁLJA A BEÁLLÍTOTT SORRENDET
+          }
+        },
+        client: { include: { units: true } },
       },
     });
 
     if (!quote) return NextResponse.json({ error: "Nincs meg az ajánlat" }, { status: 404 });
     return NextResponse.json(quote);
   } catch (error) {
+    console.error("GET hiba:", error);
     return NextResponse.json({ error: "Hiba a lekéréskor" }, { status: 500 });
   }
 }
 
-// --- AJÁNLAT FRISSÍTÉSE (Ez hiányzott a cím mentéséhez!) ---
+// --- AJÁNLAT FRISSÍTÉSE ---
 export async function PATCH(
   req: Request,
-  { params }: { params: { quoteId: string } }
+  { params }: { params: any }
 ) {
   try {
-    const id = parseInt(params.quoteId);
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const id = parseInt(resolvedParams.quoteId);
     const body = await req.json();
 
     if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
@@ -39,7 +47,7 @@ export async function PATCH(
     const updatedQuote = await prisma.quote.update({
       where: { id: id },
       data: {
-        title: body.title, // Itt mentjük el az új címet
+        title: body.title,
       },
     });
 
@@ -53,10 +61,11 @@ export async function PATCH(
 // --- AJÁNLAT TÖRLÉSE ---
 export async function DELETE(
   req: Request,
-  { params }: { params: { quoteId: string } }
+  { params }: { params: any }
 ) {
   try {
-    const id = parseInt(params.quoteId);
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const id = parseInt(resolvedParams.quoteId);
     if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
 
     await prisma.$transaction([
