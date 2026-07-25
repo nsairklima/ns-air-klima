@@ -201,6 +201,12 @@ export default function ClientDetailsPage() {
   if (loading) return <div style={containerStyle}>Betöltés...</div>;
   if (!client) return <div style={containerStyle}>Ügyfél nem található.</div>;
 
+  // Csak azok a raktári tételek, amikből legalább 1 db van készleten
+  const inStockItems = inventoryItems.filter((item) => {
+    const qty = item.stock ?? item.quantity ?? 0;
+    return qty > 0;
+  });
+
   return (
     <div style={{ ...containerStyle, padding: isMobile ? "12px" : "24px" }}>
       {/* NAVIGÁCIÓ */}
@@ -286,11 +292,13 @@ export default function ClientDetailsPage() {
                     style={{
                       ...selectS,
                       borderColor: selectedItemId ? "#2ecc71" : "#1e4d2b",
-                      backgroundColor: "#0d2616",
+                      backgroundColor: "#06150a",
                     }}
                   >
-                    <option value="" style={optionS}>-- Válassz a raktárból --</option>
-                    {inventoryItems.map((item) => (
+                    <option value="" style={optionS}>
+                      -- Válassz a raktárból ({inStockItems.length} elérhető) --
+                    </option>
+                    {inStockItems.map((item) => (
                       <option key={item.id} value={item.id} style={optionS}>
                         {item.name} {item.sku ? `[${item.sku}]` : ""} — Készleten: {item.stock ?? item.quantity ?? 0} db
                       </option>
@@ -482,7 +490,7 @@ const inputS: React.CSSProperties = {
   display: "block"
 };
 
-/* --- ÚJ MODERN LENYÍLÓ MENÜ STÍLUS --- */
+/* --- LENYÍLÓ MENÜ ÉS OPCIÓK SÖTÉT STÍLUSA --- */
 const selectS: React.CSSProperties = {
   width: "100%",
   padding: "12px 40px 12px 16px",
@@ -505,7 +513,7 @@ const selectS: React.CSSProperties = {
 const optionS: React.CSSProperties = {
   backgroundColor: "#18181b",
   color: "#ffffff",
-  padding: "10px"
+  padding: "12px"
 };
 
 const editBoxS = { 
