@@ -181,25 +181,27 @@ export default function AdminItemsPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px", marginBottom: "30px" }}>
         
-        {/* PANEL 1: MEGLÉVŐ ANYAG KEZELÉSE (BEVÉTELEZÉS ÉS TÖRLÉS) */}
+        {/* PANEL 1: MEGLÉVŐ ANYAG KEZELÉSE */}
         <div style={panelCard}>
           <h3 style={{ margin: "0 0 15px 0", color: "#4DA3FF" }}>📥 Készlet módosítása (Kiválasztással)</h3>
 
           <label style={labelS}>Válaszd ki az anyagot/gépet:</label>
           <select style={inputS} value={selectedItemId} onChange={(e) => { setSelectedItemId(e.target.value); setSerialToDelete(""); }}>
             <option value="">-- Válassz a raktárból --</option>
-            {items.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.brand ? `${i.brand} - ` : ""}{i.name} ({i.stock ?? 0} db raktáron)
-              </option>
-            ))}
+            {items.map((i) => {
+              const displayBrand = i.brand || (i.supplier ? i.supplier : "");
+              return (
+                <option key={i.id} value={i.id}>
+                  {displayBrand ? `[${displayBrand}] ` : ""}{i.name} ({i.stock ?? 0} db raktáron)
+                </option>
+              );
+            })}
           </select>
 
           {selectedItemId && (
             <>
               <hr style={{ border: "0", borderTop: "1px solid #333", margin: "15px 0" }} />
 
-              {/* Új gép hozzáadása */}
               <form onSubmit={handleAddSerial} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <span style={{ fontSize: "12px", fontWeight: "bold", color: "#2ecc71" }}>➕ ÚJ DARAB BEVÉTELEZÉSE:</span>
                 <input style={inputS} placeholder="Gyári szám (elhagyható ha sima anyag)" value={newSerial} onChange={(e) => setNewSerial(e.target.value)} />
@@ -212,7 +214,6 @@ export default function AdminItemsPage() {
                 </button>
               </form>
 
-              {/* Meglévő törlése lenyílóból */}
               {currentSerials.length > 0 && (
                 <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", padding: "12px", background: "#111", borderRadius: "8px", border: "1px dashed #e74c3c" }}>
                   <span style={{ fontSize: "12px", fontWeight: "bold", color: "#e74c3c" }}>🗑️ RAKTÁRON LÉVŐ GYÁRI SZÁM TÖRLÉSE:</span>
@@ -238,18 +239,17 @@ export default function AdminItemsPage() {
           <h3 style={{ margin: "0 0 15px 0", color: "#2ecc71" }}>✨ Teljesen új anyagtípus regisztrálása</h3>
           <form onSubmit={handleCreateNewItem} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             
-            {/* GYÁRTÓ ÉS TÍPUS SORA */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               <input
                 style={inputS}
-                placeholder="Gyártó (pl. Gree) *"
+                placeholder="Gyártó (pl. Fisher, Gree) *"
                 value={newItemData.brand}
                 onChange={(e) => setNewItemData({ ...newItemData, brand: e.target.value })}
                 required
               />
               <input
                 style={inputS}
-                placeholder="Típus / Megnevezés (pl. Comfort X 3.5kW) *"
+                placeholder="Típus / Megnevezés (pl. Comfort Plus 2,7) *"
                 value={newItemData.name}
                 onChange={(e) => setNewItemData({ ...newItemData, name: e.target.value })}
                 required
@@ -291,6 +291,9 @@ export default function AdminItemsPage() {
           const isExpanded = expandedItemId === item.id;
           const isEditing = editingItemId === item.id;
 
+          // Gyártó meghatározása (ha nincs megadva `brand`, megpróbálja kijelezni a `supplier`-t vagy az üreset)
+          const itemBrand = item.brand || "";
+
           return (
             <div key={item.id} style={{ background: "#1a1a1a", padding: "16px", borderRadius: "10px", border: isEditing ? "1px solid #f39c12" : "1px solid #333" }}>
               
@@ -299,10 +302,18 @@ export default function AdminItemsPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                   <div>
                     <strong style={{ fontSize: "16px" }}>
-                      {item.brand ? <span style={{ color: "#2ecc71" }}>[{item.brand}] </span> : ""}
+                      {itemBrand ? (
+                        <span style={{ color: "#2ecc71", marginRight: "6px", background: "#0a2912", padding: "2px 8px", borderRadius: "4px", border: "1px solid #145223" }}>
+                          {itemBrand}
+                        </span>
+                      ) : (
+                        <span style={{ color: "#777", marginRight: "6px", fontSize: "13px", fontStyle: "italic" }}>
+                          [Nincs gyártó]
+                        </span>
+                      )}
                       {item.name}
                     </strong>
-                    <div style={{ fontSize: "12px", color: "#aaa", marginTop: "4px" }}>
+                    <div style={{ fontSize: "12px", color: "#aaa", marginTop: "6px" }}>
                       SKU: {item.sku || "Nincs"} | Nagyker: {item.supplier || "Nincs"}
                       {serials.length > 0 && (
                         <span onClick={() => setExpandedItemId(isExpanded ? null : item.id)} style={{ color: "#4DA3FF", marginLeft: "10px", cursor: "pointer", textDecoration: "underline" }}>
@@ -322,7 +333,6 @@ export default function AdminItemsPage() {
                       </div>
                     </div>
                     
-                    {/* Szerkesztés indítása gomb */}
                     <button
                       onClick={() => startEditItem(item)}
                       style={{ background: "#f39c12", color: "#000", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "13px" }}
@@ -338,7 +348,7 @@ export default function AdminItemsPage() {
                   
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
                     <div>
-                      <label style={labelS}>Gyártó / Márka:</label>
+                      <label style={labelS}>Gyártó / Márka (pl. Fisher):</label>
                       <input style={inputS} value={editItemData.brand} onChange={(e) => setEditItemData({ ...editItemData, brand: e.target.value })} placeholder="Gyártó" />
                     </div>
                     <div>
