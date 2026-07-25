@@ -3,6 +3,14 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
+type QuoteItem = {
+  id: number;
+  name?: string;
+  sku?: string;
+  code?: string;
+  articleNumber?: string;
+};
+
 type Quote = {
   id: number;
   title?: string;
@@ -11,6 +19,7 @@ type Quote = {
   grossTotal: number;
   createdAt: string;
   client: { name: string; address?: string };
+  items?: QuoteItem[];
 };
 
 export default function QuotesPage() {
@@ -80,11 +89,18 @@ export default function QuotesPage() {
     const title = q.title?.toLowerCase() || "";
     const quoteId = String(q.id);
 
+    // Cikkszámok keresése az ajánlat tételei között
+    const hasMatchingSku = q.items?.some((item) => {
+      const sku = (item.sku || item.code || item.articleNumber || "").toLowerCase();
+      return sku.includes(query);
+    });
+
     return (
       clientName.includes(query) ||
       clientAddress.includes(query) ||
       title.includes(query) ||
-      quoteId.includes(query)
+      quoteId.includes(query) ||
+      hasMatchingSku
     );
   });
 
@@ -111,7 +127,7 @@ export default function QuotesPage() {
       <div style={{ marginBottom: 20, position: "relative" }}>
         <input
           type="text"
-          placeholder="🔍 Keresés ügyfélnév, cím, azonosító (#) vagy elnevezés alapján..."
+          placeholder="🔍 Keresés ügyfélnév, cím, azonosító (#), megnevezés vagy cikkszám alapján..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
@@ -159,6 +175,12 @@ export default function QuotesPage() {
           const displayTitle = q.title && q.title.trim() !== "" ? q.title : q.client?.name;
           const hasCustomTitle = q.title && q.title.trim() !== "" && q.title !== q.client?.name;
 
+          // Cikkszámok kigyűjtése megjelenítéshez
+          const skus = q.items
+            ?.map((item) => item.sku || item.code || item.articleNumber)
+            .filter(Boolean) as string[];
+          const uniqueSkus = Array.from(new Set(skus));
+
           return (
             <div key={q.id} style={card}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -171,6 +193,28 @@ export default function QuotesPage() {
                     #{q.id} • {new Date(q.createdAt).toLocaleDateString("hu-HU")}
                     {hasCustomTitle && ` • 👤 ${q.client?.name}`}
                   </div>
+
+                  {/* Cikkszám jelvények megjelenítése */}
+                  {uniqueSkus.length > 0 && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                      {uniqueSkus.map((sku, idx) => (
+                        <span
+                          key={idx}
+                          style={{
+                            fontSize: 11,
+                            background: "#e0f2fe",
+                            color: "#0369a1",
+                            border: "1px solid #7dd3fc",
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            fontWeight: "600",
+                          }}
+                        >
+                          CS: {sku}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -215,7 +259,6 @@ const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", 
 const navBtn: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #444", background: "#333", color: "#fff", textDecoration: "none" };
 const detailsLink: React.CSSProperties = { color: "#4DA3FF", textDecoration: "none", fontSize: 14, fontWeight: "bold" };
 
-// Javított törlés gomb stílus (justify -> justifyContent)
 const deleteBtn: React.CSSProperties = {
     background: "none",
     border: "none",
