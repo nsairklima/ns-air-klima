@@ -274,18 +274,30 @@ export default function ClientDetailsPage() {
 
             {/* RAKTÁR KIVÁLASZTÁSA (Csak új gép és saját eladás esetén) */}
             {!editingUnitId && status === "INSTALLED" && (
-              <div style={{ border: "1px dashed #2ecc71", padding: "12px", borderRadius: "10px", background: "#0a1f10" }}>
-                <label style={{ ...labS, color: "#2ecc71" }}>📦 Választás raktárból (opcionális):</label>
-                <select value={selectedItemId} onChange={(e) => handleInventorySelect(e.target.value)} style={inputS}>
-                  <option value="">-- Válassz raktári anyagot/gépet --</option>
-                  {inventoryItems
-                    .filter((item) => (item.stock || 0) > 0)
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} {item.sku ? `(${item.sku})` : ""} - Készleten: {item.stock} db
-                      </option>
-                    ))}
-                </select>
+              <div style={inventoryCardS}>
+                <div style={{ fontWeight: "bold", color: "#2ecc71", marginBottom: "10px", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  📦 Választás raktárkészletből (opcionális)
+                </div>
+
+                <div style={{ display: "grid", gap: "12px" }}>
+                  <div>
+                    <label style={{ ...labS, color: "#2ecc71" }}>Raktári cikk / Anyag</label>
+                    <select
+                      value={selectedItemId}
+                      onChange={(e) => handleInventorySelect(e.target.value)}
+                      style={{ ...inputS, borderColor: selectedItemId ? "#2ecc71" : "#444" }}
+                    >
+                      <option value="">-- Válassz a raktárból --</option>
+                      {inventoryItems
+                        .filter((item) => (item.stock || 0) > 0)
+                        .map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name} {item.sku ? `[${item.sku}]` : ""} — Készleten: {item.stock} db
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -306,14 +318,24 @@ export default function ClientDetailsPage() {
               <div style={{ flex: 1 }}>
                 <label style={labS}>Gyári szám / Cikkszám</label>
                 {availableSerials.length > 0 ? (
-                  <select value={serial} onChange={(e) => setSerial(e.target.value)} style={inputS} required>
-                    <option value="">-- Válassz cikkszámot / gyári számot --</option>
-                    {availableSerials.map((s, idx) => (
-                      <option key={idx} value={s.sn}>
-                        {s.sn} {s.src ? `(${s.src})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                  <div style={serialSelectionBoxS}>
+                    <label style={{ ...labS, color: "#3498db", marginBottom: "6px" }}>
+                      🔢 Választható cikkszámok / Gyári számok:
+                    </label>
+                    <select 
+                      value={serial} 
+                      onChange={(e) => setSerial(e.target.value)} 
+                      style={{ ...inputS, borderColor: "#3498db", backgroundColor: "#121a24" }} 
+                      required
+                    >
+                      <option value="">-- Melyik darabot építed be? --</option>
+                      {availableSerials.map((s, idx) => (
+                        <option key={idx} value={s.sn}>
+                          S/N: {s.sn} {s.src ? `(Forrás: ${s.src})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 ) : (
                   <input placeholder="S/N kód" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
                 )}
@@ -477,6 +499,21 @@ const formBoxS = {
   marginBottom: "30px", 
   border: "1px solid #2ecc71",
   boxSizing: "border-box" as const 
+};
+
+const inventoryCardS: React.CSSProperties = {
+  background: "#081c10",
+  border: "1px solid #1e5e34",
+  borderRadius: "12px",
+  padding: "16px",
+  boxSizing: "border-box",
+};
+
+const serialSelectionBoxS: React.CSSProperties = {
+  background: "#0d1b2a",
+  border: "1px solid #1c3d5a",
+  borderRadius: "10px",
+  padding: "12px",
 };
 
 const btnEditHeader = { background: "#e3f2fd", color: "#1976d2", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
