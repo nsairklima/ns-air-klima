@@ -21,6 +21,7 @@ export default function QuoteEditPage() {
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [desc, setDesc] = useState("");
+  const [itemSku, setItemSku] = useState(""); // ÚJ: Cikkszám állapota a beviteli mezőhöz
 
   // A gépelési akadások elkerülésére stringként tároljuk a beviteli mezőket
   const [qty, setQty] = useState<string>("1");
@@ -139,9 +140,10 @@ export default function QuoteEditPage() {
     }
   };
 
-  // Kijelölés az áttekinthető ablakból (modal)
+  // Kijelölés az áttekinthető ablakból (modal) - Cikkszám átvételével!
   const handleSelectItem = (item: any) => {
     setDesc(item.name);
+    setItemSku(item.sku || item.code || item.articleNumber || "");
     setBasePriceNet(String(item.price || ""));
     setProfitValue(""); 
     setUnit(item.unit || "db"); 
@@ -175,6 +177,7 @@ export default function QuoteEditPage() {
         body: JSON.stringify({
           id: editingId,
           description: desc,
+          sku: itemSku, // Cikkszám mentése
           quantity: n_mennyiseg,
           unit,
           basePrice: n_beszerzes, 
@@ -198,6 +201,7 @@ export default function QuoteEditPage() {
   const startEdit = (it: any) => {
     setEditingId(it.id);
     setDesc(it.description);
+    setItemSku(it.sku || it.code || it.articleNumber || "");
     const m = Number(it.quantity) || 1;
     setQty(String(m));
     setUnit(it.unit || "db");
@@ -220,16 +224,20 @@ export default function QuoteEditPage() {
   const resetForm = () => {
     setEditingId(null); 
     setDesc(""); 
+    setItemSku("");
     setQty("1"); 
     setUnit("db"); 
     setBasePriceNet(""); 
     setProfitValue("");
   };
 
-  // Szűrt tételek a keresőhöz
-  const filteredDbItems = dbItems.filter(item => 
-    item.name.toLowerCase().includes(itemSearchQuery.toLowerCase())
-  );
+  // Szűrt tételek a keresőhöz (Név vagy Cikkszám alapján)
+  const filteredDbItems = dbItems.filter(item => {
+    const q = itemSearchQuery.toLowerCase();
+    const nameMatch = item.name?.toLowerCase().includes(q);
+    const skuMatch = (item.sku || item.code || item.articleNumber || "").toLowerCase().includes(q);
+    return nameMatch || skuMatch;
+  });
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
@@ -376,74 +384,85 @@ export default function QuoteEditPage() {
         </form>
       </div>
 
-      {/* ÁTALAKÍTOTT, SZELLŐS TÉTELLISTA KÁRTYÁK */}
+      {/* ÁTALAKÍTOTT TÉTELLISTA KÁRTYÁK - CIKKSZÁM MEGJELENÍTÉSSEL */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {q.items && q.items.map((it: any, index: number) => (
-          <div 
-            key={it.id} 
-            style={{ 
-              background: "#0f172a", 
-              padding: "14px 16px", 
-              borderRadius: 10, 
-              border: "1px solid #334155", 
-              display: "flex", 
-              justifyContent: "space-between", 
-              alignItems: "center",
-              transition: "background 0.15s",
-              gap: 12
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
-          >
-            {/* Bal oldal: Mozgatás + Név és Mennyiség */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={arrowBtn(index === 0)}>▲</button>
-                <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={arrowBtn(index === q.items.length - 1)}>▼</button>
-              </div>
-              
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: "bold", fontSize: 15, color: "#fff", marginBottom: 4, wordBreak: "break-word" }}>
-                  {it.description}
+        {q.items && q.items.map((it: any, index: number) => {
+          const sku = it.sku || it.code || it.articleNumber || it.item?.sku || it.item?.code || it.item?.articleNumber;
+
+          return (
+            <div 
+              key={it.id} 
+              style={{ 
+                background: "#0f172a", 
+                padding: "14px 16px", 
+                borderRadius: 10, 
+                border: "1px solid #334155", 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center",
+                transition: "background 0.15s",
+                gap: 12
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
+            >
+              {/* Bal oldal: Mozgatás + Név, Cikkszám és Mennyiség */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={arrowBtn(index === 0)}>▲</button>
+                  <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={arrowBtn(index === q.items.length - 1)}>▼</button>
                 </div>
-                <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                  Mennyiség: <span style={{ color: "#fff", fontWeight: "bold" }}>{it.quantity} {it.unit || "db"}</span>
+                
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                    <span style={{ fontWeight: "bold", fontSize: 15, color: "#fff", wordBreak: "break-word" }}>
+                      {it.description}
+                    </span>
+                    {sku && (
+                      <span style={{ fontSize: 11, background: "#0284c7", color: "#fff", padding: "1px 6px", borderRadius: 4, fontWeight: "600" }}>
+                        CS: {sku}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                    Mennyiség: <span style={{ color: "#fff", fontWeight: "bold" }}>{it.quantity} {it.unit || "db"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Jobb oldal: Ár + Művelet gombok */}
+              <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 16 }}>
+                <div>
+                  <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
+                    {Number(it.lineGross).toLocaleString()} Ft
+                  </div>
+                  <div style={{ fontSize: 11, color: "#64748b" }}>Bruttó érték</div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button 
+                    onClick={() => startEdit(it)} 
+                    style={{ background: "#1e293b", border: "1px solid #334155", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 14 }} 
+                    title="Szerkesztés"
+                  >
+                    ✏️
+                  </button>
+                  <button 
+                    onClick={() => { 
+                      if(confirm("Biztosan törlöd ezt a tételt?")) {
+                        fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote);
+                      }
+                    }} 
+                    style={{ background: "#1e293b", border: "1px solid #334155", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 14 }} 
+                    title="Törlés"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
             </div>
-
-            {/* Jobb oldal: Ár + Művelet gombok */}
-            <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 16 }}>
-              <div>
-                <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
-                  {Number(it.lineGross).toLocaleString()} Ft
-                </div>
-                <div style={{ fontSize: 11, color: "#64748b" }}>Bruttó érték</div>
-              </div>
-
-              <div style={{ display: "flex", gap: 8 }}>
-                <button 
-                  onClick={() => startEdit(it)} 
-                  style={{ background: "#1e293b", border: "1px solid #334155", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 14 }} 
-                  title="Szerkesztés"
-                >
-                  ✏️
-                </button>
-                <button 
-                  onClick={() => { 
-                    if(confirm("Biztosan törlöd ezt a tételt?")) {
-                      fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote);
-                    }
-                  }} 
-                  style={{ background: "#1e293b", border: "1px solid #334155", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 14 }} 
-                  title="Törlés"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div style={{ marginTop: 35, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", borderTop: "1px solid #334155", paddingTop: "20px" }}>
@@ -456,7 +475,7 @@ export default function QuoteEditPage() {
         </button>
       </div>
 
-      {/* SZELLŐS ÉS KERESHETŐ TÉTELVÁLASZTÓ ABLAK (MODAL) */}
+      {/* SZELLŐS ÉS KERESHETŐ TÉTELVÁLASZTÓ ABLAK (MODAL) - CIKKSZÁM MEGJELENÍTÉSSEL */}
       {isModalOpen && (
         <div style={{
           position: "fixed",
@@ -496,7 +515,7 @@ export default function QuoteEditPage() {
               </div>
               <input
                 type="text"
-                placeholder="🔍 Keresés név szerint..."
+                placeholder="🔍 Keresés név vagy cikkszám alapján..."
                 value={itemSearchQuery}
                 onChange={(e) => setItemSearchQuery(e.target.value)}
                 style={inputS}
@@ -511,40 +530,51 @@ export default function QuoteEditPage() {
                   Nincs a keresésnek megfelelő anyag.
                 </div>
               ) : (
-                filteredDbItems.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleSelectItem(item)}
-                    style={{
-                      background: "#0f172a",
-                      padding: "14px 16px",
-                      borderRadius: 10,
-                      border: "1px solid #334155",
-                      cursor: "pointer",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      transition: "background 0.15s"
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
-                  >
-                    <div>
-                      <div style={{ fontWeight: "bold", fontSize: 15, color: "#fff", marginBottom: 4 }}>
-                        {item.name}
+                filteredDbItems.map((item) => {
+                  const itemSkuVal = item.sku || item.code || item.articleNumber;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectItem(item)}
+                      style={{
+                        background: "#0f172a",
+                        padding: "14px 16px",
+                        borderRadius: 10,
+                        border: "1px solid #334155",
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        transition: "background 0.15s"
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                          <span style={{ fontWeight: "bold", fontSize: 15, color: "#fff" }}>
+                            {item.name}
+                          </span>
+                          {itemSkuVal && (
+                            <span style={{ fontSize: 11, background: "#0284c7", color: "#fff", padding: "1px 6px", borderRadius: 4, fontWeight: "600" }}>
+                              CS: {itemSkuVal}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                          Egység: {item.unit || "db"}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                        Egység: {item.unit || "db"}
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
+                          {item.price?.toLocaleString()} Ft
+                        </div>
+                        <div style={{ fontSize: 11, color: "#64748b" }}>Nettó alapár</div>
                       </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
-                        {item.price?.toLocaleString()} Ft
-                      </div>
-                      <div style={{ fontSize: 11, color: "#64748b" }}>Nettó alapár</div>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
