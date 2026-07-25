@@ -12,7 +12,7 @@ export default function QuoteEditPage() {
   const [loading, setLoading] = useState(true);
   const [dbItems, setDbItems] = useState<any[]>([]);
 
-  // ÚJ: Anyagválasztó Modal állapota és keresője
+  // Anyagválasztó Modal állapota és keresője
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemSearchQuery, setItemSearchQuery] = useState("");
 
@@ -21,7 +21,7 @@ export default function QuoteEditPage() {
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [desc, setDesc] = useState("");
-  
+
   // A gépelési akadások elkerülésére stringként tároljuk a beviteli mezőket
   const [qty, setQty] = useState<string>("1");
   const [unit, setUnit] = useState("db");
@@ -145,7 +145,7 @@ export default function QuoteEditPage() {
     setBasePriceNet(String(item.price || ""));
     setProfitValue(""); 
     setUnit(item.unit || "db"); 
-    setIsModalOpen(false); // Modal bezárása
+    setIsModalOpen(false);
   };
 
   // Biztonságos számmá alakítás a kalkulációkhoz
@@ -267,8 +267,8 @@ export default function QuoteEditPage() {
     color: disabled ? "#475569" : "#fff", 
     cursor: disabled ? "default" : "pointer", 
     borderRadius: 6, 
-    padding: "8px 12px", 
-    fontSize: 13,
+    padding: "6px 10px", 
+    fontSize: 12,
     fontWeight: "bold" as const
   });
 
@@ -293,7 +293,7 @@ export default function QuoteEditPage() {
       <div style={{ background: "#1e293b", padding: "20px 16px", borderRadius: 16, marginBottom: 30, border: "1px solid #334155", boxShadow: "0 4px 15px rgba(0,0,0,0.3)" }}>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
           
-          {/* ÚJ: ÁTLÁTHATÓ ANYAGVÁLASZTÓ GOMB A ZSÚFOLT SELECT HELYETT */}
+          {/* ÁTLÁTHATÓ ANYAGVÁLASZTÓ GOMB */}
           <div style={{ background: "#141b2b", padding: 14, borderRadius: 10, border: "1px solid #2d3748" }}>
             <label style={{ ...labS, color: "#2ecc71" }}>Gyors betöltés adatbázisból</label>
             <button
@@ -376,53 +376,66 @@ export default function QuoteEditPage() {
         </form>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* ÁTALAKÍTOTT, SZELLŐS TÉTELLISTA KÁRTYÁK */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {q.items && q.items.map((it: any, index: number) => (
           <div 
             key={it.id} 
             style={{ 
-              background: "#1e293b", 
-              borderRadius: 14, 
-              padding: 16, 
-              border: "1px solid #334155",
-              display: "flex",
-              flexDirection: "column",
+              background: "#0f172a", 
+              padding: "14px 16px", 
+              borderRadius: 10, 
+              border: "1px solid #334155", 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
+              transition: "background 0.15s",
               gap: 12
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
           >
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <div style={{ display: "flex", flexDirection: "row", gap: 6 }}>
+            {/* Bal oldal: Mozgatás + Név és Mennyiség */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={arrowBtn(index === 0)}>▲</button>
                 <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={arrowBtn(index === q.items.length - 1)}>▼</button>
               </div>
-              <div style={{ fontWeight: "bold", fontSize: 15, flex: 1, wordBreak: "break-word" }}>
-                {it.description}
+              
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: "bold", fontSize: 15, color: "#fff", marginBottom: 4, wordBreak: "break-word" }}>
+                  {it.description}
+                </div>
+                <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                  Mennyiség: <span style={{ color: "#fff", fontWeight: "bold" }}>{it.quantity} {it.unit || "db"}</span>
+                </div>
               </div>
             </div>
 
-            <div style={{ 
-              display: "flex", 
-              justifyContent: "space-between", 
-              alignItems: "center", 
-              borderTop: "1px solid #334155", 
-              paddingTop: 12,
-              flexWrap: "wrap",
-              gap: 10
-            }}>
-              <div style={{ display: "flex", gap: 20, fontSize: 14, color: "#94a3b8" }}>
-                <div>Mennyiség: <span style={{ color: "#fff", fontWeight: "bold" }}>{it.quantity} {it.unit || "db"}</span></div>
-                <div>Bruttó ár: <span style={{ color: "#2ecc71", fontWeight: "bold" }}>{Number(it.lineGross).toLocaleString()} Ft</span></div>
+            {/* Jobb oldal: Ár + Művelet gombok */}
+            <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 16 }}>
+              <div>
+                <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
+                  {Number(it.lineGross).toLocaleString()} Ft
+                </div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>Bruttó érték</div>
               </div>
-              
-              <div style={{ display: "flex", gap: 18 }}>
-                <button onClick={() => startEdit(it)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20 }} title="Szerkesztés">✏️</button>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button 
+                  onClick={() => startEdit(it)} 
+                  style={{ background: "#1e293b", border: "1px solid #334155", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 14 }} 
+                  title="Szerkesztés"
+                >
+                  ✏️
+                </button>
                 <button 
                   onClick={() => { 
                     if(confirm("Biztosan törlöd ezt a tételt?")) {
                       fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote);
                     }
                   }} 
-                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20 }} 
+                  style={{ background: "#1e293b", border: "1px solid #334155", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 14 }} 
                   title="Törlés"
                 >
                   🗑️
@@ -443,7 +456,7 @@ export default function QuoteEditPage() {
         </button>
       </div>
 
-      {/* ÚJ: SZELLŐS ÉS KERESHETŐ TÉTELVÁLASZTÓ ABLAK (MODAL) */}
+      {/* SZELLŐS ÉS KERESHETŐ TÉTELVÁLASZTÓ ABLAK (MODAL) */}
       {isModalOpen && (
         <div style={{
           position: "fixed",
