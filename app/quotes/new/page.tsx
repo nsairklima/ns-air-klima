@@ -4,7 +4,15 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Client = { id: number; name: string; };
-type DBItem = { id: number; name: string; price: number; unit: string; };
+type DBItem = { 
+  id: number; 
+  name: string; 
+  price: number; 
+  unit: string;
+  sku?: string;
+  code?: string;
+  articleNumber?: string;
+};
 
 export default function NewQuotePage() {
   const router = useRouter();
@@ -19,7 +27,7 @@ export default function NewQuotePage() {
   const [unit, setUnit] = useState({ brand: "", model: "", power: "", location: "" });
   const [quoteTitle, setQuoteTitle] = useState("");
 
-  // ÚJ: Modal és kereső állapota
+  // Modal és kereső állapota
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemSearchQuery, setItemSearchQuery] = useState("");
 
@@ -120,10 +128,14 @@ export default function NewQuotePage() {
     }
   }
 
-  // Szűrt termékek a keresőhöz
-  const filteredDbItems = dbItems.filter(item => 
-    item.name.toLowerCase().includes(itemSearchQuery.toLowerCase())
-  );
+  // Szűrés név ÉS cikkszám alapján handles
+  const filteredDbItems = dbItems.filter(item => {
+    const q = itemSearchQuery.toLowerCase();
+    const nameMatch = item.name?.toLowerCase().includes(q);
+    const skuVal = item.sku || item.code || item.articleNumber || "";
+    const skuMatch = skuVal.toLowerCase().includes(q);
+    return nameMatch || skuMatch;
+  });
 
   return (
     <div style={wrap}>
@@ -171,7 +183,7 @@ export default function NewQuotePage() {
 
         <h3 style={{ ...sectionTitle, marginTop: 25 }}>❄️ Gép adatai</h3>
         
-        {/* ÚJ: SZELLŐS ÉS ÁTLÁTHATÓ KIVÁLASZTÓ GOMB */}
+        {/* KIVÁLASZTÓ GOMB */}
         <div style={{ marginBottom: 15, background: "#141b2b", padding: 12, borderRadius: 10, border: "1px solid #2d3748" }}>
             <label style={{ fontSize: 11, color: "#2ecc71", fontWeight: "bold", textTransform: "uppercase", display: "block", marginBottom: 6, letterSpacing: "0.5px" }}>Betöltés az adatbázisból:</label>
             <button
@@ -213,7 +225,7 @@ export default function NewQuotePage() {
         </button>
       </form>
 
-      {/* ÚJ: SZELLŐS ÉS KERESHETŐ TÍPUSVÁLASZTÓ ABLAK (MODAL) */}
+      {/* SZELLŐS ÉS KERESHETŐ TÍPUSVÁLASZTÓ ABLAK (MODAL) CIKKSZÁMMAL */}
       {isModalOpen && (
         <div style={{
           position: "fixed",
@@ -254,7 +266,7 @@ export default function NewQuotePage() {
               </div>
               <input
                 type="text"
-                placeholder="🔍 Keresés típus / név szerint..."
+                placeholder="🔍 Keresés név vagy cikkszám alapján..."
                 value={itemSearchQuery}
                 onChange={(e) => setItemSearchQuery(e.target.value)}
                 style={input}
@@ -262,46 +274,54 @@ export default function NewQuotePage() {
               />
             </div>
 
-            {/* Szellős kártyás lista */}
+            {/* Szellős kártyás lista cikkszámmal */}
             <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
               {filteredDbItems.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 30, color: "#94a3b8" }}>
                   Nincs a keresésnek megfelelő típus.
                 </div>
               ) : (
-                filteredDbItems.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleSelectDBItemDirect(item)}
-                    style={{
-                      background: "#0f172a",
-                      padding: "14px 16px",
-                      borderRadius: 10,
-                      border: "1px solid #334155",
-                      cursor: "pointer",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      transition: "background 0.15s"
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#2a374e")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
-                  >
-                    <div>
-                      <div style={{ fontWeight: "bold", fontSize: 15, color: "#fff", marginBottom: 4 }}>
-                        {item.name}
+                filteredDbItems.map((item) => {
+                  const itemSku = item.sku || item.code || item.articleNumber;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectDBItemDirect(item)}
+                      style={{
+                        background: "#0f172a",
+                        padding: "14px 16px",
+                        borderRadius: 10,
+                        border: "1px solid #334155",
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        transition: "background 0.15s"
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#2a374e")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
+                    >
+                      <div>
+                        <div style={{ fontWeight: "bold", fontSize: 15, color: "#fff", marginBottom: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span>{item.name}</span>
+                          {itemSku && (
+                            <span style={{ fontSize: 11, background: "#1e293b", color: "#38bdf8", border: "1px solid #0284c7", padding: "2px 6px", borderRadius: 4, fontWeight: "600" }}>
+                              CS: {itemSku}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                          Egység: {item.unit || "db"}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                        Egység: {item.unit || "db"}
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
+                          {item.price ? `${item.price.toLocaleString()} Ft` : "0 Ft"}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
-                        {item.price ? `${item.price.toLocaleString()} Ft` : "0 Ft"}
-                      </div>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
