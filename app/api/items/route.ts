@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     const newItem = await prisma.item.create({
       data: {
-        brand: body.brand || null, // <-- GYÁRTÓ RÖGZÍTÉSE
+        brand: body.brand || null,
         name: body.name,
         price: parseFloat(body.price) || 0,
         sku: body.sku || null,
@@ -56,6 +56,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(newItem);
   } catch (error: any) {
+    console.error("Hiba a POST során:", error);
     return NextResponse.json({ error: "Hiba a mentés során" }, { status: 500 });
   }
 }
@@ -108,7 +109,6 @@ export async function PATCH(req: Request) {
     // 3. UTASÍTÁS: ÜGYFÉLNEK ELADVA (AUTOMATIKUS LEVONÁS)
     if (action === "deduct") {
       if (deleteSerial) {
-        // Megkeressük a törlendő gyári számot, hogy lássuk a forrását
         const found = serials.find(s => s.sn === deleteSerial);
         serials = serials.filter(s => s.sn !== deleteSerial);
         
@@ -119,44 +119,30 @@ export async function PATCH(req: Request) {
             stock: serials.length
           }
         });
-        // Visszaadjuk a forrást is, hogy az ügyfél oldal elmenthesse magának!
         return NextResponse.json({ updated, deductedSource: found ? found.src : "Ismeretlen" });
       } else {
-        // Gyári szám nélküli anyag (pl. cső) sima levonása
         const newStock = Math.max(0, (currentItem.stock || 0) - (qtyToDeduct || 1));
         const updated = await prisma.item.update({ where: { id: Number(id) }, data: { stock: newStock } });
         return NextResponse.json(updated);
       }
     }
 
-    // 4. UTASÍTÁS: RÉSZLETES SZERKESZTÉS (Admin felületről)
-    if (action === "update_details") {
-      const updated = await prisma.item.update({
-        where: { id: Number(id) },
-        data: {
-          brand: body.brand || null, // <-- GYÁRTÓ MÓDOSÍTÁSA
-          name: body.name,
-          price: parseFloat(body.price) || 0,
-          sku: body.sku || null,
-          supplier: body.supplier || null,
-          stock: body.stock !== undefined ? Number(body.stock) : currentItem.stock,
-        },
-      });
-      return NextResponse.json(updated);
-    }
-
-    // SIMA MENEDZSMENT SZERKESZTÉS (Alapértelmezett ág)
+    // 4. UTASÍTÁS: RÉSZLETES SZERKESZTÉS / MEGYEZŐ SZERKESZTÉS (Admin felületről)
+    // Megjegyzés: Bármilyen egyéb szerkesztés érkezik, ezt futtatjuk le és RETURN-nel kilépünk!
     const updated = await prisma.item.update({
       where: { id: Number(id) },
       data: {
-        brand: body.brand !== undefined ? body.brand : currentItem.brand, // <-- GYÁRTÓ MÓDOSÍTÁSA
+        brand: body.brand || null,
         name: body.name,
-        price: parseFloat(body.price),
-        sku: body.sku,
-        supplier: body.supplier
+        price: parseFloat(body.price) || 0,
+        sku: body.sku || null,
+        supplier: body.supplier || null,
+        stock: body.stock !== undefined ? Number(body.stock) : currentItem.stock,
       },
     });
+    
     return NextResponse.json(updated);
+
   } catch (error: any) {
     console.error("Hiba a PATCH során:", error);
     return NextResponse.json({ error: "Hiba a frissítés során" }, { status: 500 });
