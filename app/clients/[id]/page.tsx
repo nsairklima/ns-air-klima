@@ -82,7 +82,7 @@ export default function ClientDetailsPage() {
   // Amikor kiválasztunk egy raktári cikket
   const handleInventorySelect = (itemIdStr: string) => {
     setSelectedItemId(itemIdStr);
-    setSerial(""); // nullázzuk a korábban kiválasztott cikkszámot
+    setSerial("");
 
     if (!itemIdStr) {
       setAvailableSerials([]);
@@ -94,7 +94,6 @@ export default function ClientDetailsPage() {
       setBrand(item.supplier || "");
       setModel(item.name || "");
 
-      // Cikkszámok/Gyári számok kinyerése a serialNumber stringből
       if (item.serialNumber) {
         const parsed = item.serialNumber
           .split(", ")
@@ -140,7 +139,6 @@ export default function ClientDetailsPage() {
     });
 
     if (res.ok) {
-      // Ha raktárból választottunk ki cikkszámot, levonjuk a raktárkészletből is
       if (!editingUnitId && selectedItemId && status === "INSTALLED") {
         await fetch("/api/items", {
           method: "PATCH",
@@ -152,7 +150,7 @@ export default function ClientDetailsPage() {
             qtyToDeduct: 1
           }),
         });
-        await loadInventory(); // Frissítjük a raktár listát
+        await loadInventory();
       }
 
       resetUnitForm();
@@ -217,7 +215,7 @@ export default function ClientDetailsPage() {
           {!isEditingClient ? (
             <>
               <h1 style={{ ...clientNameStyle, fontSize: isMobile ? "26px" : "32px" }}>{client.name}</h1>
-              <div style={{ ...contactRow, flexDirection: isMobile ? "column" : "row", alignItems: "flex-start", gap: isMobile ? "6px" : "0" }}>
+              <div style={{ ...contactRow, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? "6px" : "0" }}>
                 <span style={{ color: "#2ecc71", marginRight: "20px" }}>📞 {client.phone || "Nincs telefonszám"}</span>
                 <span style={{ color: "#bbb" }}>✉️ {client.email || "Nincs email"}</span>
               </div>
@@ -236,7 +234,6 @@ export default function ClientDetailsPage() {
           )}
         </div>
 
-        {/* Szerkesztő gombok a fejlécben */}
         <div style={{ display: "flex", gap: "10px", width: isMobile ? "100%" : "auto", justifyContent: "flex-end" }}>
           {!isEditingClient ? (
             <>
@@ -262,47 +259,49 @@ export default function ClientDetailsPage() {
 
       {showUnitForm && (
         <div style={formBoxS}>
-          <h3 style={{ marginTop: 0, color: "#fff" }}>{editingUnitId ? "✏️ Gép módosítása" : "➕ Új gép rögzítése"}</h3>
-          <form onSubmit={handleSubmitUnit} style={{ display: "grid", gap: "12px" }}>
+          <h3 style={{ marginTop: 0, color: "#fff", marginBottom: "20px" }}>
+            {editingUnitId ? "✏️ Gép módosítása" : "➕ Új gép rögzítése"}
+          </h3>
+          <form onSubmit={handleSubmitUnit} style={{ display: "grid", gap: "16px" }}>
             <div>
-              <label style={labS}>Gép típusa:</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputS}>
-                <option value="INSTALLED">🆕 Telepítendő (Saját eladás)</option>
-                <option value="SERVICE_ONLY">🔵 Hozott gép (Csak javítás/napló)</option>
+              <label style={labS}>Gép típusa</label>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} style={selectS}>
+                <option value="INSTALLED" style={optionS}>🆕 Telepítendő (Saját eladás)</option>
+                <option value="SERVICE_ONLY" style={optionS}>🔵 Hozott gép (Csak javítás/napló)</option>
               </select>
             </div>
 
-            {/* RAKTÁR KIVÁLASZTÁSA (Csak új gép és saját eladás esetén) */}
+            {/* RAKTÁR KIVÁLASZTÁSA */}
             {!editingUnitId && status === "INSTALLED" && (
               <div style={inventoryCardS}>
-                <div style={{ fontWeight: "bold", color: "#2ecc71", marginBottom: "10px", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  📦 Választás raktárkészletből (opcionális)
+                <div style={inventoryHeaderS}>
+                  <span>📦</span> Választás raktárkészletből (opcionális)
                 </div>
 
-                <div style={{ display: "grid", gap: "12px" }}>
-                  <div>
-                    <label style={{ ...labS, color: "#2ecc71" }}>Raktári cikk / Anyag</label>
-                    <select
-                      value={selectedItemId}
-                      onChange={(e) => handleInventorySelect(e.target.value)}
-                      style={{ ...inputS, borderColor: selectedItemId ? "#2ecc71" : "#444" }}
-                    >
-                      <option value="">-- Válassz a raktárból --</option>
-                      {inventoryItems
-                        .filter((item) => (item.stock || 0) > 0)
-                        .map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.name} {item.sku ? `[${item.sku}]` : ""} — Készleten: {item.stock} db
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                <div>
+                  <label style={{ ...labS, color: "#2ecc71" }}>Raktári cikk / Anyag</label>
+                  <select
+                    value={selectedItemId}
+                    onChange={(e) => handleInventorySelect(e.target.value)}
+                    style={{
+                      ...selectS,
+                      borderColor: selectedItemId ? "#2ecc71" : "#1e4d2b",
+                      backgroundColor: "#0d2616",
+                    }}
+                  >
+                    <option value="" style={optionS}>-- Válassz a raktárból --</option>
+                    {inventoryItems.map((item) => (
+                      <option key={item.id} value={item.id} style={optionS}>
+                        {item.name} {item.sku ? `[${item.sku}]` : ""} — Készleten: {item.stock ?? item.quantity ?? 0} db
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             )}
 
             {/* Gyártó és Modell sor */}
-            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px" }}>
               <div style={{ flex: 1 }}>
                 <label style={labS}>Gyártó</label>
                 <input placeholder="pl. Daikin" value={brand} onChange={e => setBrand(e.target.value)} style={inputS} required />
@@ -314,23 +313,23 @@ export default function ClientDetailsPage() {
             </div>
 
             {/* Gyári szám és Helyszín sor */}
-            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px" }}>
               <div style={{ flex: 1 }}>
                 <label style={labS}>Gyári szám / Cikkszám</label>
                 {availableSerials.length > 0 ? (
                   <div style={serialSelectionBoxS}>
-                    <label style={{ ...labS, color: "#3498db", marginBottom: "6px" }}>
+                    <label style={{ ...labS, color: "#60a5fa", marginBottom: "8px" }}>
                       🔢 Választható cikkszámok / Gyári számok:
                     </label>
                     <select 
                       value={serial} 
                       onChange={(e) => setSerial(e.target.value)} 
-                      style={{ ...inputS, borderColor: "#3498db", backgroundColor: "#121a24" }} 
+                      style={{ ...selectS, borderColor: "#3b82f6", backgroundColor: "#0f172a" }} 
                       required
                     >
-                      <option value="">-- Melyik darabot építed be? --</option>
+                      <option value="" style={optionS}>-- Melyik darabot építed be? --</option>
                       {availableSerials.map((s, idx) => (
-                        <option key={idx} value={s.sn}>
+                        <option key={idx} value={s.sn} style={optionS}>
                           S/N: {s.sn} {s.src ? `(Forrás: ${s.src})` : ""}
                         </option>
                       ))}
@@ -347,10 +346,13 @@ export default function ClientDetailsPage() {
             </div>
 
             <div>
-              <label style={labS}>Dátum:</label>
+              <label style={labS}>Dátum</label>
               <input type="date" value={installation} onChange={e => setInstallation(e.target.value)} style={inputS} />
             </div>
-            <button type="submit" style={{ ...btnGreen, width: "100%", padding: "14px" }}>GÉP MENTÉSE</button>
+
+            <button type="submit" style={{ ...btnGreen, width: "100%", padding: "14px", marginTop: "10px" }}>
+              GÉP MENTÉSE
+            </button>
           </form>
         </div>
       )}
@@ -364,7 +366,7 @@ export default function ClientDetailsPage() {
                 <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
                   <strong style={{ fontSize: "18px", color: "#000" }}>{unit.brand} {unit.model}</strong>
                   <span style={{
-                    fontSize: "12px", padding: "2px 8px", borderRadius: "10px", fontWeight: "bold",
+                    fontSize: "12px", padding: "3px 10px", borderRadius: "12px", fontWeight: "bold",
                     background: unit.status === "SERVICE_ONLY" ? "#e3f2fd" : (unit.installation ? "#e8f5e9" : "#fff3e0"),
                     color: unit.status === "SERVICE_ONLY" ? "#1976d2" : (unit.installation ? "#2e7d32" : "#ef6c00"),
                   }}>
@@ -377,7 +379,6 @@ export default function ClientDetailsPage() {
                 </div>
               </div>
 
-              {/* Gép akciógombok sora */}
               <div style={{ display: "flex", gap: "6px", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "stretch" : "flex-end" }}>
                 {unit.status === "INSTALLED" && !unit.installation && (
                   <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={{ ...btnGreenSmall, flex: isMobile ? 1 : "none" }}>✅ Kész</button>
@@ -428,7 +429,7 @@ const containerStyle: React.CSSProperties = {
   minHeight: "100vh",
   maxWidth: "1000px",
   margin: "0 auto",
-  fontFamily: "sans-serif",
+  fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   color: "#fff",
   width: "100%",
   boxSizing: "border-box"
@@ -468,17 +469,43 @@ const navBtn = {
   fontSize: "14px"
 };
 
-const inputS = {
+const inputS: React.CSSProperties = {
   width: "100%",
-  padding: "14px",
+  padding: "12px 16px",
   borderRadius: "10px",
-  border: "1px solid #444",
-  backgroundColor: "#111",
+  border: "1px solid #333",
+  backgroundColor: "#18181b",
   color: "#fff",
   outline: "none",
-  fontSize: "16px",
-  boxSizing: "border-box" as const,
+  fontSize: "15px",
+  boxSizing: "border-box",
   display: "block"
+};
+
+/* --- ÚJ MODERN LENYÍLÓ MENÜ STÍLUS --- */
+const selectS: React.CSSProperties = {
+  width: "100%",
+  padding: "12px 40px 12px 16px",
+  borderRadius: "10px",
+  border: "1px solid #333",
+  backgroundColor: "#18181b",
+  color: "#ffffff",
+  outline: "none",
+  fontSize: "15px",
+  boxSizing: "border-box",
+  display: "block",
+  appearance: "none",
+  WebkitAppearance: "none",
+  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+  backgroundRepeat: "no-repeat",
+  backgroundPosition: "right 14px center",
+  cursor: "pointer"
+};
+
+const optionS: React.CSSProperties = {
+  backgroundColor: "#18181b",
+  color: "#ffffff",
+  padding: "10px"
 };
 
 const editBoxS = { 
@@ -493,27 +520,37 @@ const editBoxS = {
 };
 
 const formBoxS = { 
-  background: "#111", 
-  padding: "20px", 
-  borderRadius: "12px", 
+  background: "#121214", 
+  padding: "24px", 
+  borderRadius: "16px", 
   marginBottom: "30px", 
-  border: "1px solid #2ecc71",
+  border: "1px solid #27272a",
   boxSizing: "border-box" as const 
 };
 
 const inventoryCardS: React.CSSProperties = {
-  background: "#081c10",
-  border: "1px solid #1e5e34",
+  background: "#081a0e",
+  border: "1px solid #144222",
   borderRadius: "12px",
   padding: "16px",
-  boxSizing: "border-box",
+  boxSizing: "border-box"
+};
+
+const inventoryHeaderS: React.CSSProperties = {
+  fontWeight: "600",
+  color: "#4ade80",
+  marginBottom: "12px",
+  fontSize: "14px",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px"
 };
 
 const serialSelectionBoxS: React.CSSProperties = {
-  background: "#0d1b2a",
-  border: "1px solid #1c3d5a",
-  borderRadius: "10px",
-  padding: "12px",
+  background: "#0b1329",
+  border: "1px solid #1e3a8a",
+  borderRadius: "12px",
+  padding: "14px"
 };
 
 const btnEditHeader = { background: "#e3f2fd", color: "#1976d2", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
@@ -525,7 +562,7 @@ const btnCancel = { background: "#444", color: "#fff", border: "none", padding: 
 const unitCard = { padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", background: "#fff", marginBottom: "10px", boxSizing: "border-box" as const };
 const quoteCard = { padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", background: "#fff", boxSizing: "border-box" as const };
 
-const labS = { fontSize: "11px", color: "#aaa", fontWeight: "bold" as const, marginBottom: "5px", display: "block", textTransform: "uppercase" as const };
+const labS = { fontSize: "12px", color: "#a1a1aa", fontWeight: "600" as const, marginBottom: "6px", display: "block", textTransform: "uppercase" as const, letterSpacing: "0.5px" };
 const btnBlueSmall = { background: "#3498db", color: "#fff", border: "none", padding: "10px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" as const };
 const btnGreenSmall = { background: "#2ecc71", color: "#000", border: "none", padding: "10px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" as const };
 const btnOrangeSmall = { background: "#f39c12", color: "#fff", border: "none", padding: "10px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" as const, display: "inline-flex", alignItems: "center", gap: "4px" };
