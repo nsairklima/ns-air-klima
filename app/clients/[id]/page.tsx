@@ -3,6 +3,107 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+// --- EGYEDI SÖTÉT DROPDOWN KOMPONENS (MOBIL ÉS DESKTOP KOMPATIBILIS) ---
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder = "Válassz...",
+  bg = "#18181b",
+  borderColor = "#333",
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  bg?: string;
+  borderColor?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find((o) => o.value === value);
+
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: "100%",
+          padding: "12px 16px",
+          borderRadius: "10px",
+          border: `1px solid ${borderColor}`,
+          backgroundColor: bg,
+          color: "#ffffff",
+          fontSize: "15px",
+          textAlign: "left",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          cursor: "pointer",
+          boxSizing: "border-box",
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "8px" }}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <span style={{ fontSize: "12px", color: "#a1a1aa" }}>{isOpen ? "▲" : "▼"}</span>
+      </button>
+
+      {isOpen && (
+        <>
+          {/* Kint kattintásra bezáró réteg */}
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 99 }}
+            onClick={() => setIsOpen(false)}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 6px)",
+              left: 0,
+              right: 0,
+              maxHeight: "250px",
+              overflowY: "auto",
+              backgroundColor: "#18181b",
+              border: "1px solid #3f3f46",
+              borderRadius: "12px",
+              zIndex: 100,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.9)",
+            }}
+          >
+            {options.length > 0 ? (
+              options.map((opt) => (
+                <div
+                  key={opt.value}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  style={{
+                    padding: "14px 16px",
+                    color: opt.value === value ? "#2ecc71" : "#ffffff",
+                    backgroundColor: opt.value === value ? "#27272a" : "transparent",
+                    borderBottom: "1px solid #27272a",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    fontWeight: opt.value === value ? "bold" : "normal",
+                  }}
+                >
+                  {opt.label}
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: "14px", color: "#71717a", fontSize: "14px", textAlign: "center" }}>
+                Nincs elérhető opció
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function ClientDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -62,7 +163,7 @@ export default function ClientDetailsPage() {
           name: data.name,
           email: data.email || "",
           phone: data.phone || "",
-          address: data.address || ""
+          address: data.address || "",
         });
       }
     } catch (err) {
@@ -115,7 +216,10 @@ export default function ClientDetailsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(editClientData),
     });
-    if (res.ok) { setIsEditingClient(false); loadClientData(); }
+    if (res.ok) {
+      setIsEditingClient(false);
+      loadClientData();
+    }
   };
 
   const handleDeleteClient = async () => {
@@ -126,9 +230,13 @@ export default function ClientDetailsPage() {
 
   const handleSubmitUnit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { 
-      brand, model, serialNumber: serial, location, status,
-      installation: installation ? new Date(installation).toISOString() : null 
+    const payload = {
+      brand,
+      model,
+      serialNumber: serial,
+      location,
+      status,
+      installation: installation ? new Date(installation).toISOString() : null,
     };
 
     const url = editingUnitId ? `/api/clients/${Id}/units/${editingUnitId}` : `/api/clients/${Id}/units`;
@@ -147,7 +255,7 @@ export default function ClientDetailsPage() {
             action: "deduct",
             id: Number(selectedItemId),
             deleteSerial: serial || null,
-            qtyToDeduct: 1
+            qtyToDeduct: 1,
           }),
         });
         await loadInventory();
@@ -169,9 +277,12 @@ export default function ClientDetailsPage() {
 
   const startEditUnit = (unit: any) => {
     setEditingUnitId(unit.id);
-    setBrand(unit.brand); setModel(unit.model); setSerial(unit.serialNumber || "");
-    setLocation(unit.location || ""); setStatus(unit.status || "INSTALLED");
-    setInstallation(unit.installation ? new Date(unit.installation).toISOString().split('T')[0] : "");
+    setBrand(unit.brand);
+    setModel(unit.model);
+    setSerial(unit.serialNumber || "");
+    setLocation(unit.location || "");
+    setStatus(unit.status || "INSTALLED");
+    setInstallation(unit.installation ? new Date(unit.installation).toISOString().split("T")[0] : "");
     setSelectedItemId("");
     setAvailableSerials([]);
     setShowUnitForm(true);
@@ -179,7 +290,11 @@ export default function ClientDetailsPage() {
 
   const resetUnitForm = () => {
     setEditingUnitId(null);
-    setBrand(""); setModel(""); setSerial(""); setLocation(""); setInstallation("");
+    setBrand("");
+    setModel("");
+    setSerial("");
+    setLocation("");
+    setInstallation("");
     setStatus("INSTALLED");
     setSelectedItemId("");
     setAvailableSerials([]);
@@ -232,10 +347,10 @@ export default function ClientDetailsPage() {
           ) : (
             <div style={editBoxS}>
               <h3 style={{ marginTop: 0, color: "#fff" }}>Ügyfél módosítása</h3>
-              <input style={inputS} value={editClientData.name} onChange={e => setEditClientData({...editClientData, name: e.target.value})} placeholder="Név" />
-              <input style={inputS} value={editClientData.phone} onChange={e => setEditClientData({...editClientData, phone: e.target.value})} placeholder="Telefon" />
-              <input style={inputS} value={editClientData.email} onChange={e => setEditClientData({...editClientData, email: e.target.value})} placeholder="Email" />
-              <input style={inputS} value={editClientData.address} onChange={e => setEditClientData({...editClientData, address: e.target.value})} placeholder="Cím" />
+              <input style={inputS} value={editClientData.name} onChange={(e) => setEditClientData({ ...editClientData, name: e.target.value })} placeholder="Név" />
+              <input style={inputS} value={editClientData.phone} onChange={(e) => setEditClientData({ ...editClientData, phone: e.target.value })} placeholder="Telefon" />
+              <input style={inputS} value={editClientData.email} onChange={(e) => setEditClientData({ ...editClientData, email: e.target.value })} placeholder="Email" />
+              <input style={inputS} value={editClientData.address} onChange={(e) => setEditClientData({ ...editClientData, address: e.target.value })} placeholder="Cím" />
             </div>
           )}
         </div>
@@ -258,7 +373,7 @@ export default function ClientDetailsPage() {
       {/* GÉPEK SZEKCIÓ CÍM */}
       <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", marginBottom: "20px" }}>
         <h2 style={{ margin: 0, color: "#fff", fontSize: isMobile ? "20px" : "24px" }}>🛠️ Gépek kezelése</h2>
-        <button onClick={() => { if(showUnitForm) resetUnitForm(); else setShowUnitForm(true); }} style={btnGreen}>
+        <button onClick={() => { if (showUnitForm) resetUnitForm(); else setShowUnitForm(true); }} style={btnGreen}>
           {showUnitForm ? "Mégse" : "+ Új gép felvétele"}
         </button>
       </div>
@@ -271,10 +386,14 @@ export default function ClientDetailsPage() {
           <form onSubmit={handleSubmitUnit} style={{ display: "grid", gap: "16px" }}>
             <div>
               <label style={labS}>Gép típusa</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)} style={selectS}>
-                <option value="INSTALLED" style={optionS}>🆕 Telepítendő (Saját eladás)</option>
-                <option value="SERVICE_ONLY" style={optionS}>🔵 Hozott gép (Csak javítás/napló)</option>
-              </select>
+              <CustomSelect
+                value={status}
+                onChange={(val) => setStatus(val)}
+                options={[
+                  { value: "INSTALLED", label: "🆕 Telepítendő (Saját eladás)" },
+                  { value: "SERVICE_ONLY", label: "🔵 Hozott gép (Csak javítás/napló)" },
+                ]}
+              />
             </div>
 
             {/* RAKTÁR KIVÁLASZTÁSA */}
@@ -286,24 +405,20 @@ export default function ClientDetailsPage() {
 
                 <div>
                   <label style={{ ...labS, color: "#2ecc71" }}>Raktári cikk / Anyag</label>
-                  <select
+                  <CustomSelect
                     value={selectedItemId}
-                    onChange={(e) => handleInventorySelect(e.target.value)}
-                    style={{
-                      ...selectS,
-                      borderColor: selectedItemId ? "#2ecc71" : "#1e4d2b",
-                      backgroundColor: "#06150a",
-                    }}
-                  >
-                    <option value="" style={optionS}>
-                      -- Válassz a raktárból ({inStockItems.length} elérhető) --
-                    </option>
-                    {inStockItems.map((item) => (
-                      <option key={item.id} value={item.id} style={optionS}>
-                        {item.name} {item.sku ? `[${item.sku}]` : ""} — Készleten: {item.stock ?? item.quantity ?? 0} db
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => handleInventorySelect(val)}
+                    placeholder={`-- Válassz a raktárból (${inStockItems.length} elérhető) --`}
+                    bg="#06150a"
+                    borderColor={selectedItemId ? "#2ecc71" : "#144222"}
+                    options={[
+                      { value: "", label: `-- Válassz a raktárból (${inStockItems.length} elérhető) --` },
+                      ...inStockItems.map((item) => ({
+                        value: String(item.id),
+                        label: `${item.name} ${item.sku ? `[${item.sku}]` : ""} — Készleten: ${item.stock ?? item.quantity ?? 0} db`,
+                      })),
+                    ]}
+                  />
                 </div>
               </div>
             )}
@@ -312,11 +427,11 @@ export default function ClientDetailsPage() {
             <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px" }}>
               <div style={{ flex: 1 }}>
                 <label style={labS}>Gyártó</label>
-                <input placeholder="pl. Daikin" value={brand} onChange={e => setBrand(e.target.value)} style={inputS} required />
+                <input placeholder="pl. Daikin" value={brand} onChange={(e) => setBrand(e.target.value)} style={inputS} required />
               </div>
               <div style={{ flex: 1 }}>
                 <label style={labS}>Modell</label>
-                <input placeholder="pl. Sensira" value={model} onChange={e => setModel(e.target.value)} style={inputS} required />
+                <input placeholder="pl. Sensira" value={model} onChange={(e) => setModel(e.target.value)} style={inputS} required />
               </div>
             </div>
 
@@ -329,33 +444,34 @@ export default function ClientDetailsPage() {
                     <label style={{ ...labS, color: "#60a5fa", marginBottom: "8px" }}>
                       🔢 Választható cikkszámok / Gyári számok:
                     </label>
-                    <select 
-                      value={serial} 
-                      onChange={(e) => setSerial(e.target.value)} 
-                      style={{ ...selectS, borderColor: "#3b82f6", backgroundColor: "#0f172a" }} 
-                      required
-                    >
-                      <option value="" style={optionS}>-- Melyik darabot építed be? --</option>
-                      {availableSerials.map((s, idx) => (
-                        <option key={idx} value={s.sn} style={optionS}>
-                          S/N: {s.sn} {s.src ? `(Forrás: ${s.src})` : ""}
-                        </option>
-                      ))}
-                    </select>
+                    <CustomSelect
+                      value={serial}
+                      onChange={(val) => setSerial(val)}
+                      placeholder="-- Melyik darabot építed be? --"
+                      bg="#0f172a"
+                      borderColor="#3b82f6"
+                      options={[
+                        { value: "", label: "-- Melyik darabot építed be? --" },
+                        ...availableSerials.map((s) => ({
+                          value: s.sn,
+                          label: `S/N: ${s.sn} ${s.src ? `(Forrás: ${s.src})` : ""}`,
+                        })),
+                      ]}
+                    />
                   </div>
                 ) : (
-                  <input placeholder="S/N kód" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
+                  <input placeholder="S/N kód" value={serial} onChange={(e) => setSerial(e.target.value)} style={inputS} />
                 )}
               </div>
               <div style={{ flex: 1 }}>
                 <label style={labS}>Helyszín</label>
-                <input placeholder="pl. Nappali" value={location} onChange={e => setLocation(e.target.value)} style={inputS} />
+                <input placeholder="pl. Nappali" value={location} onChange={(e) => setLocation(e.target.value)} style={inputS} />
               </div>
             </div>
 
             <div>
               <label style={labS}>Dátum</label>
-              <input type="date" value={installation} onChange={e => setInstallation(e.target.value)} style={inputS} />
+              <input type="date" value={installation} onChange={(e) => setInstallation(e.target.value)} style={inputS} />
             </div>
 
             <button type="submit" style={{ ...btnGreen, width: "100%", padding: "14px", marginTop: "10px" }}>
@@ -440,19 +556,19 @@ const containerStyle: React.CSSProperties = {
   fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   color: "#fff",
   width: "100%",
-  boxSizing: "border-box"
+  boxSizing: "border-box",
 };
 
 const clientNameStyle: React.CSSProperties = {
   margin: "0 0 10px 0",
   color: "#ffffff",
-  fontWeight: "bold"
+  fontWeight: "bold",
 };
 
 const contactRow: React.CSSProperties = {
   display: "flex",
   fontSize: "15px",
-  fontWeight: "500"
+  fontWeight: "500",
 };
 
 const headerS: React.CSSProperties = {
@@ -463,7 +579,7 @@ const headerS: React.CSSProperties = {
   alignItems: "flex-start",
   borderBottom: "1px solid #333",
   width: "100%",
-  boxSizing: "border-box"
+  boxSizing: "border-box",
 };
 
 const navBtn = {
@@ -474,7 +590,7 @@ const navBtn = {
   color: "#fff",
   cursor: "pointer",
   fontWeight: "bold" as const,
-  fontSize: "14px"
+  fontSize: "14px",
 };
 
 const inputS: React.CSSProperties = {
@@ -487,53 +603,27 @@ const inputS: React.CSSProperties = {
   outline: "none",
   fontSize: "15px",
   boxSizing: "border-box",
-  display: "block"
-};
-
-/* --- LENYÍLÓ MENÜ ÉS OPCIÓK SÖTÉT STÍLUSA --- */
-const selectS: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 40px 12px 16px",
-  borderRadius: "10px",
-  border: "1px solid #333",
-  backgroundColor: "#18181b",
-  color: "#ffffff",
-  outline: "none",
-  fontSize: "15px",
-  boxSizing: "border-box",
   display: "block",
-  appearance: "none",
-  WebkitAppearance: "none",
-  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
-  backgroundRepeat: "no-repeat",
-  backgroundPosition: "right 14px center",
-  cursor: "pointer"
 };
 
-const optionS: React.CSSProperties = {
-  backgroundColor: "#18181b",
-  color: "#ffffff",
-  padding: "12px"
-};
-
-const editBoxS = { 
-  display: "grid", 
-  gap: "12px", 
-  width: "100%", 
-  background: "#111", 
-  padding: "15px", 
-  borderRadius: "15px", 
+const editBoxS = {
+  display: "grid",
+  gap: "12px",
+  width: "100%",
+  background: "#111",
+  padding: "15px",
+  borderRadius: "15px",
   border: "1px solid #333",
-  boxSizing: "border-box" as const 
+  boxSizing: "border-box" as const,
 };
 
-const formBoxS = { 
-  background: "#121214", 
-  padding: "24px", 
-  borderRadius: "16px", 
-  marginBottom: "30px", 
+const formBoxS = {
+  background: "#121214",
+  padding: "24px",
+  borderRadius: "16px",
+  marginBottom: "30px",
   border: "1px solid #27272a",
-  boxSizing: "border-box" as const 
+  boxSizing: "border-box" as const,
 };
 
 const inventoryCardS: React.CSSProperties = {
@@ -541,7 +631,7 @@ const inventoryCardS: React.CSSProperties = {
   border: "1px solid #144222",
   borderRadius: "12px",
   padding: "16px",
-  boxSizing: "border-box"
+  boxSizing: "border-box",
 };
 
 const inventoryHeaderS: React.CSSProperties = {
@@ -551,14 +641,14 @@ const inventoryHeaderS: React.CSSProperties = {
   fontSize: "14px",
   display: "flex",
   alignItems: "center",
-  gap: "8px"
+  gap: "8px",
 };
 
 const serialSelectionBoxS: React.CSSProperties = {
   background: "#0b1329",
   border: "1px solid #1e3a8a",
   borderRadius: "12px",
-  padding: "14px"
+  padding: "14px",
 };
 
 const btnEditHeader = { background: "#e3f2fd", color: "#1976d2", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
