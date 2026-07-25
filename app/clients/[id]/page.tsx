@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function ClientDetailsPage() {
   const params = useParams();
@@ -12,6 +11,11 @@ export default function ClientDetailsPage() {
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+
+  // --- RAKTÁRI ANYAGOK ÁLLAPOTA ---
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [availableSerials, setAvailableSerials] = useState<{ sn: string; src: string }[]>([]);
 
   // Mobilnézet figyelése
   useEffect(() => {
@@ -35,6 +39,19 @@ export default function ClientDetailsPage() {
   const [status, setStatus] = useState("INSTALLED");
   const [installation, setInstallation] = useState("");
 
+  // Raktárkészlet betöltése
+  const loadInventory = async () => {
+    try {
+      const res = await fetch("/api/items", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setInventoryItems(data);
+      }
+    } catch (err) {
+      console.error("Hiba a raktár betöltésekor:", err);
+    }
+  };
+
   const loadClientData = async () => {
     try {
       const res = await fetch(`/api/clients/${Id}`, { cache: "no-store" });
@@ -55,7 +72,43 @@ export default function ClientDetailsPage() {
     }
   };
 
-  useEffect(() => { if (Id) loadClientData(); }, [Id]);
+  useEffect(() => {
+    if (Id) {
+      loadClientData();
+      loadInventory();
+    }
+  }, [Id]);
+
+  // Amikor kiválasztunk egy raktári cikket
+  const handleInventorySelect = (itemIdStr: string) => {
+    setSelectedItemId(itemIdStr);
+    setSerial(""); // nullázzuk a korábban kiválasztott cikkszámot
+
+    if (!itemIdStr) {
+      setAvailableSerials([]);
+      return;
+    }
+
+    const item = inventoryItems.find((i) => i.id === Number(itemIdStr));
+    if (item) {
+      setBrand(item.supplier || "");
+      setModel(item.name || "");
+
+      // Cikkszámok/Gyári számok kinyerése a serialNumber stringből
+      if (item.serialNumber) {
+        const parsed = item.serialNumber
+          .split(", ")
+          .filter(Boolean)
+          .map((raw: string) => {
+            const [sn, src] = raw.split("@");
+            return { sn: sn?.trim() || "", src: src?.trim() || "" };
+          });
+        setAvailableSerials(parsed);
+      } else {
+        setAvailableSerials([]);
+      }
+    }
+  };
 
   const handleUpdateClient = async () => {
     const res = await fetch(`/api/clients/${Id}`, {
@@ -78,13 +131,33 @@ export default function ClientDetailsPage() {
       brand, model, serialNumber: serial, location, status,
       installation: installation ? new Date(installation).toISOString() : null 
     };
+
     const url = editingUnitId ? `/api/clients/${Id}/units/${editingUnitId}` : `/api/clients/${Id}/units`;
     const res = await fetch(url, {
       method: editingUnitId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (res.ok) { resetUnitForm(); loadClientData(); }
+
+    if (res.ok) {
+      // Ha raktárból választottunk ki cikkszámot, levonjuk a raktárkészletből is
+      if (!editingUnitId && selectedItemId && status === "INSTALLED") {
+        await fetch("/api/items", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "deduct",
+            id: Number(selectedItemId),
+            deleteSerial: serial || null,
+            qtyToDeduct: 1
+          }),
+        });
+        await loadInventory(); // Frissítjük a raktár listát
+      }
+
+      resetUnitForm();
+      loadClientData();
+    }
   };
 
   const handleSetStatus = async (unitId: number, newStatus: string) => {
@@ -101,13 +174,18 @@ export default function ClientDetailsPage() {
     setBrand(unit.brand); setModel(unit.model); setSerial(unit.serialNumber || "");
     setLocation(unit.location || ""); setStatus(unit.status || "INSTALLED");
     setInstallation(unit.installation ? new Date(unit.installation).toISOString().split('T')[0] : "");
+    setSelectedItemId("");
+    setAvailableSerials([]);
     setShowUnitForm(true);
   };
 
   const resetUnitForm = () => {
     setEditingUnitId(null);
     setBrand(""); setModel(""); setSerial(""); setLocation(""); setInstallation("");
-    setStatus("INSTALLED"); setShowUnitForm(false);
+    setStatus("INSTALLED");
+    setSelectedItemId("");
+    setAvailableSerials([]);
+    setShowUnitForm(false);
   };
 
   const handleDeleteUnit = async (unitId: number) => {
@@ -193,8 +271,25 @@ export default function ClientDetailsPage() {
                 <option value="SERVICE_ONLY">🔵 Hozott gép (Csak javítás/napló)</option>
               </select>
             </div>
-            
-            {/* Gyártó és Modell sor - mobilon egymás alá esnek */}
+
+            {/* RAKTÁR KIVÁLASZTÁSA (Csak új gép és saját eladás esetén) */}
+            {!editingUnitId && status === "INSTALLED" && (
+              <div style={{ border: "1px dashed #2ecc71", padding: "12px", borderRadius: "10px", background: "#0a1f10" }}>
+                <label style={{ ...labS, color: "#2ecc71" }}>📦 Választás raktárból (opcionális):</label>
+                <select value={selectedItemId} onChange={(e) => handleInventorySelect(e.target.value)} style={inputS}>
+                  <option value="">-- Válassz raktári anyagot/gépet --</option>
+                  {inventoryItems
+                    .filter((item) => (item.stock || 0) > 0)
+                    .map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} {item.sku ? `(${item.sku})` : ""} - Készleten: {item.stock} db
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+
+            {/* Gyártó és Modell sor */}
             <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "10px" }}>
               <div style={{ flex: 1 }}>
                 <label style={labS}>Gyártó</label>
@@ -206,11 +301,22 @@ export default function ClientDetailsPage() {
               </div>
             </div>
 
-            {/* Gyári szám és Helyszín sor - mobilon szintén egymás alá esnek */}
+            {/* Gyári szám és Helyszín sor */}
             <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "10px" }}>
               <div style={{ flex: 1 }}>
-                <label style={labS}>Gyári szám</label>
-                <input placeholder="S/N kód" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
+                <label style={labS}>Gyári szám / Cikkszám</label>
+                {availableSerials.length > 0 ? (
+                  <select value={serial} onChange={(e) => setSerial(e.target.value)} style={inputS} required>
+                    <option value="">-- Válassz cikkszámot / gyári számot --</option>
+                    {availableSerials.map((s, idx) => (
+                      <option key={idx} value={s.sn}>
+                        {s.sn} {s.src ? `(${s.src})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input placeholder="S/N kód" value={serial} onChange={e => setSerial(e.target.value)} style={inputS} />
+                )}
               </div>
               <div style={{ flex: 1 }}>
                 <label style={labS}>Helyszín</label>
@@ -245,7 +351,7 @@ export default function ClientDetailsPage() {
                 </div>
                 <div style={{ fontSize: "13px", color: "#555", marginTop: "6px", lineHeight: "1.4" }}>
                   SN: {unit.serialNumber || "---"} | Hely: {unit.location || "Nincs megadva"}
-                 {unit.installation && <span> {isMobile && <br />}📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
+                  {unit.installation && <span> {isMobile && <br />}📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
                 </div>
               </div>
 
@@ -294,8 +400,7 @@ export default function ClientDetailsPage() {
   );
 }
 
-// --- RESPONSIVE-ALAPÚ STÍLUSOK SÖTÉT MÓDHOZ ---
-
+// --- STÍLUSOK ---
 const containerStyle: React.CSSProperties = {
   backgroundColor: "#000",
   minHeight: "100vh",
@@ -335,7 +440,6 @@ const navBtn = {
   borderRadius: "8px",
   border: "none",
   background: "#1e293b",
-  borderBackground: "1px solid #334155",
   color: "#fff",
   cursor: "pointer",
   fontWeight: "bold" as const,
@@ -350,7 +454,7 @@ const inputS = {
   backgroundColor: "#111",
   color: "#fff",
   outline: "none",
-  fontSize: "16px", // Fix iOS zoom ellen!
+  fontSize: "16px",
   boxSizing: "border-box" as const,
   display: "block"
 };
