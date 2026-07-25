@@ -12,6 +12,10 @@ export default function QuoteEditPage() {
   const [loading, setLoading] = useState(true);
   const [dbItems, setDbItems] = useState<any[]>([]);
 
+  // ÚJ: Anyagválasztó Modal állapota és keresője
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [itemSearchQuery, setItemSearchQuery] = useState("");
+
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
 
@@ -135,14 +139,13 @@ export default function QuoteEditPage() {
     }
   };
 
-  const handleSelectFromDB = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = dbItems.find(i => i.id === Number(e.target.value));
-    if (selected) {
-      setDesc(selected.name);
-      setBasePriceNet(String(selected.price || ""));
-      setProfitValue(""); 
-      setUnit(selected.unit || "db"); 
-    }
+  // Kijelölés az áttekinthető ablakból (modal)
+  const handleSelectItem = (item: any) => {
+    setDesc(item.name);
+    setBasePriceNet(String(item.price || ""));
+    setProfitValue(""); 
+    setUnit(item.unit || "db"); 
+    setIsModalOpen(false); // Modal bezárása
   };
 
   // Biztonságos számmá alakítás a kalkulációkhoz
@@ -223,6 +226,11 @@ export default function QuoteEditPage() {
     setProfitValue("");
   };
 
+  // Szűrt tételek a keresőhöz
+  const filteredDbItems = dbItems.filter(item => 
+    item.name.toLowerCase().includes(itemSearchQuery.toLowerCase())
+  );
+
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
   if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
 
@@ -284,14 +292,27 @@ export default function QuoteEditPage() {
 
       <div style={{ background: "#1e293b", padding: "20px 16px", borderRadius: 16, marginBottom: 30, border: "1px solid #334155", boxShadow: "0 4px 15px rgba(0,0,0,0.3)" }}>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
+          
+          {/* ÚJ: ÁTLÁTHATÓ ANYAGVÁLASZTÓ GOMB A ZSÚFOLT SELECT HELYETT */}
           <div style={{ background: "#141b2b", padding: 14, borderRadius: 10, border: "1px solid #2d3748" }}>
             <label style={{ ...labS, color: "#2ecc71" }}>Gyors betöltés adatbázisból</label>
-            <select onChange={handleSelectFromDB} style={{ ...inputS, borderColor: "#2ecc71" }}>
-              <option value="">-- Válassz --</option>
-              {dbItems.map(item => (
-                <option key={item.id} value={item.id}>{item.name} ({item.price} Ft)</option>
-              ))}
-            </select>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              style={{
+                ...inputS,
+                borderColor: "#2ecc71",
+                backgroundColor: "#1e293b",
+                textAlign: "left",
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}
+            >
+              <span>🔍 Választás a törzsadatok közül...</span>
+              <span style={{ fontSize: 12, background: "#2ecc71", color: "#0f172a", padding: "2px 8px", borderRadius: 4, fontWeight: "bold" }}>Böngészés</span>
+            </button>
           </div>
 
           <div>
@@ -421,6 +442,111 @@ export default function QuoteEditPage() {
           📄 PDF GENERÁLÁSA
         </button>
       </div>
+
+      {/* ÚJ: SZELLŐS ÉS KERESHETŐ TÉTELVÁLASZTÓ ABLAK (MODAL) */}
+      {isModalOpen && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.75)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1000,
+          padding: 16
+        }}>
+          <div style={{
+            background: "#1e293b",
+            borderRadius: 16,
+            width: "100%",
+            maxWidth: 600,
+            maxHeight: "85vh",
+            display: "flex",
+            flexDirection: "column",
+            border: "1px solid #334155",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+            overflow: "hidden"
+          }}>
+            {/* Fejléc és Kereső */}
+            <div style={{ padding: 20, borderBottom: "1px solid #334155" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h3 style={{ margin: 0, fontSize: 18, color: "#fff" }}>Válassz anyagot / tételt</h3>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 20, cursor: "pointer" }}
+                >
+                  ✖
+                </button>
+              </div>
+              <input
+                type="text"
+                placeholder="🔍 Keresés név szerint..."
+                value={itemSearchQuery}
+                onChange={(e) => setItemSearchQuery(e.target.value)}
+                style={inputS}
+                autoFocus
+              />
+            </div>
+
+            {/* Szellős lista kártyákkal */}
+            <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+              {filteredDbItems.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 30, color: "#94a3b8" }}>
+                  Nincs a keresésnek megfelelő anyag.
+                </div>
+              ) : (
+                filteredDbItems.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleSelectItem(item)}
+                    style={{
+                      background: "#0f172a",
+                      padding: "14px 16px",
+                      borderRadius: 10,
+                      border: "1px solid #334155",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      transition: "background 0.15s"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
+                  >
+                    <div>
+                      <div style={{ fontWeight: "bold", fontSize: 15, color: "#fff", marginBottom: 4 }}>
+                        {item.name}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                        Egység: {item.unit || "db"}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
+                        {item.price?.toLocaleString()} Ft
+                      </div>
+                      <div style={{ fontSize: 11, color: "#64748b" }}>Nettó alapár</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Lábléc bezáró gomb */}
+            <div style={{ padding: 12, borderTop: "1px solid #334155", textAlign: "right" }}>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                style={{ ...navBtn, width: "100%" }}
+              >
+                Mégsem
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
