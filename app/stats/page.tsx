@@ -9,9 +9,9 @@ export default function StatsPage() {
 
   useEffect(() => {
     fetch("/api/stats")
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error("Hiba a statisztikák lekérésekor:", err));
+      .then((res) => res.json())
+      .then((data) => setStats(data))
+      .catch((err) => console.error("Hiba a statisztikák lekérésekor:", err));
   }, []);
 
   const containerStyle: React.CSSProperties = {
@@ -19,12 +19,12 @@ export default function StatsPage() {
     backgroundColor: "#000",
     color: "#fff",
     padding: "40px 20px",
-    fontFamily: "'Segoe UI', sans-serif"
+    fontFamily: "'Segoe UI', sans-serif",
   };
 
   const mainWrapper = {
     maxWidth: "800px",
-    margin: "0 auto"
+    margin: "0 auto",
   };
 
   const cardStyle = {
@@ -32,14 +32,14 @@ export default function StatsPage() {
     padding: "25px",
     borderRadius: "8px",
     border: "1px solid #333",
-    marginBottom: "20px"
+    marginBottom: "20px",
   };
 
   const rowStyle = {
     display: "flex",
     justifyContent: "space-between",
     padding: "12px 0",
-    borderBottom: "1px solid #222"
+    borderBottom: "1px solid #222",
   };
 
   const sectionHeader = (color: string) => ({
@@ -50,22 +50,22 @@ export default function StatsPage() {
     paddingBottom: "8px",
     marginBottom: "15px",
     textTransform: "uppercase" as const,
-    letterSpacing: "1px"
+    letterSpacing: "1px",
   });
 
   return (
     <div style={containerStyle}>
       <div style={mainWrapper}>
-        <button 
-          onClick={() => router.push("/")} 
-          style={{ 
-            background: "#333", 
-            color: "#fff", 
-            border: "none", 
-            padding: "10px 20px", 
-            cursor: "pointer", 
+        <button
+          onClick={() => router.push("/")}
+          style={{
+            background: "#333",
+            color: "#fff",
+            border: "none",
+            padding: "10px 20px",
+            cursor: "pointer",
             marginBottom: "20px",
-            borderRadius: "4px"
+            borderRadius: "4px",
           }}
         >
           ⬅ Vissza a főoldalra
@@ -74,7 +74,7 @@ export default function StatsPage() {
         <h1 style={{ marginBottom: "30px", fontWeight: "lighter" }}>
           Üzleti Jelentés - {new Date().getFullYear()}
         </h1>
-        
+
         {stats ? (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
@@ -82,21 +82,42 @@ export default function StatsPage() {
               {/* HAVI KIMUTATÁS */}
               <div style={cardStyle}>
                 <h2 style={sectionHeader("#f39c12")}>📅 Aktuális Hónap</h2>
-                <div style={rowStyle}><span>Bruttó forgalom:</span><strong>{stats.monthly?.gross.toLocaleString()} Ft</strong></div>
-                <div style={rowStyle}><span>Tiszta haszon:</span><strong style={{ color: "#2ecc71" }}>{stats.monthly?.profit.toLocaleString()} Ft</strong></div>
-                <div style={rowStyle}><span>Átlagos árrés:</span><strong>{stats.monthly?.margin}%</strong></div>
-                <div style={rowStyle}><span>Kiadott ajánlatok:</span><strong>{stats.monthly?.count} db</strong></div>
+                <div style={rowStyle}><span>Bruttó forgalom:</span><strong>{stats.monthly?.gross?.toLocaleString() || 0} Ft</strong></div>
+                <div style={rowStyle}><span>Tiszta haszon:</span><strong style={{ color: "#2ecc71" }}>{stats.monthly?.profit?.toLocaleString() || 0} Ft</strong></div>
+                <div style={rowStyle}><span>Átlagos árrés:</span><strong>{stats.monthly?.margin || 0}%</strong></div>
+                <div style={rowStyle}><span>Kiadott ajánlatok:</span><strong>{stats.monthly?.count || 0} db</strong></div>
               </div>
 
               {/* ÉVES KIMUTATÁS */}
               <div style={cardStyle}>
                 <h2 style={sectionHeader("#00bcf2")}>📈 Éves Összesítő</h2>
-                <div style={rowStyle}><span>Bruttó forgalom:</span><strong>{stats.yearly?.gross.toLocaleString()} Ft</strong></div>
-                <div style={rowStyle}><span>Tiszta haszon:</span><strong style={{ color: "#2ecc71" }}>{stats.yearly?.profit.toLocaleString()} Ft</strong></div>
-                <div style={rowStyle}><span>Átlagos árrés:</span><strong>{stats.yearly?.margin}%</strong></div>
-                <div style={rowStyle}><span>Összes ajánlat:</span><strong>{stats.yearly?.count} db</strong></div>
+                <div style={rowStyle}><span>Bruttó forgalom:</span><strong>{stats.yearly?.gross?.toLocaleString() || 0} Ft</strong></div>
+                <div style={rowStyle}><span>Tiszta haszon:</span><strong style={{ color: "#2ecc71" }}>{stats.yearly?.profit?.toLocaleString() || 0} Ft</strong></div>
+                <div style={rowStyle}><span>Átlagos árrés:</span><strong>{stats.yearly?.margin || 0}%</strong></div>
+                <div style={rowStyle}><span>Összes ajánlat:</span><strong>{stats.yearly?.count || 0} db</strong></div>
               </div>
 
+            </div>
+
+            {/* RAKTÁRKÉSZLET ÖSSZESÍTŐ */}
+            <div style={{ ...cardStyle, borderLeft: "4px solid #2ecc71" }}>
+              <h2 style={sectionHeader("#2ecc71")}>📦 Raktárkészlet Értéke</h2>
+              <div style={rowStyle}>
+                <span>Benne álló tőke (Nettó összérték):</span>
+                <strong style={{ color: "#2ecc71", fontSize: "1.2rem" }}>
+                  {stats.inventory?.totalValue?.toLocaleString() || 0} Ft
+                </strong>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", textAlign: "center", paddingTop: "15px" }}>
+                <div>
+                  <div style={{ fontSize: "12px", opacity: 0.6 }}>REGISZTRÁLT TÉTELEK</div>
+                  <div style={{ fontSize: "18px", fontWeight: "bold" }}>{stats.inventory?.totalItemsCount || 0} féle</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "12px", opacity: 0.6 }}>RAKTÁRON LÉVŐ DARAB/MÉTER</div>
+                  <div style={{ fontSize: "18px", fontWeight: "bold", color: "#4DA3FF" }}>{stats.inventory?.totalStockCount || 0} egység</div>
+                </div>
+              </div>
             </div>
 
             {/* ÜGYFÉL ÉS SZERVIZ INFÓK */}
@@ -105,15 +126,15 @@ export default function StatsPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", textAlign: "center", paddingTop: "10px" }}>
                 <div>
                   <div style={{ fontSize: "12px", opacity: 0.6 }}>ÜGYFELEK</div>
-                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>{stats.totalClients}</div>
+                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>{stats.totalClients || 0}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: "12px", opacity: 0.6 }}>GÉPEK</div>
-                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>{stats.totalUnits}</div>
+                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>{stats.totalUnits || 0}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: "12px", color: "#e74c3c", fontWeight: "bold" }}>SÜRGŐS</div>
-                  <div style={{ fontSize: "20px", fontWeight: "bold", color: "#e74c3c" }}>{stats.urgentCount}</div>
+                  <div style={{ fontSize: "20px", fontWeight: "bold", color: "#e74c3c" }}>{stats.urgentCount || 0}</div>
                 </div>
               </div>
             </div>
