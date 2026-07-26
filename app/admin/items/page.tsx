@@ -406,12 +406,13 @@ export default function AdminItemsPage() {
           )}
         </div>
 
-        {/* PANEL 2: TELJESEN ÚJ TERMÉKFAJTA LÉTREHOZÁSA */}
+        {/* PANEL 2: TELJESEN ÚJ TERMÉKFAJTA LÉTREHOZÁSA (RESPONZÍV CSOMAGOLÁSSAL) */}
         <div style={panelCard}>
           <h3 style={{ margin: "0 0 15px 0", color: "#2ecc71" }}>✨ Teljesen új anyagtípus regisztrálása</h3>
           <form onSubmit={handleCreateNewItem} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            {/* MOBILON EGYMÁS ALATT (1 OSZLOP), ASZTALI GÉPEN 2 OSZLOP */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
               <input
                 style={inputS}
                 placeholder="Gyártó (pl. Fisher, Gree) *"
