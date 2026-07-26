@@ -442,7 +442,7 @@ export default function AdminItemsPage() {
               <form onSubmit={handleAddSerial} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <span style={{ fontSize: "12px", fontWeight: "bold", color: "#2ecc71" }}>➕ ÚJ DARAB BEVÉTELEZÉSE:</span>
                 <input style={inputS} placeholder="Gyári szám" value={newSerial} onChange={(e) => setNewSerial(e.target.value)} />
-                <input style={inputS} placeholder={`Beszerzési forrás"})`} value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} />
+                <input style={inputS} placeholder={`Beszerzési forrás`} value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} />
                 {!newSerial && (
                   <input style={inputS} type="number" placeholder="Mennyiség hozzáadása (db)" value={simpleStockToAdd} onChange={(e) => setSimpleStockToAdd(e.target.value)} />
                 )}
