@@ -128,7 +128,7 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
-  // TELJESEN ÚJ TERMÉK REGISZTRÁCIÓJA
+  // TELJESEN ÚJ TERMÉK REGISZTRÁCIÓJA (OPCIONÁLIS MEZŐKKEL)
   const handleCreateNewItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -190,7 +190,7 @@ export default function AdminItemsPage() {
 
   // TERMÉK VÉGLEGES TÖRLÉSE A RAKTÁRBÓL
   const handleDeleteItem = async (item: any) => {
-    const confirmName = item.brand ? `${item.brand} ${item.name}` : item.name;
+    const confirmName = item.brand ? `${item.brand} ${item.name}` : item.name || "Névtelen termék";
     if (!confirm(`Biztosan törölni szeretnéd a(z) "${confirmName}" terméket a raktárból? Ez a művelet nem visszavonható!`)) {
       return;
     }
@@ -258,7 +258,7 @@ export default function AdminItemsPage() {
                 {selectedItem ? (
                   <>
                     {selectedItem.brand && <span style={{ color: "#2ecc71", fontWeight: "bold" }}>[{selectedItem.brand}]</span>}
-                    <span>{selectedItem.name}</span>
+                    <span>{selectedItem.name || "Névtelen termék"}</span>
                     {selectedItem.sku && (
                       <span style={{ background: "#0f2b48", color: "#64b5f6", border: "1px solid #1e88e5", padding: "1px 6px", borderRadius: "4px", fontSize: "11px", fontWeight: "bold" }}>
                         {selectedItem.sku}
@@ -272,7 +272,7 @@ export default function AdminItemsPage() {
               <span style={{ marginLeft: "10px", fontSize: "12px", color: "#aaa" }}>{isItemDropdownOpen ? "▲" : "▼"}</span>
             </button>
 
-            {/* LENYÍLÓ MENÜ ELEMEI (SÖTÉT ELEGÁNS STÍLUS) */}
+            {/* LENYÍLÓ MENÜ ELEMEI */}
             {isItemDropdownOpen && (
               <div
                 style={{
@@ -338,10 +338,9 @@ export default function AdminItemsPage() {
                           </span>
                         )}
                         <span style={{ color: "#fff", fontSize: "14px", fontWeight: isSelected ? "bold" : "normal" }}>
-                          {i.name}
+                          {i.name || "Névtelen termék"}
                         </span>
 
-                        {/* CIKKSZÁM (SKU) A LENYÍLÓ LISTÁBAN */}
                         {i.sku && (
                           <span style={{ background: "#0f2b48", color: "#64b5f6", border: "1px solid #1e88e5", padding: "1px 6px", borderRadius: "4px", fontSize: "11px", fontWeight: "bold" }}>
                             SKU: {i.sku}
@@ -376,7 +375,7 @@ export default function AdminItemsPage() {
 
               <form onSubmit={handleAddSerial} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <span style={{ fontSize: "12px", fontWeight: "bold", color: "#2ecc71" }}>➕ ÚJ DARAB BEVÉTELEZÉSE:</span>
-                <input style={inputS} placeholder="Gyári szám (elhagyható ha sima anyag)" value={newSerial} onChange={(e) => setNewSerial(e.target.value)} />
+                <input style={inputS} placeholder="Gyári szám (elhagyható)" value={newSerial} onChange={(e) => setNewSerial(e.target.value)} />
                 <input style={inputS} placeholder="Beszerzési forrás (pl. Gree Hungary)" value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} />
                 {!newSerial && (
                   <input style={inputS} type="number" placeholder="Mennyiség hozzáadása (db)" value={simpleStockToAdd} onChange={(e) => setSimpleStockToAdd(e.target.value)} />
@@ -406,36 +405,32 @@ export default function AdminItemsPage() {
           )}
         </div>
 
-        {/* PANEL 2: TELJESEN ÚJ TERMÉKFAJTA LÉTREHOZÁSA (RESPONZÍV CSOMAGOLÁSSAL) */}
+        {/* PANEL 2: TELJESEN ÚJ TERMÉKFAJTA LÉTREHOZÁSA (MINDEN MEZŐ OPCIONÁLIS) */}
         <div style={panelCard}>
           <h3 style={{ margin: "0 0 15px 0", color: "#2ecc71" }}>✨ Teljesen új anyagtípus regisztrálása</h3>
           <form onSubmit={handleCreateNewItem} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             
-            {/* MOBILON EGYMÁS ALATT (1 OSZLOP), ASZTALI GÉPEN 2 OSZLOP */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
               <input
                 style={inputS}
-                placeholder="Gyártó (pl. Fisher, Gree) *"
+                placeholder="Gyártó (pl. Fisher, Gree)"
                 value={newItemData.brand}
                 onChange={(e) => setNewItemData({ ...newItemData, brand: e.target.value })}
-                required
               />
               <input
                 style={inputS}
-                placeholder="Típus / Megnevezés (pl. Comfort Plus 2,7) *"
+                placeholder="Típus / Megnevezés (pl. Comfort Plus 2,7)"
                 value={newItemData.name}
                 onChange={(e) => setNewItemData({ ...newItemData, name: e.target.value })}
-                required
               />
             </div>
 
             <input
               style={inputS}
               type="number"
-              placeholder="Nettó eladási ár (Ft) *"
+              placeholder="Nettó eladási ár (Ft)"
               value={newItemData.price}
               onChange={(e) => setNewItemData({ ...newItemData, price: e.target.value })}
-              required
             />
             <input
               style={inputS}
@@ -484,9 +479,8 @@ export default function AdminItemsPage() {
                         </span>
                       )}
                       
-                      <strong style={{ fontSize: "16px" }}>{item.name}</strong>
+                      <strong style={{ fontSize: "16px" }}>{item.name || "Névtelen termék"}</strong>
 
-                      {/* KÉK CIKKSZÁM (SKU) JELVÉNY */}
                       {item.sku && (
                         <span style={{ background: "#0f2b48", color: "#64b5f6", border: "1px solid #1e88e5", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>
                           SKU: {item.sku}
