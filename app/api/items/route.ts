@@ -33,7 +33,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     let serialsList: { sn: string; src: string }[] = [];
 
-    // Ha az első rögzítéskor adnak meg gyári számot
     if (body.newSerial?.trim()) {
       serialsList.push({
         sn: body.newSerial.trim(),
@@ -71,7 +70,7 @@ export async function PATCH(req: Request) {
 
     let serials = parseSerials(currentItem.serialNumber);
 
-    // 1. UTASÍTÁS: ÚJ GYÁRI SZÁM HOZZÁADÁSA (BEVÉTELEZÉS)
+    // 1. ÚJ GYÁRI SZÁM HOZZÁADÁSA
     if (action === "add_serial") {
       if (newSerial?.trim()) {
         serials.push({
@@ -91,7 +90,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json(updated);
     }
 
-    // 2. UTASÍTÁS: KÉZI TÖRLÉS LENYÍLÓBÓL (SELEJTEZÉS / JAVÍTÁS)
+    // 2. GYÁRI SZÁM TÖRLÉSE
     if (action === "delete_serial") {
       serials = serials.filter(s => s.sn !== deleteSerial);
       const newStock = currentItem.serialNumber ? serials.length : Math.max(0, (currentItem.stock || 0) - 1);
@@ -106,7 +105,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json(updated);
     }
 
-    // 3. UTASÍTÁS: ÜGYFÉLNEK ELADVA (AUTOMATIKUS LEVONÁS)
+    // 3. LEVONÁS (ELADÁS)
     if (action === "deduct") {
       if (deleteSerial) {
         const found = serials.find(s => s.sn === deleteSerial);
@@ -127,20 +126,19 @@ export async function PATCH(req: Request) {
       }
     }
 
-    // 4. UTASÍTÁS: RÉSZLETES SZERKESZTÉS / MEGYEZŐ SZERKESZTÉS (Admin felületről)
-    // Megjegyzés: Bármilyen egyéb szerkesztés érkezik, ezt futtatjuk le és RETURN-nel kilépünk!
+    // 4. TERMÉK ADATAINAK MÓDOSÍTÁSA (action: "update_details" vagy általános frissítés)
     const updated = await prisma.item.update({
       where: { id: Number(id) },
       data: {
-        brand: body.brand || null,
-        name: body.name,
-        price: parseFloat(body.price) || 0,
-        sku: body.sku || null,
-        supplier: body.supplier || null,
+        brand: body.brand !== undefined ? (body.brand || null) : currentItem.brand,
+        name: body.name !== undefined ? body.name : currentItem.name,
+        price: body.price !== undefined ? parseFloat(body.price) || 0 : currentItem.price,
+        sku: body.sku !== undefined ? (body.sku || null) : currentItem.sku,
+        supplier: body.supplier !== undefined ? (body.supplier || null) : currentItem.supplier,
         stock: body.stock !== undefined ? Number(body.stock) : currentItem.stock,
       },
     });
-    
+
     return NextResponse.json(updated);
 
   } catch (error: any) {
