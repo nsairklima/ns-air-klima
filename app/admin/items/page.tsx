@@ -9,6 +9,9 @@ export default function AdminItemsPage() {
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
 
+  // Keresőmező állapota a raktárlistához
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Saját lenyíló menü állapota
   const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -78,6 +81,16 @@ export default function AdminItemsPage() {
       })
     : [];
 
+  // Szűrt lista a keresőmező alapján
+  const filteredItems = items.filter((item) => {
+    const term = searchTerm.toLowerCase();
+    const brandMatch = (item.brand || "").toLowerCase().includes(term);
+    const nameMatch = (item.name || "").toLowerCase().includes(term);
+    const skuMatch = (item.sku || "").toLowerCase().includes(term);
+    const supplierMatch = (item.supplier || "").toLowerCase().includes(term);
+    return brandMatch || nameMatch || skuMatch || supplierMatch;
+  });
+
   // ÚJ GYÁRI SZÁM HOZZÁADÁSA MEGLÉVŐHÖZ
   const handleAddSerial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +141,7 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
-  // TELJESEN ÚJ TERMÉK REGISZTRÁCIÓJA (OPCIONÁLIS MEZŐKKEL)
+  // TELJESEN ÚJ TERMÉK REGISZTRÁCIÓJA
   const handleCreateNewItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -234,7 +247,6 @@ export default function AdminItemsPage() {
 
           <label style={labelS}>Válaszd ki az anyagot/gépet:</label>
           
-          {/* SÖTÉT TEMÁHOZ ILLESZKEDŐ MOBILBARÁT EGYEDI DROPDOWN */}
           <div ref={dropdownRef} style={{ position: "relative" }}>
             <button
               type="button"
@@ -272,7 +284,6 @@ export default function AdminItemsPage() {
               <span style={{ marginLeft: "10px", fontSize: "12px", color: "#aaa" }}>{isItemDropdownOpen ? "▲" : "▼"}</span>
             </button>
 
-            {/* LENYÍLÓ MENÜ ELEMEI */}
             {isItemDropdownOpen && (
               <div
                 style={{
@@ -405,11 +416,10 @@ export default function AdminItemsPage() {
           )}
         </div>
 
-        {/* PANEL 2: TELJESEN ÚJ TERMÉKFAJTA LÉTREHOZÁSA (MINDEN MEZŐ OPCIONÁLIS) */}
+        {/* PANEL 2: TELJESEN ÚJ TERMÉKFAJTA LÉTREHOZÁSA */}
         <div style={panelCard}>
           <h3 style={{ margin: "0 0 15px 0", color: "#2ecc71" }}>✨ Teljesen új anyagtípus regisztrálása</h3>
           <form onSubmit={handleCreateNewItem} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
               <input
                 style={inputS}
@@ -451,142 +461,185 @@ export default function AdminItemsPage() {
         </div>
       </div>
 
-      {/* RAKTÁR LISTA ÉS SZERKESZTÉS/TÖRLÉS */}
-      <h2 style={{ color: "#fff", fontSize: "1.3rem", marginBottom: "15px" }}>Aktuális Raktárkészlet listája:</h2>
+      {/* RAKTÁR LISTA ÉS KERESŐMEZŐ */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "15px" }}>
+        <h2 style={{ color: "#fff", fontSize: "1.3rem", margin: 0 }}>
+          Aktuális Raktárkészlet listája ({filteredItems.length} tétel):
+        </h2>
+
+        {/* KERESŐ INPUT A LISTÁHOZ */}
+        <div style={{ position: "relative", minWidth: "260px", flex: "1 1 260px", maxWidth: "400px" }}>
+          <input
+            type="text"
+            placeholder="🔍 Keresés név, gyártó, SKU alapján..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              ...inputS,
+              paddingRight: searchTerm ? "35px" : "10px",
+              borderColor: "#4DA3FF",
+            }}
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              style={{
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "transparent",
+                border: "none",
+                color: "#aaa",
+                fontSize: "14px",
+                cursor: "pointer",
+              }}
+            >
+              ✖
+            </button>
+          )}
+        </div>
+      </div>
+
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        {items.map((item) => {
-          const serials = item.serialNumber ? item.serialNumber.split(", ").filter(Boolean) : [];
-          const isExpanded = expandedItemId === item.id;
-          const isEditing = editingItemId === item.id;
+        {filteredItems.length === 0 ? (
+          <div style={{ background: "#1a1a1a", padding: "20px", textAlign: "center", color: "#888", borderRadius: "8px", border: "1px solid #333" }}>
+            A keresési feltételeknek megfelelő termék nem található.
+          </div>
+        ) : (
+          filteredItems.map((item) => {
+            const serials = item.serialNumber ? item.serialNumber.split(", ").filter(Boolean) : [];
+            const isExpanded = expandedItemId === item.id;
+            const isEditing = editingItemId === item.id;
 
-          const itemBrand = item.brand || "";
+            const itemBrand = item.brand || "";
 
-          return (
-            <div key={item.id} style={{ background: "#1a1a1a", padding: "16px", borderRadius: "10px", border: isEditing ? "1px solid #f39c12" : "1px solid #333" }}>
-              
-              {!isEditing ? (
-                // NORMÁL NÉZET
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                      {itemBrand ? (
-                        <span style={{ color: "#2ecc71", background: "#0a2912", padding: "2px 8px", borderRadius: "4px", border: "1px solid #145223", fontWeight: "bold" }}>
-                          {itemBrand}
+            return (
+              <div key={item.id} style={{ background: "#1a1a1a", padding: "16px", borderRadius: "10px", border: isEditing ? "1px solid #f39c12" : "1px solid #333" }}>
+                
+                {!isEditing ? (
+                  // NORMÁL NÉZET
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        {itemBrand ? (
+                          <span style={{ color: "#2ecc71", background: "#0a2912", padding: "2px 8px", borderRadius: "4px", border: "1px solid #145223", fontWeight: "bold" }}>
+                            {itemBrand}
+                          </span>
+                        ) : (
+                          <span style={{ color: "#777", fontSize: "13px", fontStyle: "italic" }}>
+                            [Nincs gyártó]
+                          </span>
+                        )}
+                        
+                        <strong style={{ fontSize: "16px" }}>{item.name || "Névtelen termék"}</strong>
+
+                        {item.sku && (
+                          <span style={{ background: "#0f2b48", color: "#64b5f6", border: "1px solid #1e88e5", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>
+                            SKU: {item.sku}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: "12px", color: "#aaa", marginTop: "8px" }}>
+                        Nagyker: {item.supplier || "Nincs"}
+                        {serials.length > 0 && (
+                          <span onClick={() => setExpandedItemId(isExpanded ? null : item.id)} style={{ color: "#4DA3FF", marginLeft: "10px", cursor: "pointer", textDecoration: "underline" }}>
+                            {isExpanded ? "Bezár" : `Gyári számok mutatása (${serials.length} db)`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div style={{ textAlign: "right", marginRight: "8px" }}>
+                        <span style={{ color: (item.stock ?? 0) > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold" }}>
+                          {item.stock ?? 0} db
                         </span>
-                      ) : (
-                        <span style={{ color: "#777", fontSize: "13px", fontStyle: "italic" }}>
-                          [Nincs gyártó]
-                        </span>
-                      )}
+                        <div style={{ fontSize: "13px", color: "#ccc", marginTop: "4px" }}>
+                          {Number(item.price || 0).toLocaleString()} Ft
+                        </div>
+                      </div>
                       
-                      <strong style={{ fontSize: "16px" }}>{item.name || "Névtelen termék"}</strong>
+                      <button
+                        onClick={() => startEditItem(item)}
+                        style={{ background: "#f39c12", color: "#000", border: "none", width: "36px", height: "36px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                        title="Szerkesztés"
+                      >
+                        ✏️
+                      </button>
 
-                      {item.sku && (
-                        <span style={{ background: "#0f2b48", color: "#64b5f6", border: "1px solid #1e88e5", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>
-                          SKU: {item.sku}
-                        </span>
-                      )}
-                    </div>
-
-                    <div style={{ fontSize: "12px", color: "#aaa", marginTop: "8px" }}>
-                      Nagyker: {item.supplier || "Nincs"}
-                      {serials.length > 0 && (
-                        <span onClick={() => setExpandedItemId(isExpanded ? null : item.id)} style={{ color: "#4DA3FF", marginLeft: "10px", cursor: "pointer", textDecoration: "underline" }}>
-                          {isExpanded ? "Bezár" : `Gyári számok mutatása (${serials.length} db)`}
-                        </span>
-                      )}
+                      <button
+                        onClick={() => handleDeleteItem(item)}
+                        disabled={loading}
+                        style={{ background: "#c0392b", color: "#fff", border: "none", width: "36px", height: "36px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                        title="Termék törlése"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ textAlign: "right", marginRight: "8px" }}>
-                      <span style={{ color: (item.stock ?? 0) > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold" }}>
-                        {item.stock ?? 0} db
-                      </span>
-                      <div style={{ fontSize: "13px", color: "#ccc", marginTop: "4px" }}>
-                        {Number(item.price || 0).toLocaleString()} Ft
-                      </div>
-                    </div>
+                ) : (
+                  // SZERKESZTŐ NÉZET
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div style={{ color: "#f39c12", fontWeight: "bold", fontSize: "14px" }}>✏️ Termék adatainak módosítása:</div>
                     
-                    {/* IKONGOMBOK */}
-                    <button
-                      onClick={() => startEditItem(item)}
-                      style={{ background: "#f39c12", color: "#000", border: "none", width: "36px", height: "36px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
-                      title="Szerkesztés"
-                    >
-                      ✏️
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteItem(item)}
-                      disabled={loading}
-                      style={{ background: "#c0392b", color: "#fff", border: "none", width: "36px", height: "36px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
-                      title="Termék törlése"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                // SZERKESZTŐ NÉZET
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ color: "#f39c12", fontWeight: "bold", fontSize: "14px" }}>✏️ Termék adatainak módosítása:</div>
-                  
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
-                    <div>
-                      <label style={labelS}>Gyártó / Márka (pl. Fisher):</label>
-                      <input style={inputS} value={editItemData.brand} onChange={(e) => setEditItemData({ ...editItemData, brand: e.target.value })} placeholder="Gyártó" />
-                    </div>
-                    <div>
-                      <label style={labelS}>Típus / Megnevezés:</label>
-                      <input style={inputS} value={editItemData.name} onChange={(e) => setEditItemData({ ...editItemData, name: e.target.value })} placeholder="Megnevezés" />
-                    </div>
-                    <div>
-                      <label style={labelS}>Nettó Ár (Ft):</label>
-                      <input style={inputS} type="number" value={editItemData.price} onChange={(e) => setEditItemData({ ...editItemData, price: e.target.value })} placeholder="Ár" />
-                    </div>
-                    <div>
-                      <label style={labelS}>Raktárkészlet (db):</label>
-                      <input style={inputS} type="number" value={editItemData.stock} onChange={(e) => setEditItemData({ ...editItemData, stock: Number(e.target.value) })} placeholder="Készlet" />
-                    </div>
-                    <div>
-                      <label style={labelS}>Cikkszám (SKU):</label>
-                      <input style={inputS} value={editItemData.sku} onChange={(e) => setEditItemData({ ...editItemData, sku: e.target.value })} placeholder="SKU" />
-                    </div>
-                    <div>
-                      <label style={labelS}>Beszerzés / Nagyker:</label>
-                      <input style={inputS} value={editItemData.supplier} onChange={(e) => setEditItemData({ ...editItemData, supplier: e.target.value })} placeholder="Nagyker" />
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                    <button onClick={() => handleUpdateItem(item.id)} disabled={loading} style={{ ...btnS, background: "#2ecc71", flex: 1 }}>
-                      ✅ Mentés
-                    </button>
-                    <button onClick={() => setEditingItemId(null)} style={{ ...btnS, background: "#555", color: "#fff", flex: 1 }}>
-                      Mégse
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* GYÁRI SZÁMOK LISTÁJA */}
-              {!isEditing && isExpanded && serials.length > 0 && (
-                <div style={{ background: "#050505", padding: "10px", borderRadius: "6px", marginTop: "10px", border: "1px dashed #444" }}>
-                  {serials.map((s: string, idx: number) => {
-                    const [sn, src] = s.split("@");
-                    return (
-                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", padding: "4px 0", borderBottom: idx !== serials.length - 1 ? "1px solid #222" : "none" }}>
-                        <span>• <code style={{ color: "#2ecc71" }}>{sn}</code></span>
-                        <span style={{ color: "#aaa", fontSize: "11px" }}>🏢 {src || "Ismeretlen"}</span>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
+                      <div>
+                        <label style={labelS}>Gyártó / Márka (pl. Fisher):</label>
+                        <input style={inputS} value={editItemData.brand} onChange={(e) => setEditItemData({ ...editItemData, brand: e.target.value })} placeholder="Gyártó" />
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                      <div>
+                        <label style={labelS}>Típus / Megnevezés:</label>
+                        <input style={inputS} value={editItemData.name} onChange={(e) => setEditItemData({ ...editItemData, name: e.target.value })} placeholder="Megnevezés" />
+                      </div>
+                      <div>
+                        <label style={labelS}>Nettó Ár (Ft):</label>
+                        <input style={inputS} type="number" value={editItemData.price} onChange={(e) => setEditItemData({ ...editItemData, price: e.target.value })} placeholder="Ár" />
+                      </div>
+                      <div>
+                        <label style={labelS}>Raktárkészlet (db):</label>
+                        <input style={inputS} type="number" value={editItemData.stock} onChange={(e) => setEditItemData({ ...editItemData, stock: Number(e.target.value) })} placeholder="Készlet" />
+                      </div>
+                      <div>
+                        <label style={labelS}>Cikkszám (SKU):</label>
+                        <input style={inputS} value={editItemData.sku} onChange={(e) => setEditItemData({ ...editItemData, sku: e.target.value })} placeholder="SKU" />
+                      </div>
+                      <div>
+                        <label style={labelS}>Beszerzés / Nagyker:</label>
+                        <input style={inputS} value={editItemData.supplier} onChange={(e) => setEditItemData({ ...editItemData, supplier: e.target.value })} placeholder="Nagyker" />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                      <button onClick={() => handleUpdateItem(item.id)} disabled={loading} style={{ ...btnS, background: "#2ecc71", flex: 1 }}>
+                        ✅ Mentés
+                      </button>
+                      <button onClick={() => setEditingItemId(null)} style={{ ...btnS, background: "#555", color: "#fff", flex: 1 }}>
+                        Mégse
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* GYÁRI SZÁMOK LISTÁJA */}
+                {!isEditing && isExpanded && serials.length > 0 && (
+                  <div style={{ background: "#050505", padding: "10px", borderRadius: "6px", marginTop: "10px", border: "1px dashed #444" }}>
+                    {serials.map((s: string, idx: number) => {
+                      const [sn, src] = s.split("@");
+                      return (
+                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", padding: "4px 0", borderBottom: idx !== serials.length - 1 ? "1px solid #222" : "none" }}>
+                          <span>• <code style={{ color: "#2ecc71" }}>{sn}</code></span>
+                          <span style={{ color: "#aaa", fontSize: "11px" }}>🏢 {src || "Ismeretlen"}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
