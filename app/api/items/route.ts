@@ -140,3 +140,23 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Hiba a frissítés során" }, { status: 500 });
   }
 }
+
+// 5. TERMÉK VÉGLEGES TÖRLÉSE
+export async function DELETE(req: Request) {
+  try {
+    const { id } = await req.json();
+
+    if (!id) {
+      return NextResponse.json({ error: "Hiányzó azonosító (ID)" }, { status: 400 });
+    }
+
+    await prisma.item.delete({
+      where: { id: Number(id) },
+    });
+
+    return NextResponse.json({ success: true, message: "Termék sikeresen törölve" });
+  } catch (error: any) {
+    console.error("Hiba a DELETE során:", error);
+    return NextResponse.json({ error: "Hiba a törlés során" }, { status: 500 });
+  }
+}
