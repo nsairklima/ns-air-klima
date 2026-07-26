@@ -218,12 +218,18 @@ export default function AdminItemsPage() {
           <h3 style={{ margin: "0 0 15px 0", color: "#4DA3FF" }}>📥 Készlet módosítása (Kiválasztással)</h3>
 
           <label style={labelS}>Válaszd ki az anyagot/gépet:</label>
-          <select style={inputS} value={selectedItemId} onChange={(e) => { setSelectedItemId(e.target.value); setSerialToDelete(""); }}>
-            <option value="">-- Válassz a raktárból --</option>
+          
+          {/* JOBBAN LÁTHATÓ MOBILBARÁT SELECT LISTA */}
+          <select 
+            style={selectS} 
+            value={selectedItemId} 
+            onChange={(e) => { setSelectedItemId(e.target.value); setSerialToDelete(""); }}
+          >
+            <option value="" style={optionS}>-- Válassz a raktárból --</option>
             {items.map((i) => {
               const displayBrand = i.brand || (i.supplier ? i.supplier : "");
               return (
-                <option key={i.id} value={i.id}>
+                <option key={i.id} value={i.id} style={optionS}>
                   {displayBrand ? `[${displayBrand}] ` : ""}{i.name} ({i.stock ?? 0} db raktáron)
                 </option>
               );
@@ -249,10 +255,10 @@ export default function AdminItemsPage() {
               {currentSerials.length > 0 && (
                 <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", padding: "12px", background: "#111", borderRadius: "8px", border: "1px dashed #e74c3c" }}>
                   <span style={{ fontSize: "12px", fontWeight: "bold", color: "#e74c3c" }}>🗑️ RAKTÁRON LÉVŐ GYÁRI SZÁM TÖRLÉSE:</span>
-                  <select style={inputS} value={serialToDelete} onChange={(e) => setSerialToDelete(e.target.value)}>
-                    <option value="">-- Válaszd ki a törlendőt --</option>
+                  <select style={selectS} value={serialToDelete} onChange={(e) => setSerialToDelete(e.target.value)}>
+                    <option value="" style={optionS}>-- Válaszd ki a törlendőt --</option>
                     {currentSerials.map((s, idx) => (
-                      <option key={idx} value={s.sn}>
+                      <option key={idx} value={s.sn} style={optionS}>
                         {s.sn} (Forrás: {s.src})
                       </option>
                     ))}
@@ -460,4 +466,27 @@ export default function AdminItemsPage() {
 const panelCard = { background: "#141414", padding: "20px", borderRadius: "12px", border: "1px solid #222" };
 const labelS = { fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" };
 const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #333", background: "#222", color: "#fff", boxSizing: "border-box" as const };
+
+// VILÁGOS, ÉLES KONTRASZTÚ LENOVI MÓD (MOBILRA IS OPTIMALIZÁLVA)
+const selectS = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "8px",
+  border: "2px solid #3b82f6", // Kék kiemelő keret
+  background: "#1e293b",       // Sötétkék-szürke jól olvasható háttér
+  color: "#ffffff",             // Hófehér betű
+  fontSize: "15px",
+  fontWeight: "bold" as const,
+  boxSizing: "border-box" as const,
+  outline: "none",
+};
+
+// AZ OPCIÓK TISZTA FEHÉR HÁTTÉR-FEKETE BETŰ STÍLUSA (MOBIL NÉZETEKHEZ)
+const optionS = {
+  backgroundColor: "#ffffff",
+  color: "#000000",
+  padding: "10px",
+  fontSize: "15px",
+};
+
 const btnS = { padding: "12px", border: "none", borderRadius: "6px", color: "#000", fontWeight: "bold" as const, cursor: "pointer", marginTop: "5px" };
