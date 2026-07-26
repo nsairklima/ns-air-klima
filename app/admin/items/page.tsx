@@ -332,20 +332,29 @@ export default function AdminItemsPage() {
                 // NORMÁL NÉZET
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                   <div>
-                    <strong style={{ fontSize: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                       {itemBrand ? (
-                        <span style={{ color: "#2ecc71", marginRight: "6px", background: "#0a2912", padding: "2px 8px", borderRadius: "4px", border: "1px solid #145223" }}>
+                        <span style={{ color: "#2ecc71", background: "#0a2912", padding: "2px 8px", borderRadius: "4px", border: "1px solid #145223", fontWeight: "bold" }}>
                           {itemBrand}
                         </span>
                       ) : (
-                        <span style={{ color: "#777", marginRight: "6px", fontSize: "13px", fontStyle: "italic" }}>
+                        <span style={{ color: "#777", fontSize: "13px", fontStyle: "italic" }}>
                           [Nincs gyártó]
                         </span>
                       )}
-                      {item.name}
-                    </strong>
-                    <div style={{ fontSize: "12px", color: "#aaa", marginTop: "6px" }}>
-                      SKU: {item.sku || "Nincs"} | Nagyker: {item.supplier || "Nincs"}
+                      
+                      <strong style={{ fontSize: "16px" }}>{item.name}</strong>
+
+                      {/* KÉK CIKKSZÁM (SKU) JELVÉNY */}
+                      {item.sku && (
+                        <span style={{ background: "#0f2b48", color: "#64b5f6", border: "1px solid #1e88e5", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>
+                          SKU: {item.sku}
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: "12px", color: "#aaa", marginTop: "8px" }}>
+                      Nagyker: {item.supplier || "Nincs"}
                       {serials.length > 0 && (
                         <span onClick={() => setExpandedItemId(isExpanded ? null : item.id)} style={{ color: "#4DA3FF", marginLeft: "10px", cursor: "pointer", textDecoration: "underline" }}>
                           {isExpanded ? "Bezár" : `Gyári számok mutatása (${serials.length} db)`}
@@ -354,7 +363,7 @@ export default function AdminItemsPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <div style={{ textAlign: "right", marginRight: "8px" }}>
                       <span style={{ color: (item.stock ?? 0) > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold" }}>
                         {item.stock ?? 0} db
@@ -364,20 +373,22 @@ export default function AdminItemsPage() {
                       </div>
                     </div>
                     
+                    {/* IKONGOMBOK */}
                     <button
                       onClick={() => startEditItem(item)}
-                      style={{ background: "#f39c12", color: "#000", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "13px" }}
+                      style={{ background: "#f39c12", color: "#000", border: "none", width: "36px", height: "36px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      title="Szerkesztés"
                     >
-                      ✏️ Szerkesztés
+                      ✏️
                     </button>
 
                     <button
                       onClick={() => handleDeleteItem(item)}
                       disabled={loading}
-                      style={{ background: "#c0392b", color: "#fff", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "13px" }}
-                      title="Termék végleges törlése"
+                      style={{ background: "#c0392b", color: "#fff", border: "none", width: "36px", height: "36px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      title="Termék törlése"
                     >
-                      🗑️ Törlés
+                      🗑️
                     </button>
                   </div>
                 </div>
