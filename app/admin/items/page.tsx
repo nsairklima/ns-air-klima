@@ -9,10 +9,10 @@ export default function AdminItemsPage() {
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
 
-  // Keresőmező állapota a raktárlistához
+  // Keresőmező állapota
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Saját lenyíló menü állapota
+  // Lenyíló menü állapota
   const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -27,13 +27,13 @@ export default function AdminItemsPage() {
     stock: 0,
   });
 
-  // Beviteli mezők állapota (bevételezés)
+  // Beviteli mezők
   const [newSerial, setNewSerial] = useState("");
   const [newSupplier, setNewSupplier] = useState("");
   const [serialToDelete, setSerialToDelete] = useState("");
   const [simpleStockToAdd, setSimpleStockToAdd] = useState("0");
 
-  // Új termék állapota
+  // Új termék
   const [newItemData, setNewItemData] = useState({
     brand: "",
     name: "",
@@ -60,7 +60,6 @@ export default function AdminItemsPage() {
     loadItems();
   }, []);
 
-  // Kattintás figyelése a lenyíló menün kívül (bezáráshoz)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -73,25 +72,24 @@ export default function AdminItemsPage() {
 
   const selectedItem = items.find((i) => i.id === Number(selectedItemId));
 
-  // Gyári számok listája a kiválasztott tételhez
   const currentSerials = selectedItem?.serialNumber
-    ? selectedItem.serialNumber.split(", ").map((s: string) => {
+    ? selectedItem.serialNumber.split(", ").filter(Boolean).map((s: string) => {
         const [sn, src] = s.split("@");
-        return { sn, src: src || "Nincs" };
+        return { sn: sn?.trim(), src: src?.trim() || "Nincs" };
       })
     : [];
 
-  // Szűrt lista a keresőmező alapján
   const filteredItems = items.filter((item) => {
     const term = searchTerm.toLowerCase();
     const brandMatch = (item.brand || "").toLowerCase().includes(term);
     const nameMatch = (item.name || "").toLowerCase().includes(term);
     const skuMatch = (item.sku || "").toLowerCase().includes(term);
     const supplierMatch = (item.supplier || "").toLowerCase().includes(term);
-    return brandMatch || nameMatch || skuMatch || supplierMatch;
+    const serialMatch = (item.serialNumber || "").toLowerCase().includes(term);
+    return brandMatch || nameMatch || skuMatch || supplierMatch || serialMatch;
   });
 
-  // ÚJ GYÁRI SZÁM HOZZÁADÁSA MEGLÉVŐHÖZ
+  // ÚJ GYÁRI SZÁM HOZZÁADÁSA
   const handleAddSerial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItemId) return;
@@ -118,30 +116,36 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
-  // GYÁRI SZÁM TÖRLÉSE LENYÍLÓBÓL
-  const handleDeleteSerial = async () => {
-    if (!selectedItemId || !serialToDelete) return;
-    if (!confirm(`Biztosan törlöd a(z) ${serialToDelete} gyári számot a raktárból?`)) return;
+  // EGYEDI GYÁRI SZÁM TÖRLÉSE (BÁRMELYIK TÉTELNÉL)
+  const executeDeleteSerial = async (itemId: number, snToDelete: string) => {
+    if (!confirm(`Biztosan törlöd a(z) "${snToDelete}" gyári számot a raktárból?`)) return;
 
     setLoading(true);
-    const res = await fetch("/api/items", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "delete_serial",
-        id: Number(selectedItemId),
-        deleteSerial: serialToDelete,
-      }),
-    });
+    try {
+      const res = await fetch("/api/items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete_serial",
+          id: itemId,
+          deleteSerial: snToDelete,
+        }),
+      });
 
-    if (res.ok) {
-      setSerialToDelete("");
-      loadItems();
+      if (res.ok) {
+        setSerialToDelete("");
+        await loadItems();
+      } else {
+        alert("Hiba történt a gyári szám törlése során!");
+      }
+    } catch (err) {
+      console.error("Gyári szám törlési hiba:", err);
+      alert("Szerver hiba történt!");
     }
     setLoading(false);
   };
 
-  // TELJESEN ÚJ TERMÉK REGISZTRÁCIÓJA
+  // ÚJ TERMÉK REGISZTRÁLÁSA
   const handleCreateNewItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -174,7 +178,7 @@ export default function AdminItemsPage() {
     });
   };
 
-  // SZERKESZTETT MENTÉSE
+  // MENTÉS
   const handleUpdateItem = async (itemId: number) => {
     setLoading(true);
     const res = await fetch("/api/items", {
@@ -201,7 +205,7 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
-  // TERMÉK VÉGLEGES TÖRLÉSE A RAKTÁRBÓL
+  // TELJES TERMÉK TÖRLÉSE
   const handleDeleteItem = async (item: any) => {
     const confirmName = item.brand ? `${item.brand} ${item.name}` : item.name || "Névtelen termék";
     if (!confirm(`Biztosan törölni szeretnéd a(z) "${confirmName}" terméket a raktárból? Ez a művelet nem visszavonható!`)) {
@@ -241,7 +245,7 @@ export default function AdminItemsPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px", marginBottom: "30px" }}>
         
-        {/* PANEL 1: MEGLÉVŐ ANYAG KEZELÉSE */}
+        {/* PANEL 1: KÉSZLET MÓDOSÍTÁSA */}
         <div style={panelCard}>
           <h3 style={{ margin: "0 0 15px 0", color: "#4DA3FF" }}>📥 Készlet módosítása (Kiválasztással)</h3>
 
@@ -407,7 +411,12 @@ export default function AdminItemsPage() {
                       </option>
                     ))}
                   </select>
-                  <button type="button" onClick={handleDeleteSerial} disabled={!serialToDelete || loading} style={{ ...btnS, background: "#e74c3c" }}>
+                  <button
+                    type="button"
+                    onClick={() => executeDeleteSerial(Number(selectedItemId), serialToDelete)}
+                    disabled={!serialToDelete || loading}
+                    style={{ ...btnS, background: "#e74c3c" }}
+                  >
                     Kiválasztott szám végleges törlése
                   </button>
                 </div>
@@ -416,7 +425,7 @@ export default function AdminItemsPage() {
           )}
         </div>
 
-        {/* PANEL 2: TELJESEN ÚJ TERMÉKFAJTA LÉTREHOZÁSA */}
+        {/* PANEL 2: ÚJ TERMÉK */}
         <div style={panelCard}>
           <h3 style={{ margin: "0 0 15px 0", color: "#2ecc71" }}>✨ Teljesen új anyagtípus regisztrálása</h3>
           <form onSubmit={handleCreateNewItem} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -461,17 +470,16 @@ export default function AdminItemsPage() {
         </div>
       </div>
 
-      {/* RAKTÁR LISTA ÉS KERESŐMEZŐ */}
+      {/* RAKTÁR LISTA ÉS KERESŐ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "15px" }}>
         <h2 style={{ color: "#fff", fontSize: "1.3rem", margin: 0 }}>
           Aktuális Raktárkészlet listája ({filteredItems.length} tétel):
         </h2>
 
-        {/* KERESŐ INPUT A LISTÁHOZ */}
         <div style={{ position: "relative", minWidth: "260px", flex: "1 1 260px", maxWidth: "400px" }}>
           <input
             type="text"
-            placeholder="🔍 Keresés név, gyártó, SKU alapján..."
+            placeholder="🔍 Keresés név, gyártó, gyári szám, SKU..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -518,7 +526,6 @@ export default function AdminItemsPage() {
               <div key={item.id} style={{ background: "#1a1a1a", padding: "16px", borderRadius: "10px", border: isEditing ? "1px solid #f39c12" : "1px solid #333" }}>
                 
                 {!isEditing ? (
-                  // NORMÁL NÉZET
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
@@ -580,13 +587,12 @@ export default function AdminItemsPage() {
                     </div>
                   </div>
                 ) : (
-                  // SZERKESZTŐ NÉZET
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     <div style={{ color: "#f39c12", fontWeight: "bold", fontSize: "14px" }}>✏️ Termék adatainak módosítása:</div>
                     
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
                       <div>
-                        <label style={labelS}>Gyártó / Márka (pl. Fisher):</label>
+                        <label style={labelS}>Gyártó / Márka:</label>
                         <input style={inputS} value={editItemData.brand} onChange={(e) => setEditItemData({ ...editItemData, brand: e.target.value })} placeholder="Gyártó" />
                       </div>
                       <div>
@@ -622,15 +628,35 @@ export default function AdminItemsPage() {
                   </div>
                 )}
 
-                {/* GYÁRI SZÁMOK LISTÁJA */}
+                {/* GYÁRI SZÁMOK LISTÁJA + KÖZVETLEN TÖRLÉS GOMB */}
                 {!isEditing && isExpanded && serials.length > 0 && (
                   <div style={{ background: "#050505", padding: "10px", borderRadius: "6px", marginTop: "10px", border: "1px dashed #444" }}>
                     {serials.map((s: string, idx: number) => {
                       const [sn, src] = s.split("@");
+                      const cleanSn = sn?.trim();
                       return (
-                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", padding: "4px 0", borderBottom: idx !== serials.length - 1 ? "1px solid #222" : "none" }}>
-                          <span>• <code style={{ color: "#2ecc71" }}>{sn}</code></span>
-                          <span style={{ color: "#aaa", fontSize: "11px" }}>🏢 {src || "Ismeretlen"}</span>
+                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", padding: "6px 0", borderBottom: idx !== serials.length - 1 ? "1px solid #222" : "none" }}>
+                          <div>
+                            <span>• <code style={{ color: "#2ecc71" }}>{cleanSn}</code></span>
+                            <span style={{ color: "#aaa", fontSize: "11px", marginLeft: "10px" }}>🏢 {src || "Ismeretlen"}</span>
+                          </div>
+                          
+                          {/* Közvetlen törlés ikon gomb */}
+                          <button
+                            type="button"
+                            onClick={() => executeDeleteSerial(item.id, cleanSn)}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "#e74c3c",
+                              cursor: "pointer",
+                              fontSize: "14px",
+                              padding: "2px 6px",
+                            }}
+                            title="Gyári szám törlése"
+                          >
+                            ❌
+                          </button>
                         </div>
                       );
                     })}
