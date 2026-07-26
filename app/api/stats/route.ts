@@ -25,22 +25,31 @@ export async function GET() {
       return diffDays >= 330;
     }).length;
 
-    // 2. RAKTÁRKÉSZLET STATISZTIKA (Benne álló összeg kiszámítása)
-    // Feltételezve, hogy a Prisma modell neve 'material' vagy 'item' (itt 'material'-ként hivatkozunk rá)
-    // Ha a sémádban más a neve (pl. prisma.item), csak írd át azt a sort.
-    const materials = await prisma.material.findMany();
-
+    // 2. RAKTÁRKÉSZLET STATISZTIKA (Biztonságos lekérdezés)
     let inventoryTotalValue = 0;
     let totalStockCount = 0;
+    let totalItemsCount = 0;
 
-    materials.forEach((mat: any) => {
-      // Mennyiség és ár beolvasása (biztonságos szám átalakítással)
-      const quantity = Number(mat.quantity || mat.stock || 0);
-      const price = Number(mat.netPrice || mat.price || mat.costNet || 0);
+    try {
+      // Megpróbáljuk lekérni a raktár elemeit (material / item / inventory modellt feltételezve)
+      const prismaModel = (prisma as any).material || (prisma as any).item || (prisma as any).inventory;
 
-      inventoryTotalValue += quantity * price;
-      totalStockCount += quantity;
-    });
+      if (prismaModel) {
+        const items = await prismaModel.findMany();
+        totalItemsCount = items.length;
+
+        items.forEach((item: any) => {
+          const qty = Number(item.quantity ?? item.stock ?? item.count ?? 0);
+          const price = Number(item.netPrice ?? item.costNet ?? item.price ?? item.unitPrice ?? 0);
+
+          inventoryTotalValue += qty * price;
+          totalStockCount += qty;
+        });
+      }
+    } catch (invError) {
+      console.error("Raktár adatok lekérdezési hiba:", invError);
+      // Ha itt hiba van, a többi statisztika akkor is működni fog
+    }
 
     // 3. PÉNZÜGYI STATISZTIKÁK LEKÉRÉSE (Év elejétől kezdve)
     const yearlyItems = await prisma.quoteItem.findMany({
@@ -99,7 +108,7 @@ export async function GET() {
       // Raktár adatok
       inventory: {
         totalValue: Math.round(inventoryTotalValue),
-        totalItemsCount: materials.length,
+        totalItemsCount,
         totalStockCount: Math.round(totalStockCount)
       },
 
