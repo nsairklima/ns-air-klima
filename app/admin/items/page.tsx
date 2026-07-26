@@ -28,6 +28,7 @@ export default function AdminItemsPage() {
     sku: "",
     supplier: "",
     stock: 0,
+    unit: "db",
   });
 
   // Beviteli mezők
@@ -43,6 +44,7 @@ export default function AdminItemsPage() {
     price: "",
     sku: "",
     supplier: "",
+    unit: "db",
   });
 
   const router = useRouter();
@@ -103,7 +105,7 @@ export default function AdminItemsPage() {
     return brandMatch || nameMatch || skuMatch || supplierMatch || serialMatch;
   });
 
-  // ÚJ GYÁRI SZÁM HOZZÁADÁSA
+  // ÚJ GYÁRI SZÁM / MENNYISÉG HOZZÁADÁSA
   const handleAddSerial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItemId) return;
@@ -171,7 +173,7 @@ export default function AdminItemsPage() {
     });
 
     if (res.ok) {
-      setNewItemData({ brand: "", name: "", price: "", sku: "", supplier: "" });
+      setNewItemData({ brand: "", name: "", price: "", sku: "", supplier: "", unit: "db" });
       loadItems();
     } else {
       alert("Hiba történt a mentés során!");
@@ -189,6 +191,7 @@ export default function AdminItemsPage() {
       sku: item.sku || "",
       supplier: item.supplier || "",
       stock: item.stock ?? 0,
+      unit: item.unit || "db",
     });
   };
 
@@ -207,6 +210,7 @@ export default function AdminItemsPage() {
         sku: editItemData.sku,
         supplier: editItemData.supplier,
         stock: Number(editItemData.stock),
+        unit: editItemData.unit,
       }),
     });
 
@@ -259,7 +263,7 @@ export default function AdminItemsPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px", marginBottom: "30px" }}>
         
-        {/* PANEL 1: KÉSZLET MÓDOSÍTÁSA KERESŐVEL ÉS NAGYKER KIJELZÉSSEL */}
+        {/* PANEL 1: KÉSZLET MÓDOSÍTÁSA */}
         <div style={panelCard}>
           <h3 style={{ margin: "0 0 15px 0", color: "#4DA3FF" }}>📥 Készlet módosítása (Kiválasztással)</h3>
 
@@ -270,7 +274,7 @@ export default function AdminItemsPage() {
               type="button"
               onClick={() => {
                 setIsItemDropdownOpen(!isItemDropdownOpen);
-                setDropdownSearchTerm(""); // Megnyitáskor töröljük a szűrőt
+                setDropdownSearchTerm("");
               }}
               style={{
                 width: "100%",
@@ -325,7 +329,6 @@ export default function AdminItemsPage() {
                   border: "1px solid #444",
                 }}
               >
-                {/* KERESŐMEZŐ A LENYÍLÓ BAN */}
                 <div style={{ padding: "8px", position: "sticky", top: 0, backgroundColor: "#1c1c1c", borderBottom: "1px solid #333", zIndex: 10 }}>
                   <input
                     type="text"
@@ -407,7 +410,6 @@ export default function AdminItemsPage() {
                             )}
                           </div>
 
-                          {/* NAGYKER KIJELZÉSE A LENYÍLÓ ELEMEINÉL */}
                           <div style={{ fontSize: "11px", color: "#f39c12" }}>
                             🏢 Nagyker: {i.supplier || "Nincs megadva"}
                           </div>
@@ -425,7 +427,7 @@ export default function AdminItemsPage() {
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {i.stock ?? 0} db
+                          {i.stock ?? 0} {i.unit || "db"}
                         </span>
                       </div>
                     );
@@ -440,11 +442,11 @@ export default function AdminItemsPage() {
               <hr style={{ border: "0", borderTop: "1px solid #333", margin: "15px 0" }} />
 
               <form onSubmit={handleAddSerial} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <span style={{ fontSize: "12px", fontWeight: "bold", color: "#2ecc71" }}>➕ ÚJ DARAB BEVÉTELEZÉSE:</span>
-                <input style={inputS} placeholder="Gyári szám" value={newSerial} onChange={(e) => setNewSerial(e.target.value)} />
-                <input style={inputS} placeholder={`Beszerzési forrás`} value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} />
+                <span style={{ fontSize: "12px", fontWeight: "bold", color: "#2ecc71" }}>➕ ÚJ MENNYISÉG/DARAB BEVÉTELEZÉSE:</span>
+                <input style={inputS} placeholder="Gyári szám (elhagyható)" value={newSerial} onChange={(e) => setNewSerial(e.target.value)} />
+                <input style={inputS} placeholder={`Beszerzési forrás (Alapértelmezett: ${selectedItem?.supplier || "Gree Hungary"})`} value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} />
                 {!newSerial && (
-                  <input style={inputS} type="number" placeholder="Mennyiség hozzáadása (db)" value={simpleStockToAdd} onChange={(e) => setSimpleStockToAdd(e.target.value)} />
+                  <input style={inputS} type="number" placeholder={`Mennyiség hozzáadása (${selectedItem?.unit || "db"})`} value={simpleStockToAdd} onChange={(e) => setSimpleStockToAdd(e.target.value)} />
                 )}
                 <button type="submit" disabled={loading} style={{ ...btnS, background: "#2ecc71" }}>
                   Hozzáadás a készlethez
@@ -489,19 +491,31 @@ export default function AdminItemsPage() {
               />
               <input
                 style={inputS}
-                placeholder="Típus / Megnevezés (pl. Comfort Plus 2,7)"
+                placeholder="Típus / Megnevezés (pl. Rézcső 6/10)"
                 value={newItemData.name}
                 onChange={(e) => setNewItemData({ ...newItemData, name: e.target.value })}
               />
             </div>
 
-            <input
-              style={inputS}
-              type="number"
-              placeholder="Nettó eladási ár (Ft)"
-              value={newItemData.price}
-              onChange={(e) => setNewItemData({ ...newItemData, price: e.target.value })}
-            />
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "10px" }}>
+              <input
+                style={inputS}
+                type="number"
+                placeholder="Nettó eladási ár (Ft)"
+                value={newItemData.price}
+                onChange={(e) => setNewItemData({ ...newItemData, price: e.target.value })}
+              />
+              {/* MENNYISÉGI EGYSÉG VÁLASZTÓ */}
+              <select
+                style={{ ...inputS, cursor: "pointer" }}
+                value={newItemData.unit}
+                onChange={(e) => setNewItemData({ ...newItemData, unit: e.target.value })}
+              >
+                <option value="db" style={{ color: "#000" }}>db (darab)</option>
+                <option value="m" style={{ color: "#000" }}>m (méter)</option>
+              </select>
+            </div>
+
             <input
               style={inputS}
               placeholder="Cikkszám (SKU)"
@@ -612,10 +626,10 @@ export default function AdminItemsPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <div style={{ textAlign: "right", marginRight: "8px" }}>
                         <span style={{ color: (item.stock ?? 0) > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold" }}>
-                          {item.stock ?? 0} db
+                          {item.stock ?? 0} {item.unit || "db"}
                         </span>
                         <div style={{ fontSize: "13px", color: "#ccc", marginTop: "4px" }}>
-                          {Number(item.price || 0).toLocaleString()} Ft
+                          {Number(item.price || 0).toLocaleString()} Ft / {item.unit || "db"}
                         </div>
                       </div>
                       
@@ -655,7 +669,18 @@ export default function AdminItemsPage() {
                         <input style={inputS} type="number" value={editItemData.price} onChange={(e) => setEditItemData({ ...editItemData, price: e.target.value })} placeholder="Ár" />
                       </div>
                       <div>
-                        <label style={labelS}>Raktárkészlet (db):</label>
+                        <label style={labelS}>Mennyiségi egység:</label>
+                        <select
+                          style={{ ...inputS, cursor: "pointer" }}
+                          value={editItemData.unit}
+                          onChange={(e) => setEditItemData({ ...editItemData, unit: e.target.value })}
+                        >
+                          <option value="db" style={{ color: "#000" }}>db (darab)</option>
+                          <option value="m" style={{ color: "#000" }}>m (méter)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelS}>Raktárkészlet:</label>
                         <input style={inputS} type="number" value={editItemData.stock} onChange={(e) => setEditItemData({ ...editItemData, stock: Number(e.target.value) })} placeholder="Készlet" />
                       </div>
                       <div>
