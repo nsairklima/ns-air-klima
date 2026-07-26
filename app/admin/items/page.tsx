@@ -127,6 +127,8 @@ export default function AdminItemsPage() {
     if (res.ok) {
       setNewItemData({ brand: "", name: "", price: "", sku: "", supplier: "" });
       loadItems();
+    } else {
+      alert("Hiba történt a mentés során!");
     }
     setLoading(false);
   };
@@ -291,7 +293,6 @@ export default function AdminItemsPage() {
           const isExpanded = expandedItemId === item.id;
           const isEditing = editingItemId === item.id;
 
-          // Gyártó meghatározása (ha nincs megadva `brand`, megpróbálja kijelezni a `supplier`-t vagy az üreset)
           const itemBrand = item.brand || "";
 
           return (
