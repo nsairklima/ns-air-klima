@@ -9,6 +9,7 @@ export default function AdminItemsPage() {
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
 
+  // Szerkesztés állapota
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editItemData, setEditItemData] = useState({
     brand: "",
@@ -19,11 +20,13 @@ export default function AdminItemsPage() {
     stock: 0,
   });
 
+  // Beviteli mezők állapota (bevételezés)
   const [newSerial, setNewSerial] = useState("");
   const [newSupplier, setNewSupplier] = useState("");
   const [serialToDelete, setSerialToDelete] = useState("");
   const [simpleStockToAdd, setSimpleStockToAdd] = useState("0");
 
+  // Új termék állapota
   const [newItemData, setNewItemData] = useState({
     brand: "",
     name: "",
@@ -52,6 +55,7 @@ export default function AdminItemsPage() {
 
   const selectedItem = items.find((i) => i.id === Number(selectedItemId));
 
+  // Gyári számok listája a kiválasztott tételhez
   const currentSerials = selectedItem?.serialNumber
     ? selectedItem.serialNumber.split(", ").map((s: string) => {
         const [sn, src] = s.split("@");
@@ -59,6 +63,7 @@ export default function AdminItemsPage() {
       })
     : [];
 
+  // ÚJ GYÁRI SZÁM HOZZÁADÁSA MEGLÉVŐHÖZ
   const handleAddSerial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItemId) return;
@@ -85,6 +90,7 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
+  // GYÁRI SZÁM TÖRLÉSE LENYÍLÓBÓL
   const handleDeleteSerial = async () => {
     if (!selectedItemId || !serialToDelete) return;
     if (!confirm(`Biztosan törlöd a(z) ${serialToDelete} gyári számot a raktárból?`)) return;
@@ -107,6 +113,7 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
+  // TELJESEN ÚJ TERMÉK REGISZTRÁCIÓJA
   const handleCreateNewItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -126,6 +133,7 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
+  // SZERKESZTÉS INDÍTÁSA
   const startEditItem = (item: any) => {
     setEditingItemId(item.id);
     setEditItemData({
@@ -138,6 +146,7 @@ export default function AdminItemsPage() {
     });
   };
 
+  // SZERKESZTETT MENTÉSE
   const handleUpdateItem = async (itemId: number) => {
     setLoading(true);
     const res = await fetch("/api/items", {
@@ -164,6 +173,36 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
+  // TERMÉK VÉGLEGES TÖRLÉSE A RAKTÁRBÓL
+  const handleDeleteItem = async (item: any) => {
+    const confirmName = item.brand ? `${item.brand} ${item.name}` : item.name;
+    if (!confirm(`Biztosan törölni szeretnéd a(z) "${confirmName}" terméket a raktárból? Ez a művelet nem visszavonható!`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/items", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id }),
+      });
+
+      if (res.ok) {
+        if (selectedItemId === String(item.id)) {
+          setSelectedItemId("");
+        }
+        loadItems();
+      } else {
+        alert("Hiba történt a termék törlése során!");
+      }
+    } catch (err) {
+      console.error("Törlési hiba:", err);
+      alert("Hiba történt a törlés során!");
+    }
+    setLoading(false);
+  };
+
   return (
     <div style={{ padding: "20px 12px", maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#000", minHeight: "100vh", color: "#fff" }}>
       <button onClick={() => router.push("/")} style={{ padding: "10px 20px", background: "#333", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", marginBottom: "20px" }}>
@@ -173,6 +212,8 @@ export default function AdminItemsPage() {
       <h1 style={{ color: "#2ecc71" }}>📦 Raktárkezelő Központ</h1>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px", marginBottom: "30px" }}>
+        
+        {/* PANEL 1: MEGLÉVŐ ANYAG KEZELÉSE */}
         <div style={panelCard}>
           <h3 style={{ margin: "0 0 15px 0", color: "#4DA3FF" }}>📥 Készlet módosítása (Kiválasztással)</h3>
 
@@ -225,9 +266,11 @@ export default function AdminItemsPage() {
           )}
         </div>
 
+        {/* PANEL 2: TELJESEN ÚJ TERMÉKFAJTA LÉTREHOZÁSA */}
         <div style={panelCard}>
           <h3 style={{ margin: "0 0 15px 0", color: "#2ecc71" }}>✨ Teljesen új anyagtípus regisztrálása</h3>
           <form onSubmit={handleCreateNewItem} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               <input
                 style={inputS}
@@ -272,6 +315,7 @@ export default function AdminItemsPage() {
         </div>
       </div>
 
+      {/* RAKTÁR LISTA ÉS SZERKESZTÉS/TÖRLÉS */}
       <h2 style={{ color: "#fff", fontSize: "1.3rem", marginBottom: "15px" }}>Aktuális Raktárkészlet listája:</h2>
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {items.map((item) => {
@@ -283,7 +327,9 @@ export default function AdminItemsPage() {
 
           return (
             <div key={item.id} style={{ background: "#1a1a1a", padding: "16px", borderRadius: "10px", border: isEditing ? "1px solid #f39c12" : "1px solid #333" }}>
+              
               {!isEditing ? (
+                // NORMÁL NÉZET
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                   <div>
                     <strong style={{ fontSize: "16px" }}>
@@ -308,8 +354,8 @@ export default function AdminItemsPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                    <div style={{ textAlign: "right" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ textAlign: "right", marginRight: "8px" }}>
                       <span style={{ color: (item.stock ?? 0) > 0 ? "#2ecc71" : "#e74c3c", fontWeight: "bold" }}>
                         {item.stock ?? 0} db
                       </span>
@@ -317,19 +363,29 @@ export default function AdminItemsPage() {
                         {Number(item.price || 0).toLocaleString()} Ft
                       </div>
                     </div>
-
+                    
                     <button
                       onClick={() => startEditItem(item)}
                       style={{ background: "#f39c12", color: "#000", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "13px" }}
                     >
                       ✏️ Szerkesztés
                     </button>
+
+                    <button
+                      onClick={() => handleDeleteItem(item)}
+                      disabled={loading}
+                      style={{ background: "#c0392b", color: "#fff", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "13px" }}
+                      title="Termék végleges törlése"
+                    >
+                      🗑️ Törlés
+                    </button>
                   </div>
                 </div>
               ) : (
+                // SZERKESZTŐ NÉZET
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   <div style={{ color: "#f39c12", fontWeight: "bold", fontSize: "14px" }}>✏️ Termék adatainak módosítása:</div>
-
+                  
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
                     <div>
                       <label style={labelS}>Gyártó / Márka (pl. Fisher):</label>
@@ -368,6 +424,7 @@ export default function AdminItemsPage() {
                 </div>
               )}
 
+              {/* GYÁRI SZÁMOK LISTÁJA */}
               {!isEditing && isExpanded && serials.length > 0 && (
                 <div style={{ background: "#050505", padding: "10px", borderRadius: "6px", marginTop: "10px", border: "1px dashed #444" }}>
                   {serials.map((s: string, idx: number) => {
