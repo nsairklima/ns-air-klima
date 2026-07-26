@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 export default function AdminItemsPage() {
@@ -8,6 +8,10 @@ export default function AdminItemsPage() {
   const [loading, setLoading] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
+
+  // Saját lenyíló menü állapota
+  const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Szerkesztés állapota
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
@@ -51,6 +55,17 @@ export default function AdminItemsPage() {
 
   useEffect(() => {
     loadItems();
+  }, []);
+
+  // Kattintás figyelése a lenyíló menün kívül (bezáráshoz)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsItemDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const selectedItem = items.find((i) => i.id === Number(selectedItemId));
@@ -203,6 +218,12 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
+  const getSelectedItemLabel = () => {
+    if (!selectedItem) return "-- Válassz a raktárból --";
+    const brand = selectedItem.brand || (selectedItem.supplier ? selectedItem.supplier : "");
+    return `${brand ? `[${brand}] ` : ""}${selectedItem.name} (${selectedItem.stock ?? 0} db raktáron)`;
+  };
+
   return (
     <div style={{ padding: "20px 12px", maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#000", minHeight: "100vh", color: "#fff" }}>
       <button onClick={() => router.push("/")} style={{ padding: "10px 20px", background: "#333", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", marginBottom: "20px" }}>
@@ -219,22 +240,116 @@ export default function AdminItemsPage() {
 
           <label style={labelS}>Válaszd ki az anyagot/gépet:</label>
           
-          {/* JOBBAN LÁTHATÓ MOBILBARÁT SELECT LISTA */}
-          <select 
-            style={selectS} 
-            value={selectedItemId} 
-            onChange={(e) => { setSelectedItemId(e.target.value); setSerialToDelete(""); }}
-          >
-            <option value="" style={optionS}>-- Válassz a raktárból --</option>
-            {items.map((i) => {
-              const displayBrand = i.brand || (i.supplier ? i.supplier : "");
-              return (
-                <option key={i.id} value={i.id} style={optionS}>
-                  {displayBrand ? `[${displayBrand}] ` : ""}{i.name} ({i.stock ?? 0} db raktáron)
-                </option>
-              );
-            })}
-          </select>
+          {/* SAJÁT EGYEDI KONTRASTOS MOBILBARÁT VÁLASZTÓ DROPDOWN */}
+          <div ref={dropdownRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setIsItemDropdownOpen(!isItemDropdownOpen)}
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: "8px",
+                border: "2px solid #3b82f6",
+                background: "#1e293b",
+                color: "#ffffff",
+                fontSize: "15px",
+                fontWeight: "bold",
+                textAlign: "left",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {getSelectedItemLabel()}
+              </span>
+              <span style={{ marginLeft: "10px", fontSize: "12px" }}>{isItemDropdownOpen ? "▲" : "▼"}</span>
+            </button>
+
+            {/* LENYÍLÓ OPTION LISTA (GARANTÁLTAN SÖTÉT KONTRASTOS FELÜLET) */}
+            {isItemDropdownOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  zIndex: 999,
+                  marginTop: "6px",
+                  maxHeight: "280px",
+                  overflowY: "auto",
+                  backgroundColor: "#ffffff",
+                  borderRadius: "8px",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+                  border: "2px solid #3b82f6",
+                }}
+              >
+                <div
+                  onClick={() => {
+                    setSelectedItemId("");
+                    setSerialToDelete("");
+                    setIsItemDropdownOpen(false);
+                  }}
+                  style={{
+                    padding: "12px 14px",
+                    color: "#666666",
+                    fontWeight: "bold",
+                    borderBottom: "1px solid #eeeeee",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                  }}
+                >
+                  -- Válassz a raktárból --
+                </div>
+
+                {items.map((i) => {
+                  const displayBrand = i.brand || (i.supplier ? i.supplier : "");
+                  const isSelected = String(i.id) === selectedItemId;
+
+                  return (
+                    <div
+                      key={i.id}
+                      onClick={() => {
+                        setSelectedItemId(String(i.id));
+                        setSerialToDelete("");
+                        setIsItemDropdownOpen(false);
+                      }}
+                      style={{
+                        padding: "12px 14px",
+                        color: isSelected ? "#1e88e5" : "#111111",
+                        backgroundColor: isSelected ? "#e3f2fd" : "#ffffff",
+                        fontWeight: isSelected ? "bold" : "500",
+                        borderBottom: "1px solid #f0f0f0",
+                        cursor: "pointer",
+                        fontSize: "15px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span>
+                        {displayBrand ? <strong>[{displayBrand}] </strong> : ""}
+                        {i.name}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          backgroundColor: (i.stock ?? 0) > 0 ? "#e8f5e9" : "#ffebee",
+                          color: (i.stock ?? 0) > 0 ? "#2e7d32" : "#c62828",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {i.stock ?? 0} db
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {selectedItemId && (
             <>
@@ -256,9 +371,9 @@ export default function AdminItemsPage() {
                 <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", padding: "12px", background: "#111", borderRadius: "8px", border: "1px dashed #e74c3c" }}>
                   <span style={{ fontSize: "12px", fontWeight: "bold", color: "#e74c3c" }}>🗑️ RAKTÁRON LÉVŐ GYÁRI SZÁM TÖRLÉSE:</span>
                   <select style={selectS} value={serialToDelete} onChange={(e) => setSerialToDelete(e.target.value)}>
-                    <option value="" style={optionS}>-- Válaszd ki a törlendőt --</option>
+                    <option value="" style={{ color: "#000" }}>-- Válaszd ki a törlendőt --</option>
                     {currentSerials.map((s, idx) => (
-                      <option key={idx} value={s.sn} style={optionS}>
+                      <option key={idx} value={s.sn} style={{ color: "#000" }}>
                         {s.sn} (Forrás: {s.src})
                       </option>
                     ))}
@@ -467,26 +582,16 @@ const panelCard = { background: "#141414", padding: "20px", borderRadius: "12px"
 const labelS = { fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" };
 const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #333", background: "#222", color: "#fff", boxSizing: "border-box" as const };
 
-// VILÁGOS, ÉLES KONTRASZTÚ LENOVI MÓD (MOBILRA IS OPTIMALIZÁLVA)
 const selectS = {
   width: "100%",
   padding: "12px",
   borderRadius: "8px",
-  border: "2px solid #3b82f6", // Kék kiemelő keret
-  background: "#1e293b",       // Sötétkék-szürke jól olvasható háttér
-  color: "#ffffff",             // Hófehér betű
+  border: "2px solid #3b82f6",
+  background: "#1e293b",
+  color: "#ffffff",
   fontSize: "15px",
   fontWeight: "bold" as const,
   boxSizing: "border-box" as const,
-  outline: "none",
-};
-
-// AZ OPCIÓK TISZTA FEHÉR HÁTTÉR-FEKETE BETŰ STÍLUSA (MOBIL NÉZETEKHEZ)
-const optionS = {
-  backgroundColor: "#ffffff",
-  color: "#000000",
-  padding: "10px",
-  fontSize: "15px",
 };
 
 const btnS = { padding: "12px", border: "none", borderRadius: "6px", color: "#000", fontWeight: "bold" as const, cursor: "pointer", marginTop: "5px" };
