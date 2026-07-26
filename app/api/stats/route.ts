@@ -25,7 +25,24 @@ export async function GET() {
       return diffDays >= 330;
     }).length;
 
-    // 2. PÉNZÜGYI STATISZTIKÁK LEKÉRÉSE (Év elejétől kezdve)
+    // 2. RAKTÁRKÉSZLET STATISZTIKA (Benne álló összeg kiszámítása)
+    // Feltételezve, hogy a Prisma modell neve 'material' vagy 'item' (itt 'material'-ként hivatkozunk rá)
+    // Ha a sémádban más a neve (pl. prisma.item), csak írd át azt a sort.
+    const materials = await prisma.material.findMany();
+
+    let inventoryTotalValue = 0;
+    let totalStockCount = 0;
+
+    materials.forEach((mat: any) => {
+      // Mennyiség és ár beolvasása (biztonságos szám átalakítással)
+      const quantity = Number(mat.quantity || mat.stock || 0);
+      const price = Number(mat.netPrice || mat.price || mat.costNet || 0);
+
+      inventoryTotalValue += quantity * price;
+      totalStockCount += quantity;
+    });
+
+    // 3. PÉNZÜGYI STATISZTIKÁK LEKÉRÉSE (Év elejétől kezdve)
     const yearlyItems = await prisma.quoteItem.findMany({
       where: {
         quote: {
@@ -50,7 +67,7 @@ export async function GET() {
 
       const profit = gross - totalCostBrutto;
       const margin = gross > 0 ? Math.round((profit / gross) * 100) : 0;
-      
+
       return {
         gross: Math.round(gross),
         profit: Math.round(profit),
@@ -60,7 +77,7 @@ export async function GET() {
 
     // Havi vs Éves szétválogatás
     const monthlyItems = yearlyItems.filter(item => new Date(item.quote.createdAt) >= firstDayOfMonth);
-    
+
     const monthlyStats = calculateTotals(monthlyItems);
     const yearlyStats = calculateTotals(yearlyItems);
 
@@ -72,19 +89,26 @@ export async function GET() {
       where: { createdAt: { gte: firstDayOfYear } }
     });
 
-    // 3. VÁLASZ ÖSSZEÁLLÍTÁSA
+    // 4. VÁLASZ ÖSSZEÁLLÍTÁSA
     return NextResponse.json({
       // Alapadatok
       totalClients,
       totalUnits: units.length,
       urgentCount,
-      
+
+      // Raktár adatok
+      inventory: {
+        totalValue: Math.round(inventoryTotalValue),
+        totalItemsCount: materials.length,
+        totalStockCount: Math.round(totalStockCount)
+      },
+
       // Havi bontás
       monthly: {
         ...monthlyStats,
         count: monthlyQuoteCount
       },
-      
+
       // Éves bontás
       yearly: {
         ...yearlyStats,
