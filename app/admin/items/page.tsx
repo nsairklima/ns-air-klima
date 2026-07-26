@@ -84,26 +84,54 @@ export default function AdminItemsPage() {
       })
     : [];
 
-  // Szűrt lista a Panel 1 lenyíló menüjéhez
-  const dropdownFilteredItems = items.filter((item) => {
-    const term = dropdownSearchTerm.toLowerCase();
-    const brandMatch = (item.brand || "").toLowerCase().includes(term);
-    const nameMatch = (item.name || "").toLowerCase().includes(term);
-    const skuMatch = (item.sku || "").toLowerCase().includes(term);
-    const supplierMatch = (item.supplier || "").toLowerCase().includes(term);
-    return brandMatch || nameMatch || skuMatch || supplierMatch;
-  });
+  // ÖSSZEHASONLÍTÓ FÜGGVÉNY AZ ÁBÉCÉSORRENDHEZ (Márka -> Név)
+  const sortItemsAlphabetically = (a: any, b: any) => {
+    const brandA = (a.brand || "").trim();
+    const brandB = (b.brand || "").trim();
+    const nameA = (a.name || "").trim();
+    const nameB = (b.name || "").trim();
 
-  // Szűrt lista a fő raktárlistához
-  const filteredItems = items.filter((item) => {
-    const term = searchTerm.toLowerCase();
-    const brandMatch = (item.brand || "").toLowerCase().includes(term);
-    const nameMatch = (item.name || "").toLowerCase().includes(term);
-    const skuMatch = (item.sku || "").toLowerCase().includes(term);
-    const supplierMatch = (item.supplier || "").toLowerCase().includes(term);
-    const serialMatch = (item.serialNumber || "").toLowerCase().includes(term);
-    return brandMatch || nameMatch || skuMatch || supplierMatch || serialMatch;
-  });
+    // Ha van mindkettőnek márkája, először azt hasonlítjuk össze
+    if (brandA && brandB) {
+      const brandCompare = brandA.localeCompare(brandB, "hu", { sensitivity: "base" });
+      if (brandCompare !== 0) return brandCompare;
+      return nameA.localeCompare(nameB, "hu", { sensitivity: "base" });
+    }
+
+    // Ha csak az egyiknek van márkája, a márkával rendelkező kerül előre (vagy a márkát a névvel hasonlítjuk)
+    const primaryA = brandA || nameA;
+    const primaryB = brandB || nameB;
+
+    const primaryCompare = primaryA.localeCompare(primaryB, "hu", { sensitivity: "base" });
+    if (primaryCompare !== 0) return primaryCompare;
+
+    return nameA.localeCompare(nameB, "hu", { sensitivity: "base" });
+  };
+
+  // Szűrt és RENDEZETT lista a Panel 1 lenyíló menüjéhez
+  const dropdownFilteredItems = items
+    .filter((item) => {
+      const term = dropdownSearchTerm.toLowerCase();
+      const brandMatch = (item.brand || "").toLowerCase().includes(term);
+      const nameMatch = (item.name || "").toLowerCase().includes(term);
+      const skuMatch = (item.sku || "").toLowerCase().includes(term);
+      const supplierMatch = (item.supplier || "").toLowerCase().includes(term);
+      return brandMatch || nameMatch || skuMatch || supplierMatch;
+    })
+    .sort(sortItemsAlphabetically);
+
+  // Szűrt és RENDEZETT lista a fő raktárlistához
+  const filteredItems = items
+    .filter((item) => {
+      const term = searchTerm.toLowerCase();
+      const brandMatch = (item.brand || "").toLowerCase().includes(term);
+      const nameMatch = (item.name || "").toLowerCase().includes(term);
+      const skuMatch = (item.sku || "").toLowerCase().includes(term);
+      const supplierMatch = (item.supplier || "").toLowerCase().includes(term);
+      const serialMatch = (item.serialNumber || "").toLowerCase().includes(term);
+      return brandMatch || nameMatch || skuMatch || supplierMatch || serialMatch;
+    })
+    .sort(sortItemsAlphabetically);
 
   // ÚJ GYÁRI SZÁM / MENNYISÉG HOZZÁADÁSA
   const handleAddSerial = async (e: React.FormEvent) => {
@@ -505,7 +533,6 @@ export default function AdminItemsPage() {
                 value={newItemData.price}
                 onChange={(e) => setNewItemData({ ...newItemData, price: e.target.value })}
               />
-              {/* MENNYISÉGI EGYSÉG VÁLASZTÓ */}
               <select
                 style={selectS}
                 value={newItemData.unit}
