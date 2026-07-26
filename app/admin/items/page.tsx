@@ -456,10 +456,10 @@ export default function AdminItemsPage() {
               {currentSerials.length > 0 && (
                 <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", padding: "12px", background: "#111", borderRadius: "8px", border: "1px dashed #e74c3c" }}>
                   <span style={{ fontSize: "12px", fontWeight: "bold", color: "#e74c3c" }}>🗑️ RAKTÁRON LÉVŐ GYÁRI SZÁM TÖRLÉSE:</span>
-                  <select style={inputS} value={serialToDelete} onChange={(e) => setSerialToDelete(e.target.value)}>
-                    <option value="" style={{ color: "#000" }}>-- Válaszd ki a törlendőt --</option>
+                  <select style={selectS} value={serialToDelete} onChange={(e) => setSerialToDelete(e.target.value)}>
+                    <option value="" style={optionS}>-- Válaszd ki a törlendőt --</option>
                     {currentSerials.map((s, idx) => (
-                      <option key={idx} value={s.sn} style={{ color: "#000" }}>
+                      <option key={idx} value={s.sn} style={optionS}>
                         {s.sn} (Forrás/Nagyker: {s.src})
                       </option>
                     ))}
@@ -507,12 +507,12 @@ export default function AdminItemsPage() {
               />
               {/* MENNYISÉGI EGYSÉG VÁLASZTÓ */}
               <select
-                style={{ ...inputS, cursor: "pointer" }}
+                style={selectS}
                 value={newItemData.unit}
                 onChange={(e) => setNewItemData({ ...newItemData, unit: e.target.value })}
               >
-                <option value="db" style={{ color: "#000" }}>db (darab)</option>
-                <option value="m" style={{ color: "#000" }}>m (méter)</option>
+                <option value="db" style={optionS}>db (darab)</option>
+                <option value="m" style={optionS}>m (méter)</option>
               </select>
             </div>
 
@@ -671,12 +671,12 @@ export default function AdminItemsPage() {
                       <div>
                         <label style={labelS}>Mennyiségi egység:</label>
                         <select
-                          style={{ ...inputS, cursor: "pointer" }}
+                          style={selectS}
                           value={editItemData.unit}
                           onChange={(e) => setEditItemData({ ...editItemData, unit: e.target.value })}
                         >
-                          <option value="db" style={{ color: "#000" }}>db (darab)</option>
-                          <option value="m" style={{ color: "#000" }}>m (méter)</option>
+                          <option value="db" style={optionS}>db (darab)</option>
+                          <option value="m" style={optionS}>m (méter)</option>
                         </select>
                       </div>
                       <div>
@@ -748,5 +748,7 @@ export default function AdminItemsPage() {
 
 const panelCard = { background: "#141414", padding: "20px", borderRadius: "12px", border: "1px solid #222" };
 const labelS = { fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" };
-const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #333", background: "#222", color: "#fff", boxSizing: "border-box" as const };
+const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #333", background: "#222", color: "#ffffff", boxSizing: "border-box" as const };
+const selectS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #333", background: "#222", color: "#ffffff", cursor: "pointer", boxSizing: "border-box" as const };
+const optionS = { backgroundColor: "#222222", color: "#ffffff" };
 const btnS = { padding: "12px", border: "none", borderRadius: "6px", color: "#000", fontWeight: "bold" as const, cursor: "pointer", marginTop: "5px" };
