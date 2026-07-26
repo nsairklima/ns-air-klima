@@ -218,12 +218,6 @@ export default function AdminItemsPage() {
     setLoading(false);
   };
 
-  const getSelectedItemLabel = () => {
-    if (!selectedItem) return "-- Válassz a raktárból --";
-    const brand = selectedItem.brand || (selectedItem.supplier ? selectedItem.supplier : "");
-    return `${brand ? `[${brand}] ` : ""}${selectedItem.name} (${selectedItem.stock ?? 0} db raktáron)`;
-  };
-
   return (
     <div style={{ padding: "20px 12px", maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif", backgroundColor: "#000", minHeight: "100vh", color: "#fff" }}>
       <button onClick={() => router.push("/")} style={{ padding: "10px 20px", background: "#333", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", marginBottom: "20px" }}>
@@ -240,20 +234,19 @@ export default function AdminItemsPage() {
 
           <label style={labelS}>Válaszd ki az anyagot/gépet:</label>
           
-          {/* SAJÁT EGYEDI KONTRASTOS MOBILBARÁT VÁLASZTÓ DROPDOWN */}
+          {/* SÖTÉT TEMÁHOZ ILLESZKEDŐ MOBILBARÁT EGYEDI DROPDOWN */}
           <div ref={dropdownRef} style={{ position: "relative" }}>
             <button
               type="button"
               onClick={() => setIsItemDropdownOpen(!isItemDropdownOpen)}
               style={{
                 width: "100%",
-                padding: "14px",
+                padding: "12px 14px",
                 borderRadius: "8px",
-                border: "2px solid #3b82f6",
-                background: "#1e293b",
+                border: "1px solid #333",
+                background: "#222",
                 color: "#ffffff",
                 fontSize: "15px",
-                fontWeight: "bold",
                 textAlign: "left",
                 display: "flex",
                 justifyContent: "space-between",
@@ -261,13 +254,25 @@ export default function AdminItemsPage() {
                 cursor: "pointer",
               }}
             >
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {getSelectedItemLabel()}
-              </span>
-              <span style={{ marginLeft: "10px", fontSize: "12px" }}>{isItemDropdownOpen ? "▲" : "▼"}</span>
+              <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "8px" }}>
+                {selectedItem ? (
+                  <>
+                    {selectedItem.brand && <span style={{ color: "#2ecc71", fontWeight: "bold" }}>[{selectedItem.brand}]</span>}
+                    <span>{selectedItem.name}</span>
+                    {selectedItem.sku && (
+                      <span style={{ background: "#0f2b48", color: "#64b5f6", border: "1px solid #1e88e5", padding: "1px 6px", borderRadius: "4px", fontSize: "11px", fontWeight: "bold" }}>
+                        {selectedItem.sku}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span style={{ color: "#aaa" }}>-- Válassz a raktárból --</span>
+                )}
+              </div>
+              <span style={{ marginLeft: "10px", fontSize: "12px", color: "#aaa" }}>{isItemDropdownOpen ? "▲" : "▼"}</span>
             </button>
 
-            {/* LENYÍLÓ OPTION LISTA (GARANTÁLTAN SÖTÉT KONTRASTOS FELÜLET) */}
+            {/* LENYÍLÓ MENÜ ELEMEI (SÖTÉT ELEGÁNS STÍLUS) */}
             {isItemDropdownOpen && (
               <div
                 style={{
@@ -277,12 +282,12 @@ export default function AdminItemsPage() {
                   right: 0,
                   zIndex: 999,
                   marginTop: "6px",
-                  maxHeight: "280px",
+                  maxHeight: "320px",
                   overflowY: "auto",
-                  backgroundColor: "#ffffff",
+                  backgroundColor: "#1c1c1c",
                   borderRadius: "8px",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-                  border: "2px solid #3b82f6",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.8)",
+                  border: "1px solid #444",
                 }}
               >
                 <div
@@ -293,9 +298,9 @@ export default function AdminItemsPage() {
                   }}
                   style={{
                     padding: "12px 14px",
-                    color: "#666666",
+                    color: "#888888",
                     fontWeight: "bold",
-                    borderBottom: "1px solid #eeeeee",
+                    borderBottom: "1px solid #2a2a2a",
                     cursor: "pointer",
                     fontSize: "14px",
                   }}
@@ -317,29 +322,43 @@ export default function AdminItemsPage() {
                       }}
                       style={{
                         padding: "12px 14px",
-                        color: isSelected ? "#1e88e5" : "#111111",
-                        backgroundColor: isSelected ? "#e3f2fd" : "#ffffff",
-                        fontWeight: isSelected ? "bold" : "500",
-                        borderBottom: "1px solid #f0f0f0",
+                        backgroundColor: isSelected ? "#2a364f" : "#1c1c1c",
+                        borderBottom: "1px solid #2a2a2a",
                         cursor: "pointer",
-                        fontSize: "15px",
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
+                        gap: "10px",
                       }}
                     >
-                      <span>
-                        {displayBrand ? <strong>[{displayBrand}] </strong> : ""}
-                        {i.name}
-                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: 1 }}>
+                        {displayBrand && (
+                          <span style={{ color: "#2ecc71", fontWeight: "bold", fontSize: "13px" }}>
+                            [{displayBrand}]
+                          </span>
+                        )}
+                        <span style={{ color: "#fff", fontSize: "14px", fontWeight: isSelected ? "bold" : "normal" }}>
+                          {i.name}
+                        </span>
+
+                        {/* CIKKSZÁM (SKU) A LENYÍLÓ LISTÁBAN */}
+                        {i.sku && (
+                          <span style={{ background: "#0f2b48", color: "#64b5f6", border: "1px solid #1e88e5", padding: "1px 6px", borderRadius: "4px", fontSize: "11px", fontWeight: "bold" }}>
+                            SKU: {i.sku}
+                          </span>
+                        )}
+                      </div>
+
                       <span
                         style={{
                           fontSize: "12px",
-                          padding: "2px 6px",
+                          padding: "2px 8px",
                           borderRadius: "4px",
-                          backgroundColor: (i.stock ?? 0) > 0 ? "#e8f5e9" : "#ffebee",
-                          color: (i.stock ?? 0) > 0 ? "#2e7d32" : "#c62828",
+                          backgroundColor: (i.stock ?? 0) > 0 ? "#0a2912" : "#2a0a0a",
+                          color: (i.stock ?? 0) > 0 ? "#2ecc71" : "#e74c3c",
+                          border: `1px solid ${(i.stock ?? 0) > 0 ? "#145223" : "#521414"}`,
                           fontWeight: "bold",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {i.stock ?? 0} db
@@ -370,7 +389,7 @@ export default function AdminItemsPage() {
               {currentSerials.length > 0 && (
                 <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", padding: "12px", background: "#111", borderRadius: "8px", border: "1px dashed #e74c3c" }}>
                   <span style={{ fontSize: "12px", fontWeight: "bold", color: "#e74c3c" }}>🗑️ RAKTÁRON LÉVŐ GYÁRI SZÁM TÖRLÉSE:</span>
-                  <select style={selectS} value={serialToDelete} onChange={(e) => setSerialToDelete(e.target.value)}>
+                  <select style={inputS} value={serialToDelete} onChange={(e) => setSerialToDelete(e.target.value)}>
                     <option value="" style={{ color: "#000" }}>-- Válaszd ki a törlendőt --</option>
                     {currentSerials.map((s, idx) => (
                       <option key={idx} value={s.sn} style={{ color: "#000" }}>
@@ -581,17 +600,4 @@ export default function AdminItemsPage() {
 const panelCard = { background: "#141414", padding: "20px", borderRadius: "12px", border: "1px solid #222" };
 const labelS = { fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" };
 const inputS = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #333", background: "#222", color: "#fff", boxSizing: "border-box" as const };
-
-const selectS = {
-  width: "100%",
-  padding: "12px",
-  borderRadius: "8px",
-  border: "2px solid #3b82f6",
-  background: "#1e293b",
-  color: "#ffffff",
-  fontSize: "15px",
-  fontWeight: "bold" as const,
-  boxSizing: "border-box" as const,
-};
-
 const btnS = { padding: "12px", border: "none", borderRadius: "6px", color: "#000", fontWeight: "bold" as const, cursor: "pointer", marginTop: "5px" };
