@@ -140,6 +140,19 @@ export default function ClientDetailsPage() {
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState("INSTALLED");
   const [installation, setInstallation] = useState("");
+  const [installedAt, setInstalledAt] = useState("");
+  <label>Elkészült telepítés</label>
+
+<input
+  type="date"
+  value={installedAt}
+  onChange={(e) => setInstalledAt(e.target.value)}
+  style={inputS}
+/>
+
+    installedAt: installedAt
+  ? new Date(installedAt).toISOString()
+  : null,
 
   const loadInventory = async () => {
     try {
@@ -269,10 +282,12 @@ export default function ClientDetailsPage() {
     }
   };
 
-  const handleSetStatus = async (
+ const handleSetStatus = async (
   unitId: number,
-  newStatus: string
+  newStatus: string,
+  completedDate?: string
 ) => {
+`
   const res = await fetch(
     `/api/clients/${Id}/units/${unitId}`,
     {
@@ -281,9 +296,11 @@ export default function ClientDetailsPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        status: newStatus,
-        installedAt: new Date().toISOString(),
-      }),
+  status: newStatus,
+  installedAt: completedDate
+    ? new Date(completedDate).toISOString()
+    : null,
+}),
     }
   );
 
@@ -550,8 +567,35 @@ export default function ClientDetailsPage() {
               <div style={{ display: "flex", gap: "6px", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "stretch" : "flex-end" }}>
                {unit.status === "INSTALLED" &&
  !unit.installedAt && (
-                  <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={{ ...btnGreenSmall, flex: isMobile ? 1 : "none" }}>✅ Kész</button>
-                )}
+  <>
+    <input
+      type="date"
+      value={completedDate}
+      onChange={(e) => setCompletedDate(e.target.value)}
+      style={{
+        padding: "8px",
+        borderRadius: "6px",
+        border: "1px solid #ccc",
+      }}
+    />
+
+    <button
+      onClick={() =>
+        handleSetStatus(
+          unit.id,
+          "INSTALLED",
+          completedDate
+        )
+      }
+      style={{
+        ...btnGreenSmall,
+        flex: isMobile ? 1 : "none",
+      }}
+    >
+      ✅ Kész
+    </button>
+  </>
+)}
                 <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={{ ...btnBlueSmall, flex: isMobile ? 1 : "none", textAlign: "center" }}>Napló</button>
                 <button onClick={() => startEditUnit(unit)} style={btnOrangeSmall}>✏️</button>
                 <button onClick={() => handleDeleteUnit(unit.id)} style={btnRedSmall}>🗑️</button>
