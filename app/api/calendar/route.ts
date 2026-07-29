@@ -27,46 +27,63 @@ export async function GET() {
       unit: m.unit 
     })).filter(e => e.date !== null);
 
-    // 2. AUTOMATIKUS JÖVŐBELI TERVEZÉS (Telepítés vagy legutolsó szerviz alapján)
-    // A séma szerint a táblád: clientUnit, a logok kapcsolat neve pedig: maintenance
+    // 2. ÖSSZES GÉP LEKÉRÉSE A TELEPÍTÉSEKHEZ ÉS TERVEZÉSHEZ
     const units = await prisma.clientUnit.findMany({
       include: {
         client: true,
         maintenance: {
           orderBy: { performedDate: 'desc' },
-          take: 1 // Csak a legfrissebb elvégzett szerviz kell nekünk
+          take: 1 // Csak a legfrissebb elvégzett szerviz kell
         }
       }
     });
 
+    const installationEvents: any[] = [];
     const plannedEvents: any[] = [];
+    const now = new Date();
 
     units.forEach(u => {
+      // 2/A. TÉNYLEGES TELEPÍTÉSI ESEMÉNY A NAPTÁRBA (Zöld színnel)
+      if (u.installation) {
+        installationEvents.push({
+          id: `install-${u.id}`,
+          unitId: u.id,
+          date: new Date(u.installation).toISOString(),
+          title: `📦 TELEPÍTÉS: ${u.client?.name || "Ügyfél"}`,
+          description: `Gép: ${u.brand} ${u.model}\nCím: ${u.client?.address || "-"}`,
+          type: "INSTALLATION",
+          unit: u
+        });
+      }
+
+      // 2/B. AUTOMATIKUS JÖVŐBELI TERVEZÉS (vagy elmaradt karbantartás)
       const lastLog = u.maintenance?.[0];
-      // HA volt már szerviz, akkor abból számolunk. HA még nem volt, akkor a TELEPÍTÉS (installation) dátumából!
+      // Ha volt már szerviz, abból számolunk. Ha nem, a TELEPÍTÉS dátumából!
       const baseDate = lastLog?.performedDate || u.installation;
 
       if (baseDate) {
         const nextMaintenanceDate = new Date(baseDate);
-        
-        // A sémád szerinti ciklusidő (hónapokban), alapértelmezetten 12 hónap
         const monthsToAdd = u.periodMonths ?? 12;
         nextMaintenanceDate.setMonth(nextMaintenanceDate.getMonth() + monthsToAdd);
 
+        const isOverdue = nextMaintenanceDate < now;
+        const eventType = isOverdue ? "OVERDUE" : "PLANNED";
+        const titlePrefix = isOverdue ? "🚨 ELMARADT KARBANTARTÁS" : "⚠️ KÖV. KARBANTARTÁS";
+
         plannedEvents.push({
-          id: `planned-${u.id}`,
+          id: `${eventType.toLowerCase()}-${u.id}`,
           unitId: u.id,
           date: nextMaintenanceDate.toISOString(),
-          title: `⚠️ KÖV. KARBANTARTÁS: ${u.client?.name || "Ügyfél"}`,
+          title: `${titlePrefix}: ${u.client?.name || "Ügyfél"}`,
           description: `Gép: ${u.brand} ${u.model}\nUtolsó esemény alapja: ${new Date(baseDate).toLocaleDateString('hu-HU')}`,
-          type: "PLANNED", // A frontend naptáradban sárga vagy eltérő színnel jelölhető
+          type: eventType,
           unit: u
         });
       }
     });
 
-    // Összefésüljük a múltbeli naplókat és a kiszámolt jövőbeli időpontokat
-    return NextResponse.json([...pastEvents, ...plannedEvents]);
+    // Összefésüljük: Naplózott események + Telepítések + Tervezett/Elmaradt karbantartások
+    return NextResponse.json([...pastEvents, ...installationEvents, ...plannedEvents]);
 
   } catch (error) {
     console.error("Naptár GET hiba:", error);
