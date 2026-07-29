@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-// --- EGYEDI SÖTÉT DROPDOWN KOMPONENS (MOBIL ÉS DESKTOP KOMPATIBILIS) ---
+// --- EGYEDI SÖTÉT DROPDOWN KOMPONENS ---
 function CustomSelect({
   value,
   onChange,
@@ -51,7 +51,6 @@ function CustomSelect({
 
       {isOpen && (
         <>
-          {/* Kint kattintásra bezáró réteg */}
           <div
             style={{ position: "fixed", inset: 0, zIndex: 99 }}
             onClick={() => setIsOpen(false)}
@@ -72,9 +71,9 @@ function CustomSelect({
             }}
           >
             {options.length > 0 ? (
-              options.map((opt) => (
+              options.map((opt, index) => (
                 <div
-                  key={opt.value}
+                  key={`${opt.value}-${index}`}
                   onClick={() => {
                     onChange(opt.value);
                     setIsOpen(false);
@@ -107,7 +106,10 @@ function CustomSelect({
 export default function ClientDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const Id = params?.id;
+  
+  // Safe extraction for useParams across Next.js versions
+  const rawId = params?.id;
+  const Id = Array.isArray(rawId) ? rawId[0] : rawId;
 
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -118,7 +120,6 @@ export default function ClientDetailsPage() {
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [availableSerials, setAvailableSerials] = useState<{ sn: string; src: string }[]>([]);
 
-  // Mobilnézet figyelése
   useEffect(() => {
     const checkSize = () => setIsMobile(window.innerWidth < 768);
     checkSize();
@@ -140,7 +141,6 @@ export default function ClientDetailsPage() {
   const [status, setStatus] = useState("INSTALLED");
   const [installation, setInstallation] = useState("");
 
-  // Raktárkészlet betöltése
   const loadInventory = async () => {
     try {
       const res = await fetch("/api/items", { cache: "no-store" });
@@ -154,13 +154,14 @@ export default function ClientDetailsPage() {
   };
 
   const loadClientData = async () => {
+    if (!Id) return;
     try {
       const res = await fetch(`/api/clients/${Id}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         setClient(data);
         setEditClientData({
-          name: data.name,
+          name: data.name || "",
           email: data.email || "",
           phone: data.phone || "",
           address: data.address || "",
@@ -180,24 +181,26 @@ export default function ClientDetailsPage() {
     }
   }, [Id]);
 
-  // Amikor kiválasztunk egy raktári cikket
   const handleInventorySelect = (itemIdStr: string) => {
     setSelectedItemId(itemIdStr);
     setSerial("");
 
     if (!itemIdStr) {
+      setBrand("");
+      setModel("");
       setAvailableSerials([]);
       return;
     }
 
-    const item = inventoryItems.find((i) => i.id === Number(itemIdStr));
+    const item = inventoryItems.find((i) => String(i.id) === itemIdStr);
     if (item) {
       setBrand(item.supplier || "");
       setModel(item.name || "");
 
       if (item.serialNumber) {
         const parsed = item.serialNumber
-          .split(", ")
+          .split(",")
+          .map((s: string) => s.trim())
           .filter(Boolean)
           .map((raw: string) => {
             const [sn, src] = raw.split("@");
@@ -277,8 +280,8 @@ export default function ClientDetailsPage() {
 
   const startEditUnit = (unit: any) => {
     setEditingUnitId(unit.id);
-    setBrand(unit.brand);
-    setModel(unit.model);
+    setBrand(unit.brand || "");
+    setModel(unit.model || "");
     setSerial(unit.serialNumber || "");
     setLocation(unit.location || "");
     setStatus(unit.status || "INSTALLED");
@@ -316,7 +319,6 @@ export default function ClientDetailsPage() {
   if (loading) return <div style={containerStyle}>Betöltés...</div>;
   if (!client) return <div style={containerStyle}>Ügyfél nem található.</div>;
 
-  // Csak azok a raktári tételek, amikből legalább 1 db van készleten
   const inStockItems = inventoryItems.filter((item) => {
     const qty = item.stock ?? item.quantity ?? 0;
     return qty > 0;
@@ -530,7 +532,7 @@ export default function ClientDetailsPage() {
                   <div style={{ fontSize: "13px", color: "#666", marginTop: "2px" }}>Státusz: {quote.status}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "15px", width: isMobile ? "100%" : "auto", borderTop: isMobile ? "1px solid #eee" : "none", paddingTop: isMobile ? "10px" : "0" }}>
-                  <div style={{ fontWeight: "bold", fontSize: "16px", color: "#2e7d32" }}>{Number(quote.grossTotal).toLocaleString()} Ft</div>
+                  <div style={{ fontWeight: "bold", fontSize: "16px", color: "#2e7d32" }}>{Number(quote.grossTotal || 0).toLocaleString()} Ft</div>
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button onClick={() => router.push(`/quotes/${quote.id}`)} style={btnOrangeSmall}>✏️ Módosítás</button>
                     <button onClick={() => handleDeleteQuote(quote.id)} style={btnRedSmall}>🗑️</button>
@@ -645,7 +647,7 @@ const inventoryHeaderS: React.CSSProperties = {
 };
 
 const serialSelectionBoxS: React.CSSProperties = {
-  background: "#0b1329",
+  background: "#0f172a",
   border: "1px solid #1e3a8a",
   borderRadius: "12px",
   padding: "14px",
