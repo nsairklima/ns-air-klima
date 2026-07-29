@@ -17,17 +17,15 @@ export default function GlobalMaintenancePage() {
     return () => window.removeEventListener("resize", checkSize);
   }, []);
 
-  // Segédfüggvény a telepítési dátum kinyerésére (több lehetséges mezőnévből)
+  // Segédfüggvény a telepítési dátum kinyerésére (figyelembe véve a Prisma által adott mezőket)
   const getInstallDate = (unit: any) => {
-    return unit.installationDate || unit.installedAt || unit.date || unit.installation_date || unit.installedDate || null;
+    return unit.date || unit.installationDate || unit.installedAt || unit.createdAt || null;
   };
 
   // Segédfüggvény a mértékadó dátum meghatározásához (Karbantartás, ennek hiányában Telepítés)
   const getReferenceDate = (unit: any) => {
     const lastMaintenance = unit.maintenance?.[0]?.performedDate;
     if (lastMaintenance) return lastMaintenance;
-    
-    // Telepítési dátum keresése fallback mezőkből
     return getInstallDate(unit);
   };
 
