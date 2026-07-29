@@ -25,36 +25,31 @@ export async function GET() {
       return diffDays >= 330;
     }).length;
 
-    // 2. RAKTÁRKÉSZLET STATISZTIKA (Biztonságos lekérdezés)
+    // 2. RAKTÁRKÉSZLET STATISZTIKA
     let inventoryTotalValue = 0;
     let totalStockCount = 0;
     let totalItemsCount = 0;
 
     try {
-      // Megpróbáljuk lekérni a raktár elemeit (material / item / inventory modellt feltételezve)
-      const prismaModel = (prisma as any).material || (prisma as any).item || (prisma as any).inventory;
+      const items = await prisma.item.findMany();
+      totalItemsCount = items.length;
 
-      if (prismaModel) {
-        const items = await prismaModel.findMany();
-        totalItemsCount = items.length;
+      items.forEach((item) => {
+        const qty = Number(item.stock || 0);
+        const price = Number(item.price || 0);
 
-        items.forEach((item: any) => {
-          const qty = Number(item.quantity ?? item.stock ?? item.count ?? 0);
-          const price = Number(item.netPrice ?? item.costNet ?? item.price ?? item.unitPrice ?? 0);
-
-          inventoryTotalValue += qty * price;
-          totalStockCount += qty;
-        });
-      }
+        inventoryTotalValue += qty * price;
+        totalStockCount += qty;
+      });
     } catch (invError) {
       console.error("Raktár adatok lekérdezési hiba:", invError);
-      // Ha itt hiba van, a többi statisztika akkor is működni fog
     }
 
-    // 3. PÉNZÜGYI STATISZTIKÁK LEKÉRÉSE (Év elejétől kezdve)
+    // 3. PÉNZÜGYI STATISZTIKÁK (KIZÁRÓLAG ELFOGADOTT / ACCEPTED AJÁNLATOK)
     const yearlyItems = await prisma.quoteItem.findMany({
       where: {
         quote: {
+          status: "accepted", // <--- CSAK AZ ELFOGADOTT AJÁNLATOK
           createdAt: { gte: firstDayOfYear }
         }
       },
@@ -90,12 +85,18 @@ export async function GET() {
     const monthlyStats = calculateTotals(monthlyItems);
     const yearlyStats = calculateTotals(yearlyItems);
 
-    // Ajánlatok száma
+    // ELFOGADOTT Ajánlatok száma (Havi és Éves)
     const monthlyQuoteCount = await prisma.quote.count({
-      where: { createdAt: { gte: firstDayOfMonth } }
+      where: { 
+        status: "accepted", // <--- CSAK ELFOGADOTT
+        createdAt: { gte: firstDayOfMonth } 
+      }
     });
     const yearlyQuoteCount = await prisma.quote.count({
-      where: { createdAt: { gte: firstDayOfYear } }
+      where: { 
+        status: "accepted", // <--- CSAK ELFOGADOTT
+        createdAt: { gte: firstDayOfYear } 
+      }
     });
 
     // 4. VÁLASZ ÖSSZEÁLLÍTÁSA
@@ -112,13 +113,13 @@ export async function GET() {
         totalStockCount: Math.round(totalStockCount)
       },
 
-      // Havi bontás
+      // Havi bontás (csak elfogadottak)
       monthly: {
         ...monthlyStats,
         count: monthlyQuoteCount
       },
 
-      // Éves bontás
+      // Éves bontás (csak elfogadottak)
       yearly: {
         ...yearlyStats,
         count: yearlyQuoteCount
