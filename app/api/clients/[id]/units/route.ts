@@ -16,7 +16,11 @@ export async function POST(
         model: data.model || "Ismeretlen",
         location: data.location || "Nincs megadva",
         serialNumber: data.serialNumber || "Nincs gyári szám",
-        installation: data.installation ? new Date(data.installation) : null,
+        installation: data.installation
+  ? new Date(data.installation)
+  : null,
+
+installedAt: null,
         periodMonths: Number(data.periodMonths) || 12,
         status: data.status || "INSTALLED", 
         notes: data.notes || null // Ide fog bekerülni a "Beszerzési forrás: ..." szöveg automatikusan
