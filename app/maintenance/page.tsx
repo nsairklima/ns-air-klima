@@ -17,12 +17,18 @@ export default function GlobalMaintenancePage() {
     return () => window.removeEventListener("resize", checkSize);
   }, []);
 
+  // Segédfüggvény a telepítési dátum kinyerésére (több lehetséges mezőnévből)
+  const getInstallDate = (unit: any) => {
+    return unit.installationDate || unit.installedAt || unit.date || unit.installation_date || unit.installedDate || null;
+  };
+
   // Segédfüggvény a mértékadó dátum meghatározásához (Karbantartás, ennek hiányában Telepítés)
   const getReferenceDate = (unit: any) => {
     const lastMaintenance = unit.maintenance?.[0]?.performedDate;
     if (lastMaintenance) return lastMaintenance;
-    if (unit.installationDate) return unit.installationDate;
-    return null;
+    
+    // Telepítési dátum keresése fallback mezőkből
+    return getInstallDate(unit);
   };
 
   useEffect(() => {
@@ -101,6 +107,7 @@ export default function GlobalMaintenancePage() {
         {units.length === 0 && <p style={{ color: "#fff" }}>Nincs ügyfélhez rendelt gép a rendszerben.</p>}
         {units.map((unit: any) => {
           const lastMaintenanceDate = unit.maintenance?.[0]?.performedDate;
+          const installDate = getInstallDate(unit);
           const refDate = getReferenceDate(unit);
           const status = getStatus(refDate);
 
@@ -143,12 +150,9 @@ export default function GlobalMaintenancePage() {
 
                 {/* DÁTUMOK MEGJELENÍTÉSE */}
                 <div style={{ fontSize: "12px", color: "#444", marginTop: 8, display: "flex", flexDirection: "column", gap: "2px" }}>
-                  {/* Telepítés dátuma (mindenhol kiírja, ha fel van véve) */}
                   <div>
-                    📦 Telepítés dátuma: <strong>{unit.installationDate ? new Date(unit.installationDate).toLocaleDateString('hu-HU') : "Nincs megadva"}</strong>
+                    📦 Telepítés dátuma: <strong>{installDate ? new Date(installDate).toLocaleDateString('hu-HU') : "Nincs megadva"}</strong>
                   </div>
-
-                  {/* Utolsó karbantartás dátuma */}
                   <div>
                     🔧 Utolsó karbantartás: <strong>{lastMaintenanceDate ? new Date(lastMaintenanceDate).toLocaleDateString('hu-HU') : "Még nem volt karbantartva"}</strong>
                   </div>
