@@ -141,13 +141,10 @@ export default function ClientDetailsPage() {
   const [status, setStatus] = useState("INSTALLED");
   const [installation, setInstallation] = useState("");
   const [installedAt, setInstalledAt] = useState("");
-  <label>Elkészült telepítés</label>
 
 
 
-    installedAt: installedAt
-  ? new Date(installedAt).toISOString()
-  : null,
+  
 
   const loadInventory = async () => {
     try {
