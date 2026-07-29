@@ -19,9 +19,24 @@ export default function GlobalMaintenancePage() {
 
   useEffect(() => {
     fetch("/api/maintenance")
-      .then(res => res.json())
-      .then(data => {
-        setUnits(data);
+      .then((res) => res.json())
+      .then((data) => {
+        // RENDEZÉS: Utolsó karbantartási dátum szerint növekvő sorrendbe rakjuk.
+        // A legrégebbi dátumú (vagy ahol SOHA nem volt) kerül legfelülre -> az a megsürgősebb/legközelebbi teendő.
+        const sortedData = Array.isArray(data)
+          ? [...data].sort((a: any, b: any) => {
+              const dateA = a.maintenance?.[0]?.performedDate
+                ? new Date(a.maintenance[0].performedDate).getTime()
+                : 0; // Ha nincs dátum (SOHA NEM VOLT), az 0 értekkel a leggelejére kerül
+              const dateB = b.maintenance?.[0]?.performedDate
+                ? new Date(b.maintenance[0].performedDate).getTime()
+                : 0;
+
+              return dateA - dateB;
+            })
+          : [];
+
+        setUnits(sortedData);
         setLoading(false);
       });
   }, []);
@@ -29,7 +44,7 @@ export default function GlobalMaintenancePage() {
   // Segédfüggvény a státusz meghatározásához
   const getStatus = (lastDateStr: string) => {
     if (!lastDateStr) return { label: "SOHA NEM VOLT", color: "#e74c3c", bg: "#fdf2f2" };
-    
+
     const lastDate = new Date(lastDateStr);
     const today = new Date();
     const diffTime = Math.abs(today.getTime() - lastDate.getTime());
@@ -40,7 +55,7 @@ export default function GlobalMaintenancePage() {
     return { label: "RENDBEN", color: "#27ae60", bg: "#f0fff4" };
   };
 
-  if (loading) return <div style={{padding: 20, color: "#fff"}}>Betöltés...</div>;
+  if (loading) return <div style={{ padding: 20, color: "#fff" }}>Betöltés...</div>;
 
   return (
     <div style={{ padding: isMobile ? "12px" : "24px", maxWidth: 1000, margin: "0 auto", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
@@ -70,7 +85,7 @@ export default function GlobalMaintenancePage() {
       <p style={{ color: "#666", marginBottom: "25px", fontSize: "14px" }}>A rendszer 12 havonta javasolja a tisztítást.</p>
 
       <div style={{ display: "grid", gap: 12 }}>
-        {units.length === 0 && <p>Nincs rögzített gép a rendszerben.</p>}
+        {units.length === 0 && <p style={{ color: "#fff" }}>Nincs rögzített gép a rendszerben.</p>}
         {units.map((unit: any) => {
           const lastDate = unit.maintenance?.[0]?.performedDate;
           const status = getStatus(lastDate);
@@ -83,7 +98,6 @@ export default function GlobalMaintenancePage() {
                 border: `1px solid ${status.color}`, 
                 borderRadius: 12, 
                 display: "flex", 
-                // FIX: Mobilon egymás alá rakja az adatokat és a gombot
                 flexDirection: isMobile ? "column" : "row", 
                 justifyContent: "space-between", 
                 alignItems: isMobile ? "stretch" : "center", 
@@ -117,7 +131,6 @@ export default function GlobalMaintenancePage() {
                 </div>
               </div>
 
-              {/* FIX: Mobilon teljes szélességű, kényelmesen nyomható gomb lesz */}
               <div style={{ textAlign: isMobile ? "left" : "right" }}>
                 <button 
                   onClick={() => router.push(`/clients/${unit.clientId}/unit/${unit.id}`)}
