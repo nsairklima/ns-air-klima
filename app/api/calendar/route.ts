@@ -44,22 +44,36 @@ export async function GET() {
 
     units.forEach(u => {
       // 2/A. TÉNYLEGES TELEPÍTÉSI ESEMÉNY A NAPTÁRBA (Zöld színnel)
-      if (u.installation) {
-        installationEvents.push({
-          id: `install-${u.id}`,
-          unitId: u.id,
-          date: new Date(u.installation).toISOString(),
-          title: `📦 TELEPÍTÉS: ${u.client?.name || "Ügyfél"}`,
-          description: `Gép: ${u.brand} ${u.model}\nCím: ${u.client?.address || "-"}`,
-          type: "INSTALLATION",
-          unit: u
-        });
-      }
+      if (u.installedAt) {
+  installationEvents.push({
+    id: `install-${u.id}`,
+    unitId: u.id,
+    date: new Date(u.installedAt).toISOString(),
+    title: `✅ TELEPÍTVE: ${u.client?.name || "Ügyfél"}`,
+    description: `Gép: ${u.brand} ${u.model}\nCím: ${u.client?.address || "-"}`,
+    type: "INSTALLATION",
+    unit: u
+  });
+}
+
+      if (u.installation && !u.installedAt) {
+  plannedEvents.push({
+    id: `planned-install-${u.id}`,
+    unitId: u.id,
+    date: new Date(u.installation).toISOString(),
+    title: `⏳ TERVEZETT TELEPÍTÉS: ${u.client?.name || "Ügyfél"}`,
+    description: `${u.brand} ${u.model}`,
+    type: "PLANNED_INSTALLATION",
+    unit: u
+  });
+}
 
       // 2/B. AUTOMATIKUS JÖVŐBELI TERVEZÉS (vagy elmaradt karbantartás)
       const lastLog = u.maintenance?.[0];
       // Ha volt már szerviz, abból számolunk. Ha nem, a TELEPÍTÉS dátumából!
-      const baseDate = lastLog?.performedDate || u.installation;
+      const baseDate =
+  lastLog?.performedDate ||
+  u.installedAt;
 
       if (baseDate) {
         const nextMaintenanceDate = new Date(baseDate);
