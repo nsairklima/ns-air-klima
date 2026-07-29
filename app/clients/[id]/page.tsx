@@ -269,7 +269,11 @@ export default function ClientDetailsPage() {
     }
   };
 
-  const handleSetStatus = async (unitId: number, newStatus: string) => {
+  body: JSON.stringify({
+  status: newStatus,
+  installedAt: new Date().toISOString(),
+}),
+`
     const res = await fetch(`/api/clients/${Id}/units/${unitId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
