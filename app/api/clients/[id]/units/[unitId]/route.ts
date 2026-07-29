@@ -41,13 +41,27 @@ export async function PATCH(
     const updated = await prisma.clientUnit.update({
       where: { id: unitId },
       data: {
-        brand: data.brand,
-        model: data.model,
-        serialNumber: data.serialNumber || null,
-        location: data.location || null,
-        status: data.status !== undefined ? data.status : undefined,
-        installation: data.installation ? new Date(data.installation) : null,
-      },
+  brand: data.brand,
+  model: data.model,
+  serialNumber: data.serialNumber || null,
+  location: data.location || null,
+
+  status:
+    data.status !== undefined
+      ? data.status
+      : undefined,
+
+  installation:
+    data.installation
+      ? new Date(data.installation)
+      : undefined,
+
+  installedAt:
+    data.installedAt
+      ? new Date(data.installedAt)
+      : undefined,
+},
+
     });
 
     return NextResponse.json(updated);
