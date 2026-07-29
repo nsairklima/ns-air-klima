@@ -287,8 +287,7 @@ export default function ClientDetailsPage() {
   newStatus: string,
   completedDate?: string
 ) => {
-`
-  const res = await fetch(
+ const res = await fetch(
     `/api/clients/${Id}/units/${unitId}`,
     {
       method: "PATCH",
