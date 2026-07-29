@@ -164,7 +164,10 @@ export default function CalendarPage() {
     
     if (typeof eventData.id === 'string' && (eventData.id.startsWith('planned') || !eventData.id.startsWith('log-'))) {
       if (confirm(`Ez egy automatikusan tervezett időpont.\nSzeretnél elnavigálni a gép adatlapjára?`)) {
-        router.push(`/clients/${eventData.unitId || eventData.unit?.id}`);
+        if (eventData.unit?.clientId) {
+  router.push(`/clients/${eventData.unit.clientId}`);
+}
+
       }
       return;
     }
