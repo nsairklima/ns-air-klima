@@ -9,7 +9,7 @@ export async function GET(
   try {
     const resolvedParams = params instanceof Promise ? await params : params;
     const id = parseInt(resolvedParams.quoteId);
-    
+
     if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
 
     const quote = await prisma.quote.findUnique({
@@ -32,7 +32,7 @@ export async function GET(
   }
 }
 
-// --- AJÁNLAT FRISSÍTÉSE ---
+// --- AJÁNLAT FRISSÍTÉSE (Módosítás / Státuszváltás) ---
 export async function PATCH(
   req: Request,
   { params }: { params: any }
@@ -44,11 +44,22 @@ export async function PATCH(
 
     if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
 
+    // Dinamikusan összeállítjuk azokat a mezőket, amiket frissíteni szeretnénk
+    const updateData: any = {};
+    if (body.status !== undefined) updateData.status = body.status; // "draft" | "sent" | "accepted" | "rejected"
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.terms !== undefined) updateData.terms = body.terms;
+    if (body.netTotal !== undefined) updateData.netTotal = body.netTotal;
+    if (body.vatAmount !== undefined) updateData.vatAmount = body.vatAmount;
+    if (body.grossTotal !== undefined) updateData.grossTotal = body.grossTotal;
+
     const updatedQuote = await prisma.quote.update({
       where: { id: id },
-      data: {
-        title: body.title,
-      },
+      data: updateData,
+      include: {
+        items: true,
+        client: true
+      }
     });
 
     return NextResponse.json(updatedQuote);
