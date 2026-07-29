@@ -1,138 +1,138 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 
-interface InventoryItem {
-  id: number;
-  name: string;
-  sku: string;
-  quantity: number;
-  serials?: string[];
-}
-
-interface Unit {
-  id: number;
-  brand: string;
-  model: string;
-  serialNumber?: string;
-  location?: string;
-  status: string;
-  installation?: string;
-}
-
-interface Quote {
-  id: number;
-  quoteNumber: string;
-  total: number;
-  status: string;
-  createdAt: string;
-}
-
-interface Client {
-  id: number;
-  name: string;
-  phone?: string;
-  address?: string;
-  units: Unit[];
-  quotes: Quote[];
-}
-
-// Custom Select Komponens
+// --- EGYEDI SÖTÉT DROPDOWN KOMPONENS (MOBIL ÉS DESKTOP KOMPATIBILIS) ---
 function CustomSelect({
-  options,
   value,
   onChange,
-  placeholder,
+  options,
+  placeholder = "Válassz...",
+  bg = "#18181b",
+  borderColor = "#333",
 }: {
-  options: { label: string; value: string | number }[];
-  value: string | number;
+  value: string;
   onChange: (val: string) => void;
-  placeholder: string;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  bg?: string;
+  borderColor?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const selectedOption = options.find((o) => String(o.value) === String(value));
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find((o) => o.value === value);
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
-      <div
-        onClick={() => setOpen(!open)}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
         style={{
-          ...inputS,
+          width: "100%",
+          padding: "12px 16px",
+          borderRadius: "10px",
+          border: `1px solid ${borderColor}`,
+          backgroundColor: bg,
+          color: "#ffffff",
+          fontSize: "15px",
+          textAlign: "left",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           cursor: "pointer",
-          background: "#18181b",
+          boxSizing: "border-box",
         }}
       >
-        <span style={{ color: selectedOption ? "#fff" : "#71717a" }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "8px" }}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <span style={{ fontSize: "10px", color: "#a1a1aa" }}>{open ? "▲" : "▼"}</span>
-      </div>
+        <span style={{ fontSize: "12px", color: "#a1a1aa" }}>{isOpen ? "▲" : "▼"}</span>
+      </button>
 
-      {open && (
-        <div
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
-            zIndex: 999,
-            backgroundColor: "#18181b",
-            border: "1px solid #333",
-            borderRadius: "10px",
-            marginTop: "4px",
-            maxHeight: "200px",
-            overflowY: "auto",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-          }}
-        >
-          {options.map((opt) => (
-            <div
-              key={opt.value}
-              onClick={() => {
-                onChange(String(opt.value));
-                setOpen(false);
-              }}
-              style={{
-                padding: "10px 14px",
-                cursor: "pointer",
-                borderBottom: "1px solid #27272a",
-                fontSize: "14px",
-                color: String(opt.value) === String(value) ? "#2ecc71" : "#fff",
-              }}
-            >
-              {opt.label}
-            </div>
-          ))}
-        </div>
+      {isOpen && (
+        <>
+          {/* Kint kattintásra bezáró réteg */}
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 99 }}
+            onClick={() => setIsOpen(false)}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 6px)",
+              left: 0,
+              right: 0,
+              maxHeight: "250px",
+              overflowY: "auto",
+              backgroundColor: "#18181b",
+              border: "1px solid #3f3f46",
+              borderRadius: "12px",
+              zIndex: 100,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.9)",
+            }}
+          >
+            {options.length > 0 ? (
+              options.map((opt) => (
+                <div
+                  key={opt.value}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  style={{
+                    padding: "14px 16px",
+                    color: opt.value === value ? "#2ecc71" : "#ffffff",
+                    backgroundColor: opt.value === value ? "#27272a" : "transparent",
+                    borderBottom: "1px solid #27272a",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    fontWeight: opt.value === value ? "bold" : "normal",
+                  }}
+                >
+                  {opt.label}
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: "14px", color: "#71717a", fontSize: "14px", textAlign: "center" }}>
+                Nincs elérhető opció
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-export default function ClientDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const Id = resolvedParams.id;
+export default function ClientDetailsPage() {
+  const params = useParams();
   const router = useRouter();
+  const Id = params?.id;
 
-  const [client, setClient] = useState<Client | null>(null);
+  const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Fejléc szerkesztési állapot
+  // --- RAKTÁRI ANYAGOK ÁLLAPOTA ---
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [availableSerials, setAvailableSerials] = useState<{ sn: string; src: string }[]>([]);
+
+  // Mobilnézet figyelése
+  useEffect(() => {
+    const checkSize = () => setIsMobile(window.innerWidth < 768);
+    checkSize();
+    window.addEventListener("resize", checkSize);
+    return () => window.removeEventListener("resize", checkSize);
+  }, []);
+
+  // --- ÜGYFÉL SZERKESZTÉS ÁLLAPOT ---
   const [isEditingClient, setIsEditingClient] = useState(false);
-  const [cName, setCName] = useState("");
-  const [cPhone, setCPhone] = useState("");
-  const [cAddress, setCAddress] = useState("");
+  const [editClientData, setEditClientData] = useState({ name: "", email: "", phone: "", address: "" });
 
-  // Gép form állapotok
+  // --- GÉP (UNIT) FORM ÁLLAPOTOK ---
   const [showUnitForm, setShowUnitForm] = useState(false);
   const [editingUnitId, setEditingUnitId] = useState<number | null>(null);
-  const [selectedItemId, setSelectedItemId] = useState<string>("");
-
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [serial, setSerial] = useState("");
@@ -140,96 +140,96 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
   const [status, setStatus] = useState("INSTALLED");
   const [installation, setInstallation] = useState("");
 
-  const loadClientData = useCallback(async () => {
+  // Raktárkészlet betöltése
+  const loadInventory = async () => {
     try {
-      const res = await fetch(`/api/clients/${Id}`);
-      if (!res.ok) throw new Error("Ügyfél nem található");
-      const data: Client = await res.json();
-      setClient(data);
-      setCName(data.name || "");
-      setCPhone(data.phone || "");
-      setCAddress(data.address || "");
-    } catch (err: unknown) {
-      console.error(err);
+      const res = await fetch("/api/items", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setInventoryItems(data);
+      }
+    } catch (err) {
+      console.error("Hiba a raktár betöltésekor:", err);
+    }
+  };
+
+  const loadClientData = async () => {
+    try {
+      const res = await fetch(`/api/clients/${Id}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setClient(data);
+        setEditClientData({
+          name: data.name,
+          email: data.email || "",
+          phone: data.phone || "",
+          address: data.address || "",
+        });
+      }
+    } catch (err) {
+      console.error("Hiba az adatok betöltésekor:", err);
     } finally {
       setLoading(false);
     }
-  }, [Id]);
-
-  const loadInventory = useCallback(async () => {
-    try {
-      const res = await fetch("/api/items");
-      if (res.ok) {
-        const data = await res.json();
-        setInventory(data);
-      }
-    } catch (err: unknown) {
-      console.error(err);
-    }
-  }, []);
+  };
 
   useEffect(() => {
-    loadClientData();
-    loadInventory();
-  }, [loadClientData, loadInventory]);
+    if (Id) {
+      loadClientData();
+      loadInventory();
+    }
+  }, [Id]);
 
-  const handleUpdateClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`/api/clients/${Id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: cName, phone: cPhone, address: cAddress }),
-      });
-      if (!res.ok) throw new Error("Frissítés sikertelen");
+  // Amikor kiválasztunk egy raktári cikket
+  const handleInventorySelect = (itemIdStr: string) => {
+    setSelectedItemId(itemIdStr);
+    setSerial("");
+
+    if (!itemIdStr) {
+      setAvailableSerials([]);
+      return;
+    }
+
+    const item = inventoryItems.find((i) => i.id === Number(itemIdStr));
+    if (item) {
+      setBrand(item.supplier || "");
+      setModel(item.name || "");
+
+      if (item.serialNumber) {
+        const parsed = item.serialNumber
+          .split(", ")
+          .filter(Boolean)
+          .map((raw: string) => {
+            const [sn, src] = raw.split("@");
+            return { sn: sn?.trim() || "", src: src?.trim() || "" };
+          });
+        setAvailableSerials(parsed);
+      } else {
+        setAvailableSerials([]);
+      }
+    }
+  };
+
+  const handleUpdateClient = async () => {
+    const res = await fetch(`/api/clients/${Id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editClientData),
+    });
+    if (res.ok) {
       setIsEditingClient(false);
-      await loadClientData();
-      router.refresh();
-    } catch (err: unknown) {
-      alert("Hiba történt az ügyfél adatainak frissítésekor.");
-      console.error(err);
+      loadClientData();
     }
   };
 
   const handleDeleteClient = async () => {
-    if (!confirm("Biztosan törölni szeretnéd ezt az ügyfelet a berendezéseivel együtt?")) return;
-    try {
-      const res = await fetch(`/api/clients/${Id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Törlés sikertelen");
-      router.push("/clients");
-      router.refresh();
-    } catch (err: unknown) {
-      alert("Hiba a törlés során.");
-      console.error(err);
-    }
-  };
-
-  const resetUnitForm = () => {
-    setEditingUnitId(null);
-    setSelectedItemId("");
-    setBrand("");
-    setModel("");
-    setSerial("");
-    setLocation("");
-    setStatus("INSTALLED");
-    setInstallation("");
-    setShowUnitForm(false);
-  };
-
-  const handleEditUnitClick = (u: Unit) => {
-    setEditingUnitId(u.id);
-    setBrand(u.brand || "");
-    setModel(u.model || "");
-    setSerial(u.serialNumber || "");
-    setLocation(u.location || "");
-    setStatus(u.status || "INSTALLED");
-    setInstallation(u.installation ? u.installation.substring(0, 10) : "");
-    setShowUnitForm(true);
+    if (!confirm("⚠️ Biztosan törlöd az ügyfelet?")) return;
+    const res = await fetch(`/api/clients/${Id}`, { method: "DELETE" });
+    if (res.ok) router.push("/clients");
   };
 
   const handleSubmitUnit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const payload = {
       brand,
       model,
@@ -237,22 +237,16 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
       location,
       status,
       installation: installation ? new Date(installation).toISOString() : null,
-      inventoryItemId: selectedItemId ? Number(selectedItemId) : null,
     };
 
-    try {
-      const url = editingUnitId
-        ? `/api/clients/${Id}/units/${editingUnitId}`
-        : `/api/clients/${Id}/units`;
-      const res = await fetch(url, {
-        method: editingUnitId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+    const url = editingUnitId ? `/api/clients/${Id}/units/${editingUnitId}` : `/api/clients/${Id}/units`;
+    const res = await fetch(url, {
+      method: editingUnitId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-      if (!res.ok) throw new Error("Gép mentése sikertelen");
-
-      // Megjegyzés: Ha a backend kezeli a raktárlevonást, ez a blokk elhagyható.
+    if (res.ok) {
       if (!editingUnitId && selectedItemId && status === "INSTALLED") {
         await fetch("/api/items", {
           method: "PATCH",
@@ -268,244 +262,286 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
       }
 
       resetUnitForm();
-      await loadClientData();
-      router.refresh();
-    } catch (err: unknown) {
-      alert("Hiba történt a gép mentése során!");
-      console.error(err);
+      loadClientData();
     }
+  };
+
+  const handleSetStatus = async (unitId: number, newStatus: string) => {
+    const res = await fetch(`/api/clients/${Id}/units/${unitId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus, installation: new Date().toISOString() }),
+    });
+    if (res.ok) await loadClientData();
+  };
+
+  const startEditUnit = (unit: any) => {
+    setEditingUnitId(unit.id);
+    setBrand(unit.brand);
+    setModel(unit.model);
+    setSerial(unit.serialNumber || "");
+    setLocation(unit.location || "");
+    setStatus(unit.status || "INSTALLED");
+    setInstallation(unit.installation ? new Date(unit.installation).toISOString().split("T")[0] : "");
+    setSelectedItemId("");
+    setAvailableSerials([]);
+    setShowUnitForm(true);
+  };
+
+  const resetUnitForm = () => {
+    setEditingUnitId(null);
+    setBrand("");
+    setModel("");
+    setSerial("");
+    setLocation("");
+    setInstallation("");
+    setStatus("INSTALLED");
+    setSelectedItemId("");
+    setAvailableSerials([]);
+    setShowUnitForm(false);
   };
 
   const handleDeleteUnit = async (unitId: number) => {
-    if (!confirm("Biztosan törölni szeretnéd ezt a gépet?")) return;
-    try {
-      const res = await fetch(`/api/clients/${Id}/units/${unitId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Törlés sikertelen");
-      await loadClientData();
-      router.refresh();
-    } catch (err: unknown) {
-      alert("Hiba a gép törlésekor.");
-      console.error(err);
-    }
+    if (!confirm("Törlöd ezt a gépet?")) return;
+    const res = await fetch(`/api/clients/${Id}/units/${unitId}`, { method: "DELETE" });
+    if (res.ok) loadClientData();
   };
 
-  if (loading) return <div style={containerStyle}><p>Betöltés...</p></div>;
-  if (!client) return <div style={containerStyle}><p>Ügyfél nem található.</p></div>;
+  const handleDeleteQuote = async (quoteId: number) => {
+    if (!confirm("Biztosan törlöd ezt az árajánlatot?")) return;
+    const res = await fetch(`/api/quotes/${quoteId}`, { method: "DELETE" });
+    if (res.ok) loadClientData();
+  };
 
-  const selectedItemObj = inventory.find((i) => String(i.id) === selectedItemId);
+  if (loading) return <div style={containerStyle}>Betöltés...</div>;
+  if (!client) return <div style={containerStyle}>Ügyfél nem található.</div>;
+
+  // Csak azok a raktári tételek, amikből legalább 1 db van készleten
+  const inStockItems = inventoryItems.filter((item) => {
+    const qty = item.stock ?? item.quantity ?? 0;
+    return qty > 0;
+  });
 
   return (
-    <div style={containerStyle}>
-      {/* FEJLÉC ÉS ÜGYFÉL ADATOK */}
-      <div style={headerS}>
-        <div style={{ flex: 1 }}>
-          <button style={{ ...navBtn, marginBottom: "15px" }} onClick={() => router.push("/clients")}>
-            ← Vissza az ügyfelekhez
-          </button>
+    <div style={{ ...containerStyle, padding: isMobile ? "12px" : "24px" }}>
+      {/* NAVIGÁCIÓ */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "25px" }}>
+        <button onClick={() => router.push("/clients")} style={navBtn}>⬅️ Vissza</button>
+        <button onClick={() => router.push("/")} style={navBtn}>🏠 Főoldal</button>
+      </div>
 
+      {/* ÜGYFÉL ADATOK */}
+      <div style={{ ...headerS, flexDirection: isMobile ? "column" : "row", gap: "15px" }}>
+        <div style={{ width: "100%", flex: 1 }}>
           {!isEditingClient ? (
-            <div>
-              <h1 style={clientNameStyle}>{client.name}</h1>
-              <div style={contactRow}>
-                {client.phone && <span style={{ marginRight: "20px" }}>📞 {client.phone}</span>}
-                {client.address && <span>📍 {client.address}</span>}
+            <>
+              <h1 style={{ ...clientNameStyle, fontSize: isMobile ? "26px" : "32px" }}>{client.name}</h1>
+              <div style={{ ...contactRow, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? "6px" : "0" }}>
+                <span style={{ color: "#2ecc71", marginRight: "20px" }}>📞 {client.phone || "Nincs telefonszám"}</span>
+                <span style={{ color: "#bbb" }}>✉️ {client.email || "Nincs email"}</span>
               </div>
-            </div>
+              <div style={{ ...contactRow, marginTop: "8px", color: "#fff", fontSize: "15px" }}>
+                🏠 {client.address || "Nincs cím megadva"}
+              </div>
+            </>
           ) : (
-            <form onSubmit={handleUpdateClient} style={editBoxS}>
-              <label style={labS}>Név</label>
-              <input
-                style={inputS}
-                value={cName}
-                onChange={(e) => setCName(e.target.value)}
-                required
-              />
-              <label style={labS}>Telefonszám</label>
-              <input
-                style={inputS}
-                value={cPhone}
-                onChange={(e) => setCPhone(e.target.value)}
-              />
-              <label style={labS}>Cím</label>
-              <input
-                style={inputS}
-                value={cAddress}
-                onChange={(e) => setCAddress(e.target.value)}
-              />
-              <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                <button type="submit" style={btnGreen}>Mentés</button>
-                <button type="button" style={btnCancel} onClick={() => setIsEditingClient(false)}>Mégse</button>
-              </div>
-            </form>
+            <div style={editBoxS}>
+              <h3 style={{ marginTop: 0, color: "#fff" }}>Ügyfél módosítása</h3>
+              <input style={inputS} value={editClientData.name} onChange={(e) => setEditClientData({ ...editClientData, name: e.target.value })} placeholder="Név" />
+              <input style={inputS} value={editClientData.phone} onChange={(e) => setEditClientData({ ...editClientData, phone: e.target.value })} placeholder="Telefon" />
+              <input style={inputS} value={editClientData.email} onChange={(e) => setEditClientData({ ...editClientData, email: e.target.value })} placeholder="Email" />
+              <input style={inputS} value={editClientData.address} onChange={(e) => setEditClientData({ ...editClientData, address: e.target.value })} placeholder="Cím" />
+            </div>
           )}
         </div>
 
-        {!isEditingClient && (
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button style={btnEditHeader} onClick={() => setIsEditingClient(true)}>Szerkesztés</button>
-            <button style={btnDeleteHeader} onClick={handleDeleteClient}>🗑️ Törlés</button>
-          </div>
-        )}
+        <div style={{ display: "flex", gap: "10px", width: isMobile ? "100%" : "auto", justifyContent: "flex-end" }}>
+          {!isEditingClient ? (
+            <>
+              <button onClick={() => setIsEditingClient(true)} style={{ ...btnEditHeader, flex: isMobile ? 1 : "none" }}>✏️ Szerkesztés</button>
+              <button onClick={handleDeleteClient} style={btnDeleteHeader}>🗑️</button>
+            </>
+          ) : (
+            <>
+              <button onClick={handleUpdateClient} style={{ ...btnGreen, flex: isMobile ? 1 : "none" }}>✅ Mentés</button>
+              <button onClick={() => setIsEditingClient(false)} style={{ ...btnCancel, flex: isMobile ? 1 : "none" }}>Mégse</button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* BERENDEZÉSEK SZEKCIÓ */}
-      <div style={{ marginBottom: "40px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
-          <h2>Telepített Berendezések ({client.units?.length || 0})</h2>
-          <button
-            style={showUnitForm ? btnCancel : btnGreen}
-            onClick={() => {
-              if (showUnitForm) resetUnitForm();
-              else setShowUnitForm(true);
-            }}
-          >
-            {showUnitForm ? "Mégse" : "+ Gép Hozzáadása"}
-          </button>
-        </div>
+      {/* GÉPEK SZEKCIÓ CÍM */}
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", marginBottom: "20px" }}>
+        <h2 style={{ margin: 0, color: "#fff", fontSize: isMobile ? "20px" : "24px" }}>🛠️ Gépek kezelése</h2>
+        <button onClick={() => { if (showUnitForm) resetUnitForm(); else setShowUnitForm(true); }} style={btnGreen}>
+          {showUnitForm ? "Mégse" : "+ Új gép felvétele"}
+        </button>
+      </div>
 
-        {/* ÚJ/MÓDOSÍTÓ GÉP FORM */}
-        {showUnitForm && (
-          <form onSubmit={handleSubmitUnit} style={formBoxS}>
-            <h3>{editingUnitId ? "Gép Szerkesztése" : "Új Gép Regisztrálása"}</h3>
+      {showUnitForm && (
+        <div style={formBoxS}>
+          <h3 style={{ marginTop: 0, color: "#fff", marginBottom: "20px" }}>
+            {editingUnitId ? "✏️ Gép módosítása" : "➕ Új gép rögzítése"}
+          </h3>
+          <form onSubmit={handleSubmitUnit} style={{ display: "grid", gap: "16px" }}>
+            <div>
+              <label style={labS}>Gép típusa</label>
+              <CustomSelect
+                value={status}
+                onChange={(val) => setStatus(val)}
+                options={[
+                  { value: "INSTALLED", label: "🆕 Telepítendő (Saját eladás)" },
+                  { value: "SERVICE_ONLY", label: "🔵 Hozott gép (Csak javítás/napló)" },
+                ]}
+              />
+            </div>
 
-            {!editingUnitId && (
-              <div style={{ marginBottom: "20px" }}>
-                <label style={labS}>Kiválasztás Raktárból (Választható)</label>
-                <CustomSelect
-                  placeholder="-- Válassz a raktárkészletből --"
-                  options={inventory
-                    .filter((i) => i.quantity > 0)
-                    .map((i) => ({ label: `${i.name} (Raktáron: ${i.quantity} db)`, value: i.id }))}
-                  value={selectedItemId}
-                  onChange={(val) => {
-                    setSelectedItemId(val);
-                    const item = inventory.find((i) => String(i.id) === val);
-                    if (item) {
-                      setModel(item.name);
-                    }
-                  }}
-                />
+            {/* RAKTÁR KIVÁLASZTÁSA */}
+            {!editingUnitId && status === "INSTALLED" && (
+              <div style={inventoryCardS}>
+                <div style={inventoryHeaderS}>
+                  <span>📦</span> Választás raktárkészletből (opcionális)
+                </div>
+
+                <div>
+                  <label style={{ ...labS, color: "#2ecc71" }}>Raktári cikk / Anyag</label>
+                  <CustomSelect
+                    value={selectedItemId}
+                    onChange={(val) => handleInventorySelect(val)}
+                    placeholder={`-- Válassz a raktárból (${inStockItems.length} elérhető) --`}
+                    bg="#06150a"
+                    borderColor={selectedItemId ? "#2ecc71" : "#144222"}
+                    options={[
+                      { value: "", label: `-- Válassz a raktárból (${inStockItems.length} elérhető) --` },
+                      ...inStockItems.map((item) => ({
+                        value: String(item.id),
+                        label: `${item.name} ${item.sku ? `[${item.sku}]` : ""} — Készleten: ${item.stock ?? item.quantity ?? 0} db`,
+                      })),
+                    ]}
+                  />
+                </div>
               </div>
             )}
 
-            {selectedItemObj && (
-              <div style={{ ...inventoryCardS, marginBottom: "20px" }}>
-                <div style={inventoryHeaderS}>
-                  <span>📦 Raktári téritem kiválasztva: {selectedItemObj.name}</span>
-                </div>
-                {selectedItemObj.serials && selectedItemObj.serials.length > 0 && (
+            {/* Gyártó és Modell sor */}
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px" }}>
+              <div style={{ flex: 1 }}>
+                <label style={labS}>Gyártó</label>
+                <input placeholder="pl. Daikin" value={brand} onChange={(e) => setBrand(e.target.value)} style={inputS} required />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labS}>Modell</label>
+                <input placeholder="pl. Sensira" value={model} onChange={(e) => setModel(e.target.value)} style={inputS} required />
+              </div>
+            </div>
+
+            {/* Gyári szám és Helyszín sor */}
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px" }}>
+              <div style={{ flex: 1 }}>
+                <label style={labS}>Gyári szám / Cikkszám</label>
+                {availableSerials.length > 0 ? (
                   <div style={serialSelectionBoxS}>
-                    <label style={labS}>Válassz gyári számot a raktárból:</label>
+                    <label style={{ ...labS, color: "#60a5fa", marginBottom: "8px" }}>
+                      🔢 Választható cikkszámok / Gyári számok:
+                    </label>
                     <CustomSelect
-                      placeholder="-- Szériaszám választása --"
-                      options={selectedItemObj.serials.map((s) => ({ label: s, value: s }))}
                       value={serial}
                       onChange={(val) => setSerial(val)}
+                      placeholder="-- Melyik darabot építed be? --"
+                      bg="#0f172a"
+                      borderColor="#3b82f6"
+                      options={[
+                        { value: "", label: "-- Melyik darabot építed be? --" },
+                        ...availableSerials.map((s) => ({
+                          value: s.sn,
+                          label: `S/N: ${s.sn} ${s.src ? `(Forrás: ${s.src})` : ""}`,
+                        })),
+                      ]}
                     />
                   </div>
+                ) : (
+                  <input placeholder="S/N kód" value={serial} onChange={(e) => setSerial(e.target.value)} style={inputS} />
                 )}
               </div>
-            )}
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "15px" }}>
-              <div>
-                <label style={labS}>Márka</label>
-                <input style={inputS} placeholder="Pl. Daikin" value={brand} onChange={(e) => setBrand(e.target.value)} required />
-              </div>
-              <div>
-                <label style={labS}>Modell / Típus</label>
-                <input style={inputS} placeholder="Pl. Sensira 3.5kW" value={model} onChange={(e) => setModel(e.target.value)} required />
-              </div>
-              <div>
-                <label style={labS}>Gyári Szám (S/N)</label>
-                <input style={inputS} placeholder="Gyári szám" value={serial} onChange={(e) => setSerial(e.target.value)} />
-              </div>
-              <div>
-                <label style={labS}>Telepítés Helye (Pl. Nappali)</label>
-                <input style={inputS} placeholder="Helyszín" value={location} onChange={(e) => setLocation(e.target.value)} />
-              </div>
-              <div>
-                <label style={labS}>Státusz</label>
-                <CustomSelect
-                  placeholder="Státusz"
-                  options={[
-                    { label: "Telepítve (INSTALLED)", value: "INSTALLED" },
-                    { label: "Szerviz alatt (IN_SERVICE)", value: "IN_SERVICE" },
-                    { label: "Leszerelve (REMOVED)", value: "REMOVED" },
-                  ]}
-                  value={status}
-                  onChange={(val) => setStatus(val)}
-                />
-              </div>
-              <div>
-                <label style={labS}>Telepítés Dátuma</label>
-                <input style={inputS} type="date" value={installation} onChange={(e) => setInstallation(e.target.value)} />
+              <div style={{ flex: 1 }}>
+                <label style={labS}>Helyszín</label>
+                <input placeholder="pl. Nappali" value={location} onChange={(e) => setLocation(e.target.value)} style={inputS} />
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button type="submit" style={btnGreen}>Mentés</button>
-              <button type="button" style={btnCancel} onClick={resetUnitForm}>Mégse</button>
+            <div>
+              <label style={labS}>Dátum</label>
+              <input type="date" value={installation} onChange={(e) => setInstallation(e.target.value)} style={inputS} />
             </div>
+
+            <button type="submit" style={{ ...btnGreen, width: "100%", padding: "14px", marginTop: "10px" }}>
+              GÉP MENTÉSE
+            </button>
           </form>
-        )}
+        </div>
+      )}
 
-        {/* GÉPEK LISTÁJA */}
-        {client.units?.length === 0 ? (
-          <p style={{ color: "#888" }}>Nincs regisztrált berendezés.</p>
-        ) : (
-          <div style={{ display: "grid", gap: "10px" }}>
-            {client.units?.map((u) => (
-              <div key={u.id} style={unitCard}>
-                <div>
-                  <h3 style={{ margin: "0 0 5px 0", color: "#111" }}>{u.brand} - {u.model}</h3>
-                  <div style={{ fontSize: "13px", color: "#555" }}>
-                    {u.serialNumber && <span style={{ marginRight: "15px" }}>S/N: <strong>{u.serialNumber}</strong></span>}
-                    {u.location && <span>📍 {u.location}</span>}
-                  </div>
-                  {u.installation && (
-                    <div style={{ fontSize: "12px", color: "#777", marginTop: "4px" }}>
-                      Telepítve: {new Date(u.installation).toLocaleDateString("hu-HU")}
-                    </div>
-                  )}
+      {/* GÉPEK LISTÁJA */}
+      <div style={{ display: "grid", gap: "12px", marginBottom: "50px" }}>
+        {client.units?.length > 0 ? (
+          client.units.map((unit: any) => (
+            <div key={unit.id} style={{ ...unitCard, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: "12px" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                  <strong style={{ fontSize: "18px", color: "#000" }}>{unit.brand} {unit.model}</strong>
+                  <span style={{
+                    fontSize: "12px", padding: "3px 10px", borderRadius: "12px", fontWeight: "bold",
+                    background: unit.status === "SERVICE_ONLY" ? "#e3f2fd" : (unit.installation ? "#e8f5e9" : "#fff3e0"),
+                    color: unit.status === "SERVICE_ONLY" ? "#1976d2" : (unit.installation ? "#2e7d32" : "#ef6c00"),
+                  }}>
+                    {unit.status === "SERVICE_ONLY" ? "🔵 Hozott gép" : (unit.installation ? "✅ Telepítve" : "⏳ Várakozik")}
+                  </span>
                 </div>
-                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                  <button style={btnOrangeSmall} onClick={() => handleEditUnitClick(u)}>Szerkesztés</button>
-                  <button style={btnRedSmall} onClick={() => handleDeleteUnit(u.id)}>Törlés</button>
+                <div style={{ fontSize: "13px", color: "#555", marginTop: "6px", lineHeight: "1.4" }}>
+                  SN: {unit.serialNumber || "---"} | Hely: {unit.location || "Nincs megadva"}
+                  {unit.installation && <span> {isMobile && <br />}📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
                 </div>
               </div>
-            ))}
-          </div>
+
+              <div style={{ display: "flex", gap: "6px", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "stretch" : "flex-end" }}>
+                {unit.status === "INSTALLED" && !unit.installation && (
+                  <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={{ ...btnGreenSmall, flex: isMobile ? 1 : "none" }}>✅ Kész</button>
+                )}
+                <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={{ ...btnBlueSmall, flex: isMobile ? 1 : "none", textAlign: "center" }}>Napló</button>
+                <button onClick={() => startEditUnit(unit)} style={btnOrangeSmall}>✏️</button>
+                <button onClick={() => handleDeleteUnit(unit.id)} style={btnRedSmall}>🗑️</button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p style={{ color: "#666", fontStyle: "italic" }}>Nincs még gép rögzítve.</p>
         )}
       </div>
 
       {/* ÁRAJÁNLATOK SZEKCIÓ */}
       <div>
-        <h2>Kapcsolódó Árajánlatok ({client.quotes?.length || 0})</h2>
-        {client.quotes?.length === 0 ? (
-          <p style={{ color: "#888" }}>Nincs kapcsolódó árajánlat.</p>
-        ) : (
-          <div style={{ display: "grid", gap: "10px" }}>
-            {client.quotes?.map((q) => (
-              <div key={q.id} style={quoteCard}>
-                <div>
-                  <strong style={{ color: "#111" }}>#{q.quoteNumber}</strong>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    {new Date(q.createdAt).toLocaleDateString("hu-HU")}
+        <h2 style={{ borderBottom: "1px solid #333", paddingBottom: "10px", marginBottom: "20px", color: "#fff", fontSize: isMobile ? "20px" : "24px" }}>📄 Árajánlatok</h2>
+        <div style={{ display: "grid", gap: "10px" }}>
+          {client.quotes?.length > 0 ? (
+            client.quotes.map((quote: any) => (
+              <div key={quote.id} style={{ ...quoteCard, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: "10px" }}>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: "#000", fontSize: "16px" }}>{quote.title || "Ajánlat"}</strong>
+                  <div style={{ fontSize: "13px", color: "#666", marginTop: "2px" }}>Státusz: {quote.status}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "15px", width: isMobile ? "100%" : "auto", borderTop: isMobile ? "1px solid #eee" : "none", paddingTop: isMobile ? "10px" : "0" }}>
+                  <div style={{ fontWeight: "bold", fontSize: "16px", color: "#2e7d32" }}>{Number(quote.grossTotal).toLocaleString()} Ft</div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button onClick={() => router.push(`/quotes/${quote.id}`)} style={btnOrangeSmall}>✏️ Módosítás</button>
+                    <button onClick={() => handleDeleteQuote(quote.id)} style={btnRedSmall}>🗑️</button>
                   </div>
                 </div>
-                <div>
-                  <span style={{ fontWeight: "bold", color: "#2ecc71", marginRight: "15px" }}>
-                    {q.total?.toLocaleString()} Ft
-                  </span>
-                  <span style={{ fontSize: "12px", padding: "4px 8px", background: "#eee", borderRadius: "4px", color: "#333" }}>
-                    {q.status}
-                  </span>
-                </div>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          ) : (
+            <p style={{ color: "#666", fontStyle: "italic" }}>Nincs korábbi ajánlat.</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -517,7 +553,6 @@ const containerStyle: React.CSSProperties = {
   minHeight: "100vh",
   maxWidth: "1000px",
   margin: "0 auto",
-  padding: "20px",
   fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   color: "#fff",
   width: "100%",
@@ -534,7 +569,6 @@ const contactRow: React.CSSProperties = {
   display: "flex",
   fontSize: "15px",
   fontWeight: "500",
-  color: "#aaa",
 };
 
 const headerS: React.CSSProperties = {
@@ -548,14 +582,14 @@ const headerS: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-const navBtn: React.CSSProperties = {
+const navBtn = {
   padding: "10px 16px",
   borderRadius: "8px",
   border: "none",
   background: "#1e293b",
   color: "#fff",
   cursor: "pointer",
-  fontWeight: "bold",
+  fontWeight: "bold" as const,
   fontSize: "14px",
 };
 
@@ -572,7 +606,7 @@ const inputS: React.CSSProperties = {
   display: "block",
 };
 
-const editBoxS: React.CSSProperties = {
+const editBoxS = {
   display: "grid",
   gap: "12px",
   width: "100%",
@@ -580,16 +614,16 @@ const editBoxS: React.CSSProperties = {
   padding: "15px",
   borderRadius: "15px",
   border: "1px solid #333",
-  boxSizing: "border-box",
+  boxSizing: "border-box" as const,
 };
 
-const formBoxS: React.CSSProperties = {
+const formBoxS = {
   background: "#121214",
   padding: "24px",
   borderRadius: "16px",
   marginBottom: "30px",
   border: "1px solid #27272a",
-  boxSizing: "border-box",
+  boxSizing: "border-box" as const,
 };
 
 const inventoryCardS: React.CSSProperties = {
@@ -617,94 +651,17 @@ const serialSelectionBoxS: React.CSSProperties = {
   padding: "14px",
 };
 
-const btnEditHeader: React.CSSProperties = {
-  background: "#1e293b",
-  color: "#38bdf8",
-  border: "1px solid #0369a1",
-  padding: "10px 16px",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: "14px",
-};
+const btnEditHeader = { background: "#e3f2fd", color: "#1976d2", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
+const btnDeleteHeader = { background: "#ffebee", color: "#c62828", border: "none", padding: "12px 16px", borderRadius: "10px", cursor: "pointer" };
 
-const btnDeleteHeader: React.CSSProperties = {
-  background: "#3a1515",
-  color: "#ff6b6b",
-  border: "none",
-  padding: "10px 16px",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: "14px",
-};
+const btnGreen = { background: "#2ecc71", color: "#000", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" as const, fontSize: "14px" };
+const btnCancel = { background: "#444", color: "#fff", border: "none", padding: "12px 20px", borderRadius: "10px", cursor: "pointer" };
 
-const btnGreen: React.CSSProperties = {
-  background: "#2ecc71",
-  color: "#000",
-  border: "none",
-  padding: "10px 18px",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: "14px",
-};
+const unitCard = { padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", background: "#fff", marginBottom: "10px", boxSizing: "border-box" as const };
+const quoteCard = { padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", background: "#fff", boxSizing: "border-box" as const };
 
-const btnCancel: React.CSSProperties = {
-  background: "#444",
-  color: "#fff",
-  border: "none",
-  padding: "10px 18px",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontSize: "14px",
-};
-
-const unitCard: React.CSSProperties = {
-  padding: "16px",
-  borderRadius: "12px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  background: "#fff",
-  boxSizing: "border-box",
-};
-
-const quoteCard: React.CSSProperties = {
-  padding: "16px",
-  borderRadius: "12px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  background: "#fff",
-  boxSizing: "border-box",
-};
-
-const labS: React.CSSProperties = {
-  fontSize: "12px",
-  color: "#a1a1aa",
-  marginBottom: "6px",
-  display: "block",
-};
-
-const btnOrangeSmall: React.CSSProperties = {
-  background: "#f39c12",
-  color: "#fff",
-  border: "none",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontSize: "13px",
-  fontWeight: "bold",
-};
-
-const btnRedSmall: React.CSSProperties = {
-  background: "#e74c3c",
-  color: "#fff",
-  border: "none",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontSize: "13px",
-  fontWeight: "bold",
-};
+const labS = { fontSize: "12px", color: "#a1a1aa", fontWeight: "600" as const, marginBottom: "6px", display: "block", textTransform: "uppercase" as const, letterSpacing: "0.5px" };
+const btnBlueSmall = { background: "#3498db", color: "#fff", border: "none", padding: "10px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" as const };
+const btnGreenSmall = { background: "#2ecc71", color: "#000", border: "none", padding: "10px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" as const };
+const btnOrangeSmall = { background: "#f39c12", color: "#fff", border: "none", padding: "10px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" as const, display: "inline-flex", alignItems: "center", gap: "4px" };
+const btnRedSmall = { background: "#ffebee", color: "#e74c3c", border: "1px solid #e74c3c", padding: "10px 14px", borderRadius: "8px", cursor: "pointer" };
