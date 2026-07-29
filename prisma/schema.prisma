@@ -67,35 +67,25 @@ model Client {
 
 
 model ClientUnit {
-
   id                 Int                  @id @default(autoincrement())
-
   clientId           Int
-
   brand              String
-
   model              String
-
   powerKw            Float?
-
   serialNumber       String?
 
-  installation       DateTime?
+  installation       DateTime?   // Tervezett telepítés
+  installedAt        DateTime?   // Tényleges készre jelölés
 
   periodMonths       Int                  @default(12)
-
   location           String?
-
   notes              String?
-
   status             String               @default("PENDING")
 
   maintenance        MaintenanceLog[]
-
   emailNotifications EmailNotifications[]
 
   client             Client               @relation(fields: [clientId], references: [id])
-
 }
 
 
