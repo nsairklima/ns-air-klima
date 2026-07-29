@@ -9,7 +9,6 @@ export default function GlobalMaintenancePage() {
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
 
-  // Mobilnézet dinamikus figyelése
   useEffect(() => {
     const checkSize = () => setIsMobile(window.innerWidth < 768);
     checkSize();
@@ -17,12 +16,28 @@ export default function GlobalMaintenancePage() {
     return () => window.removeEventListener("resize", checkSize);
   }, []);
 
-  // Segédfüggvény a telepítési dátum kinyerésére (figyelembe véve a Prisma által adott mezőket)
+  // Dinamikus dátumkereső: Megkeresi a gépen lévő BÁRMILYEN dátum mezőt (kivéve id, clientId)
   const getInstallDate = (unit: any) => {
-    return unit.date || unit.installationDate || unit.installedAt || unit.createdAt || null;
+    if (!unit) return null;
+    
+    // Először próbáljuk a leggyakoribb kulcsokat
+    const possibleKeys = ["date", "installationDate", "installedAt", "installation_date", "installedDate", "createdAt"];
+    for (const key of possibleKeys) {
+      if (unit[key]) return unit[key];
+    }
+
+    // Ha egyik sem jött be, keressünk bármilyen mezőt az objektumban, ami dátumnak tűnik
+    for (const key in unit) {
+      if (key.toLowerCase().includes("date") || key.toLowerCase().includes("time") || key.toLowerCase().includes("at")) {
+        if (unit[key] && key !== "updatedAt" && key !== "clientId") {
+          return unit[key];
+        }
+      }
+    }
+
+    return null;
   };
 
-  // Segédfüggvény a mértékadó dátum meghatározásához (Karbantartás, ennek hiányában Telepítés)
   const getReferenceDate = (unit: any) => {
     const lastMaintenance = unit.maintenance?.[0]?.performedDate;
     if (lastMaintenance) return lastMaintenance;
@@ -39,10 +54,11 @@ export default function GlobalMaintenancePage() {
           return;
         }
 
-        // 1. SZŰRÉS: Csak az ügyfelekhez rendelt gépek
+        // KONZOL LOG: Megnézzük a böngészőben (F12), hogy pontosan mit küld az API!
+        console.log("API-ból érkező első gép adatai:", data[0]);
+
         const clientUnits = data.filter((u: any) => u.clientId || u.client);
 
-        // 2. RENDEZÉS: Legutóbbi relevancia (karbantartás vagy telepítés) szerint növekvő sorrendben
         const sortedData = [...clientUnits].sort((a: any, b: any) => {
           const refA = getReferenceDate(a);
           const refB = getReferenceDate(b);
@@ -58,7 +74,6 @@ export default function GlobalMaintenancePage() {
       });
   }, []);
 
-  // Segédfüggvény a státusz kiszámításához
   const getStatus = (refDateStr: string | null) => {
     if (!refDateStr) return { label: "NINCS DÁTUM", color: "#e74c3c", bg: "#fdf2f2" };
 
@@ -77,7 +92,6 @@ export default function GlobalMaintenancePage() {
   return (
     <div style={{ padding: isMobile ? "12px" : "24px", maxWidth: 1000, margin: "0 auto", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
       
-      {/* --- VISSZA GOMB --- */}
       <div style={{ marginBottom: "20px" }}>
         <button 
           onClick={() => router.push("/")} 
@@ -146,7 +160,6 @@ export default function GlobalMaintenancePage() {
                   {unit.brand} {unit.model} — {unit.location}
                 </div>
 
-                {/* DÁTUMOK MEGJELENÍTÉSE */}
                 <div style={{ fontSize: "12px", color: "#444", marginTop: 8, display: "flex", flexDirection: "column", gap: "2px" }}>
                   <div>
                     📦 Telepítés dátuma: <strong>{installDate ? new Date(installDate).toLocaleDateString('hu-HU') : "Nincs megadva"}</strong>
