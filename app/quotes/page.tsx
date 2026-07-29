@@ -27,6 +27,7 @@ export default function QuotesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   async function loadQuotes() {
     try {
@@ -50,6 +51,35 @@ export default function QuotesPage() {
       setLoading(false);
     }
   }
+
+  // ÚJ: STÁTUSZ FRISSÍTŐ FÜGGVÉNY (Elfogadás / Elutasítás / Státuszváltás)
+  const handleStatusChange = async (e: React.MouseEvent, id: number, newStatus: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setUpdatingId(id);
+    try {
+      const res = await fetch(`/api/quotes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (res.ok) {
+        // Frissítjük a helyi állapotot azonnal
+        setQuotes((prev) =>
+          prev.map((q) => (q.id === id ? { ...q, status: newStatus } : q))
+        );
+      } else {
+        alert("Nem sikerült a státusz frissítése.");
+      }
+    } catch (err) {
+      console.error("Státusz frissítési hiba:", err);
+      alert("Hálózati hiba történt.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
     e.preventDefault();
@@ -89,7 +119,6 @@ export default function QuotesPage() {
     const title = q.title?.toLowerCase() || "";
     const quoteId = String(q.id);
 
-    // Cikkszámok keresése az ajánlat tételei között
     const hasMatchingSku = q.items?.some((item) => {
       const sku = (item.sku || item.code || item.articleNumber || "").toLowerCase();
       return sku.includes(query);
@@ -175,15 +204,17 @@ export default function QuotesPage() {
           const displayTitle = q.title && q.title.trim() !== "" ? q.title : q.client?.name;
           const hasCustomTitle = q.title && q.title.trim() !== "" && q.title !== q.client?.name;
 
-          // Cikkszámok kigyűjtése megjelenítéshez
           const skus = q.items
             ?.map((item) => item.sku || item.code || item.articleNumber)
             .filter(Boolean) as string[];
           const uniqueSkus = Array.from(new Set(skus));
 
+          const isAccepted = q.status.toLowerCase() === "accepted" || q.status.toLowerCase() === "elfogadva";
+          const isRejected = q.status.toLowerCase() === "rejected" || q.status.toLowerCase() === "elutasítva";
+
           return (
             <div key={q.id} style={card}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                 <div>
                   <strong style={{ fontSize: 20, color: "#2c3e50", display: "block" }}>
                     {displayTitle || "Névtelen ajánlat"}
@@ -194,7 +225,6 @@ export default function QuotesPage() {
                     {hasCustomTitle && ` • 👤 ${q.client?.name}`}
                   </div>
 
-                  {/* Cikkszám jelvények megjelenítése */}
                   {uniqueSkus.length > 0 && (
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
                       {uniqueSkus.map((sku, idx) => (
@@ -217,15 +247,42 @@ export default function QuotesPage() {
                   )}
                 </div>
                 
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={statusBadge(q.status)}>{q.status}</span>
-                    <button 
-                        onClick={(e) => handleDelete(e, q.id)}
-                        style={deleteBtn}
-                        title="Törlés"
+                {/* STÁTUSZ JELVÉNY ÉS GYORS AKCIÓGOMBOK */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <span style={statusBadge(q.status)}>{q.status}</span>
+
+                  {/* ELFOGADVA GOMB */}
+                  {!isAccepted && (
+                    <button
+                      onClick={(e) => handleStatusChange(e, q.id, "accepted")}
+                      disabled={updatingId === q.id}
+                      style={acceptBtnStyle}
+                      title="Megjelölés elfogadottként (bekerül a statisztikába)"
                     >
-                        🗑️
+                      {updatingId === q.id ? "..." : "Elfogadás ✅"}
                     </button>
+                  )}
+
+                  {/* ELUTASÍTVA GOMB */}
+                  {!isRejected && (
+                    <button
+                      onClick={(e) => handleStatusChange(e, q.id, "rejected")}
+                      disabled={updatingId === q.id}
+                      style={rejectBtnStyle}
+                      title="Megjelölés elutasítottként"
+                    >
+                      {updatingId === q.id ? "..." : "Elutasítás ❌"}
+                    </button>
+                  )}
+
+                  {/* TÖRLESE GOMB */}
+                  <button 
+                    onClick={(e) => handleDelete(e, q.id)}
+                    style={deleteBtn}
+                    title="Törlés"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
 
@@ -258,6 +315,30 @@ const card: React.CSSProperties = { border: "1px solid #eee", padding: 20, borde
 const btnPrimary: React.CSSProperties = { background: "#4DA3FF", color: "#fff", padding: "10px 20px", borderRadius: 8, textDecoration: "none", fontWeight: "bold", fontSize: 14 };
 const navBtn: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #444", background: "#333", color: "#fff", textDecoration: "none" };
 const detailsLink: React.CSSProperties = { color: "#4DA3FF", textDecoration: "none", fontSize: 14, fontWeight: "bold" };
+
+const acceptBtnStyle: React.CSSProperties = {
+  background: "#2b8a3e",
+  color: "#fff",
+  border: "none",
+  padding: "5px 10px",
+  borderRadius: "6px",
+  fontSize: "12px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  transition: "opacity 0.2s",
+};
+
+const rejectBtnStyle: React.CSSProperties = {
+  background: "#c92a2a",
+  color: "#fff",
+  border: "none",
+  padding: "5px 10px",
+  borderRadius: "6px",
+  fontSize: "12px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  transition: "opacity 0.2s",
+};
 
 const deleteBtn: React.CSSProperties = {
     background: "none",
