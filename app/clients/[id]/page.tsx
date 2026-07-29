@@ -269,18 +269,28 @@ export default function ClientDetailsPage() {
     }
   };
 
-  body: JSON.stringify({
-  status: newStatus,
-  installedAt: new Date().toISOString(),
-}),
-`
-    const res = await fetch(`/api/clients/${Id}/units/${unitId}`, {
+  const handleSetStatus = async (
+  unitId: number,
+  newStatus: string
+) => {
+  const res = await fetch(
+    `/api/clients/${Id}/units/${unitId}`,
+    {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus, installation: new Date().toISOString() }),
-    });
-    if (res.ok) await loadClientData();
-  };
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status: newStatus,
+        installedAt: new Date().toISOString(),
+      }),
+    }
+  );
+
+  if (res.ok) {
+    await loadClientData();
+  }
+};
 
   const startEditUnit = (unit: any) => {
     setEditingUnitId(unit.id);
