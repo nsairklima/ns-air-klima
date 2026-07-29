@@ -282,31 +282,7 @@ export default function ClientDetailsPage() {
     }
   };
 
- const handleSetStatus = async (
-  unitId: number,
-  newStatus: string,
-  completedDate?: string
-) => {
- const res = await fetch(
-    `/api/clients/${Id}/units/${unitId}`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-  status: newStatus,
-  installedAt: completedDate
-    ? new Date(completedDate).toISOString()
-    : null,
-}),
-    }
-  );
-
-  if (res.ok) {
-    await loadClientData();
-  }
-};
+ 
 
   const startEditUnit = (unit: any) => {
     setEditingUnitId(unit.id);
@@ -585,37 +561,7 @@ export default function ClientDetailsPage() {
               </div>
 
               <div style={{ display: "flex", gap: "6px", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "stretch" : "flex-end" }}>
-               {unit.status === "INSTALLED" &&
- !unit.installedAt && (
-  <>
-    <input
-      type="date"
-      value={completedDate}
-      onChange={(e) => setCompletedDate(e.target.value)}
-      style={{
-        padding: "8px",
-        borderRadius: "6px",
-        border: "1px solid #ccc",
-      }}
-    />
-
-    <button
-      onClick={() =>
-        handleSetStatus(
-          unit.id,
-          "INSTALLED",
-          completedDate
-        )
-      }
-      style={{
-        ...btnGreenSmall,
-        flex: isMobile ? 1 : "none",
-      }}
-    >
-      ✅ Kész
-    </button>
-  </>
-)}
+               
                 <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={{ ...btnBlueSmall, flex: isMobile ? 1 : "none", textAlign: "center" }}>Napló</button>
                 <button onClick={() => startEditUnit(unit)} style={btnOrangeSmall}>✏️</button>
                 <button onClick={() => handleDeleteUnit(unit.id)} style={btnRedSmall}>🗑️</button>
