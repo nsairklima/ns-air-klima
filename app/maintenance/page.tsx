@@ -7,6 +7,7 @@ export default function GlobalMaintenancePage() {
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
   // Mobilnézet figyelése
@@ -72,6 +73,24 @@ export default function GlobalMaintenancePage() {
     return { label: "RENDBEN", color: "#27ae60", bg: "#f0fff4" };
   };
 
+  // Szűrés a keresőszó alapján (Ügyfél neve, márka, modell, helyszín)
+  const filteredUnits = units.filter((unit: any) => {
+    const query = searchTerm.toLowerCase().trim();
+    if (!query) return true;
+
+    const clientName = unit.client?.name?.toLowerCase() || "";
+    const brand = unit.brand?.toLowerCase() || "";
+    const model = unit.model?.toLowerCase() || "";
+    const location = unit.location?.toLowerCase() || "";
+
+    return (
+      clientName.includes(query) ||
+      brand.includes(query) ||
+      model.includes(query) ||
+      location.includes(query)
+    );
+  });
+
   if (loading) return <div style={{ padding: 20, color: "#fff" }}>Betöltés...</div>;
 
   return (
@@ -99,11 +118,62 @@ export default function GlobalMaintenancePage() {
       </div>
 
       <h1 style={{ marginBottom: "5px", fontSize: isMobile ? "1.5rem" : "2rem" }}>🗓️ Karbantartási Ütemterv</h1>
-      <p style={{ color: "#666", marginBottom: "25px", fontSize: "14px" }}>A rendszer 12 havonta javasolja a tisztítást (utolsó karbantartás vagy telepítés óta).</p>
+      <p style={{ color: "#666", marginBottom: "20px", fontSize: "14px" }}>A rendszer 12 havonta javasolja a tisztítást (utolsó karbantartás vagy telepítés óta).</p>
+
+      {/* KERESŐ MEZŐ */}
+      <div style={{ marginBottom: "20px", position: "relative" }}>
+        <input
+          type="text"
+          placeholder="🔍 Keresés ügyfél neve, gép márkája, típusa vagy helyszín alapján..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "12px 16px",
+            paddingRight: searchTerm ? "40px" : "16px",
+            borderRadius: "10px",
+            border: "1px solid #ccc",
+            fontSize: "15px",
+            boxSizing: "border-box",
+            outline: "none",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
+          }}
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm("")}
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              fontSize: "16px",
+              cursor: "pointer",
+              color: "#888"
+            }}
+            title="Keresés törlése"
+          >
+            ✖
+          </button>
+        )}
+      </div>
 
       <div style={{ display: "grid", gap: 12 }}>
-        {units.length === 0 && <p style={{ color: "#fff" }}>Nincs ügyfélhez rendelt gép a rendszerben.</p>}
-        {units.map((unit: any) => {
+        {filteredUnits.length === 0 && (
+          <div style={{ 
+            padding: "20px", 
+            textAlign: "center", 
+            background: "#ffffff22", 
+            borderRadius: "10px", 
+            color: "#fff" 
+          }}>
+            {searchTerm ? `Nincs a keresésnek ("${searchTerm}") megfelelő találat.` : "Nincs ügyfélhez rendelt gép a rendszerben."}
+          </div>
+        )}
+
+        {filteredUnits.map((unit: any) => {
           const lastMaintenanceDate = unit.maintenance?.[0]?.performedDate;
           const installDate = getInstallDate(unit);
           const refDate = getReferenceDate(unit);
@@ -158,7 +228,7 @@ export default function GlobalMaintenancePage() {
                 </div>
 
                 <div style={{ color: "#34495e", fontWeight: "bold", marginTop: 4, fontSize: isMobile ? "14px" : "15px" }}>
-                  {unit.brand} {unit.model} — {unit.location}
+                  {unit.brand} {unit.model} {unit.location ? `— ${unit.location}` : ""}
                 </div>
 
                 {/* DÁTUMOK MEGJELENÍTÉSE */}
