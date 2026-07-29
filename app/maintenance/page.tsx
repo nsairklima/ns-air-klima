@@ -139,9 +139,24 @@ export default function GlobalMaintenancePage() {
                 }}>
                   {status.label}
                 </span>
+
+                {/* ÜGYFÉL NEVE — Kattintható hivatkozásként az ügyfél adatlapjára */}
                 <div style={{ marginTop: 6 }}>
-                  <strong style={{ fontSize: isMobile ? "18px" : "20px" }}>{unit.client?.name || "Ismeretlen ügyfél"}</strong>
+                  <strong 
+                    onClick={() => router.push(`/clients/${unit.clientId}`)}
+                    style={{ 
+                      fontSize: isMobile ? "18px" : "20px",
+                      cursor: "pointer",
+                      color: "#1a0dab",
+                      textDecoration: "underline",
+                      textUnderlineOffset: "3px"
+                    }}
+                    title="Ugrás az ügyfél adatlapjára"
+                  >
+                    {unit.client?.name || "Ismeretlen ügyfél"}
+                  </strong>
                 </div>
+
                 <div style={{ color: "#34495e", fontWeight: "bold", marginTop: 4, fontSize: isMobile ? "14px" : "15px" }}>
                   {unit.brand} {unit.model} — {unit.location}
                 </div>
