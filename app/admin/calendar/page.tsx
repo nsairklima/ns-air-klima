@@ -5,18 +5,20 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 
 const TYPE_COLORS: Record<string, string> = {
-  INSTALLATION: "#2ecc71",
-  MAINTENANCE: "#0078d7",
-  REPAIR: "#e74c3c",
-  PLANNED: "#f59e0b",   
-  OVERDUE: "#f97316"    
+  INSTALLATION: "#2ecc71",         // 🟢 Elvégzett telepítés (Zöld)
+  PLANNED_INSTALLATION: "#a855f7", // 🟣 Tervezett / Jövőbeli telepítés (Lila)
+  MAINTENANCE: "#0078d7",          // 🔵 Elvégzett karbantartás (Kék)
+  PLANNED: "#f59e0b",              // 🟡 Tervezett karbantartás (Sárga)
+  REPAIR: "#e74c3c",               // 🔴 Javítás (Piros)
+  OVERDUE: "#f97316"               // 🟧 Elmaradt (Narancs)
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  INSTALLATION: "Telepítés",
+  INSTALLATION: "Telepítés (Elvégzett)",
+  PLANNED_INSTALLATION: "Tervezett telepítés",
   MAINTENANCE: "Karbantartás (Elvégzett)",
-  REPAIR: "Javítás",
   PLANNED: "Tervezett karbantartás",
+  REPAIR: "Javítás",
   OVERDUE: "🚨 ELMARADT!"
 };
 
