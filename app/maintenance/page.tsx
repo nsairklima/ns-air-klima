@@ -17,24 +17,37 @@ export default function GlobalMaintenancePage() {
     return () => window.removeEventListener("resize", checkSize);
   }, []);
 
+  // Segédfüggvény a releváns dátum lekéréséhez (Karbantartás dátuma, ennek hiányában a Telepítés dátuma)
+  const getReferenceDate = (unit: any) => {
+    const lastMaintenance = unit.maintenance?.[0]?.performedDate;
+    if (lastMaintenance) return { dateStr: lastMaintenance, isInstallation: false };
+    if (unit.installationDate) return { dateStr: unit.installationDate, isInstallation: true };
+    return { dateStr: null, isInstallation: false };
+  };
+
   useEffect(() => {
     fetch("/api/maintenance")
       .then((res) => res.json())
       .then((data) => {
-        // RENDEZÉS: Utolsó karbantartási dátum szerint növekvő sorrendbe rakjuk.
-        // A legrégebbi dátumú (vagy ahol SOHA nem volt) kerül legfelülre -> az a megsürgősebb/legközelebbi teendő.
-        const sortedData = Array.isArray(data)
-          ? [...data].sort((a: any, b: any) => {
-              const dateA = a.maintenance?.[0]?.performedDate
-                ? new Date(a.maintenance[0].performedDate).getTime()
-                : 0; // Ha nincs dátum (SOHA NEM VOLT), az 0 értekkel a leggelejére kerül
-              const dateB = b.maintenance?.[0]?.performedDate
-                ? new Date(b.maintenance[0].performedDate).getTime()
-                : 0;
+        if (!Array.isArray(data)) {
+          setUnits([]);
+          setLoading(false);
+          return;
+        }
 
-              return dateA - dateB;
-            })
-          : [];
+        // 1. SZŰRÉS: Csak az ügyfelekhez rendelt gépek
+        const clientUnits = data.filter((u: any) => u.clientId || u.client);
+
+        // 2. RENDEZÉS: Utolsó karbantartás (vagy telepítés) dátuma szerint növekvő sorrendben
+        const sortedData = [...clientUnits].sort((a: any, b: any) => {
+          const dateAObj = getReferenceDate(a);
+          const dateBObj = getReferenceDate(b);
+
+          const timeA = dateAObj.dateStr ? new Date(dateAObj.dateStr).getTime() : 0;
+          const timeB = dateBObj.dateStr ? new Date(dateBObj.dateStr).getTime() : 0;
+
+          return timeA - timeB;
+        });
 
         setUnits(sortedData);
         setLoading(false);
@@ -42,12 +55,12 @@ export default function GlobalMaintenancePage() {
   }, []);
 
   // Segédfüggvény a státusz meghatározásához
-  const getStatus = (lastDateStr: string) => {
-    if (!lastDateStr) return { label: "SOHA NEM VOLT", color: "#e74c3c", bg: "#fdf2f2" };
+  const getStatus = (refDateStr: string | null) => {
+    if (!refDateStr) return { label: "NINCS DÁTUM", color: "#e74c3c", bg: "#fdf2f2" };
 
-    const lastDate = new Date(lastDateStr);
+    const refDate = new Date(refDateStr);
     const today = new Date();
-    const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+    const diffTime = Math.abs(today.getTime() - refDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays >= 365) return { label: "SÜRGŐS (LEJÁRT)", color: "#c0392b", bg: "#fceae8" };
@@ -82,13 +95,13 @@ export default function GlobalMaintenancePage() {
       </div>
 
       <h1 style={{ marginBottom: "5px", fontSize: isMobile ? "1.5rem" : "2rem" }}>🗓️ Karbantartási Ütemterv</h1>
-      <p style={{ color: "#666", marginBottom: "25px", fontSize: "14px" }}>A rendszer 12 havonta javasolja a tisztítást.</p>
+      <p style={{ color: "#666", marginBottom: "25px", fontSize: "14px" }}>A rendszer 12 havonta javasolja a tisztítást (utolsó karbantartás vagy telepítés óta).</p>
 
       <div style={{ display: "grid", gap: 12 }}>
-        {units.length === 0 && <p style={{ color: "#fff" }}>Nincs rögzített gép a rendszerben.</p>}
+        {units.length === 0 && <p style={{ color: "#fff" }}>Nincs ügyfélhez rendelt gép a rendszerben.</p>}
         {units.map((unit: any) => {
-          const lastDate = unit.maintenance?.[0]?.performedDate;
-          const status = getStatus(lastDate);
+          const { dateStr, isInstallation } = getReferenceDate(unit);
+          const status = getStatus(dateStr);
 
           return (
             <div 
@@ -121,13 +134,21 @@ export default function GlobalMaintenancePage() {
                   {status.label}
                 </span>
                 <div style={{ marginTop: 6 }}>
-                  <strong style={{ fontSize: isMobile ? "18px" : "20px" }}>{unit.client?.name}</strong>
+                  <strong style={{ fontSize: isMobile ? "18px" : "20px" }}>{unit.client?.name || "Ismeretlen ügyfél"}</strong>
                 </div>
                 <div style={{ color: "#34495e", fontWeight: "bold", marginTop: 4, fontSize: isMobile ? "14px" : "15px" }}>
                   {unit.brand} {unit.model} — {unit.location}
                 </div>
-                <div style={{ fontSize: "12px", color: "#7f8c8d", marginTop: 4 }}>
-                  Utolsó alkalom: {lastDate ? new Date(lastDate).toLocaleDateString('hu-HU') : "Nincs adat"}
+                <div style={{ fontSize: "12px", color: "#555", marginTop: 4 }}>
+                  {dateStr ? (
+                    isInstallation ? (
+                      <span>⚙️ Telepítés dátuma: <strong>{new Date(dateStr).toLocaleDateString('hu-HU')}</strong> (még nem volt karbantartva)</span>
+                    ) : (
+                      <span>🔧 Utolsó karbantartás: <strong>{new Date(dateStr).toLocaleDateString('hu-HU')}</strong></span>
+                    )
+                  ) : (
+                    "Nincs rögzített dátum"
+                  )}
                 </div>
               </div>
 
