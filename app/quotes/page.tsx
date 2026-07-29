@@ -52,7 +52,7 @@ export default function QuotesPage() {
     }
   }
 
-  // ÚJ: STÁTUSZ FRISSÍTŐ FÜGGVÉNY (Elfogadás / Elutasítás / Státuszváltás)
+  // STÁTUSZ FRISSÍTŐ FÜGGVÉNY
   const handleStatusChange = async (e: React.MouseEvent, id: number, newStatus: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -209,8 +209,9 @@ export default function QuotesPage() {
             .filter(Boolean) as string[];
           const uniqueSkus = Array.from(new Set(skus));
 
-          const isAccepted = q.status.toLowerCase() === "accepted" || q.status.toLowerCase() === "elfogadva";
-          const isRejected = q.status.toLowerCase() === "rejected" || q.status.toLowerCase() === "elutasítva";
+          const currentStatus = q.status.toLowerCase();
+          const isAccepted = currentStatus === "accepted" || currentStatus === "elfogadva";
+          const isRejected = currentStatus === "rejected" || currentStatus === "elutasítva";
 
           return (
             <div key={q.id} style={card}>
@@ -247,31 +248,43 @@ export default function QuotesPage() {
                   )}
                 </div>
                 
-                {/* STÁTUSZ JELVÉNY ÉS GYORS AKCIÓGOMBOK */}
+                {/* STÁTUSZ JELVÉNY ÉS AKCIÓGOMBOK */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                   <span style={statusBadge(q.status)}>{q.status}</span>
 
-                  {/* ELFOGADVA GOMB */}
+                  {/* ELFOGADÁS GOMB (HA MÉG NEM ELFOGADOTT) */}
                   {!isAccepted && (
                     <button
                       onClick={(e) => handleStatusChange(e, q.id, "accepted")}
                       disabled={updatingId === q.id}
                       style={acceptBtnStyle}
-                      title="Megjelölés elfogadottként (bekerül a statisztikába)"
+                      title="Elfogadás"
                     >
                       {updatingId === q.id ? "..." : "Elfogadás ✅"}
                     </button>
                   )}
 
-                  {/* ELUTASÍTVA GOMB */}
+                  {/* ELUTASÍTÁS GOMB (HA MÉG NEM ELUTASÍTOTT) */}
                   {!isRejected && (
                     <button
                       onClick={(e) => handleStatusChange(e, q.id, "rejected")}
                       disabled={updatingId === q.id}
                       style={rejectBtnStyle}
-                      title="Megjelölés elutasítottként"
+                      title="Elutasítás"
                     >
                       {updatingId === q.id ? "..." : "Elutasítás ❌"}
+                    </button>
+                  )}
+
+                  {/* VISSZAVONÁS / VISSZAÁLLÍTÁS GOMB (HA ELFOGADOTT VAGY ELUTASÍTOTT) */}
+                  {(isAccepted || isRejected) && (
+                    <button
+                      onClick={(e) => handleStatusChange(e, q.id, "sent")}
+                      disabled={updatingId === q.id}
+                      style={resetBtnStyle}
+                      title="Státusz visszaállítása Elküldöttre"
+                    >
+                      {updatingId === q.id ? "..." : "Visszavonás ↩️"}
                     </button>
                   )}
 
@@ -325,7 +338,6 @@ const acceptBtnStyle: React.CSSProperties = {
   fontSize: "12px",
   fontWeight: "bold",
   cursor: "pointer",
-  transition: "opacity 0.2s",
 };
 
 const rejectBtnStyle: React.CSSProperties = {
@@ -337,7 +349,17 @@ const rejectBtnStyle: React.CSSProperties = {
   fontSize: "12px",
   fontWeight: "bold",
   cursor: "pointer",
-  transition: "opacity 0.2s",
+};
+
+const resetBtnStyle: React.CSSProperties = {
+  background: "#f1f3f5",
+  color: "#495057",
+  border: "1px solid #ced4da",
+  padding: "5px 10px",
+  borderRadius: "6px",
+  fontSize: "12px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const deleteBtn: React.CSSProperties = {
@@ -351,7 +373,6 @@ const deleteBtn: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "transform 0.1s"
 };
 
 function statusBadge(status: string): React.CSSProperties {
