@@ -143,12 +143,7 @@ export default function ClientDetailsPage() {
   const [installedAt, setInstalledAt] = useState("");
   <label>Elkészült telepítés</label>
 
-<input
-  type="date"
-  value={installedAt}
-  onChange={(e) => setInstalledAt(e.target.value)}
-  style={inputS}
-/>
+
 
     installedAt: installedAt
   ? new Date(installedAt).toISOString()
@@ -247,13 +242,21 @@ export default function ClientDetailsPage() {
   const handleSubmitUnit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
-      brand,
-      model,
-      serialNumber: serial,
-      location,
-      status,
-      installation: installation ? new Date(installation).toISOString() : null,
-    };
+  brand,
+  model,
+  serialNumber: serial,
+  location,
+  status,
+
+  installation: installation
+    ? new Date(installation).toISOString()
+    : null,
+
+  installedAt: installedAt
+    ? new Date(installedAt).toISOString()
+    : null,
+};
+    
 
     const url = editingUnitId ? `/api/clients/${Id}/units/${editingUnitId}` : `/api/clients/${Id}/units`;
     const res = await fetch(url, {
@@ -317,6 +320,11 @@ export default function ClientDetailsPage() {
     setLocation(unit.location || "");
     setStatus(unit.status || "INSTALLED");
     setInstallation(unit.installation ? new Date(unit.installation).toISOString().split("T")[0] : "");
+    setInstalledAt(
+  unit.installedAt
+    ? new Date(unit.installedAt).toISOString().split("T")[0]
+    : ""
+);
     setSelectedItemId("");
     setAvailableSerials([]);
     setShowUnitForm(true);
@@ -329,6 +337,7 @@ export default function ClientDetailsPage() {
     setSerial("");
     setLocation("");
     setInstallation("");
+    setInstalledAt("");
     setStatus("INSTALLED");
     setSelectedItemId("");
     setAvailableSerials([]);
@@ -503,9 +512,24 @@ export default function ClientDetailsPage() {
             </div>
 
             <div>
-              <label style={labS}>Dátum</label>
-              <input type="date" value={installation} onChange={(e) => setInstallation(e.target.value)} style={inputS} />
-            </div>
+  <label style={labS}>Tervezett telepítés</label>
+  <input
+    type="date"
+    value={installation}
+    onChange={(e) => setInstallation(e.target.value)}
+    style={inputS}
+  />
+</div>
+
+<div>
+  <label style={labS}>Elkészült telepítés</label>
+  <input
+    type="date"
+    value={installedAt}
+    onChange={(e) => setInstalledAt(e.target.value)}
+    style={inputS}
+  />
+</div>
 
             <button type="submit" style={{ ...btnGreen, width: "100%", padding: "14px", marginTop: "10px" }}>
               GÉP MENTÉSE
