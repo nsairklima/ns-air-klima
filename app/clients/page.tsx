@@ -1,209 +1,302 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+interface Unit {
+  id: number;
+  brand: string;
+  model: string;
+  serialNumber?: string;
+}
 
-type Client = {
+interface Client {
   id: number;
   name: string;
   phone?: string;
   address?: string;
-};
+  units?: Unit[];
+}
 
 export default function ClientsPage() {
-  const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
 
-  // Mobilnézet figyelése
-  useEffect(() => {
-    const checkSize = () => setIsMobile(window.innerWidth < 768);
-    checkSize();
-    window.addEventListener("resize", checkSize);
-    return () => window.removeEventListener("resize", checkSize);
+  // Új ügyfél form állapotok
+  const [isCreating, setIsCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+
+  const router = useRouter();
+
+  const loadClients = useCallback(async (search: string = "") => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`/api/clients?search=${encodeURIComponent(search)}`);
+      if (!res.ok) throw new Error("Hiba az ügyfelek betöltése során.");
+      const data = await res.json();
+      setClients(data);
+    } catch (err: unknown) {
+      console.error(err);
+      setError("Hiba a betöltéskor.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  async function loadClients(query: string = "") {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/clients?search=${encodeURIComponent(query)}`, { cache: "no-store" });
-      const data = await res.json();
-      setClients(Array.isArray(data) ? data : []);
-    } catch (e) {
-      setError("Hiba a betöltéskor.");
-    }
-    setLoading(false);
-  }
-
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => loadClients(searchTerm), 400);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
+    const timer = setTimeout(() => {
+      loadClients(searchTerm);
+    }, 300);
 
-  async function handleDelete(id: number, clientName: string) {
-    if (!confirm(`⚠️ Törölni akarod: ${clientName}?`)) return;
-    const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
-    if (res.ok) loadClients(searchTerm);
-  }
+    return () => clearTimeout(timer);
+  }, [searchTerm, loadClients]);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return alert("A név megadása kötelező!");
+
+    try {
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, address }),
+      });
+
+      if (!res.ok) throw new Error("A mentés nem sikerült.");
+
+      const newClient = await res.json();
+      setName("");
+      setPhone("");
+      setAddress("");
+      setIsCreating(false);
+      loadClients(searchTerm);
+      router.push(`/clients/${newClient.id}`);
+    } catch (err: unknown) {
+      alert("Hiba történt az ügyfél létrehozásakor.");
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!confirm("Biztosan törölni szeretnéd ezt az ügyfelet?")) return;
+
+    try {
+      const res = await fetch(`/api/clients/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("A törlés nem sikerült.");
+
+      loadClients(searchTerm);
+      router.refresh();
+    } catch (err: unknown) {
+      alert("Hiba a törlés során.");
+      console.error(err);
+    }
+  };
 
   return (
-      <div style={{ ...containerStyle, padding: isMobile ? "12px" : "15px" }}>
-        
-        {/* NAVIGÁCIÓS FEJLÉC */}
-        <div style={headerStyle}>
-          <h1 style={{ margin: 0, fontSize: isMobile ? "22px" : "24px" }}>Ügyfelek</h1>
-          <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-            <Link href="/" style={backLinkStyle}>🏠 Főmenü</Link>
-            <Link href="/admin/calendar" style={backLinkStyle}>📅 Naptár</Link>
-          </div>
-        </div>
-
-        {/* ÚJ ÜGYFÉL GOMB */}
-        <div style={{ marginBottom: "20px" }}>
-          <button 
-            onClick={() => router.push("/clients/new")} 
-            style={{ ...bigAddBtnStyle, padding: isMobile ? "15px" : "18px", fontSize: isMobile ? "14px" : "16px" }}
-          >
-            + ÚJ ÜGYFÉL ÉS GÉP FELVÉTELE
+    <div style={containerStyle}>
+      <div style={headerS}>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button style={navBtn} onClick={() => router.push("/")}>
+            ← Főoldal
+          </button>
+          <button style={navBtn} onClick={() => router.push("/inventory")}>
+            Raktár
           </button>
         </div>
-
-        <div style={{ marginTop: "10px" }}>
-          {/* KERESŐMEZŐ */}
-          <input 
-            type="text"
-            placeholder="🔍 Keresés az ügyfelek között..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={searchFieldStyle}
-          />
-
-          <div style={{ display: "grid", gap: "12px", marginTop: "20px" }}>
-            {loading ? (
-              <p style={{ opacity: 0.5, textAlign: "center", padding: "20px" }}>Betöltés...</p>
-            ) : (
-              clients.map((c) => (
-                <div key={c.id} style={cardStyle}>
-                  <div style={{ ...cardFlex, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "flex-start" }}>
-                    <div style={{ flex: 1, marginBottom: isMobile ? "12px" : "0" }}>
-                      <div style={{ fontWeight: "bold", fontSize: "18px", color: "#fff" }}>{c.name}</div>
-                      <div style={{ color: "#2ecc71", fontSize: "15px", margin: "4px 0" }}>{c.phone || "---"}</div>
-                      <div style={{ color: "#94a3b8", fontSize: "13px" }}>{c.address || "Nincs cím"}</div>
-                    </div>
-                    
-                    {/* Akciógombok */}
-                    <div style={{ ...actionBox, flexDirection: isMobile ? "row" : "column", width: isMobile ? "100%" : "auto" }}>
-                      <Link href={`/clients/${c.id}`} style={{ ...detailsBtnStyle, flex: isMobile ? 1 : "none" }}>Részletek</Link>
-                      <button onClick={() => handleDelete(c.id, c.name)} style={{ ...deleteBtnStyle, flex: isMobile ? 1 : "none" }}>Törlés</button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <button
+          style={isCreating ? btnCancel : btnGreen}
+          onClick={() => setIsCreating(!isCreating)}
+        >
+          {isCreating ? "Mégse" : "+ Új Ügyfél"}
+        </button>
       </div>
+
+      <h1 style={{ marginBottom: "20px" }}>Ügyfelek Adatbázisa</h1>
+
+      {/* LÉTREHOZÁS FORM */}
+      {isCreating && (
+        <form onSubmit={handleCreate} style={formBoxS}>
+          <h3 style={{ marginTop: 0, marginBottom: "15px" }}>Új ügyfél hozzáadása</h3>
+          <div style={{ display: "grid", gap: "10px", marginBottom: "15px" }}>
+            <input
+              style={inputS}
+              placeholder="Ügyfél neve (kötelező)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            <input
+              style={inputS}
+              placeholder="Telefonszám"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+            <input
+              style={inputS}
+              placeholder="Cím"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+          </div>
+          <button type="submit" style={btnGreen}>
+            Mentés
+          </button>
+        </form>
+      )}
+
+      {/* KERESŐSÁV */}
+      <input
+        style={{ ...inputS, marginBottom: "20px" }}
+        placeholder="Keresés név, telefon vagy cím alapján..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+
+      {/* HIBAÜZENET */}
+      {error && <div style={{ color: "#e74c3c", marginBottom: "15px" }}>{error}</div>}
+
+      {/* LISTA */}
+      {loading ? (
+        <p style={{ color: "#888" }}>Betöltés...</p>
+      ) : clients.length === 0 ? (
+        <p style={{ color: "#888" }}>Nincs találat.</p>
+      ) : (
+        <div style={{ display: "grid", gap: "12px" }}>
+          {clients.map((client) => (
+            <Link
+              key={client.id}
+              href={`/clients/${client.id}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              <div style={cardS}>
+                <div>
+                  <h3 style={{ margin: "0 0 5px 0", color: "#fff" }}>{client.name}</h3>
+                  <div style={{ fontSize: "14px", color: "#aaa" }}>
+                    {client.phone && <span>📞 {client.phone} </span>}
+                    {client.address && <span>📍 {client.address}</span>}
+                  </div>
+                  {client.units && client.units.length > 0 && (
+                    <div style={{ marginTop: "8px", fontSize: "12px", color: "#2ecc71" }}>
+                      💻 {client.units.length} db berendezés regisztrálva
+                    </div>
+                  )}
+                </div>
+                <button
+                  style={btnDeleteHeader}
+                  onClick={(e) => handleDelete(client.id, e)}
+                  title="Ügyfél törlése"
+                >
+                  🗑️
+                </button>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
-// --- MODERN STÍLUSOK ---
-
+// STÍLUSOK
 const containerStyle: React.CSSProperties = {
-  backgroundColor: "#000", 
-  minHeight: "100vh", 
-  color: "#fff",
-  fontFamily: "sans-serif", 
-  maxWidth: "600px", 
+  backgroundColor: "#000",
+  minHeight: "100vh",
+  maxWidth: "1000px",
   margin: "0 auto",
-  width: "100%",
-  boxSizing: "border-box"
+  padding: "20px",
+  fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  color: "#fff",
+  boxSizing: "border-box",
 };
 
-const headerStyle: React.CSSProperties = {
-  display: "flex", 
-  justifyContent: "space-between", 
+const headerS: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: "20px", 
-  borderBottom: "1px solid #222", 
-  paddingBottom: "10px"
+  marginBottom: "20px",
+  borderBottom: "1px solid #333",
+  paddingBottom: "15px",
 };
 
-const bigAddBtnStyle: React.CSSProperties = {
-  width: "100%", 
-  backgroundColor: "#2ecc71", 
-  color: "#000",
-  border: "none", 
-  borderRadius: "12px", 
-  fontWeight: "900", 
-  cursor: "pointer", 
-  boxShadow: "0 4px 15px rgba(46, 204, 113, 0.3)",
-  boxSizing: "border-box"
-};
-
-const backLinkStyle: React.CSSProperties = { 
-  color: "#2ecc71", 
-  textDecoration: "none", 
-  fontWeight: "bold",
-  fontSize: "15px"
-};
-
-const searchFieldStyle: React.CSSProperties = {
-  width: "100%", 
-  padding: "14px", 
-  borderRadius: "10px", 
-  border: "2px solid #2ecc71",
-  backgroundColor: "#111", 
-  color: "#fff", 
-  fontSize: "16px", 
-  boxSizing: "border-box",
-  display: "block"
-};
-
-const cardStyle: React.CSSProperties = {
-  padding: "16px", 
-  background: "#1a1a1a", 
-  borderRadius: "12px", 
-  border: "1px solid #333",
-  boxSizing: "border-box",
-  width: "100%"
-};
-
-const cardFlex: React.CSSProperties = {
-  display: "flex", 
-  justifyContent: "space-between", 
-  gap: "10px"
-};
-
-const actionBox: React.CSSProperties = {
-  display: "flex", 
-  gap: "8px"
-};
-
-const detailsBtnStyle: React.CSSProperties = {
-  backgroundColor: "#2ecc71", 
-  color: "#000", 
-  textDecoration: "none",
-  fontSize: "13px", 
-  fontWeight: "bold", 
-  padding: "10px 12px", 
-  borderRadius: "6px", 
-  textAlign: "center",
-  display: "inline-block",
-  boxSizing: "border-box"
-};
-
-const deleteBtnStyle: React.CSSProperties = {
-  background: "none", 
-  border: "1px solid #e74c3c", 
-  color: "#e74c3c",
-  fontSize: "13px", 
-  padding: "10px", 
-  borderRadius: "6px", 
+const navBtn: React.CSSProperties = {
+  padding: "10px 16px",
+  borderRadius: "8px",
+  border: "none",
+  background: "#1e293b",
+  color: "#fff",
   cursor: "pointer",
-  boxSizing: "border-box"
+  fontWeight: "bold",
+  fontSize: "14px",
+};
+
+const inputS: React.CSSProperties = {
+  width: "100%",
+  padding: "12px 16px",
+  borderRadius: "10px",
+  border: "1px solid #333",
+  backgroundColor: "#18181b",
+  color: "#fff",
+  outline: "none",
+  fontSize: "15px",
+  boxSizing: "border-box",
+};
+
+const formBoxS: React.CSSProperties = {
+  background: "#121214",
+  padding: "20px",
+  borderRadius: "16px",
+  marginBottom: "20px",
+  border: "1px solid #27272a",
+};
+
+const cardS: React.CSSProperties = {
+  background: "#18181b",
+  padding: "16px 20px",
+  borderRadius: "12px",
+  border: "1px solid #27272a",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  transition: "border-color 0.2s",
+};
+
+const btnGreen: React.CSSProperties = {
+  background: "#2ecc71",
+  color: "#000",
+  border: "none",
+  padding: "10px 18px",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: "bold",
+  fontSize: "14px",
+};
+
+const btnCancel: React.CSSProperties = {
+  background: "#444",
+  color: "#fff",
+  border: "none",
+  padding: "10px 18px",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontSize: "14px",
+};
+
+const btnDeleteHeader: React.CSSProperties = {
+  background: "#3a1515",
+  color: "#ff6b6b",
+  border: "none",
+  padding: "8px 12px",
+  borderRadius: "8px",
+  cursor: "pointer",
 };
