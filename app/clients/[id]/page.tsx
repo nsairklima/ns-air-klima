@@ -497,20 +497,49 @@ export default function ClientDetailsPage() {
                   <strong style={{ fontSize: "18px", color: "#000" }}>{unit.brand} {unit.model}</strong>
                   <span style={{
                     fontSize: "12px", padding: "3px 10px", borderRadius: "12px", fontWeight: "bold",
-                    background: unit.status === "SERVICE_ONLY" ? "#e3f2fd" : (unit.installation ? "#e8f5e9" : "#fff3e0"),
-                    color: unit.status === "SERVICE_ONLY" ? "#1976d2" : (unit.installation ? "#2e7d32" : "#ef6c00"),
+                    background:
+  unit.status === "SERVICE_ONLY"
+    ? "#e3f2fd"
+    : (unit.installedAt
+        ? "#e8f5e9"
+        : "#fff3e0"),
+                    color:
+  unit.status === "SERVICE_ONLY"
+    ? "#1976d2"
+    : (unit.installedAt
+        ? "#2e7d32"
+        : "#ef6c00"),
                   }}>
-                    {unit.status === "SERVICE_ONLY" ? "🔵 Hozott gép" : (unit.installation ? "✅ Telepítve" : "⏳ Várakozik")}
+                    {unit.status === "SERVICE_ONLY"
+  ? "🔵 Hozott gép"
+  : (unit.installedAt
+      ? "✅ Telepítve"
+      : "⏳ Várakozik")}
                   </span>
                 </div>
                 <div style={{ fontSize: "13px", color: "#555", marginTop: "6px", lineHeight: "1.4" }}>
                   SN: {unit.serialNumber || "---"} | Hely: {unit.location || "Nincs megadva"}
-                  {unit.installation && <span> {isMobile && <br />}📅 {new Date(unit.installation).toLocaleDateString('hu-HU')}</span>}
+                 {unit.installation && (
+  <span>
+    📅 Tervezett:
+    {" "}
+    {new Date(unit.installation).toLocaleDateString("hu-HU")}
+  </span>
+)}
+
+{unit.installedAt && (
+  <span style={{ marginLeft: 10 }}>
+    ✅ Elkészült:
+    {" "}
+    {new Date(unit.installedAt).toLocaleDateString("hu-HU")}
+  </span>
+)}
                 </div>
               </div>
 
               <div style={{ display: "flex", gap: "6px", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "stretch" : "flex-end" }}>
-                {unit.status === "INSTALLED" && !unit.installation && (
+               {unit.status === "INSTALLED" &&
+ !unit.installedAt && (
                   <button onClick={() => handleSetStatus(unit.id, "INSTALLED")} style={{ ...btnGreenSmall, flex: isMobile ? 1 : "none" }}>✅ Kész</button>
                 )}
                 <button onClick={() => router.push(`/clients/${Id}/unit/${unit.id}`)} style={{ ...btnBlueSmall, flex: isMobile ? 1 : "none", textAlign: "center" }}>Napló</button>
