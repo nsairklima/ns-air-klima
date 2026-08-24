@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Client = { id: number; name: string; };
+type Client = { id: number; name: string; email?: string; phone?: string; address?: string };
 type DBItem = { 
   id: number; 
   name: string; 
@@ -27,9 +27,13 @@ export default function NewQuotePage() {
   const [unit, setUnit] = useState({ brand: "", model: "", power: "", location: "" });
   const [quoteTitle, setQuoteTitle] = useState("");
 
-  // Modal és kereső állapota
+  // Modal és kereső állapotok
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemSearchQuery, setItemSearchQuery] = useState("");
+  
+  // Ügyfél kereső modal állapota
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
 
   useEffect(() => {
     // Ügyfelek betöltése
@@ -37,6 +41,9 @@ export default function NewQuotePage() {
     // Mentett termékek betöltése
     fetch("/api/items").then(res => res.ok && res.json().then(setDbItems));
   }, []);
+
+  // Kiválasztott ügyfél lekérése megjelenítéshez
+  const selectedClient = clients.find(c => String(c.id) === String(selectedClientId));
 
   // Kiválasztás a kereshető modalból
   const handleSelectDBItemDirect = (item: DBItem) => {
@@ -128,13 +135,22 @@ export default function NewQuotePage() {
     }
   }
 
-  // Szűrés név ÉS cikkszám alapján handles
+  // Szűrés név ÉS cikkszám alapján
   const filteredDbItems = dbItems.filter(item => {
     const q = itemSearchQuery.toLowerCase();
     const nameMatch = item.name?.toLowerCase().includes(q);
     const skuVal = item.sku || item.code || item.articleNumber || "";
     const skuMatch = skuVal.toLowerCase().includes(q);
     return nameMatch || skuMatch;
+  });
+
+  // Ügyfelek szűrése név, email, telefon alapján
+  const filteredClients = clients.filter(c => {
+    const q = clientSearchQuery.toLowerCase();
+    const nameMatch = c.name?.toLowerCase().includes(q);
+    const emailMatch = c.email?.toLowerCase().includes(q);
+    const phoneMatch = c.phone?.toLowerCase().includes(q);
+    return nameMatch || emailMatch || phoneMatch;
   });
 
   return (
@@ -168,10 +184,25 @@ export default function NewQuotePage() {
       <form onSubmit={handleSubmit} style={formCard}>
         <h3 style={sectionTitle}>👤 Ügyfél adatai</h3>
         {mode === 'existing' ? (
-          <select style={input} value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} required={mode === 'existing'}>
-            <option value="">-- Válassz ügyfelet --</option>
-            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <div>
+            <button
+              type="button"
+              onClick={() => setIsClientModalOpen(true)}
+              style={{
+                ...input,
+                borderColor: "#38bdf8",
+                backgroundColor: "#0f172a",
+                textAlign: "left",
+                cursor: "pointer",
+                display: "flex",
+                justify: "space-between",
+                alignItems: "center"
+              }}
+            >
+              <span>{selectedClient ? `Kiválasztva: ${selectedClient.name}` : "-- Keresés és választás az ügyfelek közül --"}</span>
+              <span style={{ fontSize: 12, background: "#38bdf8", color: "#0f172a", padding: "3px 8px", borderRadius: 4, fontWeight: "bold" }}>Keresés</span>
+            </button>
+          </div>
         ) : (
           <div style={grid}>
             <input style={input} placeholder="Név *" required={mode === 'new'} value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} />
@@ -196,7 +227,7 @@ export default function NewQuotePage() {
                 textAlign: "left",
                 cursor: "pointer",
                 display: "flex",
-                justifyContent: "space-between",
+                justify: "space-between",
                 alignItems: "center"
               }}
             >
@@ -225,6 +256,118 @@ export default function NewQuotePage() {
         </button>
       </form>
 
+      {/* KERESHETŐ ÜGYFÉLVÁLASZTÓ MODAL */}
+      {isClientModalOpen && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.8)",
+          display: "flex",
+          justify: "center",
+          alignItems: "center",
+          zIndex: 1000,
+          padding: 16
+        }}>
+          <div style={{
+            background: "#1e293b",
+            borderRadius: 16,
+            width: "100%",
+            maxWidth: 600,
+            maxHeight: "85vh",
+            display: "flex",
+            flexDirection: "column",
+            border: "1px solid #334155",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+            overflow: "hidden"
+          }}>
+            {/* Fejléc és Kereső */}
+            <div style={{ padding: 20, borderBottom: "1px solid #334155" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h3 style={{ margin: 0, fontSize: 18, color: "#fff" }}>Válassz ügyfelet</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsClientModalOpen(false)}
+                  style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 20, cursor: "pointer" }}
+                >
+                  ✖
+                </button>
+              </div>
+              <input
+                type="text"
+                placeholder="🔍 Keresés név, email vagy telefon alapján..."
+                value={clientSearchQuery}
+                onChange={(e) => setClientSearchQuery(e.target.value)}
+                style={input}
+                autoFocus
+              />
+            </div>
+
+            {/* Ügyfelek listája */}
+            <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+              {filteredClients.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 30, color: "#94a3b8" }}>
+                  Nincs a keresésnek megfelelő ügyfél.
+                </div>
+              ) : (
+                filteredClients.map((client) => (
+                  <div
+                    key={client.id}
+                    onClick={() => {
+                      setSelectedClientId(String(client.id));
+                      setIsClientModalOpen(false);
+                      setClientSearchQuery("");
+                    }}
+                    style={{
+                      background: String(client.id) === selectedClientId ? "#1e3a8a" : "#0f172a",
+                      padding: "14px 16px",
+                      borderRadius: 10,
+                      border: String(client.id) === selectedClientId ? "1px solid #3b82f6" : "1px solid #334155",
+                      cursor: "pointer",
+                      display: "flex",
+                      justify: "space-between",
+                      alignItems: "center",
+                      transition: "background 0.15s"
+                    }}
+                    onMouseEnter={(e) => {
+                      if (String(client.id) !== selectedClientId) e.currentTarget.style.background = "#2a374e";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (String(client.id) !== selectedClientId) e.currentTarget.style.background = "#0f172a";
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: "bold", fontSize: 15, color: "#fff", marginBottom: 4 }}>
+                        {client.name}
+                      </div>
+                      {(client.phone || client.email) && (
+                        <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", gap: 12 }}>
+                          {client.phone && <span>📞 {client.phone}</span>}
+                          {client.email && <span>✉️ {client.email}</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Lábléc */}
+            <div style={{ padding: 12, borderTop: "1px solid #334155", textAlign: "right" }}>
+              <button
+                type="button"
+                onClick={() => setIsClientModalOpen(false)}
+                style={{ ...navBtn, width: "100%" }}
+              >
+                Mégsem
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SZELLŐS ÉS KERESHETŐ TÍPUSVÁLASZTÓ ABLAK (MODAL) CIKKSZÁMMAL */}
       {isModalOpen && (
         <div style={{
@@ -235,7 +378,7 @@ export default function NewQuotePage() {
           bottom: 0,
           backgroundColor: "rgba(0,0,0,0.8)",
           display: "flex",
-          justifyContent: "center",
+          justify: "center",
           alignItems: "center",
           zIndex: 1000,
           padding: 16
@@ -294,7 +437,7 @@ export default function NewQuotePage() {
                         border: "1px solid #334155",
                         cursor: "pointer",
                         display: "flex",
-                        justifyContent: "space-between",
+                        justify: "space-between",
                         alignItems: "center",
                         transition: "background 0.15s"
                       }}
