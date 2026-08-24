@@ -21,17 +21,17 @@ export default function TasksPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Állapotok a modálokhoz
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  // Új feladat alapértelmezett adatai
   const emptyTask: Task = {
     title: "",
+    type: "szerelés",
     clientName: "",
     phone: "",
     address: "",
+    assignedTo: "",
     date: new Date().toISOString().split("T")[0],
     status: "pending",
     description: "",
@@ -40,7 +40,6 @@ export default function TasksPage() {
 
   const [newTask, setNewTask] = useState<Task>(emptyTask);
 
-  // Adatok betöltése
   const fetchTasks = async () => {
     try {
       setLoading(true);
@@ -88,7 +87,7 @@ export default function TasksPage() {
     fetchTasks();
   }, []);
 
-  // ÚJ feladat mentése (POST kérés)
+  // ÚJ feladat mentése
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -99,8 +98,12 @@ export default function TasksPage() {
         body: JSON.stringify(newTask),
       });
 
+      const responseData = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        throw new Error(`Nem sikerült a létrehozás! Kód: ${res.status}`);
+        throw new Error(
+          responseData.error || responseData.message || `Kód: ${res.status}`
+        );
       }
 
       setIsCreating(false);
@@ -113,7 +116,7 @@ export default function TasksPage() {
     }
   };
 
-  // SZERKESZTETT feladat elmentése (POST/PUT kérés)
+  // SZERKESZTETT feladat elmentése
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTask) return;
@@ -121,13 +124,17 @@ export default function TasksPage() {
     try {
       setIsSaving(true);
       const res = await fetch("/api/tasks", {
-        method: "POST", // POST-ot használunk, hogy elkerüljük a 405-ös tiltást
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingTask),
       });
 
+      const responseData = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        throw new Error(`Nem sikerült a mentés! Kód: ${res.status}`);
+        throw new Error(
+          responseData.error || responseData.message || `Kód: ${res.status}`
+        );
       }
 
       setEditingTask(null);
@@ -141,7 +148,6 @@ export default function TasksPage() {
 
   return (
     <div style={{ padding: "24px", maxWidth: "1000px", margin: "0 auto", color: "#ffffff" }}>
-      {/* Fejléc és gombok */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: "1px solid #334155", paddingBottom: "12px" }}>
         <h1 style={{ fontSize: "24px", fontWeight: "bold", margin: 0, color: "#ffffff" }}>Munkák / Feladatok</h1>
         <div style={{ display: "flex", gap: "10px" }}>
@@ -172,7 +178,6 @@ export default function TasksPage() {
         <p style={{ color: "#94a3b8" }}>Még nincs egyetlen feladat sem rögzítve az adatbázisban.</p>
       )}
 
-      {/* Feladat kártyák listája */}
       {!loading && tasks.length > 0 && (
         <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
           {tasks.map((task, index) => (
@@ -195,7 +200,6 @@ export default function TasksPage() {
                 )}
               </div>
 
-              {/* Szerkesztés gomb */}
               <button
                 onClick={() => setEditingTask({ ...task })}
                 style={{ marginTop: "16px", width: "100%", padding: "8px", backgroundColor: "#3b82f6", color: "#ffffff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 500 }}
@@ -207,7 +211,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* 1. ÚJ FELADAT MODÁL */}
+      {/* ÚJ FELADAT MODÁL */}
       {isCreating && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", zIndex: 1000 }}>
           <div style={{ backgroundColor: "#1e293b", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "500px", border: "1px solid #475569" }}>
@@ -215,7 +219,7 @@ export default function TasksPage() {
 
             <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <div>
-                <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>Megnevezés / Cím</label>
+                <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>Megnevezés / Cím *</label>
                 <input
                   type="text"
                   value={newTask.title || ""}
@@ -311,7 +315,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* 2. SZERKESZTŐ MODÁL */}
+      {/* SZERKESZTŐ MODÁL */}
       {editingTask && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", zIndex: 1000 }}>
           <div style={{ backgroundColor: "#1e293b", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "500px", border: "1px solid #475569" }}>
@@ -319,7 +323,7 @@ export default function TasksPage() {
 
             <form onSubmit={handleSaveEdit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <div>
-                <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>Megnevezés / Cím</label>
+                <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>Megnevezés / Cím *</label>
                 <input
                   type="text"
                   value={editingTask.title || ""}
