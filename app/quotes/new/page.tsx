@@ -195,7 +195,7 @@ export default function NewQuotePage() {
                 textAlign: "left",
                 cursor: "pointer",
                 display: "flex",
-                justify: "space-between",
+                justifyContent: "space-between",
                 alignItems: "center"
               }}
             >
@@ -227,7 +227,7 @@ export default function NewQuotePage() {
                 textAlign: "left",
                 cursor: "pointer",
                 display: "flex",
-                justify: "space-between",
+                justifyContent: "space-between",
                 alignItems: "center"
               }}
             >
@@ -266,7 +266,7 @@ export default function NewQuotePage() {
           bottom: 0,
           backgroundColor: "rgba(0,0,0,0.8)",
           display: "flex",
-          justify: "center",
+          justifyContent: "center",
           alignItems: "center",
           zIndex: 1000,
           padding: 16
@@ -327,7 +327,7 @@ export default function NewQuotePage() {
                       border: String(client.id) === selectedClientId ? "1px solid #3b82f6" : "1px solid #334155",
                       cursor: "pointer",
                       display: "flex",
-                      justify: "space-between",
+                      justifyContent: "space-between",
                       alignItems: "center",
                       transition: "background 0.15s"
                     }}
@@ -437,7 +437,7 @@ export default function NewQuotePage() {
                         border: "1px solid #334155",
                         cursor: "pointer",
                         display: "flex",
-                        justify: "space-between",
+                        justifyContent: "space-between",
                         alignItems: "center",
                         transition: "background 0.15s"
                       }}
