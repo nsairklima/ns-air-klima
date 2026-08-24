@@ -270,3 +270,19 @@ model CalendarEvent {
 
 } 
 
+// 🛠️ MUNKÁK / TELEPÍTÉSEK MODEL
+model Task {
+  id          Int      @id @default(autoincrement())
+  type        String   @default("installation") // "installation" vagy "maintenance"
+  title       String
+  clientName  String
+  phone       String
+  address     String
+  assignedTo  String?
+  date        String
+  description String?
+  status      String   @default("pending") // "pending", "in_progress", "completed"
+  images      String   @default("[]") // JSON stringben tárolt Base64 tömb
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
