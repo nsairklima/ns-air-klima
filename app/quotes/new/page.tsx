@@ -378,7 +378,7 @@ export default function NewQuotePage() {
           bottom: 0,
           backgroundColor: "rgba(0,0,0,0.8)",
           display: "flex",
-          justify: "center",
+          justifyContent: "center",
           alignItems: "center",
           zIndex: 1000,
           padding: 16
