@@ -100,6 +100,15 @@ export default function MainDashboard() {
         </header>
 
         <div style={dynamicGridStyle}>
+          {/* MUNKÁK / TELEPÍTÉSEK (ÚJ CSEMPE) */}
+          <div onClick={() => router.push("/tasks")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#e67e22" }}>
+            <span style={iconStyle}>🛠️</span>
+            <div>
+              <div style={tileLabelStyle}>Munkák</div>
+              <span style={smallLabelStyle}>Telepítés & Mosás</span>
+            </div>
+          </div>
+
           {/* STATISZTIKA */}
           <div onClick={() => router.push("/stats")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#f39c12" }}>
             <span style={iconStyle}>📊</span>
