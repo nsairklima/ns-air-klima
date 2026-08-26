@@ -5,7 +5,13 @@ import { v2 as cloudinary } from "cloudinary";
 export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
-cloudinary.config();
+
+// Cloudinary biztonságos konfigurálása
+try {
+  cloudinary.config();
+} catch (e) {
+  console.error("Cloudinary config hiba:", e);
+}
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +27,8 @@ export async function POST(request: Request) {
 
     let imageUrl = "";
 
-    if (photo && photo.size > 0) {
+    // Kép feltöltés csak akkor, ha van kép és a Cloudinary be van állítva
+    if (photo && typeof photo === "object" && "size" in photo && photo.size > 0) {
       try {
         const arrayBuffer = await photo.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
@@ -39,13 +46,13 @@ export async function POST(request: Request) {
           ).end(buffer);
         });
 
-        imageUrl = uploadResult.secure_url || "";
+        imageUrl = uploadResult?.secure_url || "";
       } catch (uploadError: any) {
-        console.error("Cloudinary hiba:", uploadError?.message || uploadError);
+        console.error("Képfeltöltési hiba (a mentés ettől függetlenül lefut):", uploadError?.message || uploadError);
       }
     }
 
-    // Direkt mentés a táblád pontos oszlopneveibe: name, email, note, stb.
+    // Adatbázis mentés
     await sql`
       INSERT INTO "Task" (
         "type", 
@@ -74,7 +81,7 @@ export async function POST(request: Request) {
       driveLink: imageUrl,
     });
   } catch (error: any) {
-    console.error("Mentési hiba:", error);
+    console.error("Adatbázis mentési hiba részletei:", error);
     return NextResponse.json(
       { error: error?.message || "Hiba történt a mentés során." },
       { status: 500 }
