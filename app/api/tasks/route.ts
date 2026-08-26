@@ -22,11 +22,12 @@ async function uploadToGoogleDrive(file: File): Promise<string | null> {
       return null;
     }
 
+    
     const oauth2Client = new google.auth.OAuth2(
-      clientId,
-      clientSecret,
-      "https://developers.google.com/oauthplayground"
-    );
+  clientId,
+  clientSecret,
+  "https://developers.google.com/oauthplayground"
+);
 
     oauth2Client.setCredentials({ refresh_token: refreshToken });
 
@@ -123,7 +124,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    const mapsUrl =
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
     const attachments = [];
     if (photoBuffer && photo) {
