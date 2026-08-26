@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-// Definiáljuk, hogy néz ki egy munka (Task)
 type Task = {
   id: number;
   type: string;
@@ -19,21 +18,21 @@ export default function TasksPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [driveUrl, setDriveUrl] = useState<string | null>(null);
   
-  // Itt tároljuk a betöltött munkákat
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // Külön függvény a munkák lekérésére, hogy mentés után is újra tudjuk hívni
+  // Lekérés a no-store opcióval, hogy a böngésző se tárolja le a régi listát
   const fetchTasks = async () => {
     try {
-      const res = await fetch("/api/tasks/list");
+      const res = await fetch("/api/tasks/list", {
+        cache: "no-store",
+      });
       const data = await res.json();
       setTasks(data.tasks || []);
     } catch (error) {
-      console.error(error);
+      console.error("Hiba a munkák betöltésekor:", error);
     }
   };
 
-  // Oldal betöltésekor lekérjük a listát
   useEffect(() => {
     fetchTasks();
   }, []);
@@ -70,7 +69,7 @@ export default function TasksPage() {
         setAddress("");
         setPhoto(null);
         
-        // Sikeres mentés után azonnal frissítjük a lenti listát!
+        // Új munka hozzáadása után azonnal lekérjük a teljes listát
         fetchTasks();
       } else {
         setStatusMessage("❌ " + (data.error || "Hiba történt."));
@@ -117,7 +116,6 @@ export default function TasksPage() {
         </a>
       </div>
 
-      {/* --- FORM RÉSZ --- */}
       <form
         onSubmit={handleSubmit}
         style={{
@@ -232,6 +230,15 @@ export default function TasksPage() {
         </div>
       )}
 
+      {driveUrl && (
+        <p style={{ marginTop: "12px" }}>
+          <strong>Feltöltött kép:</strong>{" "}
+          <a href={driveUrl} target="_blank" rel="noopener noreferrer">
+            Megtekintés Google Drive-on
+          </a>
+        </p>
+      )}
+
       {/* --- MENTETT MUNKÁK LISTÁJA --- */}
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>
         Mentett munkák listája
@@ -251,6 +258,7 @@ export default function TasksPage() {
           >
             <thead>
               <tr style={{ background: "#f1f1f1", textAlign: "left" }}>
+                <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>ID</th>
                 <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Típus</th>
                 <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Cím</th>
                 <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Kép</th>
@@ -260,13 +268,19 @@ export default function TasksPage() {
             <tbody>
               {tasks.map((task) => (
                 <tr key={task.id} style={{ borderBottom: "1px solid #eee" }}>
+                  <td style={{ padding: "12px" }}>{task.id}</td>
                   <td style={{ padding: "12px" }}>
                     {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
                   </td>
                   <td style={{ padding: "12px" }}>{task.address}</td>
                   <td style={{ padding: "12px" }}>
                     {task.drive_link ? (
-                      <a href={task.drive_link} target="_blank" rel="noopener noreferrer" style={{ color: "#4285F4", textDecoration: "none" }}>
+                      <a
+                        href={task.drive_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#4285F4", textDecoration: "none" }}
+                      >
                         📷 Megnyitás
                       </a>
                     ) : (
@@ -274,7 +288,9 @@ export default function TasksPage() {
                     )}
                   </td>
                   <td style={{ padding: "12px", color: "#555" }}>
-                    {task.created_at ? new Date(task.created_at).toLocaleString("hu-HU") : "-"}
+                    {task.created_at
+                      ? new Date(task.created_at).toLocaleString("hu-HU")
+                      : "-"}
                   </td>
                 </tr>
               ))}
