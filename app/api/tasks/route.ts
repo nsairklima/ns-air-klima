@@ -7,13 +7,12 @@ export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
 
-// Google Drive ügyfél inicializálása a meglévő projektbeállításokkal
 function getDriveService() {
   const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
   if (!clientEmail || !privateKey) {
-    throw new Error("A Google Drive környezeti változók (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) nincsenek beállítva.");
+    throw new Error("A Google Drive környezeti változók hiányoznak.");
   }
 
   const auth = new google.auth.JWT(
@@ -30,7 +29,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
 
-    const type = (formData.get("type") as string) || "telepites";
+    const type = (formData.get("type") as string) || "installation";
     const name = (formData.get("name") as string) || "";
     const address = (formData.get("address") as string) || "";
     const phone = (formData.get("phone") as string) || "";
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
 
     let driveLink = "";
 
-    // Ha érkezett kép, feltöltjük a Drive-ra
+    // Kép feltöltése Google Drive-ra
     if (photo && photo.size > 0) {
       const drive = getDriveService();
       const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
@@ -67,7 +66,6 @@ export async function POST(request: Request) {
       });
 
       if (driveRes.data.id) {
-        // Nyilvános olvasási jog beállítása a linkhez
         await drive.permissions.create({
           fileId: driveRes.data.id,
           requestBody: { role: "reader", type: "anyone" },
@@ -77,10 +75,35 @@ export async function POST(request: Request) {
       driveLink = driveRes.data.webViewLink || "";
     }
 
-    // Adatbázisba mentés
+    const currentDate = new Date().toISOString().split("T")[0];
+    const imagesJson = JSON.stringify(driveLink ? [driveLink] : []);
+
+    // Beszúrás a schema.prisma szerinti "Task" táblába
     await sql`
-      INSERT INTO tasks (type, name, address, phone, email, note, drive_link)
-      VALUES (${type}, ${name}, ${address}, ${phone}, ${email}, ${note}, ${driveLink})
+      INSERT INTO "Task" (
+        "type", 
+        "title", 
+        "clientName", 
+        "phone", 
+        "address", 
+        "date", 
+        "description", 
+        "status", 
+        "images", 
+        "updatedAt"
+      )
+      VALUES (
+        ${type}, 
+        ${name || "Új munka"}, 
+        ${name}, 
+        ${phone}, 
+        ${address}, 
+        ${currentDate}, 
+        ${note ? `${note} | Email: ${email}` : `Email: ${email}`}, 
+        'pending', 
+        ${imagesJson}, 
+        NOW()
+      )
     `;
 
     return NextResponse.json({
