@@ -20,7 +20,11 @@ export default function TasksPage() {
   
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // Lekérés a no-store opcióval, hogy a böngésző se tárolja le a régi listát
+  // Szerkesztési állapotok
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editType, setEditType] = useState<string>("telepites");
+  const [editAddress, setEditAddress] = useState<string>("");
+
   const fetchTasks = async () => {
     try {
       const res = await fetch("/api/tasks/list", {
@@ -68,8 +72,6 @@ export default function TasksPage() {
         }
         setAddress("");
         setPhoto(null);
-        
-        // Új munka hozzáadása után azonnal lekérjük a teljes listát
         fetchTasks();
       } else {
         setStatusMessage("❌ " + (data.error || "Hiba történt."));
@@ -81,10 +83,63 @@ export default function TasksPage() {
     }
   };
 
+  // Törlés funkció
+  const handleDelete = async (id: number) => {
+    if (!confirm("Biztosan törölni szeretnéd ezt a munkát?")) return;
+
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        fetchTasks();
+      } else {
+        alert("Nem sikerült a törlés.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Hálózati hiba történt a törlés során.");
+    }
+  };
+
+  // Szerkesztés megkezdése
+  const startEditing = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditType(task.type);
+    setEditAddress(task.address);
+  };
+
+  // Szerkesztés mentése
+  const handleSaveEdit = async (id: number) => {
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: editType,
+          address: editAddress,
+        }),
+      });
+
+      if (res.ok) {
+        setEditingTaskId(null);
+        fetchTasks();
+      } else {
+        alert("Nem sikerült a mentés.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Hálózati hiba mentés közben.");
+    }
+  };
+
   return (
     <main
       style={{
-        maxWidth: "900px",
+        maxWidth: "950px",
         margin: "40px auto",
         padding: "24px",
         fontFamily: "system-ui",
@@ -230,16 +285,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {driveUrl && (
-        <p style={{ marginTop: "12px" }}>
-          <strong>Feltöltött kép:</strong>{" "}
-          <a href={driveUrl} target="_blank" rel="noopener noreferrer">
-            Megtekintés Google Drive-on
-          </a>
-        </p>
-      )}
-
-      {/* --- MENTETT MUNKÁK LISTÁJA --- */}
+      {/* --- MENTETT MUNKÁK LISTÁJA SZERKESZTÉSSEL ÉS TÖRLÉSSEL --- */}
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>
         Mentett munkák listája
       </h2>
@@ -262,17 +308,47 @@ export default function TasksPage() {
                 <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Típus</th>
                 <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Cím</th>
                 <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Kép</th>
-                <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Dátum</th>
+                <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Műveletek</th>
               </tr>
             </thead>
             <tbody>
               {tasks.map((task) => (
                 <tr key={task.id} style={{ borderBottom: "1px solid #eee" }}>
                   <td style={{ padding: "12px" }}>{task.id}</td>
+
+                  {/* Típus oszlop */}
                   <td style={{ padding: "12px" }}>
-                    {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
+                    {editingTaskId === task.id ? (
+                      <select
+                        value={editType}
+                        onChange={(e) => setEditType(e.target.value)}
+                        style={{ padding: "6px", borderRadius: "4px" }}
+                      >
+                        <option value="telepites">🛠️ Telepítés</option>
+                        <option value="karbantartas">🧹 Karbantartás</option>
+                      </select>
+                    ) : task.type === "telepites" ? (
+                      "🛠️ Telepítés"
+                    ) : (
+                      "🧹 Karbantartás"
+                    )}
                   </td>
-                  <td style={{ padding: "12px" }}>{task.address}</td>
+
+                  {/* Cím oszlop */}
+                  <td style={{ padding: "12px" }}>
+                    {editingTaskId === task.id ? (
+                      <input
+                        type="text"
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
+                        style={{ padding: "6px", width: "90%", borderRadius: "4px", border: "1px solid #ccc" }}
+                      />
+                    ) : (
+                      task.address
+                    )}
+                  </td>
+
+                  {/* Kép oszlop */}
                   <td style={{ padding: "12px" }}>
                     {task.drive_link ? (
                       <a
@@ -281,16 +357,74 @@ export default function TasksPage() {
                         rel="noopener noreferrer"
                         style={{ color: "#4285F4", textDecoration: "none" }}
                       >
-                        📷 Megnyitás
+                        📷 Kép
                       </a>
                     ) : (
                       "-"
                     )}
                   </td>
-                  <td style={{ padding: "12px", color: "#555" }}>
-                    {task.created_at
-                      ? new Date(task.created_at).toLocaleString("hu-HU")
-                      : "-"}
+
+                  {/* Műveletek oszlop */}
+                  <td style={{ padding: "12px" }}>
+                    {editingTaskId === task.id ? (
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          onClick={() => handleSaveEdit(task.id)}
+                          style={{
+                            background: "#28a745",
+                            color: "white",
+                            border: "none",
+                            padding: "6px 10px",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Mentés
+                        </button>
+                        <button
+                          onClick={() => setEditingTaskId(null)}
+                          style={{
+                            background: "#6c757d",
+                            color: "white",
+                            border: "none",
+                            padding: "6px 10px",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Mégse
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          onClick={() => startEditing(task)}
+                          style={{
+                            background: "#ffc107",
+                            color: "#333",
+                            border: "none",
+                            padding: "6px 10px",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          ✏️ Szerkesztés
+                        </button>
+                        <button
+                          onClick={() => handleDelete(task.id)}
+                          style={{
+                            background: "#dc3545",
+                            color: "white",
+                            border: "none",
+                            padding: "6px 10px",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          🗑️ Törlés
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
