@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
 
-// Cloudinary automatikusan a Vercel-ben beállított CLOUDINARY_URL-t használja
 cloudinary.config();
 
 export async function POST(request: Request) {
@@ -14,7 +13,8 @@ export async function POST(request: Request) {
     const formData = await request.formData();
 
     const type = (formData.get("type") as string) || "installation";
-    const name = (formData.get("name") as string) || "";
+    // Kezeljük mind a "name", mind a "clientName" mezőneveket a formból
+    const name = (formData.get("name") as string) || (formData.get("clientName") as string) || "";
     const address = (formData.get("address") as string) || "";
     const phone = (formData.get("phone") as string) || "";
     const email = (formData.get("email") as string) || "";
@@ -23,7 +23,6 @@ export async function POST(request: Request) {
 
     let imageUrl = "";
 
-    // Kép feltöltése Cloudinary-ra (ha érkezett kép)
     if (photo && photo.size > 0) {
       try {
         const arrayBuffer = await photo.arrayBuffer();
@@ -44,14 +43,18 @@ export async function POST(request: Request) {
 
         imageUrl = uploadResult.secure_url || "";
       } catch (uploadError: any) {
-        console.error("Cloudinary feltöltési hiba:", uploadError?.message || uploadError);
+        console.error("Cloudinary hiba:", uploadError?.message || uploadError);
       }
     }
 
     const currentDate = new Date().toISOString().split("T")[0];
     const imagesJson = JSON.stringify(imageUrl ? [imageUrl] : []);
 
-    // Adatbázis mentés a Neon PostgreSQL-be
+    // Összeállítjuk a leírást a megjegyzésből és az emailből
+    const descriptionText = note && email 
+      ? `${note} | Email: ${email}` 
+      : note || (email ? `Email: ${email}` : "");
+
     await sql`
       INSERT INTO "Task" (
         "type", 
@@ -72,7 +75,7 @@ export async function POST(request: Request) {
         ${phone}, 
         ${address}, 
         ${currentDate}, 
-        ${note ? `${note} | Email: ${email}` : `Email: ${email}`}, 
+        ${descriptionText}, 
         'pending', 
         ${imagesJson}, 
         NOW()
@@ -84,7 +87,7 @@ export async function POST(request: Request) {
       imageUrl: imageUrl,
     });
   } catch (error: any) {
-    console.error("API Hiba (app/api/tasks/route.ts):", error);
+    console.error("Mentési hiba:", error);
     return NextResponse.json(
       { error: error?.message || "Hiba történt a mentés során." },
       { status: 500 }
