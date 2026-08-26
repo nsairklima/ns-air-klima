@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
 
-// Cloudinary biztonságos konfigurálása
 try {
   cloudinary.config();
 } catch (e) {
@@ -27,7 +26,6 @@ export async function POST(request: Request) {
 
     let imageUrl = "";
 
-    // Kép feltöltés csak akkor, ha van kép és a Cloudinary be van állítva
     if (photo && typeof photo === "object" && "size" in photo && photo.size > 0) {
       try {
         const arrayBuffer = await photo.arrayBuffer();
@@ -48,30 +46,31 @@ export async function POST(request: Request) {
 
         imageUrl = uploadResult?.secure_url || "";
       } catch (uploadError: any) {
-        console.error("Képfeltöltési hiba (a mentés ettől függetlenül lefut):", uploadError?.message || uploadError);
+        console.error("Képfeltöltési hiba:", uploadError?.message || uploadError);
       }
     }
 
-    // Adatbázis mentés
+    // Itt a régebbi/eredeti oszlopneveket használjuk (clientName, description, stb.), 
+    // amiket az adatbázisod valójában vár.
     await sql`
       INSERT INTO "Task" (
         "type", 
-        "name", 
+        "title",
+        "clientName", 
         "address", 
         "phone", 
-        "email", 
-        "note", 
-        "drive_link", 
-        "created_at"
+        "description", 
+        "images", 
+        "updatedAt"
       )
       VALUES (
         ${type}, 
+        ${name || "Új munka"},
         ${name}, 
         ${address}, 
         ${phone}, 
-        ${email}, 
-        ${note}, 
-        ${imageUrl}, 
+        ${note ? `${note} ${email ? `| Email: ${email}` : ""}` : email ? `Email: ${email}` : ""}, 
+        ${JSON.stringify(imageUrl ? [imageUrl] : [])}, 
         NOW()
       )
     `;
