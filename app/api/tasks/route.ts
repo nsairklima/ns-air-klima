@@ -1,29 +1,13 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { google } from "googleapis";
-import { Readable } from "stream";
+import { v2 as cloudinary } from "cloudinary";
 
 export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
 
-function getDriveService() {
-  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-
-  if (!clientEmail || !privateKey) {
-    throw new Error("A Google Drive környezeti változók hiányoznak.");
-  }
-
-  const auth = new google.auth.JWT(
-    clientEmail,
-    undefined,
-    privateKey,
-    ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
-  );
-
-  return google.drive({ version: "v3", auth });
-}
+// Cloudinary automatikusan a Vercel-ben beállított CLOUDINARY_URL-t használja
+cloudinary.config();
 
 export async function POST(request: Request) {
   try {
@@ -37,48 +21,37 @@ export async function POST(request: Request) {
     const note = (formData.get("note") as string) || "";
     const photo = formData.get("photo") as File | null;
 
-    let driveLink = "";
+    let imageUrl = "";
 
-    // Kép feltöltése Google Drive-ra
+    // Kép feltöltése Cloudinary-ra (ha érkezett kép)
     if (photo && photo.size > 0) {
-      const drive = getDriveService();
-      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+      try {
+        const arrayBuffer = await photo.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-      const buffer = Buffer.from(await photo.arrayBuffer());
-      const stream = new Readable();
-      stream.push(buffer);
-      stream.push(null);
-
-      const fileMetadata = {
-        name: `${type}_${name ? name.replace(/\s+/g, "_") : "munka"}_${Date.now()}`,
-        parents: folderId ? [folderId] : undefined,
-      };
-
-      const media = {
-        mimeType: photo.type,
-        body: stream,
-      };
-
-      const driveRes = await drive.files.create({
-        requestBody: fileMetadata,
-        media: media,
-        fields: "id, webViewLink",
-      });
-
-      if (driveRes.data.id) {
-        await drive.permissions.create({
-          fileId: driveRes.data.id,
-          requestBody: { role: "reader", type: "anyone" },
+        const uploadResult = await new Promise<any>((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            {
+              folder: "tasks",
+              resource_type: "auto",
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          ).end(buffer);
         });
-      }
 
-      driveLink = driveRes.data.webViewLink || "";
+        imageUrl = uploadResult.secure_url || "";
+      } catch (uploadError: any) {
+        console.error("Cloudinary feltöltési hiba:", uploadError?.message || uploadError);
+      }
     }
 
     const currentDate = new Date().toISOString().split("T")[0];
-    const imagesJson = JSON.stringify(driveLink ? [driveLink] : []);
+    const imagesJson = JSON.stringify(imageUrl ? [imageUrl] : []);
 
-    // Beszúrás a schema.prisma szerinti "Task" táblába
+    // Adatbázis mentés a Neon PostgreSQL-be
     await sql`
       INSERT INTO "Task" (
         "type", 
@@ -108,12 +81,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: "Munka sikeresen elmentve!",
-      driveLink: driveLink,
+      imageUrl: imageUrl,
     });
   } catch (error: any) {
     console.error("API Hiba (app/api/tasks/route.ts):", error);
     return NextResponse.json(
-      { error: error?.message || "Hiba történt a feldolgozás során." },
+      { error: error?.message || "Hiba történt a mentés során." },
       { status: 500 }
     );
   }
