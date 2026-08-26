@@ -1,14 +1,35 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { google } from "googleapis";
+import { Readable } from "stream";
 
 export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
 
+// Google Drive ügyfél inicializálása a meglévő projektbeállításokkal
+function getDriveService() {
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+  if (!clientEmail || !privateKey) {
+    throw new Error("A Google Drive környezeti változók (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) nincsenek beállítva.");
+  }
+
+  const auth = new google.auth.JWT(
+    clientEmail,
+    undefined,
+    privateKey,
+    ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+  );
+
+  return google.drive({ version: "v3", auth });
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    
+
     const type = (formData.get("type") as string) || "telepites";
     const name = (formData.get("name") as string) || "";
     const address = (formData.get("address") as string) || "";
@@ -19,12 +40,44 @@ export async function POST(request: Request) {
 
     let driveLink = "";
 
-    // Ha van feltöltött kép (itt futhat a Google Drive feltöltő kódod)
+    // Ha érkezett kép, feltöltjük a Drive-ra
     if (photo && photo.size > 0) {
-      // driveLink = await uploadToDrive(photo);
+      const drive = getDriveService();
+      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+      const buffer = Buffer.from(await photo.arrayBuffer());
+      const stream = new Readable();
+      stream.push(buffer);
+      stream.push(null);
+
+      const fileMetadata = {
+        name: `${type}_${name ? name.replace(/\s+/g, "_") : "munka"}_${Date.now()}`,
+        parents: folderId ? [folderId] : undefined,
+      };
+
+      const media = {
+        mimeType: photo.type,
+        body: stream,
+      };
+
+      const driveRes = await drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: "id, webViewLink",
+      });
+
+      if (driveRes.data.id) {
+        // Nyilvános olvasási jog beállítása a linkhez
+        await drive.permissions.create({
+          fileId: driveRes.data.id,
+          requestBody: { role: "reader", type: "anyone" },
+        });
+      }
+
+      driveLink = driveRes.data.webViewLink || "";
     }
 
-    // Elmentjük a megadott mezőket az adatbázisba
+    // Adatbázisba mentés
     await sql`
       INSERT INTO tasks (type, name, address, phone, email, note, drive_link)
       VALUES (${type}, ${name}, ${address}, ${phone}, ${email}, ${note}, ${driveLink})
@@ -32,12 +85,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: "Munka sikeresen elmentve!",
-      driveLink,
+      driveLink: driveLink,
     });
-  } catch (error) {
-    console.error("Hiba a mentés során:", error);
+  } catch (error: any) {
+    console.error("API Hiba (app/api/tasks/route.ts):", error);
     return NextResponse.json(
-      { error: "Hiba történt a munka mentésekor." },
+      { error: error?.message || "Hiba történt a feldolgozás során." },
       { status: 500 }
     );
   }
