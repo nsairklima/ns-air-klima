@@ -10,9 +10,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await sql`DELETE FROM tasks WHERE id = ${params.id}`;
+    // Javítva: "Task" (nagybetűvel és idézőjelek között)
+    await sql`DELETE FROM "Task" WHERE id = ${params.id}`;
     return NextResponse.json({ message: "Sikeres törlés" });
   } catch (error) {
+    console.error("Törlési hiba:", error);
     return NextResponse.json({ error: "Törlési hiba" }, { status: 500 });
   }
 }
@@ -25,19 +27,21 @@ export async function PUT(
     const body = await request.json();
     const { type, name, address, phone, email, note } = body;
 
+    // Javítva: "Task" (nagybetűvel és idézőjelek között)
+    // Megjegyzés: Ha az adatbázisban a oszlopnevek is nagybetűvel vagy specifikusan vannak, 
+    // azokat is igazítani kell, de a tábla neve "Task" lesz a kulcs.
     await sql`
-      UPDATE tasks
+      UPDATE "Task"
       SET type = ${type},
-          name = ${name || ""},
+          "clientName" = ${name || ""},
           address = ${address || ""},
-          phone = ${phone || ""},
-          email = ${email || ""},
-          note = ${note || ""}
+          phone = ${phone || ""}
       WHERE id = ${params.id}
     `;
 
     return NextResponse.json({ message: "Sikeres frissítés" });
   } catch (error) {
+    console.error("Szerkesztési hiba:", error);
     return NextResponse.json({ error: "Szerkesztési hiba" }, { status: 500 });
   }
 }
