@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 
+// Kötelezzük a Next.js-t, hogy mindig friss adatot kérjen le az adatbázisból (ne cache-eljen)
+export const dynamic = "force-dynamic";
+
 const sql = neon(process.env.POSTGRES_URL || "");
 
 export async function GET() {
@@ -15,6 +18,7 @@ export async function GET() {
       tasks,
     });
   } catch (error) {
+    console.error("Lekérdezési hiba:", error);
     return NextResponse.json(
       {
         error: "Lekérdezési hiba",
