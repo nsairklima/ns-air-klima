@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from "react";
 
+// Definiáljuk, hogy néz ki egy munka (Task)
+type Task = {
+  id: number;
+  type: string;
+  address: string;
+  drive_link?: string;
+  created_at: string;
+};
+
 export default function TasksPage() {
   const [type, setType] = useState<"telepites" | "karbantartas">("telepites");
   const [address, setAddress] = useState("");
@@ -9,33 +18,39 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [driveUrl, setDriveUrl] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<any[]>([]);
+  
+  // Itt tároljuk a betöltött munkákat
+  const [tasks, setTasks] = useState<Task[]>([]);
 
+  // Külön függvény a munkák lekérésére, hogy mentés után is újra tudjuk hívni
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch("/api/tasks/list");
+      const data = await res.json();
+      setTasks(data.tasks || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Oldal betöltésekor lekérjük a listát
   useEffect(() => {
-    fetch("/api/tasks/list")
-      .then((res) => res.json())
-      .then((data) => setTasks(data.tasks || []))
-      .catch(console.error);
+    fetchTasks();
   }, []);
 
   const mapsUrl = address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        address
-      )}`
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
     : "https://maps.google.com";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setLoading(true);
     setStatusMessage("");
     setDriveUrl(null);
 
     const formData = new FormData();
-
     formData.append("type", type);
     formData.append("address", address);
-
     if (photo) {
       formData.append("photo", photo);
     }
@@ -45,27 +60,20 @@ export default function TasksPage() {
         method: "POST",
         body: formData,
       });
-
       const data = await res.json();
 
       if (res.ok) {
         setStatusMessage("✅ " + data.message);
-
         if (data.driveLink) {
           setDriveUrl(data.driveLink);
         }
-
         setAddress("");
         setPhoto(null);
-
-        const listRes = await fetch("/api/tasks/list");
-        const listData = await listRes.json();
-
-        setTasks(listData.tasks || []);
+        
+        // Sikeres mentés után azonnal frissítjük a lenti listát!
+        fetchTasks();
       } else {
-        setStatusMessage(
-          "❌ " + (data.error || "Hiba történt.")
-        );
+        setStatusMessage("❌ " + (data.error || "Hiba történt."));
       }
     } catch {
       setStatusMessage("❌ Hálózati hiba történt.");
@@ -92,7 +100,6 @@ export default function TasksPage() {
         }}
       >
         <h1>Munka Kiadása</h1>
-
         <a
           href={mapsUrl}
           target="_blank"
@@ -110,6 +117,7 @@ export default function TasksPage() {
         </a>
       </div>
 
+      {/* --- FORM RÉSZ --- */}
       <form
         onSubmit={handleSubmit}
         style={{
@@ -224,86 +232,54 @@ export default function TasksPage() {
         </div>
       )}
 
-      {driveUrl && (
-        <p style={{ marginTop: "12px" }}>
-          <strong>Feltöltött kép:</strong>{" "}
-          <a href={driveUrl} target="_blank" rel="noopener noreferrer">
-            Megtekintés Google Drive-on
-          </a>
-        </p>
-      )}
-            <hr style={{ margin: "40px 0" }} />
-
-      <h2>Kiadott munkák</h2>
+      {/* --- MENTETT MUNKÁK LISTÁJA --- */}
+      <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>
+        Mentett munkák listája
+      </h2>
 
       {tasks.length === 0 ? (
-        <p>Nincs még kiadott munka.</p>
+        <p style={{ color: "#666" }}>Jelenleg nincs mentett munka az adatbázisban.</p>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-            marginTop: "20px",
-          }}
-        >
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                padding: "12px",
-                background: "#fff",
-              }}
-            >
-              <div>
-                <strong>
-                  {task.type === "telepites"
-                    ? "🛠️ Telepítés"
-                    : "🧹 Karbantartás"}
-                </strong>
-              </div>
-
-              <div style={{ marginTop: "6px" }}>
-                {task.address}
-              </div>
-
-              <div
-                style={{
-                  marginTop: "8px",
-                  display: "flex",
-                  gap: "12px",
-                }}
-              >
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-t="_blank"
-                  rel="noopener noreferrer"
-                >
-                  📍 Térkép
-                </a>
-
-                {task.drive_link && (
-                  <a
-                    href={task.drive� Kép
-                  </a>
-                )}
-              </div>
-
-              <div
-                style={{
-                  marginTop: "8px",
-                  color: "#666",
-                  fontSize: "12px",
-                }}
-              >
-                {new Date(task.created_at).toLocaleString(
-                  "hu-HU"
-                )}
-              </div>
-            </div>
-          ))}
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              marginTop: "16px",
+              background: "#fff",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#f1f1f1", textAlign: "left" }}>
+                <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Típus</th>
+                <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Cím</th>
+                <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Kép</th>
+                <th style={{ padding: "12px", borderBottom: "1px solid #ddd" }}>Dátum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((task) => (
+                <tr key={task.id} style={{ borderBottom: "1px solid #eee" }}>
+                  <td style={{ padding: "12px" }}>
+                    {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
+                  </td>
+                  <td style={{ padding: "12px" }}>{task.address}</td>
+                  <td style={{ padding: "12px" }}>
+                    {task.drive_link ? (
+                      <a href={task.drive_link} target="_blank" rel="noopener noreferrer" style={{ color: "#4285F4", textDecoration: "none" }}>
+                        📷 Megnyitás
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td style={{ padding: "12px", color: "#555" }}>
+                    {task.created_at ? new Date(task.created_at).toLocaleString("hu-HU") : "-"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </main>
