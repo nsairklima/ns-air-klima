@@ -5,25 +5,36 @@ import { v2 as cloudinary } from "cloudinary";
 export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
-
 cloudinary.config();
 
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
+    let bodyData: any = {};
+    let photo: File | null = null;
 
-    const type = (formData.get("type") as string) || "installation";
-    // Kezeljük mind a "name", mind a "clientName" mezőneveket a formból
-    const name = (formData.get("name") as string) || (formData.get("clientName") as string) || "";
-    const address = (formData.get("address") as string) || "";
-    const phone = (formData.get("phone") as string) || "";
-    const email = (formData.get("email") as string) || "";
-    const note = (formData.get("note") as string) || "";
-    const photo = formData.get("photo") as File | null;
+    const contentType = request.headers.get("content-type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      formData.forEach((value, key) => {
+        bodyData[key] = value;
+      });
+      photo = formData.get("photo") as File | null;
+    } else {
+      bodyData = await request.json().catch(() => ({}));
+    }
+
+    // Minden lehetséges mezőnév variáció kezelése
+    const type = bodyData.type || "installation";
+    const name = bodyData.name || bodyData.clientName || bodyData.client_name || "";
+    const address = bodyData.address || bodyData.location || "";
+    const phone = bodyData.phone || bodyData.telephone || "";
+    const email = bodyData.email || bodyData.clientEmail || "";
+    const note = bodyData.note || bodyData.notes || bodyData.description || "";
 
     let imageUrl = "";
 
-    if (photo && photo.size > 0) {
+    if (photo && typeof photo === "object" && "size" in photo && photo.size > 0) {
       try {
         const arrayBuffer = await photo.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
@@ -50,10 +61,11 @@ export async function POST(request: Request) {
     const currentDate = new Date().toISOString().split("T")[0];
     const imagesJson = JSON.stringify(imageUrl ? [imageUrl] : []);
 
-    // Összeállítjuk a leírást a megjegyzésből és az emailből
-    const descriptionText = note && email 
-      ? `${note} | Email: ${email}` 
-      : note || (email ? `Email: ${email}` : "");
+    // Email és megjegyzés intelligens összefűzése a leírásba, hogy semmi ne vesszen el
+    let descriptionText = note;
+    if (email) {
+      descriptionText = descriptionText ? `${descriptionText} | Email: ${email}` : `Email: ${email}`;
+    }
 
     await sql`
       INSERT INTO "Task" (
