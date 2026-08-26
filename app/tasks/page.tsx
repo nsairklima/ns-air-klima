@@ -25,6 +25,7 @@ export default function TasksPage() {
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [driveUrl, setDriveUrl] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
 
   // Szerkesztési állapotok
@@ -53,6 +54,7 @@ export default function TasksPage() {
     e.preventDefault();
     setLoading(true);
     setStatusMessage("");
+    setDriveUrl(null);
 
     const formData = new FormData();
     formData.append("type", type);
@@ -72,6 +74,9 @@ export default function TasksPage() {
 
       if (res.ok) {
         setStatusMessage("✅ " + data.message);
+        if (data.driveLink) {
+          setDriveUrl(data.driveLink);
+        }
         setName("");
         setAddress("");
         setPhone("");
@@ -123,15 +128,12 @@ export default function TasksPage() {
 
   return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "system-ui" }}>
-      {/* Reszponzív stílusok beágyazása a mobil nézethez */}
       <style jsx>{`
         .form-grid {
           display: grid;
           grid-template-columns: 1fr;
           gap: 16px;
         }
-
-        /* 600px szélesség felett (Asztali / Tablet nézet) 2 oszlopos */
         @media (min-width: 600px) {
           .form-grid {
             grid-template-columns: 1fr 1fr;
@@ -151,7 +153,6 @@ export default function TasksPage() {
         </a>
       </div>
 
-      {/* FORM */}
       <form
         onSubmit={handleSubmit}
         style={{ display: "flex", flexDirection: "column", gap: "16px", background: "#f9f9f9", padding: "20px", borderRadius: "12px", border: "1px solid #ddd" }}
@@ -168,28 +169,27 @@ export default function TasksPage() {
           </div>
         </div>
 
-        {/* EGYMÁS ALATTI MEZŐK MOBILON (.form-grid) */}
         <div className="form-grid">
           <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Név:</label>
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Név (Opcionális):</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ügyfél neve" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
           </div>
           <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Cím / Helyszín:</label>
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Cím / Helyszín (Opcionális):</label>
             <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Pl. 1051 Budapest, Kossuth L. tér 1." style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
           </div>
           <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Telefonszám:</label>
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Telefonszám (Opcionális):</label>
             <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+36 30 123 4567" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
           </div>
           <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Email cím:</label>
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Email cím (Opcionális):</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
           </div>
         </div>
 
         <div>
-          <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés:</label>
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés (Opcionális):</label>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
         </div>
 
@@ -203,7 +203,20 @@ export default function TasksPage() {
         </button>
       </form>
 
-      {statusMessage && <div style={{ marginTop: "20px", padding: "12px", borderRadius: "6px", background: "#d4edda", color: "#155724" }}>{statusMessage}</div>}
+      {statusMessage && (
+        <div style={{ marginTop: "20px", padding: "12px", borderRadius: "6px", background: statusMessage.startsWith("✅") ? "#d4edda" : "#f8d7da", color: statusMessage.startsWith("✅") ? "#155724" : "#721c24" }}>
+          {statusMessage}
+        </div>
+      )}
+
+      {driveUrl && (
+        <p style={{ marginTop: "12px" }}>
+          <strong>Feltöltött kép:</strong>{" "}
+          <a href={driveUrl} target="_blank" rel="noopener noreferrer">
+            Megtekintés Google Drive-on
+          </a>
+        </p>
+      )}
 
       {/* MENTETT MUNKÁK */}
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>Mentett munkák</h2>
@@ -220,6 +233,7 @@ export default function TasksPage() {
                 <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Cím</th>
                 <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Elérhetőség</th>
                 <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Megjegyzés</th>
+                <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Kép</th>
                 <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Műveletek</th>
               </tr>
             </thead>
@@ -241,6 +255,7 @@ export default function TasksPage() {
                         <input type="text" placeholder="Email" value={editData.email || ""} onChange={(e) => setEditData({ ...editData, email: e.target.value })} style={{ width: "100%" }} />
                       </td>
                       <td style={{ padding: "8px" }}><input type="text" value={editData.note || ""} onChange={(e) => setEditData({ ...editData, note: e.target.value })} style={{ width: "100%" }} /></td>
+                      <td style={{ padding: "8px" }}>-</td>
                       <td style={{ padding: "8px" }}>
                         <button onClick={() => handleSaveEdit(task.id)} style={{ background: "#28a745", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", marginRight: "4px" }}>Mentés</button>
                         <button onClick={() => setEditingTaskId(null)} style={{ background: "#6c757d", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px" }}>Mégse</button>
@@ -257,6 +272,13 @@ export default function TasksPage() {
                         {!task.phone && !task.email && "-"}
                       </td>
                       <td style={{ padding: "10px" }}>{task.note || "-"}</td>
+                      <td style={{ padding: "10px" }}>
+                        {task.drive_link ? (
+                          <a href={task.drive_link} target="_blank" rel="noopener noreferrer">📷 Kép</a>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                       <td style={{ padding: "10px" }}>
                         <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "4px 8px", borderRadius: "4px", marginRight: "4px", cursor: "pointer" }}>✏️</button>
                         <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer" }}>🗑️</button>
