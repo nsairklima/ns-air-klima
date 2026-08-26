@@ -154,7 +154,11 @@ export async function POST(req: NextRequest) {
         },
       });
 
-
+    // Emailhez szükséges változók előkészítése
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    const driveHtmlSection = driveLink
+      ? `<p><strong>Google Drive kép:</strong> <a href="${driveLink}" target="_blank">Megtekintés</a></p>`
+      : "";
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -198,7 +202,19 @@ export async function POST(req: NextRequest) {
                 color:white;
                 padding:10px 18px;
                 text-decoration:none;
-                kép Google Drive-ra feltöltve."
+                border-radius:4px;
+                display:inline-block;
+              ">
+              Megnyitás Google Térképen
+            </a>
+          </div>
+        </div>
+      `,
+    });
+
+    return NextResponse.json({
+      message: driveLink
+        ? "Munka és kép sikeresen elmentve."
         : "Munka mentve.",
       driveLink,
     });
@@ -216,4 +232,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
