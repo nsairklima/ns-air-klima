@@ -153,41 +153,48 @@ export async function POST(req: NextRequest) {
           pass: process.env.EMAIL_PASS,
         },
       });
+await transporter.sendMail({
+  from: process.env.EMAIL_USER,
+  to: process.env.EMAIL_USER,
+  subject: `[Új Munka] ${
+    type === "telepites"
+      ? "Telepítés"
+      : "Karbantartás"
+  } - ${address}`,
+  html: `
+    <div style="font-family:Arial,sans-serif;padding:20px;border:1px solid #ddd;border-radius:8px;">
+      <h2>Új munka lett kiadva</h2>
 
-    const mapsUrl =
-      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        address
-      )}`;
+      <p>
+        <strong>Munkatípus:</strong>
+        ${
+          type === "telepites"
+            ? "🛠️ Telepítés"
+            : "🧹 Karbantartás"
+        }
+      </p>
 
-    const attachments: any[] = [];
+      <p>
+        <strong>Cím:</strong>
+        ${address}
+      </p>
 
-    if (photoBuffer && photo) {
-      attachments.push({
-        filename: photo.name,
-        content: photoBuffer,
-      });
-    }
+      ${driveHtmlSection}
 
-    const driveHtmlSection = driveLink
-      ? `
-        <p>
-          📁 <strong>Google Drive kép:</strong>
-          ${driveLink}
-            Kép megnyitása
-          </a>
-        </p>
-      `
-      : photo
-      ? `
-        <p>
-          📷 A kép csatolva lett az e-mailhez.
-        </p>
-      `
-      : `
-        <p>
-          📷 Nem került feltöltésre kép.
-        </p>
-      `;
+      <p style="margin-top:20px;">
+        <a
+          href="${mapsUrl}"
+          target="_blank"
+          style="
+            background:#4285F4;
+            color:white;
+            padding:10px 18px;
+            text-decoration:none;
+            border-radius:5px;
+            display",
+  driveLink,
+});
+
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
