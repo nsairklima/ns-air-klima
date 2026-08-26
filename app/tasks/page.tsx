@@ -102,4 +102,136 @@ export default function TasksPage() {
             color: "white",
             padding: "10px 16px",
             borderRadius: "8px",
-       
+            textDecoration: "none",
+            fontWeight: "bold",
+          }}
+        >
+          📍 Google Maps
+        </a>
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+          background: "#f9f9f9",
+          padding: "20px",
+          borderRadius: "12px",
+          border: "1px solid #ddd",
+        }}
+      >
+        <div>
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>
+            Munkatípus választása:
+          </label>
+          <div style={{ display: "flex", gap: "20px" }}>
+            <label style={{ cursor: "pointer" }}>
+              <input
+                type="radio"
+                name="type"
+                value="telepites"
+                checked={type === "telepites"}
+                onChange={() => setType("telepites")}
+              />{" "}
+              🛠️ Telepítés
+            </label>
+            <label style={{ cursor: "pointer" }}>
+              <input
+                type="radio"
+                name="type"
+                value="karbantartas"
+                checked={type === "karbantartas"}
+                onChange={() => setType("karbantartas")}
+              />{" "}
+              🧹 Karbantartás
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>
+            Cím / Helyszín:
+          </label>
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Pl. 1051 Budapest, Kossuth Lajos tér 1."
+            required
+            style={{
+              width: "100%",
+              padding: "10px",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>
+            Kép csatolása (Google Drive feltöltés):
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+            style={{
+              width: "100%",
+              padding: "8px",
+              background: "white",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+            }}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            background: loading ? "#ccc" : "#28a745",
+            color: "white",
+            padding: "12px",
+            fontSize: "16px",
+            fontWeight: "bold",
+            border: "none",
+            borderRadius: "6px",
+            cursor: loading ? "not-allowed" : "pointer",
+            marginTop: "10px",
+          }}
+        >
+          {loading ? "Feldolgozás..." : "Munka Kiadása"}
+        </button>
+      </form>
+
+      {statusMessage && (
+        <div
+          style={{
+            marginTop: "20px",
+            padding: "14px",
+            borderRadius: "6px",
+            background: statusMessage.startsWith("✅") ? "#d4edda" : "#f8d7da",
+            color: statusMessage.startsWith("✅") ? "#155724" : "#721c24",
+            border: `1px solid ${
+              statusMessage.startsWith("✅") ? "#c3e6cb" : "#f5c6cb"
+            }`,
+          }}
+        >
+          {statusMessage}
+        </div>
+      )}
+
+      {driveUrl && (
+        <p style={{ marginTop: "12px" }}>
+          <strong>Feltöltött kép:</strong>{" "}
+          <a href={driveUrl} target="_blank" rel="noopener noreferrer">
+            Megtekintés Google Drive-on
+          </a>
+        </p>
+      )}
+    </main>
+  );
+}
