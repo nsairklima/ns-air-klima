@@ -10,7 +10,6 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Javítva: "Task" (nagybetűvel és idézőjelek között)
     await sql`DELETE FROM "Task" WHERE id = ${params.id}`;
     return NextResponse.json({ message: "Sikeres törlés" });
   } catch (error) {
@@ -25,17 +24,22 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { type, name, address, phone, email, note } = body;
+    const { type, name, clientName, address, phone, email, note } = body;
+    const finalName = name || clientName || "";
 
-    // Javítva: "Task" (nagybetűvel és idézőjelek között)
-    // Megjegyzés: Ha az adatbázisban a oszlopnevek is nagybetűvel vagy specifikusan vannak, 
-    // azokat is igazítani kell, de a tábla neve "Task" lesz a kulcs.
+    const descriptionText = note && email 
+      ? `${note} | Email: ${email}` 
+      : note || (email ? `Email: ${email}` : "");
+
     await sql`
       UPDATE "Task"
       SET type = ${type},
-          "clientName" = ${name || ""},
+          "clientName" = ${finalName},
+          title = ${finalName || "Munkalap"},
           address = ${address || ""},
-          phone = ${phone || ""}
+          phone = ${phone || ""},
+          description = ${descriptionText},
+          "updatedAt" = NOW()
       WHERE id = ${params.id}
     `;
 
