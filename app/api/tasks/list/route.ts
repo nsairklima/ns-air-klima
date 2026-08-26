@@ -8,9 +8,10 @@ const sql = neon(process.env.POSTGRES_URL || "");
 
 export async function GET() {
   try {
+    // Javítva: "Task" (nagybetűvel és idézőjelek között, ahogy a mentésnél is használjuk)
     const tasks = await sql`
       SELECT *
-      FROM tasks
+      FROM "Task"
       ORDER BY id DESC
     `;
 
