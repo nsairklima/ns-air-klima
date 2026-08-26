@@ -23,29 +23,17 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json().catch(() => ({}));
-
-    const type = body.type || "installation";
-    const name = body.name || body.clientName || body.client_name || "";
-    const address = body.address || body.location || "";
-    const phone = body.phone || body.telephone || "";
-    const email = body.email || body.clientEmail || "";
-    const note = body.note || body.notes || body.description || "";
-
-    let descriptionText = note;
-    if (email) {
-      descriptionText = descriptionText ? `${descriptionText} | Email: ${email}` : `Email: ${email}`;
-    }
+    const body = await request.json();
+    const { type, name, address, phone, email, note } = body;
 
     await sql`
       UPDATE "Task"
-      SET type = ${type},
-          "clientName" = ${name},
-          title = ${name || "Munkalap"},
-          address = ${address},
-          phone = ${phone},
-          description = ${descriptionText},
-          "updatedAt" = NOW()
+      SET type = ${type || "telepites"},
+          name = ${name || ""},
+          address = ${address || ""},
+          phone = ${phone || ""},
+          email = ${email || ""},
+          note = ${note || ""}
       WHERE id = ${params.id}
     `;
 
