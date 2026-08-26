@@ -5,51 +5,39 @@ export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
 
-// Munkák törlése (DELETE kérés)
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const taskId = params.id;
-
-    await sql`
-      DELETE FROM tasks
-      WHERE id = ${taskId}
-    `;
-
+    await sql`DELETE FROM tasks WHERE id = ${params.id}`;
     return NextResponse.json({ message: "Sikeres törlés" });
   } catch (error) {
-    console.error("Törlési hiba:", error);
-    return NextResponse.json(
-      { error: "Nem sikerült törölni a munkát." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Törlési hiba" }, { status: 500 });
   }
 }
 
-// Munka adatinak frissítése (PUT kérés)
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const taskId = params.id;
     const body = await request.json();
-    const { type, address } = body;
+    const { type, name, address, phone, email, note } = body;
 
     await sql`
       UPDATE tasks
-      SET type = ${type}, address = ${address}
-      WHERE id = ${taskId}
+      SET type = ${type},
+          name = ${name || ""},
+          address = ${address || ""},
+          phone = ${phone || ""},
+          email = ${email || ""},
+          note = ${note || ""}
+      WHERE id = ${params.id}
     `;
 
     return NextResponse.json({ message: "Sikeres frissítés" });
   } catch (error) {
-    console.error("Szerkesztési hiba:", error);
-    return NextResponse.json(
-      { error: "Nem sikerült frissíteni a munkát." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Szerkesztési hiba" }, { status: 500 });
   }
 }
