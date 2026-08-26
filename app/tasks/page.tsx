@@ -232,6 +232,80 @@ export default function TasksPage() {
           </a>
         </p>
       )}
+            <hr style={{ margin: "40px 0" }} />
+
+      <h2>Kiadott munkák</h2>
+
+      {tasks.length === 0 ? (
+        <p>Nincs még kiadott munka.</p>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            marginTop: "20px",
+          }}
+        >
+          {tasks.map((task) => (
+            <div
+              key={task.id}
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: "8px",
+                padding: "12px",
+                background: "#fff",
+              }}
+            >
+              <div>
+                <strong>
+                  {task.type === "telepites"
+                    ? "🛠️ Telepítés"
+                    : "🧹 Karbantartás"}
+                </strong>
+              </div>
+
+              <div style={{ marginTop: "6px" }}>
+                {task.address}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "8px",
+                  display: "flex",
+                  gap: "12px",
+                }}
+              >
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+t="_blank"
+                  rel="noopener noreferrer"
+                >
+                  📍 Térkép
+                </a>
+
+                {task.drive_link && (
+                  <a
+                    href={task.drive� Kép
+                  </a>
+                )}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "8px",
+                  color: "#666",
+                  fontSize: "12px",
+                }}
+              >
+                {new Date(task.created_at).toLocaleString(
+                  "hu-HU"
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }
