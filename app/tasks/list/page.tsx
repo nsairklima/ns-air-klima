@@ -61,7 +61,11 @@ export default function TaskListPage() {
               <td>
                 {task.drive_link ? (
                   <a
-                    href           📷 Megnyitás
+                    href={task.drive_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    📷 Megnyitás
                   </a>
                 ) : (
                   "-"
@@ -69,9 +73,7 @@ export default function TaskListPage() {
               </td>
 
               <td>
-                {new Date(
-                  task.created_at
-                ).toLocaleString("hu-HU")}
+                {new Date(task.created_at).toLocaleString("hu-HU")}
               </td>
             </tr>
           ))}
