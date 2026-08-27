@@ -145,8 +145,19 @@ export default function TasksPage() {
     setName(task.name || "");
     setAddress(task.address || "");
     setPhone(task.phone || "");
-    setEmail(task.email || "");
-    setNote(task.note || "");
+
+    let taskEmail = task.email || "";
+    let taskNote = task.note || "";
+
+    // Ha külön mezőben nincs email, de a megjegyzésben benne van a régi formátum, szétválasztjuk
+    if (!taskEmail && taskNote.includes("| Email:")) {
+      const parts = taskNote.split("| Email:");
+      taskNote = parts[0].trim();
+      taskEmail = parts[1].trim();
+    }
+
+    setEmail(taskEmail);
+    setNote(taskNote);
     setPhoto(null);
     setStatusMessage("");
     // Görgessünk fel az űrlaphoz, hogy lássa a felhasználó
