@@ -23,6 +23,12 @@ export async function POST(request: Request) {
     const email = (formData.get("email") as string) || "";
     const note = (formData.get("note") as string) || "";
     
+    // Új időpont mezők kezelése (ha üres, legyen null)
+    const scheduledAtRaw = formData.get("scheduledAt") as string;
+    const completedAtRaw = formData.get("completedAt") as string;
+    const scheduledAt = scheduledAtRaw ? scheduledAtRaw.replace("T", " ") : null;
+    const completedAt = completedAtRaw ? completedAtRaw.replace("T", " ") : null;
+    
     // Több fájl lekérése
     const photos = formData.getAll("photos") as File[];
     const imageUrls: string[] = [];
@@ -67,6 +73,8 @@ export async function POST(request: Request) {
         "date",
         "description", 
         "images", 
+        "scheduled_at",
+        "completed_at",
         "updatedAt"
       )
       VALUES (
@@ -78,6 +86,8 @@ export async function POST(request: Request) {
         ${currentDate},
         ${note ? `${note} ${email ? `| Email: ${email}` : ""}` : email ? `Email: ${email}` : ""}, 
         ${JSON.stringify(imageUrls)}, 
+        ${scheduledAt},
+        ${completedAt},
         NOW()
       )
     `;
