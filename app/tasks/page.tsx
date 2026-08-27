@@ -51,7 +51,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-  const [viewingTask, setViewingTask] = useState<Task | null>(null); // Csak megtekintéshez való állapot
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
 
   const fetchTasks = async () => {
     try {
@@ -248,7 +248,24 @@ export default function TasksPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
               <div><strong>Státusz:</strong> {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}</div>
               <div><strong>Név:</strong> {viewingTask.name || "-"}</div>
-              <div><strong>Cím:</strong> {viewingTask.address || "-"}</div>
+              
+              {/* Cím kattintható linkként a Google Maps-hez */}
+              <div>
+                <strong>Cím:</strong>{" "}
+                {viewingTask.address ? (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(viewingTask.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#4285F4", textDecoration: "underline", fontWeight: "bold" }}
+                  >
+                    📍 {viewingTask.address}
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </div>
+
               {viewingTask.phone && <div><strong>Telefon:</strong> 📞 {viewingTask.phone}</div>}
               {viewingTask.email && <div><strong>Email:</strong> ✉️ {viewingTask.email}</div>}
               {viewingTask.scheduled_at && <div><strong>Tervezett időpont:</strong> 📅 {formatDate(viewingTask.scheduled_at)}</div>}
@@ -513,7 +530,6 @@ export default function TasksPage() {
                     )}
                   </div>
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                    {/* ÚJ MEGNYITÁS GOMB */}
                     <button onClick={() => setViewingTask(task)} style={{ background: "#17a2b8", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>👁️ Megnyitás</button>
                     <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>✏️ Szerkesztés</button>
                     <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>🗑️ Törlés</button>
