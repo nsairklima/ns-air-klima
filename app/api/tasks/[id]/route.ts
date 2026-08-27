@@ -26,14 +26,16 @@ export async function PUT(
     const body = await request.json();
     const { type, name, address, phone, email, note } = body;
 
+    // Frissítjük a valós oszlopokat az adatbázisban
     await sql`
       UPDATE "Task"
       SET type = ${type || "telepites"},
-          name = ${name || ""},
+          title = ${name || "Módosított munka"},
+          clientName = ${name || ""},
           address = ${address || ""},
           phone = ${phone || ""},
-          email = ${email || ""},
-          note = ${note || ""}
+          description = ${note ? `${note} ${email ? `| Email: ${email}` : ""}` : email ? `Email: ${email}` : ""},
+          updatedAt = NOW()
       WHERE id = ${params.id}
     `;
 
