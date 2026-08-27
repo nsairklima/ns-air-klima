@@ -266,7 +266,21 @@ export default function TasksPage() {
                 )}
               </div>
 
-              {viewingTask.phone && <div><strong>Telefon:</strong> 📞 {viewingTask.phone}</div>}
+              {/* Telefonszám kattintható linkként a híváshoz */}
+              <div>
+                <strong>Telefon:</strong>{" "}
+                {viewingTask.phone ? (
+                  <a
+                    href={`tel:${viewingTask.phone}`}
+                    style={{ color: "#28a745", textDecoration: "underline", fontWeight: "bold" }}
+                  >
+                    📞 {viewingTask.phone}
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </div>
+
               {viewingTask.email && <div><strong>Email:</strong> ✉️ {viewingTask.email}</div>}
               {viewingTask.scheduled_at && <div><strong>Tervezett időpont:</strong> 📅 {formatDate(viewingTask.scheduled_at)}</div>}
               {viewingTask.completed_at && <div><strong>Megvalósult időpont:</strong> ✅ {formatDate(viewingTask.completed_at)}</div>}
