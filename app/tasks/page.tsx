@@ -385,59 +385,90 @@ export default function TasksPage() {
         <p style={{ color: "#666", marginTop: "16px" }}>Nincs mentett munka.</p>
       ) : (
         <div className="cards-grid">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              style={{
-                background: "#fff",
-                border: editingTaskId === task.id ? "2px solid #ffc107" : "1px solid #e0e0e0",
-                borderRadius: "10px",
-                padding: "16px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-                position: "relative",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f0f0f0", paddingBottom: "8px" }}>
-                <span style={{ fontWeight: "bold", fontSize: "15px", color: "#333" }}>
-                  {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
-                </span>
-                <span style={{ fontSize: "12px", color: "#888" }}>{formatDate(task.created_at)}</span>
-              </div>
+          {tasks.map((task) => {
+            const isCompleted = Boolean(task.completed_at);
+            const isTelepites = task.type === "telepites";
 
-              <div style={{ fontSize: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                <div><strong>Név:</strong> {task.name || "-"}</div>
-                <div><strong>Cím:</strong> {task.address || "-"}</div>
-                {task.phone && <div><strong>Telefon:</strong> 📞 {task.phone}</div>}
-                {task.email && <div><strong>Email:</strong> ✉️ {task.email}</div>}
-                {task.scheduled_at && <div><strong>Tervezett:</strong> 📅 {formatDate(task.scheduled_at)}</div>}
-                {task.completed_at && <div><strong>Megvalósult:</strong> ✅ {formatDate(task.completed_at)}</div>}
-                {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
-              </div>
+            let cardBackground = "#fff";
+            let borderColor = "#e0e0e0";
+            let statusBadgeBg = "#e2e8f0";
+            let statusBadgeColor = "#475569";
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #f0f0f0" }}>
-                <div>
-                  {task.images && task.images.length > 0 ? (
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                      {task.images.map((imgUrl, i) => (
-                        <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "12px", background: "#f1f1f1", padding: "2px 6px", borderRadius: "4px" }}>
-                          📷 {i + 1}. kép
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <span style={{ color: "#aaa", fontSize: "13px" }}>Nincs kép</span>
-                  )}
+            if (isCompleted) {
+              cardBackground = "#f0fdf4"; // Zöldes háttér, ha kész van
+              borderColor = "#bbf7d0";
+              statusBadgeBg = "#dcfce7";
+              statusBadgeColor = "#166534";
+            } else {
+              if (isTelepites) {
+                cardBackground = "#f8fafc"; // Enyhén kékes, ha telepítés és folyamatban
+                borderColor = "#cbd5e1";
+              } else {
+                cardBackground = "#fdf4ff"; // Enyhén lilás, ha karbantartás és folyamatban
+                borderColor = "#f5d0fe";
+              }
+            }
+
+            return (
+              <div
+                key={task.id}
+                style={{
+                  background: cardBackground,
+                  border: editingTaskId === task.id ? "2px solid #ffc107" : `1px solid ${borderColor}`,
+                  borderLeft: `6px solid ${isCompleted ? "#22c55e" : isTelepites ? "#3b82f6" : "#a855f7"}`,
+                  borderRadius: "10px",
+                  padding: "16px",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  position: "relative",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(0,0,0,0.06)", paddingBottom: "8px" }}>
+                  <span style={{ fontWeight: "bold", fontSize: "15px", color: "#333" }}>
+                    {isTelepites ? "🛠️ Telepítés" : "🧹 Karbantartás"}
+                  </span>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "12px", background: statusBadgeBg, color: statusBadgeColor, fontWeight: "bold" }}>
+                      {isCompleted ? "✅ Kész" : "⏳ Folyamatban"}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#888" }}>{formatDate(task.created_at)}</span>
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: "6px" }}>
-                  <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>✏️ Szerkesztés</button>
-                  <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>🗑️ Törlés</button>
+
+                <div style={{ fontSize: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <div><strong>Név:</strong> {task.name || "-"}</div>
+                  <div><strong>Cím:</strong> {task.address || "-"}</div>
+                  {task.phone && <div><strong>Telefon:</strong> 📞 {task.phone}</div>}
+                  {task.email && <div><strong>Email:</strong> ✉️ {task.email}</div>}
+                  {task.scheduled_at && <div><strong>Tervezett:</strong> 📅 {formatDate(task.scheduled_at)}</div>}
+                  {task.completed_at && <div><strong>Megvalósult:</strong> ✅ {formatDate(task.completed_at)}</div>}
+                  {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+                  <div>
+                    {task.images && task.images.length > 0 ? (
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                        {task.images.map((imgUrl, i) => (
+                          <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "12px", background: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: "4px" }}>
+                            📷 {i + 1}. kép
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ color: "#aaa", fontSize: "13px" }}>Nincs kép</span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>✏️ Szerkesztés</button>
+                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>🗑️ Törlés</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </main>
