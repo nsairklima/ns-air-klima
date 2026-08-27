@@ -50,26 +50,31 @@ export async function POST(request: Request) {
       }
     }
 
-    // Most már a tiszta, eredeti mezőneveket mentjük az adatbázisba
+    const currentDate = new Date().toISOString().split("T")[0];
+
+    // Itt a valós, adatbázisban létező oszlopneveket használjuk:
+    // clientName, description, images, date, updatedAt, stb.
     await sql`
       INSERT INTO "Task" (
         "type", 
-        "name", 
+        "title",
+        "clientName", 
         "address", 
         "phone", 
-        "email", 
-        "note", 
-        "drive_link", 
-        "created_at"
+        "date",
+        "description", 
+        "images", 
+        "updatedAt"
       )
       VALUES (
         ${type}, 
+        ${name || "Új munka"},
         ${name}, 
         ${address}, 
         ${phone}, 
-        ${email}, 
-        ${note}, 
-        ${imageUrl}, 
+        ${currentDate},
+        ${note ? `${note} ${email ? `| Email: ${email}` : ""}` : email ? `Email: ${email}` : ""}, 
+        ${JSON.stringify(imageUrl ? [imageUrl] : [])}, 
         NOW()
       )
     `;
