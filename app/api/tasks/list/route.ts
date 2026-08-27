@@ -45,6 +45,8 @@ export async function GET() {
         phone: t.phone || "",
         email: t.email || extractedEmail,
         note: description,
+        scheduled_at: t.scheduled_at || t.scheduledAt || "",
+        completed_at: t.completed_at || t.completedAt || "",
         images: imagesArray,
         created_at: t.date || t.updatedAt || "",
       };
