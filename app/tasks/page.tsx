@@ -21,7 +21,7 @@ export default function TasksPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
-  const [photos, setPhotos] = useState<File[]>([]); // Több fájl állapota
+  const [photos, setPhotos] = useState<File[]>([]); // Külön hozzáadott fájlok listája
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -58,12 +58,25 @@ export default function TasksPage() {
     setEditingTaskId(null);
   };
 
+  // Új kép hozzáadása a meglévő listához
+  const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const newFile = e.target.files[0];
+      setPhotos((prev) => [...prev, newFile]);
+      e.target.value = ""; // Alaphelyzetbe állítjuk az inputot, hogy ugyanazt a fájlt újra lehessen választani ha kell
+    }
+  };
+
+  // Egy adott kiválasztott kép törlése a listából
+  const handleRemovePhoto = (indexToRemove: number) => {
+    setPhotos((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setStatusMessage("");
 
-    // FormData használata mind létrehozáskor, mind szerkesztéskor a képek miatt
     const formData = new FormData();
     formData.append("type", type);
     formData.append("name", name);
@@ -248,16 +261,36 @@ export default function TasksPage() {
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
         </div>
 
+        {/* Külön gombos kép hozzáadási logika */}
         <div>
-          <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Képek csatolása (akár több is):</label>
-          <input 
-            type="file" 
-            accept="image/*" 
-            multiple 
-            onChange={(e) => setPhotos(Array.from(e.target.files || []))} 
-            style={{ width: "100%", padding: "8px", background: "white", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} 
-          />
-          {photos.length > 0 && <small style={{ color: "#666", display: "block", marginTop: "4px" }}>{photos.length} kép kiválasztva.</small>}
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "6px" }}>Képek hozzáadása:</label>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "8px" }}>
+            {photos.map((photo, index) => (
+              <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", padding: "8px 12px", borderRadius: "6px", border: "1px solid #ccc" }}>
+                <span style={{ fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "300px" }}>
+                  📷 {photo.name}
+                </span>
+                <button 
+                  type="button" 
+                  onClick={() => handleRemovePhoto(index)}
+                  style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
+                >
+                  Törlés
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <label style={{ display: "inline-block", background: "#0070f3", color: "white", padding: "10px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>
+            ➕ Kép hozzáadása
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleAddPhoto} 
+              style={{ display: "none" }} 
+            />
+          </label>
         </div>
 
         <div style={{ display: "flex", gap: "10px" }}>
