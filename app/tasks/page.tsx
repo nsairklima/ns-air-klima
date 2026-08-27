@@ -1,6 +1,11 @@
+app/tasks/page.tsx
+
+
+
+
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 
 type Task = {
   id: number;
@@ -52,9 +57,6 @@ export default function TasksPage() {
 
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
-
-  const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
-  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchTasks = async () => {
     try {
@@ -207,50 +209,6 @@ export default function TasksPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Külön számoljuk a típusokat a szűrőgombokhoz
-  const counts = useMemo(() => {
-    return {
-      all: tasks.length,
-      telepites: tasks.filter((t) => t.type === "telepites").length,
-      karbantartas: tasks.filter((t) => t.type === "karbantartas").length,
-    };
-  }, [tasks]);
-
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      if (filterType !== "all" && task.type !== filterType) {
-        return false;
-      }
-
-      if (searchQuery.trim() !== "") {
-        const query = searchQuery.toLowerCase();
-        const matchesName = task.name?.toLowerCase().includes(query) || false;
-        const matchesAddress = task.address?.toLowerCase().includes(query) || false;
-        const matchesPhone = task.phone?.toLowerCase().includes(query) || false;
-        const matchesEmail = task.email?.toLowerCase().includes(query) || false;
-        const matchesNote = task.note?.toLowerCase().includes(query) || false;
-        const matchesType = task.type?.toLowerCase().includes(query) || false;
-        const matchesScheduled = task.scheduled_at?.toLowerCase().includes(query) || false;
-        const matchesCompleted = task.completed_at?.toLowerCase().includes(query) || false;
-        const matchesCreated = task.created_at?.toLowerCase().includes(query) || false;
-
-        return (
-          matchesName ||
-          matchesAddress ||
-          matchesPhone ||
-          matchesEmail ||
-          matchesNote ||
-          matchesType ||
-          matchesScheduled ||
-          matchesCompleted ||
-          matchesCreated
-        );
-      }
-
-      return true;
-    });
-  }, [tasks, filterType, searchQuery]);
-
   return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "system-ui" }}>
       <style jsx>{`
@@ -265,46 +223,12 @@ export default function TasksPage() {
           gap: 16px;
           margin-top: 16px;
         }
-        .card-footer {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          margin-top: auto;
-          padding-top: 10px;
-          border-top: 1px solid rgba(0,0,0,0.06);
-        }
-        .card-actions {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 8px;
-          width: 100%;
-        }
-        .card-actions button {
-          width: 100%;
-          padding: 12px;
-          justify-content: center;
-          font-size: 14px;
-        }
         @media (min-width: 600px) {
           .form-grid {
             grid-template-columns: 1fr 1fr;
           }
           .cards-grid {
             grid-template-columns: 1fr 1fr;
-          }
-          .card-footer {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-          }
-          .card-actions {
-            display: flex;
-            flex-direction: row;
-            width: auto;
-          }
-          .card-actions button {
-            width: auto;
-            padding: 6px 12px;
           }
         }
       `}</style>
@@ -330,6 +254,7 @@ export default function TasksPage() {
               <div><strong>Státusz:</strong> {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}</div>
               <div><strong>Név:</strong> {viewingTask.name || "-"}</div>
               
+              {/* Cím kattintható linkként a Google Maps-hez */}
               <div>
                 <strong>Cím:</strong>{" "}
                 {viewingTask.address ? (
@@ -346,6 +271,7 @@ export default function TasksPage() {
                 )}
               </div>
 
+              {/* Telefonszám kattintható linkként a híváshoz */}
               <div>
                 <strong>Telefon:</strong>{" "}
                 {viewingTask.phone ? (
@@ -542,76 +468,11 @@ export default function TasksPage() {
 
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>Mentett munkák</h2>
 
-      {/* SZŰRŐ ÉS KERESŐ SÁV A KÁRTYÁK FELETT */}
-      <div style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          <button
-            onClick={() => setFilterType("all")}
-            style={{
-              padding: "8px 14px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              background: filterType === "all" ? "#0070f3" : "white",
-              color: filterType === "all" ? "white" : "#333",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            Összes ({counts.all})
-          </button>
-          <button
-            onClick={() => setFilterType("telepites")}
-            style={{
-              padding: "8px 14px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              background: filterType === "telepites" ? "#3b82f6" : "white",
-              color: filterType === "telepites" ? "white" : "#333",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            🛠️ Telepítések ({counts.telepites})
-          </button>
-          <button
-            onClick={() => setFilterType("karbantartas")}
-            style={{
-              padding: "8px 14px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              background: filterType === "karbantartas" ? "#a855f7" : "white",
-              color: filterType === "karbantartas" ? "white" : "#333",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            🧹 Karbantartások ({counts.karbantartas})
-          </button>
-        </div>
-
-        <div style={{ flex: 1, minWidth: "220px" }}>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="🔍 Keresés név, cím, telefon, megjegyzés..."
-            style={{
-              width: "100%",
-              padding: "9px 12px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              boxSizing: "border-box",
-              fontSize: "14px",
-            }}
-          />
-        </div>
-      </div>
-
-      {filteredTasks.length === 0 ? (
-        <p style={{ color: "#666", marginTop: "16px" }}>Nincs a keresésnek vagy szűrőnek megfelelő munka.</p>
+      {tasks.length === 0 ? (
+        <p style={{ color: "#666", marginTop: "16px" }}>Nincs mentett munka.</p>
       ) : (
         <div className="cards-grid">
-          {filteredTasks.map((task) => {
+          {tasks.map((task) => {
             const isCompleted = Boolean(task.completed_at);
             const isTelepites = task.type === "telepites";
 
@@ -673,7 +534,7 @@ export default function TasksPage() {
                   {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
                 </div>
 
-                <div className="card-footer">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid rgba(0,0,0,0.06)", flexWrap: "wrap", gap: "8px" }}>
                   <div>
                     {task.images && task.images.length > 0 ? (
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
@@ -687,10 +548,10 @@ export default function TasksPage() {
                       <span style={{ color: "#aaa", fontSize: "13px" }}>Nincs kép</span>
                     )}
                   </div>
-                  <div className="card-actions">
-                    <button onClick={() => setViewingTask(task)} style={{ background: "#17a2b8", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center" }}>👁️ Megnyitás</button>
-                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center" }}>✏️ Szerkesztés</button>
-                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center" }}>🗑️ Törlés</button>
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                    <button onClick={() => setViewingTask(task)} style={{ background: "#17a2b8", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>👁️ Megnyitás</button>
+                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>✏️ Szerkesztés</button>
+                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>🗑️ Törlés</button>
                   </div>
                 </div>
               </div>
