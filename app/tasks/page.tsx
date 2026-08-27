@@ -30,7 +30,6 @@ export default function TasksPage() {
 
   // Szerkesztési állapotok
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-  const [editData, setEditData] = useState<Partial<Task>>({});
 
   const fetchTasks = async () => {
     try {
@@ -50,47 +49,79 @@ export default function TasksPage() {
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
     : "https://maps.google.com";
 
+  // Mezők ürítése
+  const resetForm = () => {
+    setType("telepites");
+    setName("");
+    setAddress("");
+    setPhone("");
+    setEmail("");
+    setNote("");
+    setPhoto(null);
+    setEditingTaskId(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setStatusMessage("");
     setDriveUrl(null);
 
-    const formData = new FormData();
-    formData.append("type", type);
-    formData.append("name", name);
-    formData.append("address", address);
-    formData.append("phone", phone);
-    formData.append("email", email);
-    formData.append("note", note);
-    if (photo) formData.append("photo", photo);
+    if (editingTaskId) {
+      // SZERKESZTÉS (PUT)
+      try {
+        const res = await fetch(`/api/tasks/${editingTaskId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, name, address, phone, email, note }),
+        });
+        const data = await res.json();
 
-    try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        setStatusMessage("✅ " + data.message);
-        if (data.driveLink) {
-          setDriveUrl(data.driveLink);
+        if (res.ok) {
+          setStatusMessage("✅ Munka sikeresen módosítva!");
+          resetForm();
+          fetchTasks();
+        } else {
+          setStatusMessage("❌ " + (data.error || "Hiba történt a módosítás során."));
         }
-        setName("");
-        setAddress("");
-        setPhone("");
-        setEmail("");
-        setNote("");
-        setPhoto(null);
-        fetchTasks();
-      } else {
-        setStatusMessage("❌ " + (data.error || "Hiba történt."));
+      } catch {
+        setStatusMessage("❌ Hálózati hiba történt.");
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      setStatusMessage("❌ Hálózati hiba történt.");
-    } finally {
-      setLoading(false);
+    } else {
+      // ÚJ LÉTREHOZÁS (POST)
+      const formData = new FormData();
+      formData.append("type", type);
+      formData.append("name", name);
+      formData.append("address", address);
+      formData.append("phone", phone);
+      formData.append("email", email);
+      formData.append("note", note);
+      if (photo) formData.append("photo", photo);
+
+      try {
+        const res = await fetch("/api/tasks", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          setStatusMessage("✅ " + data.message);
+          if (data.driveLink) {
+            setDriveUrl(data.driveLink);
+          }
+          resetForm();
+          fetchTasks();
+        } else {
+          setStatusMessage("❌ " + (data.error || "Hiba történt."));
+        }
+      } catch {
+        setStatusMessage("❌ Hálózati hiba történt.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -98,32 +129,28 @@ export default function TasksPage() {
     if (!confirm("Biztosan törlöd ezt a munkát?")) return;
     try {
       const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-      if (res.ok) fetchTasks();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const startEditing = (task: Task) => {
-    setEditingTaskId(task.id);
-    setEditData(task);
-  };
-
-  const handleSaveEdit = async (id: number) => {
-    try {
-      const res = await fetch(`/api/tasks/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editData),
-      });
-
       if (res.ok) {
-        setEditingTaskId(null);
+        if (editingTaskId === id) resetForm();
         fetchTasks();
       }
     } catch (error) {
       console.error(error);
     }
+  };
+
+  // Amikor rákattintunk a ceruzára, betöltjük az adatokat a fő űrlapba
+  const startEditing = (task: Task) => {
+    setEditingTaskId(task.id);
+    setType((task.type as "telepites" | "karbantartas") || "telepites");
+    setName(task.name || "");
+    setAddress(task.address || "");
+    setPhone(task.phone || "");
+    setEmail(task.email || "");
+    setNote(task.note || "");
+    setPhoto(null);
+    setStatusMessage("");
+    // Görgessünk fel az űrlaphoz, hogy lássa a felhasználó
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -142,7 +169,7 @@ export default function TasksPage() {
       `}</style>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
-        <h1>Munka Kiadása</h1>
+        <h1>{editingTaskId ? "✏️ Munka Szerkesztése" : "Munka Kiadása"}</h1>
         <a
           href={mapsUrl}
           target="_blank"
@@ -155,8 +182,23 @@ export default function TasksPage() {
 
       <form
         onSubmit={handleSubmit}
-        style={{ display: "flex", flexDirection: "column", gap: "16px", background: "#f9f9f9", padding: "20px", borderRadius: "12px", border: "1px solid #ddd" }}
+        style={{ 
+          display: "flex", 
+          flexDirection: "column", 
+          gap: "16px", 
+          background: editingTaskId ? "#fff3cd" : "#f9f9f9", 
+          padding: "20px", 
+          borderRadius: "12px", 
+          border: editingTaskId ? "2px solid #ffc107" : "1px solid #ddd",
+          transition: "all 0.3s ease"
+        }}
       >
+        {editingTaskId && (
+          <div style={{ background: "#ffeeba", padding: "8px 12px", borderRadius: "6px", color: "#856404", fontSize: "14px", fontWeight: "bold" }}>
+            Szerkesztési módban vagy. A módosítások mentéséhez kattints a "Módosítás Mentése" gombra, vagy kattints a "Mégse"-re.
+          </div>
+        )}
+
         <div>
           <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>Munkatípus:</label>
           <div style={{ display: "flex", gap: "20px" }}>
@@ -193,14 +235,23 @@ export default function TasksPage() {
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
         </div>
 
-        <div>
-          <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Kép csatolása:</label>
-          <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} style={{ width: "100%", padding: "8px", background: "white", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-        </div>
+        {!editingTaskId && (
+          <div>
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Kép csatolása:</label>
+            <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} style={{ width: "100%", padding: "8px", background: "white", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+          </div>
+        )}
 
-        <button type="submit" disabled={loading} style={{ background: loading ? "#ccc" : "#28a745", color: "white", padding: "14px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: loading ? "not-allowed" : "pointer" }}>
-          {loading ? "Feldolgozás..." : "Munka Kiadása"}
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button type="submit" disabled={loading} style={{ flex: 1, background: loading ? "#ccc" : editingTaskId ? "#ffc107" : "#28a745", color: editingTaskId ? "#000" : "white", padding: "14px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: loading ? "not-allowed" : "pointer" }}>
+            {loading ? "Feldolgozás..." : editingTaskId ? "Módosítás Mentése" : "Munka Kiadása"}
+          </button>
+          {editingTaskId && (
+            <button type="button" onClick={resetForm} style={{ background: "#6c757d", color: "white", padding: "14px 20px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+              Mégse
+            </button>
+          )}
+        </div>
       </form>
 
       {statusMessage && (
@@ -239,92 +290,27 @@ export default function TasksPage() {
             </thead>
             <tbody>
               {tasks.map((task) => (
-                <tr key={task.id} style={{ borderBottom: "1px solid #eee" }}>
-                  {editingTaskId === task.id ? (
-                    <>
-                      <td style={{ padding: "8px" }}>
-                        <select 
-                          value={editData.type || "telepites"} 
-                          onChange={(e) => setEditData({ ...editData, type: e.target.value })}
-                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }}
-                        >
-                          <option value="telepites">🛠️ Telepítés</option>
-                          <option value="karbantartas">🧹 Karbantartás</option>
-                        </select>
-                      </td>
-                      <td style={{ padding: "8px" }}>
-                        <input 
-                          type="text" 
-                          placeholder="Név" 
-                          value={editData.name || ""} 
-                          onChange={(e) => setEditData({ ...editData, name: e.target.value })} 
-                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }} 
-                        />
-                      </td>
-                      <td style={{ padding: "8px" }}>
-                        <input 
-                          type="text" 
-                          placeholder="Cím" 
-                          value={editData.address || ""} 
-                          onChange={(e) => setEditData({ ...editData, address: e.target.value })} 
-                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }} 
-                        />
-                      </td>
-                      <td style={{ padding: "8px" }}>
-                        <input 
-                          type="text" 
-                          placeholder="Telefonszám" 
-                          value={editData.phone || ""} 
-                          onChange={(e) => setEditData({ ...editData, phone: e.target.value })} 
-                          style={{ width: "100%", padding: "6px", marginBottom: "4px", borderRadius: "4px" }} 
-                        />
-                        <input 
-                          type="text" 
-                          placeholder="Email cím" 
-                          value={editData.email || ""} 
-                          onChange={(e) => setEditData({ ...editData, email: e.target.value })} 
-                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }} 
-                        />
-                      </td>
-                      <td style={{ padding: "8px" }}>
-                        <textarea 
-                          placeholder="Megjegyzés" 
-                          value={editData.note || ""} 
-                          onChange={(e) => setEditData({ ...editData, note: e.target.value })} 
-                          rows={2}
-                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }} 
-                        />
-                      </td>
-                      <td style={{ padding: "8px" }}>-</td>
-                      <td style={{ padding: "8px", whiteSpace: "nowrap" }}>
-                        <button onClick={() => handleSaveEdit(task.id)} style={{ background: "#28a745", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", marginRight: "4px", cursor: "pointer", fontWeight: "bold" }}>Mentés</button>
-                        <button onClick={() => setEditingTaskId(null)} style={{ background: "#6c757d", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer" }}>Mégse</button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td style={{ padding: "10px" }}>{task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}</td>
-                      <td style={{ padding: "10px" }}>{task.name || "-"}</td>
-                      <td style={{ padding: "10px" }}>{task.address || "-"}</td>
-                      <td style={{ padding: "10px" }}>
-                        {task.phone && <div>📞 {task.phone}</div>}
-                        {task.email && <div>✉️ {task.email}</div>}
-                        {!task.phone && !task.email && "-"}
-                      </td>
-                      <td style={{ padding: "10px" }}>{task.note || "-"}</td>
-                      <td style={{ padding: "10px" }}>
-                        {task.drive_link ? (
-                          <a href={task.drive_link} target="_blank" rel="noopener noreferrer">📷 Kép</a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      <td style={{ padding: "10px" }}>
-                        <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "4px 8px", borderRadius: "4px", marginRight: "4px", cursor: "pointer" }}>✏️</button>
-                        <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer" }}>🗑️</button>
-                      </td>
-                    </>
-                  )}
+                <tr key={task.id} style={{ borderBottom: "1px solid #eee", background: editingTaskId === task.id ? "#fff3cd" : "transparent" }}>
+                  <td style={{ padding: "10px" }}>{task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}</td>
+                  <td style={{ padding: "10px" }}>{task.name || "-"}</td>
+                  <td style={{ padding: "10px" }}>{task.address || "-"}</td>
+                  <td style={{ padding: "10px" }}>
+                    {task.phone && <div>📞 {task.phone}</div>}
+                    {task.email && <div>✉️ {task.email}</div>}
+                    {!task.phone && !task.email && "-"}
+                  </td>
+                  <td style={{ padding: "10px" }}>{task.note || "-"}</td>
+                  <td style={{ padding: "10px" }}>
+                    {task.drive_link ? (
+                      <a href={task.drive_link} target="_blank" rel="noopener noreferrer">📷 Kép</a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td style={{ padding: "10px", whiteSpace: "nowrap" }}>
+                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 10px", borderRadius: "4px", marginRight: "4px", cursor: "pointer" }}>✏️</button>
+                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer" }}>🗑️</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
