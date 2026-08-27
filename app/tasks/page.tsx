@@ -10,6 +10,8 @@ type Task = {
   phone?: string;
   email?: string;
   note?: string;
+  scheduled_at?: string;
+  completed_at?: string;
   images?: string[];
   created_at: string;
 };
@@ -21,9 +23,11 @@ export default function TasksPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
+  const [scheduledAt, setScheduledAt] = useState(""); // Tervezett időpont
+  const [completedAt, setCompletedAt] = useState(""); // Megvalósult időpont
   
-  const [photos, setPhotos] = useState<File[]>([]); // Újjonnan kiválasztott fájlok
-  const [existingImages, setExistingImages] = useState<string[]>([]); // Már mentett képek szerkesztéshez
+  const [photos, setPhotos] = useState<File[]>([]); 
+  const [existingImages, setExistingImages] = useState<string[]>([]); 
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -56,12 +60,13 @@ export default function TasksPage() {
     setPhone("");
     setEmail("");
     setNote("");
+    setScheduledAt("");
+    setCompletedAt("");
     setPhotos([]);
     setExistingImages([]);
     setEditingTaskId(null);
   };
 
-  // Új kép hozzáadása a listához
   const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const newFile = e.target.files[0];
@@ -70,12 +75,10 @@ export default function TasksPage() {
     }
   };
 
-  // Új kép törlése a listából
   const handleRemoveNewPhoto = (indexToRemove: number) => {
     setPhotos((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  // Meglévő (már korábban mentett) kép törlése szerkesztéskor
   const handleRemoveExistingImage = (indexToRemove: number) => {
     setExistingImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
@@ -92,8 +95,9 @@ export default function TasksPage() {
     formData.append("phone", phone);
     formData.append("email", email);
     formData.append("note", note);
+    formData.append("scheduledAt", scheduledAt);
+    formData.append("completedAt", completedAt);
 
-    // Átadjuk a megmaradt régi képeket is, hogy a backend tudja, miket kell megtartani
     formData.append("existingImages", JSON.stringify(existingImages));
 
     photos.forEach((photo) => {
@@ -101,7 +105,6 @@ export default function TasksPage() {
     });
 
     if (editingTaskId) {
-      // SZERKESZTÉS (PUT)
       try {
         const res = await fetch(`/api/tasks/${editingTaskId}`, {
           method: "PUT",
@@ -122,7 +125,6 @@ export default function TasksPage() {
         setLoading(false);
       }
     } else {
-      // ÚJ LÉTREHOZÁS (POST)
       try {
         const res = await fetch("/api/tasks", {
           method: "POST",
@@ -176,8 +178,10 @@ export default function TasksPage() {
 
     setEmail(taskEmail);
     setNote(taskNote);
+    setScheduledAt(task.scheduled_at ? task.scheduled_at.replace(" ", "T").slice(0, 16) : "");
+    setCompletedAt(task.completed_at ? task.completed_at.replace(" ", "T").slice(0, 16) : "");
     setPhotos([]);
-    setExistingImages(task.images || []); // Betöltjük a már meglévő képeket a szerkesztőbe
+    setExistingImages(task.images || []);
     setStatusMessage("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -266,6 +270,14 @@ export default function TasksPage() {
             <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Email cím (Opcionális):</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
           </div>
+          <div>
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Tervezett időpont (Opcionális):</label>
+            <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} />
+          </div>
+          <div>
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megvalósult időpont (Opcionális):</label>
+            <input type="datetime-local" value={completedAt} onChange={(e) => setCompletedAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} />
+          </div>
         </div>
 
         <div>
@@ -273,11 +285,9 @@ export default function TasksPage() {
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
         </div>
 
-        {/* Képek kezelése (Meglévők + Újak) */}
         <div>
           <label style={{ fontWeight: "bold", display: "block", marginBottom: "6px" }}>Képek:</label>
 
-          {/* Már meglévő képek listája szerkesztéskor */}
           {editingTaskId && existingImages.length > 0 && (
             <div style={{ marginBottom: "10px" }}>
               <small style={{ color: "#666", display: "block", marginBottom: "4px", fontWeight: "bold" }}>Már mentett képek:</small>
@@ -300,7 +310,6 @@ export default function TasksPage() {
             </div>
           )}
 
-          {/* Újonnan hozzáadott képek listája */}
           {photos.length > 0 && (
             <div style={{ marginBottom: "10px" }}>
               <small style={{ color: "#666", display: "block", marginBottom: "4px", fontWeight: "bold" }}>Újonnan csatolt képek:</small>
@@ -352,7 +361,6 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* MENTETT MUNKÁK */}
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>Mentett munkák</h2>
 
       {tasks.length === 0 ? (
@@ -386,6 +394,8 @@ export default function TasksPage() {
                 <div><strong>Cím:</strong> {task.address || "-"}</div>
                 {task.phone && <div><strong>Telefon:</strong> 📞 {task.phone}</div>}
                 {task.email && <div><strong>Email:</strong> ✉️ {task.email}</div>}
+                {task.scheduled_at && <div><strong>Tervezett:</strong> 📅 {task.scheduled_at}</div>}
+                {task.completed_at && <div><strong>Megvalósult:</strong> ✅ {task.completed_at}</div>}
                 {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
               </div>
 
