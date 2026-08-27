@@ -243,22 +243,62 @@ export default function TasksPage() {
                   {editingTaskId === task.id ? (
                     <>
                       <td style={{ padding: "8px" }}>
-                        <select value={editData.type} onChange={(e) => setEditData({ ...editData, type: e.target.value })}>
+                        <select 
+                          value={editData.type || "telepites"} 
+                          onChange={(e) => setEditData({ ...editData, type: e.target.value })}
+                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }}
+                        >
                           <option value="telepites">🛠️ Telepítés</option>
                           <option value="karbantartas">🧹 Karbantartás</option>
                         </select>
                       </td>
-                      <td style={{ padding: "8px" }}><input type="text" value={editData.name || ""} onChange={(e) => setEditData({ ...editData, name: e.target.value })} style={{ width: "100%" }} /></td>
-                      <td style={{ padding: "8px" }}><input type="text" value={editData.address || ""} onChange={(e) => setEditData({ ...editData, address: e.target.value })} style={{ width: "100%" }} /></td>
                       <td style={{ padding: "8px" }}>
-                        <input type="text" placeholder="Tel" value={editData.phone || ""} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} style={{ width: "100%", marginBottom: "4px" }} />
-                        <input type="text" placeholder="Email" value={editData.email || ""} onChange={(e) => setEditData({ ...editData, email: e.target.value })} style={{ width: "100%" }} />
+                        <input 
+                          type="text" 
+                          placeholder="Név" 
+                          value={editData.name || ""} 
+                          onChange={(e) => setEditData({ ...editData, name: e.target.value })} 
+                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }} 
+                        />
                       </td>
-                      <td style={{ padding: "8px" }}><input type="text" value={editData.note || ""} onChange={(e) => setEditData({ ...editData, note: e.target.value })} style={{ width: "100%" }} /></td>
-                      <td style={{ padding: "8px" }}>-</td>
                       <td style={{ padding: "8px" }}>
-                        <button onClick={() => handleSaveEdit(task.id)} style={{ background: "#28a745", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", marginRight: "4px" }}>Mentés</button>
-                        <button onClick={() => setEditingTaskId(null)} style={{ background: "#6c757d", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px" }}>Mégse</button>
+                        <input 
+                          type="text" 
+                          placeholder="Cím" 
+                          value={editData.address || ""} 
+                          onChange={(e) => setEditData({ ...editData, address: e.target.value })} 
+                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }} 
+                        />
+                      </td>
+                      <td style={{ padding: "8px" }}>
+                        <input 
+                          type="text" 
+                          placeholder="Telefonszám" 
+                          value={editData.phone || ""} 
+                          onChange={(e) => setEditData({ ...editData, phone: e.target.value })} 
+                          style={{ width: "100%", padding: "6px", marginBottom: "4px", borderRadius: "4px" }} 
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Email cím" 
+                          value={editData.email || ""} 
+                          onChange={(e) => setEditData({ ...editData, email: e.target.value })} 
+                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }} 
+                        />
+                      </td>
+                      <td style={{ padding: "8px" }}>
+                        <textarea 
+                          placeholder="Megjegyzés" 
+                          value={editData.note || ""} 
+                          onChange={(e) => setEditData({ ...editData, note: e.target.value })} 
+                          rows={2}
+                          style={{ width: "100%", padding: "6px", borderRadius: "4px" }} 
+                        />
+                      </td>
+                      <td style={{ padding: "8px" }}>-</td>
+                      <td style={{ padding: "8px", whiteSpace: "nowrap" }}>
+                        <button onClick={() => handleSaveEdit(task.id)} style={{ background: "#28a745", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", marginRight: "4px", cursor: "pointer", fontWeight: "bold" }}>Mentés</button>
+                        <button onClick={() => setEditingTaskId(null)} style={{ background: "#6c757d", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer" }}>Mégse</button>
                       </td>
                     </>
                   ) : (
