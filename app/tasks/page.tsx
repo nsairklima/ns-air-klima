@@ -207,6 +207,15 @@ export default function TasksPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Külön számoljuk a típusokat a szűrőgombokhoz
+  const counts = useMemo(() => {
+    return {
+      all: tasks.length,
+      telepites: tasks.filter((t) => t.type === "telepites").length,
+      karbantartas: tasks.filter((t) => t.type === "karbantartas").length,
+    };
+  }, [tasks]);
+
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       if (filterType !== "all" && task.type !== filterType) {
@@ -533,7 +542,7 @@ export default function TasksPage() {
               cursor: "pointer",
             }}
           >
-            Összes ({tasks.length})
+            Összes ({counts.all})
           </button>
           <button
             onClick={() => setFilterType("telepites")}
@@ -547,7 +556,7 @@ export default function TasksPage() {
               cursor: "pointer",
             }}
           >
-            🛠️ Telepítések
+            🛠️ Telepítések ({counts.telepites})
           </button>
           <button
             onClick={() => setFilterType("karbantartas")}
@@ -561,7 +570,7 @@ export default function TasksPage() {
               cursor: "pointer",
             }}
           >
-            🧹 Karbantartások
+            🧹 Karbantartások ({counts.karbantartas})
           </button>
         </div>
 
