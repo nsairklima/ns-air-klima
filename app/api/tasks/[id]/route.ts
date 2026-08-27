@@ -2,19 +2,36 @@ import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
 
-// Cloudinary konfiguráció (biztosítsd, hogy nálad is itt van)
+export const dynamic = "force-dynamic";
+
+const sql = neon(process.env.POSTGRES_URL || "");
+
+// Cloudinary konfiguráció
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+export async function DELETE(
+  request: Request,
+  props: { params: Promise<{ id: string }> | { id: string } }
+) {
+  try {
+    const params = await props.params;
+    await sql`DELETE FROM "Task" WHERE id = ${params.id}`;
+    return NextResponse.json({ message: "Sikeres törlés" });
+  } catch (error: any) {
+    console.error("Törlési hiba:", error);
+    return NextResponse.json({ error: error?.message || "Törlési hiba" }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: Request,
   props: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    // Biztos ami biztos, kiolvassuk a params-t akkor is, ha Promise (Next.js 15+) vagy sima objektum
     const params = await props.params;
     const taskId = params.id;
 
@@ -29,13 +46,13 @@ export async function PUT(
 
     const taskType = type;
     const taskTitle = name || "Módosított munka";
-    const clientName = name;
-    const taskAddress = address;
-    const taskPhone = phone;
+    const clientName = name || "";
+    const taskAddress = address || "";
+    const taskPhone = phone || "";
     
     const description = note ? `${note}${email ? ` | Email: ${email}` : ""}` : email ? `Email: ${email}` : "";
 
-    // 1. Megmaradt régi képek beolvasása (amiket nem törölt ki a felhasználó)
+    // 1. Megmaradt régi képek beolvasása (amiket nem törölt ki a felhasználó a formon)
     let keptImages: string[] = [];
     const existingImagesRaw = formData.get("existingImages") as string;
     if (existingImagesRaw) {
@@ -79,9 +96,6 @@ export async function PUT(
     // A megmaradt régi képek és az újak összefűzése
     const finalImages = [...keptImages, ...newImageUrls];
 
-    console.log("Mentésre kerülő képek ID alapján:", taskId, finalImages);
-
-    // Adatbázis frissítése a helyes taskId-val
     await sql`
       UPDATE "Task"
       SET "type" = ${taskType},
@@ -92,7 +106,7 @@ export async function PUT(
           "description" = ${description},
           "images" = ${JSON.stringify(finalImages)},
           "updatedAt" = NOW()
-      WHERE "id" = ${taskId}
+      WHERE id = ${taskId}
     `;
 
     return NextResponse.json({ message: "Sikeres frissítés", images: finalImages });
