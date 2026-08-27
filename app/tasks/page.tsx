@@ -265,16 +265,25 @@ export default function TasksPage() {
           gap: 16px;
           margin-top: 16px;
         }
-        .card-actions {
+        .card-footer {
           display: flex;
           flex-direction: column;
+          gap: 12px;
+          margin-top: auto;
+          padding-top: 10px;
+          border-top: 1px solid rgba(0,0,0,0.06);
+        }
+        .card-actions {
+          display: grid;
+          grid-template-columns: 1fr;
           gap: 8px;
           width: 100%;
         }
         .card-actions button {
           width: 100%;
-          padding: 10px;
+          padding: 12px;
           justify-content: center;
+          font-size: 14px;
         }
         @media (min-width: 600px) {
           .form-grid {
@@ -283,7 +292,13 @@ export default function TasksPage() {
           .cards-grid {
             grid-template-columns: 1fr 1fr;
           }
+          .card-footer {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+          }
           .card-actions {
+            display: flex;
             flex-direction: row;
             width: auto;
           }
@@ -658,7 +673,7 @@ export default function TasksPage() {
                   {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid rgba(0,0,0,0.06)", flexWrap: "wrap", gap: "8px" }}>
+                <div className="card-footer">
                   <div>
                     {task.images && task.images.length > 0 ? (
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
