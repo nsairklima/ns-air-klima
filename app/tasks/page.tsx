@@ -286,18 +286,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {uploadedLinks.length > 0 && (
-        <div style={{ marginTop: "12px" }}>
-          <strong>Feltöltött képek:</strong>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "4px" }}>
-            {uploadedLinks.map((link, idx) => (
-              <a key={idx} href={link} target="_blank" rel="noopener noreferrer" style={{ background: "#eee", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", textDecoration: "none", color: "#0070f3" }}>
-                📷 Kép {idx + 1}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+   
 
       {/* MENTETT MUNKÁK */}
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>Mentett munkák</h2>
