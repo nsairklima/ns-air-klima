@@ -19,7 +19,6 @@ type Task = {
 // Segédfüggvény a dátumok szép formázásához
 const formatDate = (dateString?: string) => {
   if (!dateString) return "-";
-  // Ha tartalmazza a T betűt, feldaraboljuk
   try {
     const cleaned = dateString.replace("T", " ").replace("Z", "");
     const [datePart, timePart] = cleaned.split(" ");
@@ -41,8 +40,8 @@ export default function TasksPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
-  const [scheduledAt, setScheduledAt] = useState(""); // Tervezett időpont
-  const [completedAt, setCompletedAt] = useState(""); // Megvalósult időpont
+  const [scheduledAt, setScheduledAt] = useState(""); 
+  const [completedAt, setCompletedAt] = useState(""); 
   
   const [photos, setPhotos] = useState<File[]>([]); 
   const [existingImages, setExistingImages] = useState<string[]>([]); 
@@ -52,6 +51,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [viewingTask, setViewingTask] = useState<Task | null>(null); // Csak megtekintéshez való állapot
 
   const fetchTasks = async () => {
     try {
@@ -228,6 +228,57 @@ export default function TasksPage() {
         }
       `}</style>
 
+      {/* MEGTEKINTÉSI MODÁLIS ABLAK */}
+      {viewingTask && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
+          background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "16px"
+        }}>
+          <div style={{
+            background: "white", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "500px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: "12px", position: "relative"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #eee", paddingBottom: "8px" }}>
+              <h2 style={{ margin: 0, fontSize: "18px" }}>
+                {viewingTask.type === "telepites" ? "🛠️ Telepítés Részletei" : "🧹 Karbantartás Részletei"}
+              </h2>
+              <button onClick={() => setViewingTask(null)} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
+              <div><strong>Státusz:</strong> {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}</div>
+              <div><strong>Név:</strong> {viewingTask.name || "-"}</div>
+              <div><strong>Cím:</strong> {viewingTask.address || "-"}</div>
+              {viewingTask.phone && <div><strong>Telefon:</strong> 📞 {viewingTask.phone}</div>}
+              {viewingTask.email && <div><strong>Email:</strong> ✉️ {viewingTask.email}</div>}
+              {viewingTask.scheduled_at && <div><strong>Tervezett időpont:</strong> 📅 {formatDate(viewingTask.scheduled_at)}</div>}
+              {viewingTask.completed_at && <div><strong>Megvalósult időpont:</strong> ✅ {formatDate(viewingTask.completed_at)}</div>}
+              <div><strong>Létrehozva:</strong> {formatDate(viewingTask.created_at)}</div>
+              {viewingTask.note && <div><strong>Megjegyzés:</strong> {viewingTask.note}</div>}
+
+              <div>
+                <strong>Képek:</strong>
+                {viewingTask.images && viewingTask.images.length > 0 ? (
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
+                    {viewingTask.images.map((imgUrl, i) => (
+                      <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "12px", background: "#f1f1f1", padding: "4px 8px", borderRadius: "4px" }}>
+                        📷 {i + 1}. kép megtekintése
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ color: "#aaa", fontSize: "13px", display: "block" }}>Nincs csatolt kép</span>
+                )}
+              </div>
+            </div>
+
+            <button onClick={() => setViewingTask(null)} style={{ marginTop: "12px", background: "#6c757d", color: "white", border: "none", padding: "10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+              Bezárás
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
         <h1>{editingTaskId ? "✏️ Munka Szerkesztése" : "Munka Kiadása"}</h1>
         <a
@@ -395,16 +446,16 @@ export default function TasksPage() {
             let statusBadgeColor = "#475569";
 
             if (isCompleted) {
-              cardBackground = "#f0fdf4"; // Zöldes háttér, ha kész van
+              cardBackground = "#f0fdf4";
               borderColor = "#bbf7d0";
               statusBadgeBg = "#dcfce7";
               statusBadgeColor = "#166534";
             } else {
               if (isTelepites) {
-                cardBackground = "#f8fafc"; // Enyhén kékes, ha telepítés és folyamatban
+                cardBackground = "#f8fafc";
                 borderColor = "#cbd5e1";
               } else {
-                cardBackground = "#fdf4ff"; // Enyhén lilás, ha karbantartás és folyamatban
+                cardBackground = "#fdf4ff";
                 borderColor = "#f5d0fe";
               }
             }
@@ -447,7 +498,7 @@ export default function TasksPage() {
                   {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid rgba(0,0,0,0.06)", flexWrap: "wrap", gap: "8px" }}>
                   <div>
                     {task.images && task.images.length > 0 ? (
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
@@ -461,7 +512,9 @@ export default function TasksPage() {
                       <span style={{ color: "#aaa", fontSize: "13px" }}>Nincs kép</span>
                     )}
                   </div>
-                  <div style={{ display: "flex", gap: "6px" }}>
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                    {/* ÚJ MEGNYITÁS GOMB */}
+                    <button onClick={() => setViewingTask(task)} style={{ background: "#17a2b8", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>👁️ Megnyitás</button>
                     <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>✏️ Szerkesztés</button>
                     <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>🗑️ Törlés</button>
                   </div>
