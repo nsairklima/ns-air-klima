@@ -50,8 +50,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // Itt a régebbi/eredeti oszlopneveket használjuk (clientName, description, stb.), 
-    // amiket az adatbázisod valójában vár.
+    const currentDate = new Date().toISOString().split("T")[0];
+
+    // Most már a "date" oszlop is megkapja a mai dátumot, így nem dob null constraint hibát!
     await sql`
       INSERT INTO "Task" (
         "type", 
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
         "clientName", 
         "address", 
         "phone", 
+        "date",
         "description", 
         "images", 
         "updatedAt"
@@ -69,6 +71,7 @@ export async function POST(request: Request) {
         ${name}, 
         ${address}, 
         ${phone}, 
+        ${currentDate},
         ${note ? `${note} ${email ? `| Email: ${email}` : ""}` : email ? `Email: ${email}` : ""}, 
         ${JSON.stringify(imageUrl ? [imageUrl] : [])}, 
         NOW()
