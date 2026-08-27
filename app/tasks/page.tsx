@@ -53,7 +53,6 @@ export default function TasksPage() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
 
-  // ÚJ ÁLLAPOTOK A SZŰRÉSHEZ ÉS KERESÉSHEZ
   const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -208,15 +207,12 @@ export default function TasksPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // SZŰRT ÉS KERESETT MUNKÁK KISZÁMÍTÁSA
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      // Típus szerinti szűrés
       if (filterType !== "all" && task.type !== filterType) {
         return false;
       }
 
-      // Keresés minden mezőben (kis- és nagybetű függetlenül)
       if (searchQuery.trim() !== "") {
         const query = searchQuery.toLowerCase();
         const matchesName = task.name?.toLowerCase().includes(query) || false;
@@ -260,12 +256,31 @@ export default function TasksPage() {
           gap: 16px;
           margin-top: 16px;
         }
+        .card-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          width: 100%;
+        }
+        .card-actions button {
+          width: 100%;
+          padding: 10px;
+          justify-content: center;
+        }
         @media (min-width: 600px) {
           .form-grid {
             grid-template-columns: 1fr 1fr;
           }
           .cards-grid {
             grid-template-columns: 1fr 1fr;
+          }
+          .card-actions {
+            flex-direction: row;
+            width: auto;
+          }
+          .card-actions button {
+            width: auto;
+            padding: 6px 12px;
           }
         }
       `}</style>
@@ -648,10 +663,10 @@ export default function TasksPage() {
                       <span style={{ color: "#aaa", fontSize: "13px" }}>Nincs kép</span>
                     )}
                   </div>
-                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                    <button onClick={() => setViewingTask(task)} style={{ background: "#17a2b8", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>👁️ Megnyitás</button>
-                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>✏️ Szerkesztés</button>
-                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>🗑️ Törlés</button>
+                  <div className="card-actions">
+                    <button onClick={() => setViewingTask(task)} style={{ background: "#17a2b8", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center" }}>👁️ Megnyitás</button>
+                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center" }}>✏️ Szerkesztés</button>
+                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center" }}>🗑️ Törlés</button>
                   </div>
                 </div>
               </div>
