@@ -1,8 +1,23 @@
+import { NextResponse } from "next/server";
+import { sql } from "@vercel/postgres";
+import { v2 as cloudinary } from "cloudinary";
+
+// Cloudinary konfiguráció (biztosítsd, hogy nálad is itt van)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    // Biztos ami biztos, kiolvassuk a params-t akkor is, ha Promise (Next.js 15+) vagy sima objektum
+    const params = await props.params;
+    const taskId = params.id;
+
     const formData = await request.formData();
 
     const type = (formData.get("type") as string) || "telepites";
@@ -20,7 +35,7 @@ export async function PUT(
     
     const description = note ? `${note}${email ? ` | Email: ${email}` : ""}` : email ? `Email: ${email}` : "";
 
-    // 1. Megmaradt régi képek beolvasása, amiket a felhasználó nem törölt ki a formon
+    // 1. Megmaradt régi képek beolvasása (amiket nem törölt ki a felhasználó)
     let keptImages: string[] = [];
     const existingImagesRaw = formData.get("existingImages") as string;
     if (existingImagesRaw) {
@@ -61,9 +76,12 @@ export async function PUT(
       }
     }
 
-    // A megmaradt régi képek és az újonnan feltöltöttek összefűzése
+    // A megmaradt régi képek és az újak összefűzése
     const finalImages = [...keptImages, ...newImageUrls];
 
+    console.log("Mentésre kerülő képek ID alapján:", taskId, finalImages);
+
+    // Adatbázis frissítése a helyes taskId-val
     await sql`
       UPDATE "Task"
       SET "type" = ${taskType},
@@ -74,7 +92,7 @@ export async function PUT(
           "description" = ${description},
           "images" = ${JSON.stringify(finalImages)},
           "updatedAt" = NOW()
-      WHERE "id" = ${params.id}
+      WHERE "id" = ${taskId}
     `;
 
     return NextResponse.json({ message: "Sikeres frissítés", images: finalImages });
