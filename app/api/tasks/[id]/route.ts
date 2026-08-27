@@ -12,9 +12,9 @@ export async function DELETE(
   try {
     await sql`DELETE FROM "Task" WHERE id = ${params.id}`;
     return NextResponse.json({ message: "Sikeres törlés" });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Törlési hiba:", error);
-    return NextResponse.json({ error: "Törlési hiba" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Törlési hiba" }, { status: 500 });
   }
 }
 
@@ -26,22 +26,30 @@ export async function PUT(
     const body = await request.json();
     const { type, name, address, phone, email, note } = body;
 
-    // Frissítjük a valós oszlopokat az adatbázisban
+    const taskType = type || "telepites";
+    const taskTitle = name || "Módosított munka";
+    const clientName = name || "";
+    const taskAddress = address || "";
+    const taskPhone = phone || "";
+    
+    // Összeállítjuk a description mezőt a note és email alapján, pontosan úgy, mint a POST-nál
+    const description = note ? `${note}${email ? ` | Email: ${email}` : ""}` : email ? `Email: ${email}` : "";
+
     await sql`
       UPDATE "Task"
-      SET type = ${type || "telepites"},
-          title = ${name || "Módosított munka"},
-          clientName = ${name || ""},
-          address = ${address || ""},
-          phone = ${phone || ""},
-          description = ${note ? `${note} ${email ? `| Email: ${email}` : ""}` : email ? `Email: ${email}` : ""},
-          updatedAt = NOW()
-      WHERE id = ${params.id}
+      SET "type" = ${taskType},
+          "title" = ${taskTitle},
+          "clientName" = ${clientName},
+          "address" = ${taskAddress},
+          "phone" = ${taskPhone},
+          "description" = ${description},
+          "updatedAt" = NOW()
+      WHERE "id" = ${params.id}
     `;
 
     return NextResponse.json({ message: "Sikeres frissítés" });
-  } catch (error) {
-    console.error("Szerkesztési hiba:", error);
-    return NextResponse.json({ error: "Szerkesztési hiba" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Szerkesztési hiba részletei:", error);
+    return NextResponse.json({ error: error?.message || "Szerkesztési hiba" }, { status: 500 });
   }
 }
