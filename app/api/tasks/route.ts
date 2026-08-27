@@ -22,38 +22,41 @@ export async function POST(request: Request) {
     const phone = (formData.get("phone") as string) || "";
     const email = (formData.get("email") as string) || "";
     const note = (formData.get("note") as string) || "";
-    const photo = formData.get("photo") as File | null;
+    
+    // Több fájl lekérése
+    const photos = formData.getAll("photos") as File[];
+    const imageUrls: string[] = [];
 
-    let imageUrl = "";
+    for (const photo of photos) {
+      if (photo && typeof photo === "object" && "size" in photo && photo.size > 0) {
+        try {
+          const arrayBuffer = await photo.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
 
-    if (photo && typeof photo === "object" && "size" in photo && photo.size > 0) {
-      try {
-        const arrayBuffer = await photo.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+          const uploadResult = await new Promise<any>((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+              {
+                folder: "tasks",
+                resource_type: "auto",
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            ).end(buffer);
+          });
 
-        const uploadResult = await new Promise<any>((resolve, reject) => {
-          cloudinary.uploader.upload_stream(
-            {
-              folder: "tasks",
-              resource_type: "auto",
-            },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          ).end(buffer);
-        });
-
-        imageUrl = uploadResult?.secure_url || "";
-      } catch (uploadError: any) {
-        console.error("Képfeltöltési hiba:", uploadError?.message || uploadError);
+          if (uploadResult?.secure_url) {
+            imageUrls.push(uploadResult.secure_url);
+          }
+        } catch (uploadError: any) {
+          console.error("Képfeltöltési hiba:", uploadError?.message || uploadError);
+        }
       }
     }
 
     const currentDate = new Date().toISOString().split("T")[0];
 
-    // Itt a valós, adatbázisban létező oszlopneveket használjuk:
-    // clientName, description, images, date, updatedAt, stb.
     await sql`
       INSERT INTO "Task" (
         "type", 
@@ -74,14 +77,14 @@ export async function POST(request: Request) {
         ${phone}, 
         ${currentDate},
         ${note ? `${note} ${email ? `| Email: ${email}` : ""}` : email ? `Email: ${email}` : ""}, 
-        ${JSON.stringify(imageUrl ? [imageUrl] : [])}, 
+        ${JSON.stringify(imageUrls)}, 
         NOW()
       )
     `;
 
     return NextResponse.json({
       message: "Munka sikeresen elmentve!",
-      driveLink: imageUrl,
+      driveLinks: imageUrls,
     });
   } catch (error: any) {
     console.error("Adatbázis mentési hiba részletei:", error);
