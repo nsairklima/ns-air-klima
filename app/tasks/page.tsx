@@ -10,7 +10,7 @@ type Task = {
   phone?: string;
   email?: string;
   note?: string;
-  images?: string[]; // Több kép kezelése tömbként
+  images?: string[];
   created_at: string;
 };
 
@@ -21,7 +21,9 @@ export default function TasksPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
-  const [photos, setPhotos] = useState<File[]>([]); // Külön hozzáadott fájlok listája
+  
+  const [photos, setPhotos] = useState<File[]>([]); // Újjonnan kiválasztott fájlok
+  const [existingImages, setExistingImages] = useState<string[]>([]); // Már mentett képek szerkesztéshez
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -55,21 +57,27 @@ export default function TasksPage() {
     setEmail("");
     setNote("");
     setPhotos([]);
+    setExistingImages([]);
     setEditingTaskId(null);
   };
 
-  // Új kép hozzáadása a meglévő listához
+  // Új kép hozzáadása a listához
   const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const newFile = e.target.files[0];
       setPhotos((prev) => [...prev, newFile]);
-      e.target.value = ""; // Alaphelyzetbe állítjuk az inputot, hogy ugyanazt a fájlt újra lehessen választani ha kell
+      e.target.value = "";
     }
   };
 
-  // Egy adott kiválasztott kép törlése a listából
-  const handleRemovePhoto = (indexToRemove: number) => {
+  // Új kép törlése a listából
+  const handleRemoveNewPhoto = (indexToRemove: number) => {
     setPhotos((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  // Meglévő (már korábban mentett) kép törlése szerkesztéskor
+  const handleRemoveExistingImage = (indexToRemove: number) => {
+    setExistingImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,6 +92,9 @@ export default function TasksPage() {
     formData.append("phone", phone);
     formData.append("email", email);
     formData.append("note", note);
+
+    // Átadjuk a megmaradt régi képeket is, hogy a backend tudja, miket kell megtartani
+    formData.append("existingImages", JSON.stringify(existingImages));
 
     photos.forEach((photo) => {
       formData.append("photos", photo);
@@ -166,6 +177,7 @@ export default function TasksPage() {
     setEmail(taskEmail);
     setNote(taskNote);
     setPhotos([]);
+    setExistingImages(task.images || []); // Betöltjük a már meglévő képeket a szerkesztőbe
     setStatusMessage("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -261,26 +273,55 @@ export default function TasksPage() {
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
         </div>
 
-        {/* Külön gombos kép hozzáadási logika */}
+        {/* Képek kezelése (Meglévők + Újak) */}
         <div>
-          <label style={{ fontWeight: "bold", display: "block", marginBottom: "6px" }}>Képek hozzáadása:</label>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "8px" }}>
-            {photos.map((photo, index) => (
-              <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", padding: "8px 12px", borderRadius: "6px", border: "1px solid #ccc" }}>
-                <span style={{ fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "300px" }}>
-                  📷 {photo.name}
-                </span>
-                <button 
-                  type="button" 
-                  onClick={() => handleRemovePhoto(index)}
-                  style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
-                >
-                  Törlés
-                </button>
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "6px" }}>Képek:</label>
+
+          {/* Már meglévő képek listája szerkesztéskor */}
+          {editingTaskId && existingImages.length > 0 && (
+            <div style={{ marginBottom: "10px" }}>
+              <small style={{ color: "#666", display: "block", marginBottom: "4px", fontWeight: "bold" }}>Már mentett képek:</small>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {existingImages.map((imgUrl, index) => (
+                  <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ccc" }}>
+                    <a href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "#0070f3", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "250px" }}>
+                      📷 {index + 1}. meglévő kép megtekintése
+                    </a>
+                    <button 
+                      type="button" 
+                      onClick={() => handleRemoveExistingImage(index)}
+                      style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
+                    >
+                      Törlés
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Újonnan hozzáadott képek listája */}
+          {photos.length > 0 && (
+            <div style={{ marginBottom: "10px" }}>
+              <small style={{ color: "#666", display: "block", marginBottom: "4px", fontWeight: "bold" }}>Újonnan csatolt képek:</small>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {photos.map((photo, index) => (
+                  <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ccc" }}>
+                    <span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "250px" }}>
+                      📷 {photo.name}
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => handleRemoveNewPhoto(index)}
+                      style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
+                    >
+                      Törlés
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <label style={{ display: "inline-block", background: "#0070f3", color: "white", padding: "10px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>
             ➕ Kép hozzáadása
