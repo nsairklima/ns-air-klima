@@ -96,7 +96,7 @@ export default function TasksPage() {
       formData.append("name", name);
       formData.append("address", address);
       formData.append("phone", phone);
-      formData.append("email", email); // <-- Itt küldjük az emailt az új munkához
+      formData.append("email", email);
       formData.append("note", note);
       if (photo) formData.append("photo", photo);
 
@@ -149,7 +149,6 @@ export default function TasksPage() {
     let taskEmail = task.email || "";
     let taskNote = task.note || "";
 
-    // Ha külön mezőben nincs email, de a megjegyzésben benne van a régi formátum, szétválasztjuk
     if (!taskEmail && taskNote.includes("| Email:")) {
       const parts = taskNote.split("| Email:");
       taskNote = parts[0].trim();
@@ -160,7 +159,6 @@ export default function TasksPage() {
     setNote(taskNote);
     setPhoto(null);
     setStatusMessage("");
-    // Görgessünk fel az űrlaphoz, hogy lássa a felhasználó
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -172,8 +170,17 @@ export default function TasksPage() {
           grid-template-columns: 1fr;
           gap: 16px;
         }
+        .cards-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 16px;
+          margin-top: 16px;
+        }
         @media (min-width: 600px) {
           .form-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+          .cards-grid {
             grid-template-columns: 1fr 1fr;
           }
         }
@@ -280,52 +287,63 @@ export default function TasksPage() {
         </p>
       )}
 
-      {/* MENTETT MUNKÁK */}
+      {/* MENTETT MUNKÁK - KÁRTYÁS NÉZET */}
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>Mentett munkák</h2>
 
       {tasks.length === 0 ? (
-        <p style={{ color: "#666" }}>Nincs mentett munka.</p>
+        <p style={{ color: "#666", marginTop: "16px" }}>Nincs mentett munka.</p>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "16px", background: "#fff", fontSize: "14px" }}>
-            <thead>
-              <tr style={{ background: "#f1f1f1", textAlign: "left" }}>
-                <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Típus</th>
-                <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Név</th>
-                <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Cím</th>
-                <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Elérhetőség</th>
-                <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Megjegyzés</th>
-                <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Kép</th>
-                <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Műveletek</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((task) => (
-                <tr key={task.id} style={{ borderBottom: "1px solid #eee", background: editingTaskId === task.id ? "#fff3cd" : "transparent" }}>
-                  <td style={{ padding: "10px" }}>{task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}</td>
-                  <td style={{ padding: "10px" }}>{task.name || "-"}</td>
-                  <td style={{ padding: "10px" }}>{task.address || "-"}</td>
-                  <td style={{ padding: "10px" }}>
-                    {task.phone && <div>📞 {task.phone}</div>}
-                    {task.email && <div>✉️ {task.email}</div>}
-                    {!task.phone && !task.email && "-"}
-                  </td>
-                  <td style={{ padding: "10px" }}>{task.note || "-"}</td>
-                  <td style={{ padding: "10px" }}>
-                    {task.drive_link ? (
-                      <a href={task.drive_link} target="_blank" rel="noopener noreferrer">📷 Kép</a>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td style={{ padding: "10px", whiteSpace: "nowrap" }}>
-                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 10px", borderRadius: "4px", marginRight: "4px", cursor: "pointer" }}>✏️</button>
-                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer" }}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="cards-grid">
+          {tasks.map((task) => (
+            <div
+              key={task.id}
+              style={{
+                background: "#fff",
+                border: editingTaskId === task.id ? "2px solid #ffc107" : "1px solid #e0e0e0",
+                borderRadius: "10px",
+                padding: "16px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                position: "relative",
+              }}
+            >
+              {/* Fejléc a kártyán: Típus és dátum */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f0f0f0", paddingBottom: "8px" }}>
+                <span style={{ fontWeight: "bold", fontSize: "15px", color: "#333" }}>
+                  {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
+                </span>
+                <span style={{ fontSize: "12px", color: "#888" }}>{task.created_at}</span>
+              </div>
+
+              {/* Adatok */}
+              <div style={{ fontSize: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div><strong>Név:</strong> {task.name || "-"}</div>
+                <div><strong>Cím:</strong> {task.address || "-"}</div>
+                {task.phone && <div><strong>Telefon:</strong> 📞 {task.phone}</div>}
+                {task.email && <div><strong>Email:</strong> ✉️ {task.email}</div>}
+                {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
+              </div>
+
+              {/* Lábléc: Kép link és Gombok */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #f0f0f0" }}>
+                <div>
+                  {task.drive_link ? (
+                    <a href={task.drive_link} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "13px" }}>
+                      📷 Kép megtekintése
+                    </a>
+                  ) : (
+                    <span style={{ color: "#aaa", fontSize: "13px" }}>Nincs kép</span>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>✏️ Szerkesztés</button>
+                  <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>🗑️ Törlés</button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </main>
