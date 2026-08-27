@@ -14,17 +14,17 @@ export async function GET() {
     `;
 
     const tasks = rawTasks.map((t: any) => {
-      let driveLink = "";
-      if (Array.isArray(t.images) && t.images.length > 0) {
-        driveLink = t.images[0];
+      let imagesArray: string[] = [];
+      if (Array.isArray(t.images)) {
+        imagesArray = t.images;
       } else if (typeof t.images === "string" && t.images.startsWith("[")) {
         try {
-          const parsed = JSON.parse(t.images);
-          if (Array.isArray(parsed) && parsed.length > 0) driveLink = parsed[0];
+          imagesArray = JSON.parse(t.images);
         } catch {}
+      } else if (typeof t.images === "string" && t.images.trim() !== "") {
+        imagesArray = [t.images];
       }
 
-      // Itt szétválasztjuk a leírást (description), ha tartalmazza a régi formátumú emailt
       let description = t.description || "";
       let extractedEmail = "";
 
@@ -43,9 +43,9 @@ export async function GET() {
         name: t.clientName || t.title || "",
         address: t.address || "",
         phone: t.phone || "",
-        email: t.email || extractedEmail, // Ha van külön oszlop, azt veszi, különben a leírásból kinyertat
+        email: t.email || extractedEmail,
         note: description,
-        drive_link: driveLink,
+        images: imagesArray,
         created_at: t.date || t.updatedAt || "",
       };
     });
