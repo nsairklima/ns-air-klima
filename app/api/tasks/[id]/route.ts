@@ -6,12 +6,12 @@ export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
 
-// Cloudinary konfiguráció
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Cloudinary biztonságos konfiguráció a nálad működő környezeti változó alapján
+try {
+  cloudinary.config();
+} catch (e) {
+  console.error("Cloudinary config hiba:", e);
+}
 
 // Segédfüggvény: Cloudinary URL-ből kiszedi a Public ID-t (pl. "tasks/abc123xyz")
 function getPublicIdFromUrl(url: string): string | null {
@@ -20,8 +20,7 @@ function getPublicIdFromUrl(url: string): string | null {
     const uploadIndex = parts.indexOf("upload");
     if (uploadIndex === -1) return null;
 
-    // Az "upload" utáni rész a verziószám (pl. v12345678) és a fájlnév kiterjesztéssel
-    const pathSegments = parts.slice(uploadIndex + 2); // Kihagyjuk az "upload"-ot és a verziót (v...)
+    const pathSegments = parts.slice(uploadIndex + 2);
     const fullPath = pathSegments.join("/");
     const lastDotIndex = fullPath.lastIndexOf(".");
     
@@ -39,7 +38,6 @@ export async function DELETE(
     const params = await props.params;
     const taskId = params.id;
 
-    // 1. Lekérdjük a feladatot, hogy megtudjuk, milyen képei vannak
     const existingTask = await sql`SELECT images FROM "Task" WHERE id = ${taskId}`;
     
     if (existingTask.length > 0 && existingTask[0].images) {
@@ -50,7 +48,6 @@ export async function DELETE(
           : existingTask[0].images;
       } catch {}
 
-      // 2. Töröljük az összes képet a Cloudinary tárhelyről is
       for (const imgUrl of images) {
         const publicId = getPublicIdFromUrl(imgUrl);
         if (publicId) {
@@ -63,7 +60,6 @@ export async function DELETE(
       }
     }
 
-    // 3. Töröljük a sort az adatbázisból
     await sql`DELETE FROM "Task" WHERE id = ${taskId}`;
     
     return NextResponse.json({ message: "Sikeres törlés és fájlok eltávolítása" });
@@ -98,7 +94,7 @@ export async function PUT(
     
     const description = note ? `${note}${email ? ` | Email: ${email}` : ""}` : email ? `Email: ${email}` : "";
 
-    // 1. Lekérdjük az adatbázisban lévő *eredeti* képeket, hogy lássuk, mit törölt ki a felhasználó
+    // 1. Lekérdjük az adatbázisban lévő *eredeti* képeket
     const currentTaskFromDb = await sql`SELECT images FROM "Task" WHERE id = ${taskId}`;
     let oldImagesInDb: string[] = [];
     if (currentTaskFromDb.length > 0 && currentTaskFromDb[0].images) {
@@ -109,7 +105,7 @@ export async function PUT(
       } catch {}
     }
 
-    // 2. Megmaradt régi képek beolvasása, amiket a felhasználó megtartott a formon
+    // 2. Megmaradt régi képek beolvasása
     let keptImages: string[] = [];
     const existingImagesRaw = formData.get("existingImages") as string;
     if (existingImagesRaw) {
@@ -118,7 +114,7 @@ export async function PUT(
       } catch {}
     }
 
-    // 3. Megkeressük azokat a képeket, amik eddig benn voltak, de most kikerültek -> ezeket töröljük a Cloudinary-ról
+    // 3. Eltávolított képek törlése a Cloudinaryról
     const imagesToDelete = oldImagesInDb.filter((img) => !keptImages.includes(img));
     for (const imgUrl of imagesToDelete) {
       const publicId = getPublicIdFromUrl(imgUrl);
@@ -131,7 +127,7 @@ export async function PUT(
       }
     }
 
-    // 4. Új képek feltöltése a Cloudinary-ra
+    // 4. Új képek feltöltése a Cloudinary-ra szerkesztéskor
     const photos = formData.getAll("photos") as File[];
     const newImageUrls: string[] = [];
 
