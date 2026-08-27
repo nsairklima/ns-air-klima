@@ -50,30 +50,26 @@ export async function POST(request: Request) {
       }
     }
 
-    const currentDate = new Date().toISOString().split("T")[0];
-
-    // Most már a "date" oszlop is megkapja a mai dátumot, így nem dob null constraint hibát!
+    // Most már a tiszta, eredeti mezőneveket mentjük az adatbázisba
     await sql`
       INSERT INTO "Task" (
         "type", 
-        "title",
-        "clientName", 
+        "name", 
         "address", 
         "phone", 
-        "date",
-        "description", 
-        "images", 
-        "updatedAt"
+        "email", 
+        "note", 
+        "drive_link", 
+        "created_at"
       )
       VALUES (
         ${type}, 
-        ${name || "Új munka"},
         ${name}, 
         ${address}, 
         ${phone}, 
-        ${currentDate},
-        ${note ? `${note} ${email ? `| Email: ${email}` : ""}` : email ? `Email: ${email}` : ""}, 
-        ${JSON.stringify(imageUrl ? [imageUrl] : [])}, 
+        ${email}, 
+        ${note}, 
+        ${imageUrl}, 
         NOW()
       )
     `;
