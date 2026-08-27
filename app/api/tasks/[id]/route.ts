@@ -6,14 +6,12 @@ export const dynamic = "force-dynamic";
 
 const sql = neon(process.env.POSTGRES_URL || "");
 
-// Cloudinary biztonságos konfiguráció a nálad működő környezeti változó alapján
 try {
   cloudinary.config();
 } catch (e) {
   console.error("Cloudinary config hiba:", e);
 }
 
-// Segédfüggvény: Cloudinary URL-ből kiszedi a Public ID-t (pl. "tasks/abc123xyz")
 function getPublicIdFromUrl(url: string): string | null {
   try {
     const parts = url.split("/");
@@ -86,6 +84,12 @@ export async function PUT(
     const email = (formData.get("email") as string) || "";
     const note = (formData.get("note") as string) || "";
 
+    // Időpont mezők kezelése szerkesztéskor
+    const scheduledAtRaw = formData.get("scheduledAt") as string;
+    const completedAtRaw = formData.get("completedAt") as string;
+    const scheduledAt = scheduledAtRaw ? scheduledAtRaw.replace("T", " ") : null;
+    const completedAt = completedAtRaw ? completedAtRaw.replace("T", " ") : null;
+
     const taskType = type;
     const taskTitle = name || "Módosított munka";
     const clientName = name || "";
@@ -94,7 +98,6 @@ export async function PUT(
     
     const description = note ? `${note}${email ? ` | Email: ${email}` : ""}` : email ? `Email: ${email}` : "";
 
-    // 1. Lekérdjük az adatbázisban lévő *eredeti* képeket
     const currentTaskFromDb = await sql`SELECT images FROM "Task" WHERE id = ${taskId}`;
     let oldImagesInDb: string[] = [];
     if (currentTaskFromDb.length > 0 && currentTaskFromDb[0].images) {
@@ -105,7 +108,6 @@ export async function PUT(
       } catch {}
     }
 
-    // 2. Megmaradt régi képek beolvasása
     let keptImages: string[] = [];
     const existingImagesRaw = formData.get("existingImages") as string;
     if (existingImagesRaw) {
@@ -114,7 +116,6 @@ export async function PUT(
       } catch {}
     }
 
-    // 3. Eltávolított képek törlése a Cloudinaryról
     const imagesToDelete = oldImagesInDb.filter((img) => !keptImages.includes(img));
     for (const imgUrl of imagesToDelete) {
       const publicId = getPublicIdFromUrl(imgUrl);
@@ -127,7 +128,6 @@ export async function PUT(
       }
     }
 
-    // 4. Új képek feltöltése a Cloudinary-ra szerkesztéskor
     const photos = formData.getAll("photos") as File[];
     const newImageUrls: string[] = [];
 
@@ -159,7 +159,6 @@ export async function PUT(
       }
     }
 
-    // A megmaradt régi képek és az újak összefűzése
     const finalImages = [...keptImages, ...newImageUrls];
 
     await sql`
@@ -171,6 +170,8 @@ export async function PUT(
           "phone" = ${taskPhone},
           "description" = ${description},
           "images" = ${JSON.stringify(finalImages)},
+          "scheduled_at" = ${scheduledAt},
+          "completed_at" = ${completedAt},
           "updatedAt" = NOW()
       WHERE id = ${taskId}
     `;
