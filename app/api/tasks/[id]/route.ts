@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sql } from "@vercel/postgres";
+import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
 
 // Cloudinary konfiguráció (biztosítsd, hogy nálad is itt van)
