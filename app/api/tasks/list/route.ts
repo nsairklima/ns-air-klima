@@ -13,10 +13,7 @@ export async function GET() {
       ORDER BY id DESC
     `;
 
-    // Átnevezzük az adatbázis oszlopait a frontend által elvárt mezővekre,
-    // hogy a táblázatban minden a helyén jelenjen meg (név, megjegyzés, kép).
     const tasks = rawTasks.map((t: any) => {
-      // Ha a képek tömbben (images) van elem, kivesszük az elsőt a drive_link-hez
       let driveLink = "";
       if (Array.isArray(t.images) && t.images.length > 0) {
         driveLink = t.images[0];
@@ -27,14 +24,27 @@ export async function GET() {
         } catch {}
       }
 
+      // Itt szétválasztjuk a leírást (description), ha tartalmazza a régi formátumú emailt
+      let description = t.description || "";
+      let extractedEmail = "";
+
+      if (description.includes("| Email:")) {
+        const parts = description.split("| Email:");
+        description = parts[0].trim();
+        extractedEmail = parts[1].trim();
+      } else if (description.startsWith("Email:")) {
+        extractedEmail = description.replace("Email:", "").trim();
+        description = "";
+      }
+
       return {
         id: t.id,
         type: t.type || "telepites",
         name: t.clientName || t.title || "",
         address: t.address || "",
         phone: t.phone || "",
-        email: "", // Ha külön kell email, kinyerhetjük a descriptionből is, vagy üres
-        note: t.description || "",
+        email: t.email || extractedEmail, // Ha van külön oszlop, azt veszi, különben a leírásból kinyertat
+        note: description,
         drive_link: driveLink,
         created_at: t.date || t.updatedAt || "",
       };
