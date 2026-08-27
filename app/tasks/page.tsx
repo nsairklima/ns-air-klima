@@ -16,6 +16,24 @@ type Task = {
   created_at: string;
 };
 
+// Segédfüggvény a dátumok szép formázásához
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "-";
+  // Ha tartalmazza a T betűt, feldaraboljuk
+  try {
+    const cleaned = dateString.replace("T", " ").replace("Z", "");
+    const [datePart, timePart] = cleaned.split(" ");
+    if (!datePart) return dateString;
+    
+    const formattedDate = datePart.replace(/-/g, ". ");
+    const formattedTime = timePart ? timePart.slice(0, 5) : "";
+    
+    return `${formattedDate}. ${formattedTime}`.trim();
+  } catch {
+    return dateString;
+  }
+};
+
 export default function TasksPage() {
   const [type, setType] = useState<"telepites" | "karbantartas">("telepites");
   const [name, setName] = useState("");
@@ -386,7 +404,7 @@ export default function TasksPage() {
                 <span style={{ fontWeight: "bold", fontSize: "15px", color: "#333" }}>
                   {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
                 </span>
-                <span style={{ fontSize: "12px", color: "#888" }}>{task.created_at}</span>
+                <span style={{ fontSize: "12px", color: "#888" }}>{formatDate(task.created_at)}</span>
               </div>
 
               <div style={{ fontSize: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -394,8 +412,8 @@ export default function TasksPage() {
                 <div><strong>Cím:</strong> {task.address || "-"}</div>
                 {task.phone && <div><strong>Telefon:</strong> 📞 {task.phone}</div>}
                 {task.email && <div><strong>Email:</strong> ✉️ {task.email}</div>}
-                {task.scheduled_at && <div><strong>Tervezett:</strong> 📅 {task.scheduled_at}</div>}
-                {task.completed_at && <div><strong>Megvalósult:</strong> ✅ {task.completed_at}</div>}
+                {task.scheduled_at && <div><strong>Tervezett:</strong> 📅 {formatDate(task.scheduled_at)}</div>}
+                {task.completed_at && <div><strong>Megvalósult:</strong> ✅ {formatDate(task.completed_at)}</div>}
                 {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
               </div>
 
