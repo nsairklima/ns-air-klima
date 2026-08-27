@@ -96,7 +96,7 @@ export default function TasksPage() {
       formData.append("name", name);
       formData.append("address", address);
       formData.append("phone", phone);
-      formData.append("email", email);
+      formData.append("email", email); // <-- Itt küldjük az emailt az új munkához
       formData.append("note", note);
       if (photo) formData.append("photo", photo);
 
