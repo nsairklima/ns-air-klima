@@ -247,8 +247,8 @@ export default function TasksPage() {
         }
         .filter-buttons {
           display: flex;
-          flex-direction: column;
-          gap: 8px;
+          flex-direction: row;
+          gap: 6px;
         }
         @media (min-width: 600px) {
           .form-grid {
@@ -256,9 +256,6 @@ export default function TasksPage() {
           }
           .cards-grid {
             grid-template-columns: 1fr 1fr;
-          }
-          .filter-buttons {
-            flex-direction: row;
           }
         }
       `}</style>
@@ -496,59 +493,77 @@ export default function TasksPage() {
 
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>Mentett munkák</h2>
 
-      {/* VEZÉRLŐSÁV: RESZPONZÍV SZŰRŐ GOMBOK ÉS KERESŐ */}
+      {/* VEZÉRLŐSÁV: EGY SORBAN ELHELYEZKEDŐ, IKONOS-SZÁMOS GOMBOK */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "16px" }}>
         <div className="filter-buttons">
           <button
             onClick={() => setFilterType("all")}
             style={{
               flex: 1,
-              padding: "10px 14px",
+              padding: "8px 4px",
               borderRadius: "8px",
               border: "none",
               background: filterType === "all" ? "#0070f3" : "#e2e8f0",
               color: filterType === "all" ? "white" : "#333",
               fontWeight: "bold",
               cursor: "pointer",
-              fontSize: "13px",
-              textAlign: "center"
+              fontSize: "12px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px"
             }}
           >
-            Összes ({totalCount})
+            <span>📋 Összes</span>
+            <span>({totalCount})</span>
           </button>
           <button
             onClick={() => setFilterType("telepites")}
             style={{
               flex: 1,
-              padding: "10px 14px",
+              padding: "8px 4px",
               borderRadius: "8px",
               border: "none",
               background: filterType === "telepites" ? "#3b82f6" : "#e2e8f0",
               color: filterType === "telepites" ? "white" : "#333",
               fontWeight: "bold",
               cursor: "pointer",
-              fontSize: "13px",
-              textAlign: "center"
+              fontSize: "12px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px"
             }}
           >
-            🛠️ Telepítések ({telepitesCount})
+            <span>🛠️ Telepítés</span>
+            <span>({telepitesCount})</span>
           </button>
           <button
             onClick={() => setFilterType("karbantartas")}
             style={{
               flex: 1,
-              padding: "10px 14px",
+              padding: "8px 4px",
               borderRadius: "8px",
               border: "none",
               background: filterType === "karbantartas" ? "#a855f7" : "#e2e8f0",
               color: filterType === "karbantartas" ? "white" : "#333",
               fontWeight: "bold",
               cursor: "pointer",
-              fontSize: "13px",
-              textAlign: "center"
+              fontSize: "12px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px"
             }}
           >
-            🧹 Karbantartások ({karbantartasCount})
+            <span>🧹 Karbantartás</span>
+            <span>({karbantartasCount})</span>
           </button>
         </div>
 
