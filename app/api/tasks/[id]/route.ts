@@ -1,30 +1,3 @@
-import { NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
-import { v2 as cloudinary } from "cloudinary";
-
-export const dynamic = "force-dynamic";
-
-const sql = neon(process.env.POSTGRES_URL || "");
-
-try {
-  cloudinary.config();
-} catch (e) {
-  console.error("Cloudinary config hiba:", e);
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    await sql`DELETE FROM "Task" WHERE id = ${params.id}`;
-    return NextResponse.json({ message: "Sikeres törlés" });
-  } catch (error: any) {
-    console.error("Törlési hiba:", error);
-    return NextResponse.json({ error: error?.message || "Törlési hiba" }, { status: 500 });
-  }
-}
-
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
@@ -47,21 +20,16 @@ export async function PUT(
     
     const description = note ? `${note}${email ? ` | Email: ${email}` : ""}` : email ? `Email: ${email}` : "";
 
-    // 1. Meglévő képek lekérése az adatbázisból, hogy ne veszítsük el őket
-    const existingTask = await sql`SELECT images FROM "Task" WHERE id = ${params.id}`;
-    let currentImages: string[] = [];
-    if (existingTask.length > 0) {
-      const rawImages = existingTask[0].images;
-      if (Array.isArray(rawImages)) {
-        currentImages = rawImages;
-      } else if (typeof rawImages === "string" && rawImages.startsWith("[")) {
-        try { currentImages = JSON.parse(rawImages); } catch {}
-      } else if (typeof rawImages === "string" && rawImages.trim() !== "") {
-        currentImages = [rawImages];
-      }
+    // 1. Megmaradt régi képek beolvasása, amiket a felhasználó nem törölt ki a formon
+    let keptImages: string[] = [];
+    const existingImagesRaw = formData.get("existingImages") as string;
+    if (existingImagesRaw) {
+      try {
+        keptImages = JSON.parse(existingImagesRaw);
+      } catch {}
     }
 
-    // 2. Új képek feldolgozása és feltöltése a Cloudinary-ra
+    // 2. Új képek feltöltése a Cloudinary-ra
     const photos = formData.getAll("photos") as File[];
     const newImageUrls: string[] = [];
 
@@ -93,8 +61,8 @@ export async function PUT(
       }
     }
 
-    // A régi és az újonnan feltöltött képek összefűzése
-    const finalImages = [...currentImages, ...newImageUrls];
+    // A megmaradt régi képek és az újonnan feltöltöttek összefűzése
+    const finalImages = [...keptImages, ...newImageUrls];
 
     await sql`
       UPDATE "Task"
