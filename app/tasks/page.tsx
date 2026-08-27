@@ -25,7 +25,6 @@ export default function TasksPage() {
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
-  const [uploadedLinks, setUploadedLinks] = useState<string[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -63,15 +62,26 @@ export default function TasksPage() {
     e.preventDefault();
     setLoading(true);
     setStatusMessage("");
-    setUploadedLinks([]);
+
+    // FormData használata mind létrehozáskor, mind szerkesztéskor a képek miatt
+    const formData = new FormData();
+    formData.append("type", type);
+    formData.append("name", name);
+    formData.append("address", address);
+    formData.append("phone", phone);
+    formData.append("email", email);
+    formData.append("note", note);
+
+    photos.forEach((photo) => {
+      formData.append("photos", photo);
+    });
 
     if (editingTaskId) {
       // SZERKESZTÉS (PUT)
       try {
         const res = await fetch(`/api/tasks/${editingTaskId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type, name, address, phone, email, note }),
+          body: formData,
         });
         const data = await res.json();
 
@@ -88,20 +98,7 @@ export default function TasksPage() {
         setLoading(false);
       }
     } else {
-      // ÚJ LÉTREHOZÁS (POST) - Több kép küldése FormData-val
-      const formData = new FormData();
-      formData.append("type", type);
-      formData.append("name", name);
-      formData.append("address", address);
-      formData.append("phone", phone);
-      formData.append("email", email);
-      formData.append("note", note);
-
-      // Minden kiválasztott képet hozzáadunk a "photos" kulcshoz
-      photos.forEach((photo) => {
-        formData.append("photos", photo);
-      });
-
+      // ÚJ LÉTREHOZÁS (POST)
       try {
         const res = await fetch("/api/tasks", {
           method: "POST",
@@ -111,9 +108,6 @@ export default function TasksPage() {
 
         if (res.ok) {
           setStatusMessage("✅ " + data.message);
-          if (data.driveLinks && Array.isArray(data.driveLinks)) {
-            setUploadedLinks(data.driveLinks);
-          }
           resetForm();
           fetchTasks();
         } else {
@@ -254,19 +248,17 @@ export default function TasksPage() {
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
         </div>
 
-        {!editingTaskId && (
-          <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Képek csatolása (akár több is):</label>
-            <input 
-              type="file" 
-              accept="image/*" 
-              multiple // <--- Ez engedélyezi a több kép kijelölését
-              onChange={(e) => setPhotos(Array.from(e.target.files || []))} 
-              style={{ width: "100%", padding: "8px", background: "white", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} 
-            />
-            {photos.length > 0 && <small style={{ color: "#666", display: "block", marginTop: "4px" }}>{photos.length} kép kiválasztva.</small>}
-          </div>
-        )}
+        <div>
+          <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Képek csatolása (akár több is):</label>
+          <input 
+            type="file" 
+            accept="image/*" 
+            multiple 
+            onChange={(e) => setPhotos(Array.from(e.target.files || []))} 
+            style={{ width: "100%", padding: "8px", background: "white", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} 
+          />
+          {photos.length > 0 && <small style={{ color: "#666", display: "block", marginTop: "4px" }}>{photos.length} kép kiválasztva.</small>}
+        </div>
 
         <div style={{ display: "flex", gap: "10px" }}>
           <button type="submit" disabled={loading} style={{ flex: 1, background: loading ? "#ccc" : editingTaskId ? "#ffc107" : "#28a745", color: editingTaskId ? "#000" : "white", padding: "14px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: loading ? "not-allowed" : "pointer" }}>
@@ -285,8 +277,6 @@ export default function TasksPage() {
           {statusMessage}
         </div>
       )}
-
-   
 
       {/* MENTETT MUNKÁK */}
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>Mentett munkák</h2>
