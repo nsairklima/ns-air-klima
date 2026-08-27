@@ -10,7 +10,7 @@ type Task = {
   phone?: string;
   email?: string;
   note?: string;
-  drive_link?: string;
+  images?: string[]; // Több kép kezelése tömbként
   created_at: string;
 };
 
@@ -21,14 +21,13 @@ export default function TasksPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]); // Több fájl állapota
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
-  const [driveUrl, setDriveUrl] = useState<string | null>(null);
+  const [uploadedLinks, setUploadedLinks] = useState<string[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // Szerkesztési állapotok
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
 
   const fetchTasks = async () => {
@@ -49,7 +48,6 @@ export default function TasksPage() {
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
     : "https://maps.google.com";
 
-  // Mezők ürítése
   const resetForm = () => {
     setType("telepites");
     setName("");
@@ -57,7 +55,7 @@ export default function TasksPage() {
     setPhone("");
     setEmail("");
     setNote("");
-    setPhoto(null);
+    setPhotos([]);
     setEditingTaskId(null);
   };
 
@@ -65,7 +63,7 @@ export default function TasksPage() {
     e.preventDefault();
     setLoading(true);
     setStatusMessage("");
-    setDriveUrl(null);
+    setUploadedLinks([]);
 
     if (editingTaskId) {
       // SZERKESZTÉS (PUT)
@@ -90,7 +88,7 @@ export default function TasksPage() {
         setLoading(false);
       }
     } else {
-      // ÚJ LÉTREHOZÁS (POST)
+      // ÚJ LÉTREHOZÁS (POST) - Több kép küldése FormData-val
       const formData = new FormData();
       formData.append("type", type);
       formData.append("name", name);
@@ -98,7 +96,11 @@ export default function TasksPage() {
       formData.append("phone", phone);
       formData.append("email", email);
       formData.append("note", note);
-      if (photo) formData.append("photo", photo);
+
+      // Minden kiválasztott képet hozzáadunk a "photos" kulcshoz
+      photos.forEach((photo) => {
+        formData.append("photos", photo);
+      });
 
       try {
         const res = await fetch("/api/tasks", {
@@ -109,8 +111,8 @@ export default function TasksPage() {
 
         if (res.ok) {
           setStatusMessage("✅ " + data.message);
-          if (data.driveLink) {
-            setDriveUrl(data.driveLink);
+          if (data.driveLinks && Array.isArray(data.driveLinks)) {
+            setUploadedLinks(data.driveLinks);
           }
           resetForm();
           fetchTasks();
@@ -138,7 +140,6 @@ export default function TasksPage() {
     }
   };
 
-  // Amikor rákattintunk a ceruzára, betöltjük az adatokat a fő űrlapba
   const startEditing = (task: Task) => {
     setEditingTaskId(task.id);
     setType((task.type as "telepites" | "karbantartas") || "telepites");
@@ -157,7 +158,7 @@ export default function TasksPage() {
 
     setEmail(taskEmail);
     setNote(taskNote);
-    setPhoto(null);
+    setPhotos([]);
     setStatusMessage("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -255,8 +256,15 @@ export default function TasksPage() {
 
         {!editingTaskId && (
           <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Kép csatolása:</label>
-            <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} style={{ width: "100%", padding: "8px", background: "white", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Képek csatolása (akár több is):</label>
+            <input 
+              type="file" 
+              accept="image/*" 
+              multiple // <--- Ez engedélyezi a több kép kijelölését
+              onChange={(e) => setPhotos(Array.from(e.target.files || []))} 
+              style={{ width: "100%", padding: "8px", background: "white", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} 
+            />
+            {photos.length > 0 && <small style={{ color: "#666", display: "block", marginTop: "4px" }}>{photos.length} kép kiválasztva.</small>}
           </div>
         )}
 
@@ -278,16 +286,20 @@ export default function TasksPage() {
         </div>
       )}
 
-      {driveUrl && (
-        <p style={{ marginTop: "12px" }}>
-          <strong>Feltöltött kép:</strong>{" "}
-          <a href={driveUrl} target="_blank" rel="noopener noreferrer">
-            Megtekintés Google Drive-on
-          </a>
-        </p>
+      {uploadedLinks.length > 0 && (
+        <div style={{ marginTop: "12px" }}>
+          <strong>Feltöltött képek:</strong>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "4px" }}>
+            {uploadedLinks.map((link, idx) => (
+              <a key={idx} href={link} target="_blank" rel="noopener noreferrer" style={{ background: "#eee", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", textDecoration: "none", color: "#0070f3" }}>
+                📷 Kép {idx + 1}
+              </a>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* MENTETT MUNKÁK - KÁRTYÁS NÉZET */}
+      {/* MENTETT MUNKÁK */}
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>Mentett munkák</h2>
 
       {tasks.length === 0 ? (
@@ -309,7 +321,6 @@ export default function TasksPage() {
                 position: "relative",
               }}
             >
-              {/* Fejléc a kártyán: Típus és dátum */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f0f0f0", paddingBottom: "8px" }}>
                 <span style={{ fontWeight: "bold", fontSize: "15px", color: "#333" }}>
                   {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
@@ -317,7 +328,6 @@ export default function TasksPage() {
                 <span style={{ fontSize: "12px", color: "#888" }}>{task.created_at}</span>
               </div>
 
-              {/* Adatok */}
               <div style={{ fontSize: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
                 <div><strong>Név:</strong> {task.name || "-"}</div>
                 <div><strong>Cím:</strong> {task.address || "-"}</div>
@@ -326,13 +336,16 @@ export default function TasksPage() {
                 {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
               </div>
 
-              {/* Lábléc: Kép link és Gombok */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #f0f0f0" }}>
                 <div>
-                  {task.drive_link ? (
-                    <a href={task.drive_link} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "13px" }}>
-                      📷 Kép megtekintése
-                    </a>
+                  {task.images && task.images.length > 0 ? (
+                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                      {task.images.map((imgUrl, i) => (
+                        <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "12px", background: "#f1f1f1", padding: "2px 6px", borderRadius: "4px" }}>
+                          📷 {i + 1}. kép
+                        </a>
+                      ))}
+                    </div>
                   ) : (
                     <span style={{ color: "#aaa", fontSize: "13px" }}>Nincs kép</span>
                   )}
