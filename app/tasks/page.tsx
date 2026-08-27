@@ -50,6 +50,10 @@ export default function TasksPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
 
+  // Új állapotok a szűréshez és kereséshez
+  const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
 
@@ -204,6 +208,34 @@ export default function TasksPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Számolások a gombokhoz
+  const totalCount = tasks.length;
+  const telepitesCount = tasks.filter((t) => t.type === "telepites").length;
+  const karbantartasCount = tasks.filter((t) => t.type === "karbantartas").length;
+
+  // Szűrés és keresés logika
+  const filteredTasks = tasks.filter((task) => {
+    // Típus szerinti szűrés
+    if (filterType !== "all" && task.type !== filterType) {
+      return false;
+    }
+    // Keresés minden adatban
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase();
+      const matchName = task.name?.toLowerCase().includes(q) || false;
+      const matchAddress = task.address?.toLowerCase().includes(q) || false;
+      const matchPhone = task.phone?.toLowerCase().includes(q) || false;
+      const matchEmail = task.email?.toLowerCase().includes(q) || false;
+      const matchNote = task.note?.toLowerCase().includes(q) || false;
+      const matchType = task.type.toLowerCase().includes(q) || false;
+      
+      if (!matchName && !matchAddress && !matchPhone && !matchEmail && !matchNote && !matchType) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "system-ui" }}>
       <style jsx>{`
@@ -236,7 +268,7 @@ export default function TasksPage() {
         }}>
           <div style={{
             background: "white", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "500px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: "12px", position: "relative"
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: "12px", position: "relative", maxHeight: "90vh", overflowY: "auto"
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #eee", paddingBottom: "8px" }}>
               <h2 style={{ margin: 0, fontSize: "18px" }}>
@@ -249,7 +281,6 @@ export default function TasksPage() {
               <div><strong>Státusz:</strong> {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}</div>
               <div><strong>Név:</strong> {viewingTask.name || "-"}</div>
               
-              {/* Cím kattintható linkként a Google Maps-hez */}
               <div>
                 <strong>Cím:</strong>{" "}
                 {viewingTask.address ? (
@@ -266,7 +297,6 @@ export default function TasksPage() {
                 )}
               </div>
 
-              {/* Telefonszám kattintható linkként a híváshoz */}
               <div>
                 <strong>Telefon:</strong>{" "}
                 {viewingTask.phone ? (
@@ -463,11 +493,81 @@ export default function TasksPage() {
 
       <h2 style={{ marginTop: "40px", borderBottom: "2px solid #eee", paddingBottom: "10px" }}>Mentett munkák</h2>
 
-      {tasks.length === 0 ? (
-        <p style={{ color: "#666", marginTop: "16px" }}>Nincs mentett munka.</p>
+      {/* VEZÉRLŐSÁV: SZŰRŐ GOMBOK ÉS KERESŐ */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "16px" }}>
+        {/* Szűrő gombok a darabszámokkal */}
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button
+            onClick={() => setFilterType("all")}
+            style={{
+              padding: "8px 14px",
+              borderRadius: "20px",
+              border: "none",
+              background: filterType === "all" ? "#0070f3" : "#e2e8f0",
+              color: filterType === "all" ? "white" : "#333",
+              fontWeight: "bold",
+              cursor: "pointer",
+              fontSize: "13px"
+            }}
+          >
+            Összes ({totalCount})
+          </button>
+          <button
+            onClick={() => setFilterType("telepites")}
+            style={{
+              padding: "8px 14px",
+              borderRadius: "20px",
+              border: "none",
+              background: filterType === "telepites" ? "#3b82f6" : "#e2e8f0",
+              color: filterType === "telepites" ? "white" : "#333",
+              fontWeight: "bold",
+              cursor: "pointer",
+              fontSize: "13px"
+            }}
+          >
+            🛠️ Telepítések ({telepitesCount})
+          </button>
+          <button
+            onClick={() => setFilterType("karbantartas")}
+            style={{
+              padding: "8px 14px",
+              borderRadius: "20px",
+              border: "none",
+              background: filterType === "karbantartas" ? "#a855f7" : "#e2e8f0",
+              color: filterType === "karbantartas" ? "white" : "#333",
+              fontWeight: "bold",
+              cursor: "pointer",
+              fontSize: "13px"
+            }}
+          >
+            🧹 Karbantartások ({karbantartasCount})
+          </button>
+        </div>
+
+        {/* Keresőmező */}
+        <div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="🔍 Keresés név, cím, telefon, email vagy megjegyzés alapján..."
+            style={{
+              width: "100%",
+              padding: "10px 14px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              boxSizing: "border-box",
+              fontSize: "14px"
+            }}
+          />
+        </div>
+      </div>
+
+      {filteredTasks.length === 0 ? (
+        <p style={{ color: "#666", marginTop: "16px" }}>Nincs a keresési feltételeknek megfelelő munka.</p>
       ) : (
         <div className="cards-grid">
-          {tasks.map((task) => {
+          {filteredTasks.map((task) => {
             const isCompleted = Boolean(task.completed_at);
             const isTelepites = task.type === "telepites";
 
@@ -511,11 +611,11 @@ export default function TasksPage() {
                   <span style={{ fontWeight: "bold", fontSize: "15px", color: "#333" }}>
                     {isTelepites ? "🛠️ Telepítés" : "🧹 Karbantartás"}
                   </span>
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                     <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "12px", background: statusBadgeBg, color: statusBadgeColor, fontWeight: "bold" }}>
                       {isCompleted ? "✅ Kész" : "⏳ Folyamatban"}
                     </span>
-                    <span style={{ fontSize: "12px", color: "#888" }}>{formatDate(task.created_at)}</span>
+                    <span style={{ fontSize: "11px", color: "#888" }}>{formatDate(task.created_at)}</span>
                   </div>
                 </div>
 
@@ -534,19 +634,20 @@ export default function TasksPage() {
                     {task.images && task.images.length > 0 ? (
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                         {task.images.map((imgUrl, i) => (
-                          <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "12px", background: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: "4px" }}>
+                          <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "11px", background: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: "4px" }}>
                             📷 {i + 1}. kép
                           </a>
                         ))}
                       </div>
                     ) : (
-                      <span style={{ color: "#aaa", fontSize: "13px" }}>Nincs kép</span>
+                      <span style={{ color: "#aaa", fontSize: "12px" }}>Nincs kép</span>
                     )}
                   </div>
-                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                    <button onClick={() => setViewingTask(task)} style={{ background: "#17a2b8", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>👁️ Megnyitás</button>
-                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>✏️ Szerkesztés</button>
-                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>🗑️ Törlés</button>
+                  {/* Reszponzív gombok mobilon is kiférjenek */}
+                  <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                    <button onClick={() => setViewingTask(task)} style={{ background: "#17a2b8", color: "white", border: "none", padding: "5px 8px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>👁️ Megnyitás</button>
+                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "5px 8px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>✏️ Szerkesztés</button>
+                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "5px 8px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>🗑️ Törlés</button>
                   </div>
                 </div>
               </div>
