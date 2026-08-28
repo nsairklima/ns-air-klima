@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
 import nodemailer from "nodemailer";
+import fs from "fs";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -12,18 +14,6 @@ try {
 } catch (e) {
   console.error("Cloudinary config hiba:", e);
 }
-
-// Segédfüggvény a dátum konvertálásához iCal formátumra (YYYYMMDDTHHMMSSZ)
-const formatToIcalDate = (dateString: string | null) => {
-  if (!dateString) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
-    return tomorrow.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-  }
-  const clean = dateString.replace("T", " ").replace(/[-:]/g, "").replace(" ", "T");
-  return clean.length === 12 ? `${clean}00Z` : `${clean}Z`;
-};
 
 export async function POST(request: Request) {
   try {
@@ -118,37 +108,22 @@ export async function POST(request: Request) {
       });
 
       const typeLabel = type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
-
-      // Dinamikus iCal tartalom generálása
-      const icalStart = formatToIcalDate(scheduledAt);
-      const startDateObj = new Date(scheduledAt ? scheduledAt.replace(" ", "T") : Date.now());
-      const endDateObj = new Date(startDateObj.getTime() + 60 * 60 * 1000);
-      const icalEnd = endDateObj.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-      const icalStamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-
       const notificationEmails = process.env.NOTIFICATION_EMAILS
         ? process.env.NOTIFICATION_EMAILS.split(",").map((e) => e.trim())
         : [process.env.EMAIL_USER || ""];
 
+      // Pontos gyökér-alapú útvonal a meglévő event.ics fájlhoz
+      const icsFilePath = path.join(process.cwd(), "event.ics");
+      const icsTemplate = fs.readFileSync(icsFilePath, "utf8");
+
       for (const recipientEmail of notificationEmails) {
         if (!recipientEmail) continue;
 
-        const icalContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//NS-AIR Rendszer//HU
-METHOD:REQUEST
-BEGIN:VEVENT
-UID:task-${Date.now()}-${Math.random()}@nsair.hu
-DTSTAMP:${icalStamp}
-DTSTART:${icalStart}
-DTEND:${icalEnd}
-SUMMARY:${typeLabel}: ${name || "Új munka"}
-DESCRIPTION:Cím: ${address}\\nTelefon: ${phone}\\nMegjegyzés: ${note}
-LOCATION:${address || "Megadott helyszín"}
-ORGANIZER;CN="NS-AIR Rendszer":mailto:${process.env.EMAIL_USER}
-ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${recipientEmail}
-END:VEVENT
-END:VCALENDAR`;
+        // Címzett email címének behelyettesítése a naptárbejegyzésbe
+        const personalizedIcsContent = icsTemplate.replace(
+          "mailto:felhasznalo@domain.hu",
+          `mailto:${recipientEmail}`
+        );
 
         await transporter.sendMail({
           from: `"NS-AIR Rendszer" <${process.env.EMAIL_USER}>`,
@@ -204,7 +179,7 @@ END:VCALENDAR`;
           attachments: [
             {
               filename: "event.ics",
-              content: icalContent,
+              content: Buffer.from(personalizedIcsContent, "utf-8"),
               contentType: "text/calendar; charset=utf-8; method=REQUEST",
             },
           ],
