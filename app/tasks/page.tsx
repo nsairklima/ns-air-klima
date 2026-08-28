@@ -345,14 +345,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
         <h1>{editingTaskId ? "✏️ Munka Szerkesztése" : "Munka Kiadása"}</h1> {/* Dinamikus cím: szerkesztés vagy új munka */}
-        <a
-          href={mapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ background: "#4285F4", color: "white", padding: "10px 16px", borderRadius: "8px", textDecoration: "none", fontWeight: "bold" }}
-        >
-          //📍 Google Maps {/* Gyorsgomb a Google Maps megnyitásához */}
-        </a>
+       
       </div>
 
       <form
