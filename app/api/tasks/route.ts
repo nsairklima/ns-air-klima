@@ -13,6 +13,20 @@ try {
   console.error("Cloudinary config hiba:", e);
 }
 
+// Segédfüggvény a dátum konvertálásához iCal formátumra (YYYYMMDDTHHMMSSZ)
+const formatToIcalDate = (dateString: string | null) => {
+  if (!dateString) {
+    // Ha nincs megadott tervezett időpont, alapértelmezetten a holnapi napot adjuk meg
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0);
+    return tomorrow.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  }
+  // A "YYYY-MM-DD HH:mm" vagy "YYYY-MM-DDTHH:mm" formátum átalakítása iCal kompatibilissé
+  const clean = dateString.replace("T", " ").replace(/[-:]/g, "").replace(" ", "T");
+  return clean.length === 12 ? `${clean}00Z` : `${clean}Z`;
+};
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -107,64 +121,102 @@ export async function POST(request: Request) {
 
       const typeLabel = type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
 
-      await transporter.sendMail({
-        from: `"NS-AIR Rendszer" <${process.env.EMAIL_USER}>`,
-        to: process.env.NOTIFICATION_EMAILS || process.env.EMAIL_USER,
-        subject: `📋 Új munka értesítés: ${typeLabel} (${name || "Névtelen"})`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-            <div style="background-color: #2c3e50; color: #ffffff; padding: 20px; text-align: center;">
-              <h2 style="margin: 0;">Új munka érkezett a rendszerbe</h2>
-              <p style="margin: 5px 0 0 0; opacity: 0.8;">${typeLabel}</p>
+      // Dinamikus iCal tartalom generálása a feladat adatai alapján
+      const icalStart = formatToIcalDate(scheduledAt);
+      // Ha van időpont, teszünk rá 1 óra időtartamot
+      const startDateObj = new Date(scheduledAt ? scheduledAt.replace(" ", "T") : Date.now());
+      const endDateObj = new Date(startDateObj.getTime() + 60 * 60 * 1000);
+      const icalEnd = endDateObj.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+      const icalStamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+      const notificationEmails = process.env.NOTIFICATION_EMAILS
+        ? process.env.NOTIFICATION_EMAILS.split(",").map((e) => e.trim())
+        : [process.env.EMAIL_USER || ""];
+
+      for (const recipientEmail of notificationEmails) {
+        if (!recipientEmail) continue;
+
+        const icalContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//NS-AIR Rendszer//HU
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:task-${Date.now()}@nsair.hu
+DTSTAMP:${icalStamp}
+DTSTART:${icalStart}
+DTEND:${icalEnd}
+SUMMARY:${typeLabel}: ${name || "Új munka"}
+DESCRIPTION:Cím: ${address}\\nTelefon: ${phone}\\nMegjegyzés: ${note}
+LOCATION:${address || "Megadott helyszín"}
+ORGANIZER;CN="NS-AIR Rendszer":mailto:${process.env.EMAIL_USER}
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${recipientEmail}
+END:VEVENT
+END:VCALENDAR`;
+
+        await transporter.sendMail({
+          from: `"NS-AIR Rendszer" <${process.env.EMAIL_USER}>`,
+          to: recipientEmail,
+          subject: `📋 Új munka értesítés: ${typeLabel} (${name || "Névtelen"})`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+              <div style="background-color: #2c3e50; color: #ffffff; padding: 20px; text-align: center;">
+                <h2 style="margin: 0;">Új munka érkezett a rendszerbe</h2>
+                <p style="margin: 5px 0 0 0; opacity: 0.8;">${typeLabel}</p>
+              </div>
+              <div style="padding: 20px; font-size: 14px; color: #333;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-weight: bold; width: 35%;">Munkatípus:</td>
+                    <td style="padding: 10px;">${typeLabel}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-weight: bold;">Név:</td>
+                    <td style="padding: 10px;">${name || "-"}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-weight: bold;">Cím:</td>
+                    <td style="padding: 10px;">${address || "-"}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-weight: bold;">Telefon:</td>
+                    <td style="padding: 10px;">${phone || "-"}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-weight: bold;">Email:</td>
+                    <td style="padding: 10px;">${email || "-"}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-weight: bold;">Tervezett időpont:</td>
+                    <td style="padding: 10px;">${scheduledAt || "-"}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-weight: bold;">Megvalósult időpont:</td>
+                    <td style="padding: 10px;">${completedAt || "-"}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-weight: bold;">Megjegyzés:</td>
+                    <td style="padding: 10px;">${note || "-"}</td>
+                  </tr>
+                </table>
+              </div>
+              <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;">
+                Automata üzenet az NS-AIR Rendszerből. A naptárbejegyzés mellékelve.
+              </div>
             </div>
-            <div style="padding: 20px; font-size: 14px; color: #333;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; font-weight: bold; width: 35%;">Munkatípus:</td>
-                  <td style="padding: 10px;">${typeLabel}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; font-weight: bold;">Név:</td>
-                  <td style="padding: 10px;">${name || "-"}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; font-weight: bold;">Cím:</td>
-                  <td style="padding: 10px;">${address || "-"}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; font-weight: bold;">Telefon:</td>
-                  <td style="padding: 10px;">${phone || "-"}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; font-weight: bold;">Email:</td>
-                  <td style="padding: 10px;">${email || "-"}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; font-weight: bold;">Tervezett időpont:</td>
-                  <td style="padding: 10px;">${scheduledAt || "-"}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; font-weight: bold;">Megvalósult időpont:</td>
-                  <td style="padding: 10px;">${completedAt || "-"}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; font-weight: bold;">Megjegyzés:</td>
-                  <td style="padding: 10px;">${note || "-"}</td>
-                </tr>
-              </table>
-            </div>
-            <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;">
-              Automata üzenet az NS-AIR Rendszerből. (A csatolt képek az alkalmazásban érhetők el).
-            </div>
-          </div>
-        `,
-      });
+          `,
+          icalEvent: {
+            filename: "event.ics",
+            method: "REQUEST",
+            content: icalContent,
+          },
+        });
+      }
     } catch (mailError) {
       console.error("Email küldési hiba az új munkánál:", mailError);
     }
 
     return NextResponse.json({
-      message: "Munka sikeresen elmentve és email elküldve!",
+      message: "Munka sikeresen elmentve és naptár meghívó elküldve!",
       driveLinks: imageUrls,
     });
   } catch (error: any) {
