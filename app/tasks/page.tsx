@@ -608,7 +608,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
                 cardBackground = "#DAE9FC"; //#f8fafc
                 borderColor = "#cbd5e1";
               } else { // Karbantartás esetén lila színek
-                cardBackground = "#fdf4ff";
+                cardBackground = "#FAE4FF"; //#fdf4ff
                 borderColor = "#f5d0fe";
               }
             }
