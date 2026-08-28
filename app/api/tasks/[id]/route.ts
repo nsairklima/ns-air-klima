@@ -215,7 +215,7 @@ export async function PUT(
               </table>
             </div>
             <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;">
-              Automata üzenet a Klíma Rendszerből.
+              Automata üzenet az NS-AIR Rendszerből.
             </div>
           </div>
         `,
