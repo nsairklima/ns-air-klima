@@ -93,7 +93,7 @@ export async function POST(request: Request) {
       )
     `;
 
-    try {
+   try {
       const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
         port: Number(process.env.EMAIL_PORT),
@@ -112,23 +112,56 @@ export async function POST(request: Request) {
         ? process.env.NOTIFICATION_EMAILS.split(",").map((e) => e.trim())
         : [process.env.EMAIL_USER || ""];
 
-      // Pontos gyökér-alapú útvonal a meglévő event.ics fájlhoz
-      const icsFilePath = path.join(process.cwd(), "event.ics");
-      const icsTemplate = fs.readFileSync(icsFilePath, "utf8");
+      // Időpontok konvertálása iCal formátumra (YYYYMMDDTHHMMSSZ)
+      const getIcalDate = (dateStr: string | null) => {
+        if (!dateStr) {
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+        }
+        // "YYYY-MM-DD HH:mm" -> "YYYYMMDDTHHMMSSZ"
+        const clean = dateStr.replace(/[-:\s]/g, "");
+        return clean.length === 8 ? `${clean}T080000Z` : `${clean}00Z`;
+      };
+
+      const startString = getIcalDate(scheduledAt);
+      
+      // Kezdő dátum alapján 1 órás időtartam számítása a végdátumhoz
+      const startDateObj = scheduledAt 
+        ? new Date(scheduledAt.replace(" ", "T")) 
+        : new Date(Date.now() + 86400000);
+      const endDateObj = new Date(startDateObj.getTime() + 60 * 60 * 1000);
+      const endString = endDateObj.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+      const stampString = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
       for (const recipientEmail of notificationEmails) {
         if (!recipientEmail) continue;
 
-        // Címzett email címének behelyettesítése a naptárbejegyzésbe
-        const personalizedIcsContent = icsTemplate.replace(
-          "mailto:felhasznalo@domain.hu",
-          `mailto:${recipientEmail}`
-        );
+        // Szabványos iCal tartalom \r\n elválasztással a kliensek számára
+        const icalContent = [
+          "BEGIN:VCALENDAR",
+          "VERSION:2.0",
+          "PRODID:-//NS-AIR Rendszer//HU",
+          "METHOD:REQUEST",
+          "BEGIN:VEVENT",
+          `UID:task-${Date.now()}-${Math.random().toString(36).substring(2)}@nsair.hu`,
+          `DTSTAMP:${stampString}`,
+          `DTSTART:${startString}`,
+          `DTEND:${endString}`,
+          `SUMMARY:${typeLabel}: ${name || "Új munka"}`,
+          `DESCRIPTION:Cím: ${address}\\nTelefon: ${phone}\\nMegjegyzés: ${note}`,
+          `LOCATION:${address || "Megadott helyszín"}`,
+          `ORGANIZER;CN="NS-AIR Rendszer":mailto:${process.env.EMAIL_USER}`,
+          `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${recipientEmail}`,
+          "END:VEVENT",
+          "END:VCALENDAR"
+        ].join("\r\n");
 
         await transporter.sendMail({
           from: `"NS-AIR Rendszer" <${process.env.EMAIL_USER}>`,
           to: recipientEmail,
           subject: `📋 Új munka értesítés: ${typeLabel} (${name || "Névtelen"})`,
+          text: `Új munka érkezett: ${typeLabel}\nNév: ${name}\nCím: ${address}\nIdőpont: ${scheduledAt || "Nincs megadva"}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
               <div style="background-color: #2c3e50; color: #ffffff; padding: 20px; text-align: center;">
@@ -172,17 +205,16 @@ export async function POST(request: Request) {
                 </table>
               </div>
               <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;">
-                Automata üzenet az NS-AIR Rendszerből. A naptárbejegyzés mellékelve.
+                Automata üzenet az NS-AIR Rendszerből. A naptármeghívó csatolva van.
               </div>
             </div>
           `,
-          attachments: [
-            {
-              filename: "event.ics",
-              content: Buffer.from(personalizedIcsContent, "utf-8"),
-              contentType: "text/calendar; charset=utf-8; method=REQUEST",
-            },
-          ],
+          // Nodemailer hivatalos naptár-meghívó kezelője
+          icalEvent: {
+            filename: "event.ics",
+            method: "REQUEST",
+            content: Buffer.from(icalContent, "utf-8"),
+          },
         });
       }
     } catch (mailError) {
