@@ -235,7 +235,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
   });
 
   return ( // A JSX sablon kezdete, ami a felhasználói felületet rendereli
-    <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "system-ui" }}> // Fő konténer elem egyedi stílusokkal
+    <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "system-ui" }}> {/* Fő konténer elem egyedi stílusokkal */}
       <style jsx>{` // Helyi CSS stílusok definíciója a Next.js jsx propjával
         .form-grid {
           display: grid;
