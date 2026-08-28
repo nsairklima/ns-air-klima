@@ -24,13 +24,11 @@ export async function POST(request: Request) {
     const email = (formData.get("email") as string) || "";
     const note = (formData.get("note") as string) || "";
     
-    // Új időpont mezők kezelése (ha üres, legyen null)
     const scheduledAtRaw = formData.get("scheduledAt") as string;
     const completedAtRaw = formData.get("completedAt") as string;
     const scheduledAt = scheduledAtRaw ? scheduledAtRaw.replace("T", " ") : null;
     const completedAt = completedAtRaw ? completedAtRaw.replace("T", " ") : null;
     
-    // Több fájl lekérése
     const photos = formData.getAll("photos") as File[];
     const imageUrls: string[] = [];
 
@@ -93,7 +91,6 @@ export async function POST(request: Request) {
       )
     `;
 
-    // Email küldése a meglévő Nodemailer beállításokkal (képeken kívül minden adat)
     try {
       const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
@@ -112,7 +109,7 @@ export async function POST(request: Request) {
 
       await transporter.sendMail({
         from: `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_USER, // karbantartas@nsairklima.hu
+        to: process.env.NOTIFICATION_EMAILS || process.env.EMAIL_USER,
         subject: `📋 Új munka felvéve: ${typeLabel} (${name || "Névtelen"})`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
