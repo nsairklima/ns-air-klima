@@ -351,7 +351,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
           rel="noopener noreferrer"
           style={{ background: "#4285F4", color: "white", padding: "10px 16px", borderRadius: "8px", textDecoration: "none", fontWeight: "bold" }}
         >
-          📍 Google Maps {/* Gyorsgomb a Google Maps megnyitásához */}
+          //📍 Google Maps {/* Gyorsgomb a Google Maps megnyitásához */}
         </a>
       </div>
 
