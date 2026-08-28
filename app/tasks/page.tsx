@@ -605,7 +605,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
               statusBadgeColor = "#166534";
             } else { // Ha folyamatban van
               if (isTelepites) { // Telepítés esetén kékes színek
-                cardBackground = "#f8fafc";
+                cardBackground = "#DAE9FC"; //#f8fafc
                 borderColor = "#cbd5e1";
               } else { // Karbantartás esetén lila színek
                 cardBackground = "#fdf4ff";
