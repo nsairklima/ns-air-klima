@@ -1,0 +1,16 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Munkakezelő Rendszer//HU
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:task-notification-2026@domain.hu
+DTSTAMP:20260828T112147Z
+DTSTART:20260905T100000Z
+DTEND:20260905T110000Z
+SUMMARY:Új munka / feladat értesítő
+DESCRIPTION:Ez egy automatikus naptárbejegyzés a NOTIFICATION_EMAILS címlistának a rendszerben rögzített munka miatt.
+LOCATION:Helyszín / Cím megadása
+ORGANIZER;CN:Munkakezelő:mailto:noreply@domain.hu
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:felhasznalo@domain.hu
+END:VEVENT
+END:VCALENDAR
