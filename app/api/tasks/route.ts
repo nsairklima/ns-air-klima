@@ -157,7 +157,7 @@ export async function POST(request: Request) {
               </table>
             </div>
             <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;">
-              Automata üzenet a Klíma Rendszerből. (A csatolt képek az adatbázisban/Cloudinary-ben érhetők el).
+              Automata üzenet az NS-AIR Rendszerből. (A csatolt képek az adatbázisban/Cloudinary-ben érhetők el).
             </div>
           </div>
         `,
