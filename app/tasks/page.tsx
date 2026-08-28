@@ -326,7 +326,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
                     {viewingTask.images.map((imgUrl, i) => ( // Végigmegy a képeken és linket készít mindegyikhez
                       <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "12px", background: "#f1f1f1", padding: "4px 8px", borderRadius: "4px" }}>
-                        📷 {i + 1}. kép megtekintése
+                        🖼️ {i + 1}. kép megtekintése
                       </a>
                     ))}
                   </div>
