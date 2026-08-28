@@ -367,7 +367,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
               gap: "8px"
             }}
           >
-            <span>➕ Új munka kiadása</span>
+            <span>➕ Új munka rögzítése</span>
           </button>
         ) : (
           <form
@@ -385,7 +385,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3 style={{ margin: 0, fontSize: "16px", color: editingTaskId ? "#856404" : "#333" }}>
-                {editingTaskId ? "✏️ Munka szerkesztése" : "🛠️ Új munka kiadása"}
+                {editingTaskId ? "✏️ Munka szerkesztése" : "🛠️ Új munka rögzítése"}
               </h3>
               <button
                 type="button"
