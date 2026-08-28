@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
+import nodemailer from "nodemailer";
 
 export const dynamic = "force-dynamic";
 
@@ -175,6 +176,53 @@ export async function PUT(
           "updatedAt" = NOW()
       WHERE id = ${taskId}
     `;
+
+    // Email küldése a módosításról
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: Number(process.env.EMAIL_PORT),
+        secure: true,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        tls: { rejectUnauthorized: false },
+      });
+
+      const typeLabel = type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
+
+      await transporter.sendMail({
+        from: `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_USER,
+        subject: `✏️ Munka Módosítva: ${typeLabel} (${name || "Névtelen"})`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: #f39c12; color: #ffffff; padding: 20px; text-align: center;">
+              <h2 style="margin: 0;">Egy munka adatai frissültek</h2>
+              <p style="margin: 5px 0 0 0; opacity: 0.9;">${typeLabel}</p>
+            </div>
+            <div style="padding: 20px; font-size: 14px; color: #333;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; font-weight: bold; width: 35%;">Munkatípus:</td><td style="padding: 10px;">${typeLabel}</td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; font-weight: bold;">Név:</td><td style="padding: 10px;">${name || "-"}</td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; font-weight: bold;">Cím:</td><td style="padding: 10px;">${address || "-"}</td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; font-weight: bold;">Telefon:</td><td style="padding: 10px;">${phone || "-"}</td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; font-weight: bold;">Email:</td><td style="padding: 10px;">${email || "-"}</td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; font-weight: bold;">Tervezett időpont:</td><td style="padding: 10px;">${scheduledAt || "-"}</td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; font-weight: bold;">Megvalósult időpont:</td><td style="padding: 10px;">${completedAt || "-"}</td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; font-weight: bold;">Megjegyzés:</td><td style="padding: 10px;">${note || "-"}</td></tr>
+              </table>
+            </div>
+            <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;">
+              Automata üzenet a Klíma Rendszerből.
+            </div>
+          </div>
+        `,
+      });
+    } catch (mailError) {
+      console.error("Email küldési hiba módosításkor:", mailError);
+    }
 
     return NextResponse.json({ message: "Sikeres frissítés", images: finalImages });
   } catch (error: any) {
