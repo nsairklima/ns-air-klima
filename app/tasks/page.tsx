@@ -1,6 +1,3 @@
-//app/tasks/page.tsx
-
-
 "use client"; // A komponens kliens oldalon fut (Next.js klienskomponens direktíva, amely engedélyezi az interaktivitást és a hookok használatát)
 
 import { useEffect, useState } from "react"; // A React könyvtárból az useEffect (mellékhatások kezelésére) és a useState (állapotkezelésre) hookok importálása
@@ -58,6 +55,9 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
 
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null); // A szerkesztés alatt álló feladat ID-ja (vagy null, ha nincs szerkesztés)
   const [viewingTask, setViewingTask] = useState<Task | null>(null); // Az éppen megtekintett feladat részleteinek objektuma (vagy null)
+  
+  // Új állapot az űrlap lenyitásához/összecsukásához
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const fetchTasks = async () => { // Aszinkron függvény a feladatok lekérésére a szerverről
     try { // Próbálkozz blokk
@@ -89,6 +89,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
     setPhotos([]); // Új fotók tömbjének kiürítése
     setExistingImages([]); // Meglévő képek tömbjének kiürítése
     setEditingTaskId(null); // Szerkesztési azonosító törlése (kilépés a szerkesztési módból)
+    setIsFormOpen(false); // Bezárjuk az űrlapot alaphelyzetbe állításkor
   };
 
   const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => { // Új kép hozzáadását kezelő függvény fájl kiválasztásakor
@@ -207,6 +208,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
     setPhotos([]); // Új fotók tömbjének kiürítése
     setExistingImages(task.images || []); // Meglévő képek betöltése
     setStatusMessage(""); // Státuszüzenet törlése
+    setIsFormOpen(true); // Szerkesztéskor automatikusan kinyitjuk az űrlapot
     window.scrollTo({ top: 0, behavior: "smooth" }); // Oldal tetejére görgetés sima animációval
   };
 
@@ -343,140 +345,176 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
         </div>
       )}
 
-  
-
-      <form
-        onSubmit={handleSubmit} // Űrlap elküldési eseménykezelő összekötése a handleSubmit függvénnyel
-        style={{ 
-          display: "flex", 
-          flexDirection: "column", 
-          gap: "16px", 
-          background: editingTaskId ? "#fff3cd" : "#f9f9f9", // Háttérszín változik szerkesztési módban (sárgás)
-          padding: "20px", 
-          borderRadius: "12px", 
-          border: editingTaskId ? "2px solid #ffc107" : "1px solid #ddd", // Keret szín szerkesztési módban
-          transition: "all 0.3s ease"
-        }}
-      >
-        {editingTaskId && ( // Figyelmeztető sáv szerkesztés közben
-          <div style={{ background: "#ffeeba", padding: "8px 12px", borderRadius: "6px", color: "#856404", fontSize: "14px", fontWeight: "bold" }}>
-            Szerkesztési módban vagy. A módosítások mentéséhez kattints a "Módosítás Mentése" gombra, vagy kattints a "Mégse"-re.
-          </div>
-        )}
-
-        <div>
-          <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>Munkatípus:</label>
-          <div style={{ display: "flex", gap: "20px" }}>
-            <label style={{ cursor: "pointer" }}>
-              <input type="radio" name="type" value="telepites" checked={type === "telepites"} onChange={() => setType("telepites")} /> 🛠️ Telepítés {/* Rádiógomb a telepítés típushoz */}
-            </label>
-            <label style={{ cursor: "pointer" }}>
-              <input type="radio" name="type" value="karbantartas" checked={type === "karbantartas"} onChange={() => setType("karbantartas")} /> 🧹 Karbantartás {/* Rádiógomb a karbantartás típushoz */}
-            </label>
-          </div>
-        </div>
-
-        <div className="form-grid">
-          <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Név (Opcionális):</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ügyfél neve" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Név input mező */}
-          </div>
-          <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Cím / Helyszín (Opcionális):</label>
-            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Pl. 1051 Budapest, Kossuth L. tér 1." style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Cím input mező */}
-          </div>
-          <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Telefonszám (Opcionális):</label>
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+36 30 123 4567" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Telefon input mező */}
-          </div>
-          <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Email cím (Opcionális):</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Email input mező */}
-          </div>
-          <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Tervezett időpont (Opcionális):</label>
-            <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} /> {/* Tervezett időpont input mező */}
-          </div>
-          <div>
-            <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megvalósult időpont (Opcionális):</label>
-            <input type="datetime-local" value={completedAt} onChange={(e) => setCompletedAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} /> {/* Megvalósult időpont input mező */}
-          </div>
-        </div>
-
-        <div>
-          <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés (Opcionális):</label>
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Megjegyzés szövegdoboz */}
-        </div>
-
-        <div>
-          <label style={{ fontWeight: "bold", display: "block", marginBottom: "6px" }}>Képek:</label>
-
-          {editingTaskId && existingImages.length > 0 && ( // Meglévő képek listázása szerkesztéskor
-            <div style={{ marginBottom: "10px" }}>
-              <small style={{ color: "#666", display: "block", marginBottom: "4px", fontWeight: "bold" }}>Már mentett képek:</small>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {existingImages.map((imgUrl, index) => (
-                  <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ccc" }}>
-                    <a href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "#0070f3", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "250px" }}>
-                      📷 {index + 1}. meglévő kép megtekintése
-                    </a>
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemoveExistingImage(index)} // Meglévő kép törlése gomb
-                      style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
-                    >
-                      Törlés
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {photos.length > 0 && ( // Újonnan csatolt képek listázása
-            <div style={{ marginBottom: "10px" }}>
-              <small style={{ color: "#666", display: "block", marginBottom: "4px", fontWeight: "bold" }}>Újonnan csatolt képek:</small>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {photos.map((photo, index) => (
-                  <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ccc" }}>
-                    <span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "250px" }}>
-                      📷 {photo.name}
-                    </span>
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemoveNewPhoto(index)} // Új kép törlése gomb
-                      style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
-                    >
-                      Törlés
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <label style={{ display: "inline-block", background: "#0070f3", color: "white", padding: "10px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>
-            ➕ Kép hozzáadása
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleAddPhoto} // Fájlkiválasztás eseménykezelő
-              style={{ display: "none" }} // Rejtett file input mező
-            />
-          </label>
-        </div>
-
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button type="submit" disabled={loading} style={{ flex: 1, background: loading ? "#ccc" : editingTaskId ? "#ffc107" : "#28a745", color: editingTaskId ? "#000" : "white", padding: "14px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: loading ? "not-allowed" : "pointer" }}>
-            {loading ? "Feldolgozás..." : editingTaskId ? "Módosítás Mentése" : "Munka Kiadása"} {/* Mentés/Kiadás gomb */}
+      {/* LENYÍLÓ MUNKA KIADÁSA / SZERKESZTŐ SÁV */}
+      <div style={{ marginBottom: "20px" }}>
+        {!isFormOpen && !editingTaskId ? (
+          <button
+            onClick={() => setIsFormOpen(true)}
+            style={{
+              width: "100%",
+              padding: "14px",
+              background: "#28a745",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: "bold",
+              border: "none",
+              borderRadius: "12px",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "8px"
+            }}
+          >
+            <span>➕ Új munka kiadása</span>
           </button>
-          {editingTaskId && ( // Mégse gomb csak szerkesztési módban jelenik meg
-            <button type="button" onClick={resetForm} style={{ background: "#6c757d", color: "white", padding: "14px 20px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: "pointer" }}>
-              Mégse
-            </button>
-          )}
-        </div>
-      </form>
+        ) : (
+          <form
+            onSubmit={handleSubmit} // Űrlap elküldési eseménykezelő összekötése a handleSubmit függvénnyel
+            style={{ 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: "16px", 
+              background: editingTaskId ? "#fff3cd" : "#f9f9f9", // Háttérszín változik szerkesztési módban (sárgás)
+              padding: "20px", 
+              borderRadius: "12px", 
+              border: editingTaskId ? "2px solid #ffc107" : "1px solid #ddd", // Keret szín szerkesztési módban
+              transition: "all 0.3s ease"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", color: editingTaskId ? "#856404" : "#333" }}>
+                {editingTaskId ? "✏️ Munka szerkesztése" : "🛠️ Új munka kiadása"}
+              </h3>
+              <button
+                type="button"
+                onClick={resetForm}
+                style={{ background: "none", border: "none", fontSize: "16px", cursor: "pointer", fontWeight: "bold", color: "#666" }}
+              >
+                ✕ Bezárás
+              </button>
+            </div>
+
+            {editingTaskId && ( // Figyelmeztető sáv szerkesztés közben
+              <div style={{ background: "#ffeeba", padding: "8px 12px", borderRadius: "6px", color: "#856404", fontSize: "14px", fontWeight: "bold" }}>
+                Szerkesztési módban vagy. A módosítások mentéséhez kattints a "Módosítás Mentése" gombra, vagy kattints a "Mégse"-re.
+              </div>
+            )}
+
+            <div>
+              <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>Munkatípus:</label>
+              <div style={{ display: "flex", gap: "20px" }}>
+                <label style={{ cursor: "pointer" }}>
+                  <input type="radio" name="type" value="telepites" checked={type === "telepites"} onChange={() => setType("telepites")} /> 🛠️ Telepítés {/* Rádiógomb a telepítés típushoz */}
+                </label>
+                <label style={{ cursor: "pointer" }}>
+                  <input type="radio" name="type" value="karbantartas" checked={type === "karbantartas"} onChange={() => setType("karbantartas")} /> 🧹 Karbantartás {/* Rádiógomb a karbantartás típushoz */}
+                </label>
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Név (Opcionális):</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ügyfél neve" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Név input mező */}
+              </div>
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Cím / Helyszín (Opcionális):</label>
+                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Pl. 1051 Budapest, Kossuth L. tér 1." style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Cím input mező */}
+              </div>
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Telefonszám (Opcionális):</label>
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+36 30 123 4567" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Telefon input mező */}
+              </div>
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Email cím (Opcionális):</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Email input mező */}
+              </div>
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Tervezett időpont (Opcionális):</label>
+                <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} /> {/* Tervezett időpont input mező */}
+              </div>
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megvalósult időpont (Opcionális):</label>
+                <input type="datetime-local" value={completedAt} onChange={(e) => setCompletedAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} /> {/* Megvalósult időpont input mező */}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés (Opcionális):</label>
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} /> {/* Megjegyzés szövegdoboz */}
+            </div>
+
+            <div>
+              <label style={{ fontWeight: "bold", display: "block", marginBottom: "6px" }}>Képek:</label>
+
+              {editingTaskId && existingImages.length > 0 && ( // Meglévő képek listázása szerkesztéskor
+                <div style={{ marginBottom: "10px" }}>
+                  <small style={{ color: "#666", display: "block", marginBottom: "4px", fontWeight: "bold" }}>Már mentett képek:</small>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {existingImages.map((imgUrl, index) => (
+                      <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ccc" }}>
+                        <a href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "#0070f3", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "250px" }}>
+                          📷 {index + 1}. meglévő kép megtekintése
+                        </a>
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveExistingImage(index)} // Meglévő kép törlése gomb
+                          style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
+                        >
+                          Törlés
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {photos.length > 0 && ( // Újonnan csatolt képek listázása
+                <div style={{ marginBottom: "10px" }}>
+                  <small style={{ color: "#666", display: "block", marginBottom: "4px", fontWeight: "bold" }}>Újonnan csatolt képek:</small>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {photos.map((photo, index) => (
+                      <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ccc" }}>
+                        <span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "250px" }}>
+                          📷 {photo.name}
+                        </span>
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveNewPhoto(index)} // Új kép törlése gomb
+                          style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
+                        >
+                          Törlés
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <label style={{ display: "inline-block", background: "#0070f3", color: "white", padding: "10px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>
+                ➕ Kép hozzáadása
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleAddPhoto} // Fájlkiválasztás eseménykezelő
+                  style={{ display: "none" }} // Rejtett file input mező
+                />
+              </label>
+            </div>
+
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button type="submit" disabled={loading} style={{ flex: 1, background: loading ? "#ccc" : editingTaskId ? "#ffc107" : "#28a745", color: editingTaskId ? "#000" : "white", padding: "14px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: loading ? "not-allowed" : "pointer" }}>
+                {loading ? "Feldolgozás..." : editingTaskId ? "Módosítás Mentése" : "Munka Kiadása"} {/* Mentés/Kiadás gomb */}
+              </button>
+              <button type="button" onClick={resetForm} style={{ background: "#6c757d", color: "white", padding: "14px 20px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+                Mégse
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
 
       {statusMessage && ( // Státuszüzenet megjelenítése, ha létezik
         <div style={{ marginTop: "20px", padding: "12px", borderRadius: "6px", background: statusMessage.startsWith("✅") ? "#d4edda" : "#f8d7da", color: statusMessage.startsWith("✅") ? "#155724" : "#721c24" }}>
@@ -519,7 +557,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
               padding: "8px 4px",
               borderRadius: "8px",
               border: "none",
-              background: filterType === "telepites" ? "#3b82f6" : "#e2e8f0",
+              background: filterType === "telepites" ? "#0070f3" : "#e2e8f0",
               color: filterType === "telepites" ? "white" : "#333",
               fontWeight: "bold",
               cursor: "pointer",
@@ -542,7 +580,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
               padding: "8px 4px",
               borderRadius: "8px",
               border: "none",
-              background: filterType === "karbantartas" ? "#a855f7" : "#e2e8f0",
+              background: filterType === "karbantartas" ? "#0070f3" : "#e2e8f0",
               color: filterType === "karbantartas" ? "white" : "#333",
               fontWeight: "bold",
               cursor: "pointer",
@@ -560,113 +598,108 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
           </button>
         </div>
 
+        {/* KERESŐMEZŐ */}
         <div>
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)} // Keresési mező értékének frissítése eseménykezelővel
-            placeholder="🔍 Keresés név, cím, telefon, email vagy megjegyzés alapján..."
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="🔍 Keresés név, cím, telefon, email, megjegyzés alapján..."
             style={{
               width: "100%",
               padding: "10px 14px",
               borderRadius: "8px",
               border: "1px solid #ccc",
-              boxSizing: "border-box",
-              fontSize: "14px"
+              fontSize: "14px",
+              boxSizing: "border-box"
             }}
           />
         </div>
       </div>
 
-      {filteredTasks.length === 0 ? ( // Ha nincsenek a szűrőnek megfelelő feladatok
-        <p style={{ color: "#666", marginTop: "16px" }}>Nincs a keresési feltételeknek megfelelő munka.</p>
-      ) : ( // Különben megjeleníti a kártyákat
+      {/* MUNKÁK LISTÁJA (KÁRTYÁK) */}
+      {filteredTasks.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px", color: "#666", background: "#f9f9f9", borderRadius: "12px", marginTop: "16px" }}>
+          Nincs találat a megadott feltételek alapján.
+        </div>
+      ) : (
         <div className="cards-grid">
-          {filteredTasks.map((task) => { // Végigmegy a szűrt feladatokon és kártyát generál mindegyikhez
-            const isCompleted = Boolean(task.completed_at); // Logikai érték: kész van-e a feladat
-            const isTelepites = task.type === "telepites"; // Logikai érték: telepítés-e a feladat
-
-            let cardBackground = "#fff";
-            let borderColor = "#e0e0e0";
-            let statusBadgeBg = "#e2e8f0";
-            let statusBadgeColor = "#475569";
-
-            if (isCompleted) { // Ha kész van, zöldes színeket kap
-              cardBackground = "#DFF0C4"; //#f0fdf4"
-              borderColor = "#bbf7d0";
-              statusBadgeBg = "#dcfce7";
-              statusBadgeColor = "#166534";
-            } else { // Ha folyamatban van
-              if (isTelepites) { // Telepítés esetén kékes színek
-                cardBackground = "#DAE9FC"; //#f8fafc
-                borderColor = "#cbd5e1";
-              } else { // Karbantartás esetén lila színek
-                cardBackground = "#FAE4FF"; //#fdf4ff
-                borderColor = "#f5d0fe";
-              }
-            }
-
-            return (
-              <div
-                key={task.id} // Egyedi kulcs React elem rendereléshez
-                style={{
-                  background: cardBackground,
-                  border: editingTaskId === task.id ? "2px solid #ffc107" : `1px solid ${borderColor}`,
-                  borderLeft: `6px solid ${isCompleted ? "#22c55e" : isTelepites ? "#3b82f6" : "#a855f7"}`,
-                  borderRadius: "10px",
-                  padding: "16px",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  position: "relative",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid rgba(0,0,0,0.06)", paddingBottom: "8px", gap: "8px" }}>
-                  <span style={{ fontWeight: "bold", fontSize: "15px", color: "#333" }}>
-                    {isTelepites ? "🛠️ Telepítés" : "🧹 Karbantartás"}
+          {filteredTasks.map((task) => (
+            <div
+              key={task.id}
+              style={{
+                background: "white",
+                padding: "16px",
+                borderRadius: "12px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+                border: "1px solid #eaeaea",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "12px"
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    padding: "3px 8px",
+                    borderRadius: "20px",
+                    background: task.type === "telepites" ? "#e1f5fe" : "#e8f5e9",
+                    color: task.type === "telepites" ? "#0288d1" : "#388e3c"
+                  }}>
+                    {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
                   </span>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
-                    <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "12px", background: statusBadgeBg, color: statusBadgeColor, fontWeight: "bold" }}>
-                      {isCompleted ? "✅ Kész" : "⏳ Folyamatban"}
-                    </span>
-                    <span style={{ fontSize: "11px", color: "#666", fontWeight: "500" }}>{formatDate(task.created_at)}</span>
-                  </div>
+                  <span style={{ fontSize: "12px", color: task.completed_at ? "#28a745" : "#e0a800", fontWeight: "bold" }}>
+                    {task.completed_at ? "✅ Kész" : "⏳ Folyamatban"}
+                  </span>
                 </div>
 
-                <div style={{ fontSize: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div><strong>Név:</strong> {task.name || "-"}</div>
-                  <div><strong>Cím:</strong> {task.address || "-"}</div>
-                  {task.phone && <div><strong>Telefon:</strong> 📞 {task.phone}</div>}
-                  {task.email && <div><strong>Email:</strong> ✉️ {task.email}</div>}
-                  {task.scheduled_at && <div><strong>Tervezett időpont:</strong> 📅 {formatDate(task.scheduled_at)}</div>}
-                  {task.completed_at && <div><strong>Megvalósult időpont:</strong> ✅ {formatDate(task.completed_at)}</div>}
-                  {task.note && <div><strong>Megjegyzés:</strong> {task.note}</div>}
+                <div style={{ fontSize: "16px", fontWeight: "bold", color: "#222" }}>
+                  {task.name || "Névtelen munka"}
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid rgba(0,0,0,0.06)", flexWrap: "wrap", gap: "8px" }}>
-                  <div>
-                    {task.images && task.images.length > 0 ? (
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        {task.images.map((imgUrl, i) => (
-                          <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "11px", background: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: "4px" }}>
-                            📷 {i + 1}. kép
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <span style={{ color: "#aaa", fontSize: "12px" }}>Nincs kép</span>
-                    )}
+                {task.address && (
+                  <div style={{ fontSize: "13px", color: "#555" }}>
+                    📍 {task.address}
                   </div>
-                  <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-                    <button onClick={() => setViewingTask(task)} style={{ background: "#17a2b8", color: "white", border: "none", padding: "5px 8px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>👁️ Megnyitás</button> {/* Megnyitás gomb */}
-                    <button onClick={() => startEditing(task)} style={{ background: "#ffc107", border: "none", padding: "5px 8px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>✏️ Szerkesztés</button> {/* Szerkesztés gomb */}
-                    <button onClick={() => handleDelete(task.id)} style={{ background: "#dc3545", color: "white", border: "none", padding: "5px 8px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>🗑️ Törlés</button> {/* Törlés gomb */}
+                )}
+
+                {task.phone && (
+                  <div style={{ fontSize: "13px", color: "#555" }}>
+                    📞 {task.phone}
                   </div>
+                )}
+
+                <div style={{ fontSize: "12px", color: "#777", marginTop: "4px" }}>
+                  📅 Létrehozva: {formatDate(task.created_at)}
                 </div>
               </div>
-            );
-          })}
+
+              {/* KÁRTYA GOMBOK */}
+              <div style={{ display: "flex", gap: "6px", borderTop: "1px solid #f0f0f0", paddingTop: "10px" }}>
+                <button
+                  onClick={() => setViewingTask(task)}
+                  style={{ flex: 1, background: "#17a2b8", color: "white", border: "none", padding: "8px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
+                >
+                  Részletek
+                </button>
+                <button
+                  onClick={() => startEditing(task)}
+                  style={{ flex: 1, background: "#ffc107", color: "#000", border: "none", padding: "8px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
+                >
+                  Szerkesztés
+                </button>
+                <button
+                  onClick={() => handleDelete(task.id)}
+                  style={{ background: "#dc3545", color: "white", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
+                >
+                  Törlés
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </main>
