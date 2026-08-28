@@ -108,9 +108,9 @@ export async function POST(request: Request) {
       const typeLabel = type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
 
       await transporter.sendMail({
-        from: `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
+        from: `"NS-AIR Rendszer" <${process.env.EMAIL_USER}>`,
         to: process.env.NOTIFICATION_EMAILS || process.env.EMAIL_USER,
-        subject: `📋 Új munka felvéve: ${typeLabel} (${name || "Névtelen"})`,
+        subject: `📋 Új munka értesítés: ${typeLabel} (${name || "Névtelen"})`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
             <div style="background-color: #2c3e50; color: #ffffff; padding: 20px; text-align: center;">
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
               </table>
             </div>
             <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;">
-              Automata üzenet az NS-AIR Rendszerből. (A csatolt képek az adatbázisban/Cloudinary-ben érhetők el).
+              Automata üzenet az NS-AIR Rendszerből. (A csatolt képek az alkalmazásban érhetők el).
             </div>
           </div>
         `,
