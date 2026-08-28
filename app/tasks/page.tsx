@@ -343,10 +343,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
         </div>
       )}
 
-    {/*  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
-        <h1>{editingTaskId ? "✏️ Munka Szerkesztése" : "Munka Kiadása"}</h1> {/* Dinamikus cím: szerkesztés vagy új munka */}
-       
-      </div> */}
+  
 
       <form
         onSubmit={handleSubmit} // Űrlap elküldési eseménykezelő összekötése a handleSubmit függvénnyel
