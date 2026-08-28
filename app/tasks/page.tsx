@@ -599,7 +599,7 @@ export default function TasksPage() { // A fő React komponens (TasksPage) dekla
             let statusBadgeColor = "#475569";
 
             if (isCompleted) { // Ha kész van, zöldes színeket kap
-              cardBackground = "#f0fdf4";
+              cardBackground = "#DFF0C4"; //#f0fdf4"
               borderColor = "#bbf7d0";
               statusBadgeBg = "#dcfce7";
               statusBadgeColor = "#166534";
