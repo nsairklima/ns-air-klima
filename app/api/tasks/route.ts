@@ -16,13 +16,11 @@ try {
 // Segédfüggvény a dátum konvertálásához iCal formátumra (YYYYMMDDTHHMMSSZ)
 const formatToIcalDate = (dateString: string | null) => {
   if (!dateString) {
-    // Ha nincs megadott tervezett időpont, alapértelmezetten a holnapi napot adjuk meg
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(10, 0, 0, 0);
     return tomorrow.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
   }
-  // A "YYYY-MM-DD HH:mm" vagy "YYYY-MM-DDTHH:mm" formátum átalakítása iCal kompatibilissé
   const clean = dateString.replace("T", " ").replace(/[-:]/g, "").replace(" ", "T");
   return clean.length === 12 ? `${clean}00Z` : `${clean}Z`;
 };
@@ -121,9 +119,8 @@ export async function POST(request: Request) {
 
       const typeLabel = type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
 
-      // Dinamikus iCal tartalom generálása a feladat adatai alapján
+      // Dinamikus iCal tartalom generálása
       const icalStart = formatToIcalDate(scheduledAt);
-      // Ha van időpont, teszünk rá 1 óra időtartamot
       const startDateObj = new Date(scheduledAt ? scheduledAt.replace(" ", "T") : Date.now());
       const endDateObj = new Date(startDateObj.getTime() + 60 * 60 * 1000);
       const icalEnd = endDateObj.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
@@ -141,7 +138,7 @@ VERSION:2.0
 PRODID:-//NS-AIR Rendszer//HU
 METHOD:REQUEST
 BEGIN:VEVENT
-UID:task-${Date.now()}@nsair.hu
+UID:task-${Date.now()}-${Math.random()}@nsair.hu
 DTSTAMP:${icalStamp}
 DTSTART:${icalStart}
 DTEND:${icalEnd}
@@ -204,11 +201,13 @@ END:VCALENDAR`;
               </div>
             </div>
           `,
-          icalEvent: {
-            filename: "event.ics",
-            method: "REQUEST",
-            content: icalContent,
-          },
+          attachments: [
+            {
+              filename: "event.ics",
+              content: icalContent,
+              contentType: "text/calendar; charset=utf-8; method=REQUEST",
+            },
+          ],
         });
       }
     } catch (mailError) {
