@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
+import nodemailer from "nodemailer";
 
 export const dynamic = "force-dynamic";
 
@@ -92,8 +93,81 @@ export async function POST(request: Request) {
       )
     `;
 
+    // Email küldése a meglévő Nodemailer beállításokkal (képeken kívül minden adat)
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: Number(process.env.EMAIL_PORT),
+        secure: true,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
+
+      const typeLabel = type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
+
+      await transporter.sendMail({
+        from: `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_USER, // karbantartas@nsairklima.hu
+        subject: `📋 Új munka felvéve: ${typeLabel} (${name || "Névtelen"})`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: #2c3e50; color: #ffffff; padding: 20px; text-align: center;">
+              <h2 style="margin: 0;">Új munka érkezett a rendszerbe</h2>
+              <p style="margin: 5px 0 0 0; opacity: 0.8;">${typeLabel}</p>
+            </div>
+            <div style="padding: 20px; font-size: 14px; color: #333;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 10px; font-weight: bold; width: 35%;">Munkatípus:</td>
+                  <td style="padding: 10px;">${typeLabel}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 10px; font-weight: bold;">Név:</td>
+                  <td style="padding: 10px;">${name || "-"}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 10px; font-weight: bold;">Cím:</td>
+                  <td style="padding: 10px;">${address || "-"}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 10px; font-weight: bold;">Telefon:</td>
+                  <td style="padding: 10px;">${phone || "-"}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 10px; font-weight: bold;">Email:</td>
+                  <td style="padding: 10px;">${email || "-"}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 10px; font-weight: bold;">Tervezett időpont:</td>
+                  <td style="padding: 10px;">${scheduledAt || "-"}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 10px; font-weight: bold;">Megvalósult időpont:</td>
+                  <td style="padding: 10px;">${completedAt || "-"}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 10px; font-weight: bold;">Megjegyzés:</td>
+                  <td style="padding: 10px;">${note || "-"}</td>
+                </tr>
+              </table>
+            </div>
+            <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;">
+              Automata üzenet a Klíma Rendszerből. (A csatolt képek az adatbázisban/Cloudinary-ben érhetők el).
+            </div>
+          </div>
+        `,
+      });
+    } catch (mailError) {
+      console.error("Email küldési hiba az új munkánál:", mailError);
+    }
+
     return NextResponse.json({
-      message: "Munka sikeresen elmentve!",
+      message: "Munka sikeresen elmentve és email elküldve!",
       driveLinks: imageUrls,
     });
   } catch (error: any) {
