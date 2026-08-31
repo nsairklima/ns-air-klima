@@ -10,6 +10,7 @@ type Task = {
   date?: string;
   created_at?: string;
   updatedAt?: string;
+  recipient_emails?: string;
 };
 
 export default function TaskListPage() {
@@ -58,6 +59,7 @@ export default function TaskListPage() {
             <th style={{ padding: "10px" }}>Típus</th>
             <th style={{ padding: "10px" }}>Cím</th>
             <th style={{ padding: "10px" }}>Kép</th>
+            <th style={{ padding: "10px" }}>Címzettek</th>
             <th style={{ padding: "10px" }}>Dátum</th>
           </tr>
         </thead>
@@ -92,6 +94,10 @@ export default function TaskListPage() {
                   ) : (
                     <span style={{ color: "#888" }}>-</span>
                   )}
+                </td>
+
+                <td style={{ padding: "10px" }}>
+                  {task.recipient_emails ? task.recipient_emails : "-"}
                 </td>
 
                 <td style={{ padding: "10px" }}>
