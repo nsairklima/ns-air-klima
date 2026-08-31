@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PasswordGuard from "@/components/PasswordGuard"; // Beimportáljuk a jelszóvédőt
-import EmailSettingsModal from "@/components/EmailSettingsModal"; // 📧 Beimportáljuk az email kezelő modált
+import EmailSettingsModal from "@/app/components/EmailSettingsModal"; // 📧 Beimportáljuk az email kezelő modált
 
 export default function MainDashboard() {
   const router = useRouter();
