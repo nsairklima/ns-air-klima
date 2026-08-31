@@ -1,7 +1,3 @@
-//app/api/tasks/route.ts
-
-
-
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
@@ -27,6 +23,9 @@ export async function POST(request: Request) {
     const phone = (formData.get("phone") as string) || "";
     const email = (formData.get("email") as string) || "";
     const note = (formData.get("note") as string) || "";
+    
+    // Itt olvassuk ki a frontenden kiválasztott címzettet
+    const recipientEmail = (formData.get("recipientEmail") as string) || "";
     
     const scheduledAtRaw = formData.get("scheduledAt") as string;
     const completedAtRaw = formData.get("completedAt") as string;
@@ -111,9 +110,12 @@ export async function POST(request: Request) {
 
       const typeLabel = type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
 
+      // Meghatározzuk a végső címzettet: először a frontenden kiválasztott, ha nincs, akkor az .env-es fallbackek
+      const targetEmail = recipientEmail || process.env.NOTIFICATION_EMAILS || process.env.EMAIL_USER;
+
       await transporter.sendMail({
         from: `"NS-AIR Rendszer" <${process.env.EMAIL_USER}>`,
-        to: process.env.NOTIFICATION_EMAILS || process.env.EMAIL_USER,
+        to: targetEmail, // Itt küldjük a kiválasztott email címre
         subject: `📋 Új munka értesítés: ${typeLabel} (${name || "Névtelen"})`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
