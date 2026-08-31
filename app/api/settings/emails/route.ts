@@ -4,29 +4,31 @@ import path from "path";
 
 export const dynamic = "force-dynamic";
 
-function getEnvPath() {
-  const localPath = path.resolve(process.cwd(), ".env.local");
-  if (fs.existsSync(localPath)) return localPath;
-  const envPath = path.resolve(process.cwd(), ".env");
-  if (fs.existsSync(envPath)) return envPath;
-  return localPath; // Ha egyik sem létezik, létrehozzuk a .env.local-t
-}
+const dataFilePath = path.resolve(process.cwd(), "emails.json");
 
-function getEnvEmailsArray(): string[] {
+// Emailek betöltése a JSON fájlból (vagy visszalépés a .env-re, ha még nincs JSON)
+function getStoredEmails(): string[] {
   try {
-    const envEmails = process.env.RECIPIENT_EMAILS || "";
-    return envEmails
-      .split(",")
-      .map((e) => e.trim())
-      .filter((e) => e.length > 0);
-  } catch {
-    return [];
+    if (fs.existsSync(dataFilePath)) {
+      const fileData = fs.readFileSync(dataFilePath, "utf8");
+      const parsed = JSON.parse(fileData);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (err) {
+    console.error("Hiba az emails.json olvasásakor:", err);
   }
+
+  // Fallback: Ha nincs még JSON, az .env-ből olvessuk ki egyszer
+  const envEmails = process.env.RECIPIENT_EMAILS || "";
+  return envEmails
+    .split(",")
+    .map((e) => e.trim())
+    .filter((e) => e.length > 0);
 }
 
 export async function GET() {
   try {
-    const emails = getEnvEmailsArray();
+    const emails = getStoredEmails();
     return NextResponse.json({ emails }, { status: 200 });
   } catch (error: any) {
     console.error("Hiba az email címek lekérdezésekor:", error);
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email cím megadása kötelező!" }, { status: 400 });
     }
 
-    let currentEmails = getEnvEmailsArray();
+    let currentEmails = getStoredEmails();
 
     if (action === "add") {
       const trimmedEmail = email.trim();
@@ -55,33 +57,15 @@ export async function POST(req: Request) {
       currentEmails = currentEmails.filter((e) => e !== email);
     }
 
-    const newEnvValue = `RECIPIENT_EMAILS="${currentEmails.join(",")}"`;
-    const envPath = getEnvPath();
-
-    let envFileContent = "";
-    if (fs.existsSync(envPath)) {
-      envFileContent = fs.readFileSync(envPath, "utf8");
-    }
-
-    if (envFileContent.includes("RECIPIENT_EMAILS=")) {
-      const lines = envFileContent.split(/\r?\n/);
-      const updatedLines = lines.map((line) => {
-        if (line.startsWith("RECIPIENT_EMAILS=")) {
-          return newEnvValue;
-        }
-        return line;
-      });
-      envFileContent = updatedLines.join("\n");
-    } else {
-      envFileContent = envFileContent ? `${envFileContent.trim()}\n${newEnvValue}\n` : `${newEnvValue}\n`;
-    }
-
-    fs.writeFileSync(envPath, envFileContent, "utf8");
+    // Mentés JSON fájlba (ez írható marad a legtöbb környezetben, vagy ha Vercel, akkor külső adatbázis/KV kellene, de lokális/VPS szerveren ez tökéletes)
+    fs.writeFileSync(dataFilePath, JSON.stringify(currentEmails, null, 2), "utf8");
+    
+    // Frissítjük a futásidejű környezeti változót is
     process.env.RECIPIENT_EMAILS = currentEmails.join(",");
 
     return NextResponse.json({ success: true, emails: currentEmails }, { status: 200 });
   } catch (error: any) {
-    console.error("Hiba az .env mentésekor:", error);
+    console.error("Hiba a mentés során:", error);
     return NextResponse.json({ error: `Hiba történt a mentés során: ${error.message || error}` }, { status: 500 });
   }
 }
