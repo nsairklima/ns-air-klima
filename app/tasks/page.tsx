@@ -160,7 +160,7 @@ export default function TasksPage() {
     formData.append("scheduledAt", scheduledAt);
     formData.append("completedAt", completedAt);
     
-    // A kiválasztott emailek küldése vesszővel elválasztva (vagy JSON stringként, ha a backend úgy kéri)
+    // A kiválasztott emailek küldése vesszővel elválasztva
     formData.append("recipientEmail", selectedRecipients.join(", "));
 
     formData.append("existingImages", JSON.stringify(existingImages));
@@ -597,9 +597,22 @@ export default function TasksPage() {
               </label>
             </div>
 
+            {/* Gombok: Mentés / Módosítás és Mégsem */}
             <div style={{ display: "flex", gap: "10px" }}>
-              <button type="submit" disabled={loading} style={{ flex: 1, background: loading ? "#ccc" : editingTaskId ? "#ffc107" : "#28a745", color: editingTaskId ? "#000" : "white", padding: "14px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: loading ? "not-allowed" : "pointer" }}>
+              <button 
+                type="submit" 
+                disabled={loading} 
+                style={{ flex: 1, background: loading ? "#ccc" : editingTaskId ? "#ffc107" : "#28a745", color: editingTaskId ? "#000" : "white", padding: "14px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: loading ? "not-allowed" : "pointer" }}
+              >
                 {loading ? "Feldolgozás..." : editingTaskId ? "Módosítás Mentése" : "Munka Kiadása"}
+              </button>
+              
+              <button 
+                type="button" 
+                onClick={resetForm} 
+                style={{ background: "#6c757d", color: "white", padding: "14px 20px", fontSize: "16px", fontWeight: "bold", border: "none", borderRadius: "6px", cursor: "pointer" }}
+              >
+                Mégsem
               </button>
             </div>
           </form>
@@ -638,7 +651,7 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* KÁRTYÁK LISTÁJA (Színezve típus szerint) */}
+      {/* KÁRTYÁK LISTÁJA */}
       <div className="cards-grid">
         {filteredTasks.length === 0 ? (
           <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "#666", background: "#f9f9f9", borderRadius: "8px" }}>
