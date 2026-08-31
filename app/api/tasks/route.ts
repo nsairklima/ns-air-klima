@@ -77,6 +77,7 @@ export async function POST(request: Request) {
         "scheduled_at",
         "completed_at",
         "updatedAt"
+        "recipient_emails"
       )
       VALUES (
         ${type}, 
@@ -90,6 +91,8 @@ export async function POST(request: Request) {
         ${scheduledAt},
         ${completedAt},
         NOW()
+        ${recipientEmail} -- 👈 Itt mentjük el a kiválasztott címeket (pl. "a@b.com, c@d.com")
+      )
       )
     `;
 
