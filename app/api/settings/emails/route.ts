@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  // Feltételezzük, hogy az .env fájlban így adtad meg őket, pl. vesszővel elválasztva:
-  // RECIPIENT_EMAILS=karbantartas@nsairklima.hu,lcsabi9@gmail.com
-  const envEmails = process.env.RECIPIENT_EMAILS || "";
-  
-  const emails = envEmails
-    .split(",")
-    .map((e) => e.trim())
-    .filter((e) => e.length > 0);
+export const dynamic = "force-dynamic";
 
-  return NextResponse.json({ emails });
+export async function GET() {
+  try {
+    const envEmails = process.env.RECIPIENT_EMAILS || "";
+    
+    const emails = envEmails
+      .split(",")
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0);
+
+    return NextResponse.json({ emails }, { status: 200 });
+  } catch (error: any) {
+    console.error("Hiba az email címek lekérdezésekor:", error);
+    return NextResponse.json(
+      { error: "Nem sikerült betölteni az email címeket." },
+      { status: 500 }
+    );
+  }
 }
