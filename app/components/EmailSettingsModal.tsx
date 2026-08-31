@@ -89,12 +89,12 @@ export default function EmailSettingsModal({ isOpen, onClose }: { isOpen: boolea
       background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1100, padding: "16px"
     }}>
       <div style={{
-        background: "white", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "450px",
+        background: "white", color: "#000", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "450px",
         boxShadow: "0 4px 15px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "16px"
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #eee", paddingBottom: "8px" }}>
-          <h3 style={{ margin: 0, fontSize: "18px" }}>⚙️ Értesítési emailek kezelése</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
+          <h3 style={{ margin: 0, fontSize: "18px", color: "#000" }}>⚙️ Értesítési emailek kezelése</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", fontWeight: "bold", color: "#000" }}>✕</button>
         </div>
 
         {message && (
@@ -110,7 +110,7 @@ export default function EmailSettingsModal({ isOpen, onClose }: { isOpen: boolea
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
             placeholder="uj.cim@email.com"
-            style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px", boxSizing: "border-box" }}
+            style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px", color: "#000", background: "#fff", boxSizing: "border-box" }}
           />
           <button
             type="submit"
@@ -132,7 +132,7 @@ export default function EmailSettingsModal({ isOpen, onClose }: { isOpen: boolea
             ) : (
               emails.map((item, index) => (
                 <div key={index} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "8px 12px", borderRadius: "6px", border: "1px solid #ddd" }}>
-                  <span style={{ fontSize: "14px" }}>{item}</span>
+                  <span style={{ fontSize: "14px", color: "#000" }}>{item}</span>
                   <button
                     type="button"
                     onClick={() => handleDelete(item)}
