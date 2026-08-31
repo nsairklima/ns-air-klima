@@ -3,11 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PasswordGuard from "@/components/PasswordGuard"; // Beimportáljuk a jelszóvédőt
+import EmailSettingsModal from "@/components/EmailSettingsModal"; // 📧 Beimportáljuk az email kezelő modált
 
 export default function MainDashboard() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false); // 📧 Állapot a modál megnyitásához
 
   // Figyeljük a képernyőméretet a reszponzivitáshoz
   useEffect(() => {
@@ -100,7 +102,7 @@ export default function MainDashboard() {
         </header>
 
         <div style={dynamicGridStyle}>
-          {/* MUNKÁK / TELEPÍTÉSEK (ÚJ CSEMPE) */}
+          {/* MUNKÁK / TELEPÍTÉSEK */}
           <div onClick={() => router.push("/tasks")} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#e67e22" }}>
             <span style={iconStyle}>🛠️</span>
             <div>
@@ -153,6 +155,15 @@ export default function MainDashboard() {
             <span style={smallLabelStyle}>Küldés emailben</span>
           </div>
 
+          {/* EMAILEK KEZELÉSE CSEMPE (ÚJ) */}
+          <div onClick={() => setIsEmailModalOpen(true)} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#6f42c1" }}>
+            <span style={iconStyle}>✉️</span>
+            <div>
+              <div style={tileLabelStyle}>Emailek</div>
+              <span style={smallLabelStyle}>Címek szerkesztése</span>
+            </div>
+          </div>
+
           {/* VISSZAÁLLÍTÁS CSEMPE */}
           <label 
             onMouseEnter={onEnter} 
@@ -177,6 +188,9 @@ export default function MainDashboard() {
             />
           </label>
         </div>
+
+        {/* 📧 Email kezelő modál ablak hívása */}
+        <EmailSettingsModal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)} />
 
         <footer style={footerContainer}>
           <div style={footerLine} />
