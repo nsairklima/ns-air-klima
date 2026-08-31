@@ -14,6 +14,7 @@ type Task = { // Egy egyedi TypeScript típusdefiníció (Task) a feladatok adat
   completed_at?: string;
   images?: string[];
   created_at: string;
+  recipient_emails?: string;
 };
 
 // Segédfüggvény a dátumok szép formázásához
