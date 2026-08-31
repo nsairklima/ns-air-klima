@@ -226,7 +226,7 @@ export default function TasksPage() {
     }
   };
 
-  const startEditing = (task: Task) => {
+ const startEditing = (task: Task) => {
     setEditingTaskId(task.id);
     setType((task.type as "telepites" | "karbantartas") || "telepites");
     setName(task.name || "");
@@ -248,6 +248,28 @@ export default function TasksPage() {
     setCompletedAt(task.completed_at ? task.completed_at.replace(" ", "T").slice(0, 16) : "");
     setPhotos([]);
     setExistingImages(task.images || []);
+
+    // 📧 ITT ÁLLÍTJUK BE A KORÁBBAN KÜLDÖTT CÍMZETTEKET:
+    if (task.recipient_emails) {
+      // Vessző mentén szétszedjük a mentett címet, pl: "a@b.com, c@d.com" -> ["a@b.com", "c@d.com"]
+      const savedRecipients = task.recipient_emails.split(",").map(e => e.trim()).filter(Boolean);
+      setSelectedRecipients(savedRecipients);
+      
+      // Opcionálisan: Ha volt olyan cím, ami nem az alap .env listában van, de akkor ki lett küldve, azt is felvehetjük a listába, hogy látszódjon:
+      savedRecipients.forEach(savedEmail => {
+        if (!envEmails.includes(savedEmail)) {
+          setEnvEmails(prev => [...prev, savedEmail]);
+        }
+      });
+    } else {
+      // Fallback, ha régiek a adatok
+      if (envEmails.length > 0) {
+        setSelectedRecipients([envEmails[0]]);
+      } else {
+        setSelectedRecipients([]);
+      }
+    }
+
     setStatusMessage("");
     setIsFormOpen(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
