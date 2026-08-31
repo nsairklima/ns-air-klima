@@ -286,3 +286,9 @@ model Task {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+
+model EmailSetting {
+  id    Int    @id @default(autoincrement())
+  email String @unique
+}
