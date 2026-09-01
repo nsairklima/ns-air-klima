@@ -85,6 +85,23 @@ export async function PUT(
     const email = (formData.get("email") as string) || "";
     const note = (formData.get("note") as string) || "";
 
+    // Címzettek feldolgozása a többes e-mail küldéshez
+    const recipientsRaw = formData.get("recipients") as string;
+    let notificationEmails: string[] = [];
+
+    if (recipientsRaw) {
+      try {
+        notificationEmails = JSON.parse(recipientsRaw);
+      } catch {
+        notificationEmails = recipientsRaw.split(',').map(e => e.trim()).filter(Boolean);
+      }
+    }
+    
+    if (notificationEmails.length === 0) {
+      const envEmails = process.env.NOTIFICATION_EMAILS || process.env.EMAIL_USER || "";
+      notificationEmails = envEmails.split(',').map(e => e.trim()).filter(Boolean);
+    }
+
     const scheduledAtRaw = formData.get("scheduledAt") as string;
     const completedAtRaw = formData.get("completedAt") as string;
     const scheduledAt = scheduledAtRaw ? scheduledAtRaw.replace("T", " ") : null;
@@ -192,7 +209,7 @@ export async function PUT(
 
       await transporter.sendMail({
         from: `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
-        to: process.env.NOTIFICATION_EMAILS || process.env.EMAIL_USER,
+        to: notificationEmails, // Tömb átadása a Nodemailernek
         subject: `✏️ Munka Módosítva: ${typeLabel} (${name || "Névtelen"})`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
