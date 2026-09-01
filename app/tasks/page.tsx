@@ -121,13 +121,23 @@ export default function TasksPage() {
   // Manuális email hozzáadása a listához
   const handleAddCustomEmail = () => {
     const trimmed = customEmailInput.trim();
-    if (trimmed && !selectedRecipients.includes(trimmed)) {
-      setSelectedRecipients((prev) => [...prev, trimmed]);
-      if (!envEmails.includes(trimmed)) {
-        setEnvEmails((prev) => [...prev, trimmed]); // Ha még nincs benne a listában, ide is felvesszük
+    if (trimmed && !envEmails.includes(trimmed)) {
+      setEnvEmails((prev) => [...prev, trimmed]);
+      setSelectedRecipients((prev) => [...prev, trimmed]); // Automatikusan ki is jelöljük
+      setCustomEmailInput("");
+    } else if (trimmed && envEmails.includes(trimmed)) {
+      // Ha már benne van, de nem volt kijelölve, kijelöljük
+      if (!selectedRecipients.includes(trimmed)) {
+        setSelectedRecipients((prev) => [...prev, trimmed]);
       }
       setCustomEmailInput("");
     }
+  };
+
+  // Email törlése a választható listából
+  const handleRemoveEmailOption = (emailToRemove: string) => {
+    setEnvEmails((prev) => prev.filter((e) => e !== emailToRemove));
+    setSelectedRecipients((prev) => prev.filter((e) => e !== emailToRemove));
   };
 
   const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,9 +171,8 @@ export default function TasksPage() {
     formData.append("scheduledAt", scheduledAt);
     formData.append("completedAt", completedAt);
     
-    // A kiválasztott emailek küldése JSON tömbként (szinkronizálva a frissített backenddel)
+    // A kiválasztott emailek küldése JSON tömbként
     formData.append("recipients", JSON.stringify(selectedRecipients));
-
     formData.append("existingImages", JSON.stringify(existingImages));
 
     photos.forEach((photo) => {
@@ -508,26 +517,36 @@ export default function TasksPage() {
               <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
             </div>
 
-            {/* Többszörös email cím kijelölése és manuális hozzáadása */}
+            {/* Többszörös email cím kijelölése, hozzáadása és törlése */}
             <div style={{ background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #ccc" }}>
               <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>
                 Értesítés küldése ezekre a címekre (Több is kijelölhető):
               </label>
 
               {envEmails.length === 0 ? (
-                <div style={{ fontSize: "13px", color: "#666", marginBottom: "8px" }}>Nincsenek alapértelmezett emailek beállítva. Adj hozzá manuálisan alább!</div>
+                <div style={{ fontSize: "13px", color: "#666", marginBottom: "8px" }}>Nincsenek emailek beállítva. Adj hozzá manuálisan alább!</div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
                   {envEmails.map((emailAddr, index) => (
-                    <label key={index} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px" }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedRecipients.includes(emailAddr)}
-                        onChange={() => handleRecipientToggle(emailAddr)}
-                        style={{ width: "16px", height: "16px", cursor: "pointer" }}
-                      />
-                      {emailAddr}
-                    </label>
+                    <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8f9fa", padding: "6px 10px", borderRadius: "6px", border: "1px solid #e9ecef" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", flex: 1 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedRecipients.includes(emailAddr)}
+                          onChange={() => handleRecipientToggle(emailAddr)}
+                          style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                        />
+                        {emailAddr}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveEmailOption(emailAddr)}
+                        title="Email cím törlése a listából"
+                        style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontWeight: "bold" }}
+                      >
+                        ❌ Törlés
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -538,7 +557,7 @@ export default function TasksPage() {
                   type="email"
                   value={customEmailInput}
                   onChange={(e) => setCustomEmailInput(e.target.value)}
-                  placeholder="Egyéb email cím manuális megadása..."
+                  placeholder="Új email cím manuális megadása..."
                   style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px", boxSizing: "border-box" }}
                 />
                 <button
