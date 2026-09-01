@@ -24,8 +24,6 @@ export async function POST(request: Request) {
     const email = (formData.get("email") as string) || "";
     const note = (formData.get("note") as string) || "";
     
-    const recipientEmail = (formData.get("recipientEmail") as string) || "";
-    
     const scheduledAtRaw = formData.get("scheduledAt") as string;
     const completedAtRaw = formData.get("completedAt") as string;
     const scheduledAt = scheduledAtRaw ? scheduledAtRaw.replace("T", " ") : null;
@@ -77,7 +75,6 @@ export async function POST(request: Request) {
         "scheduled_at",
         "completed_at",
         "updatedAt"
-        "recipient_emails"
       )
       VALUES (
         ${type}, 
@@ -91,8 +88,6 @@ export async function POST(request: Request) {
         ${scheduledAt},
         ${completedAt},
         NOW()
-        ${recipientEmail} -- 👈 Itt mentjük el a kiválasztott címeket (pl. "a@b.com, c@d.com")
-      )
       )
     `;
 
@@ -112,13 +107,10 @@ export async function POST(request: Request) {
 
       const typeLabel = type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
 
-      // Egységesítve a RECIPIENT_EMAILS környezeti változóra
-      const targetEmail = recipientEmail || process.env.RECIPIENT_EMAILS || process.env.EMAIL_USER;
-
       await transporter.sendMail({
-        from: `"NS-AIR Rendszer" <${process.env.EMAIL_USER}>`,
-        to: targetEmail,
-        subject: `📋 Új munka értesítés: ${typeLabel} (${name || "Névtelen"})`,
+        from: `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
+        to: process.env.NOTIFICATION_EMAILS || process.env.EMAIL_USER,
+        subject: `📋 Új munka felvéve: ${typeLabel} (${name || "Névtelen"})`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
             <div style="background-color: #2c3e50; color: #ffffff; padding: 20px; text-align: center;">
@@ -162,7 +154,7 @@ export async function POST(request: Request) {
               </table>
             </div>
             <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d;">
-              Automata üzenet az NS-AIR Rendszerből. (A csatolt képek az alkalmazásban érhetők el).
+              Automata üzenet az NS-AIR Rendszerből. (A csatolt képek az adatbázisban/Cloudinary-ben érhetők el).
             </div>
           </div>
         `,
