@@ -182,7 +182,7 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
       <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>{label}</label>
       <div 
         onClick={() => setIsOpen(true)}
-        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", background: "white", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", boxSizing: "border-box" }}
+        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", background: "white", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", boxSizing: "border-box", color: "#333" }}
       >
         <span>{value ? formatDateWithDay(value) : "Válassz időpontot..."}</span>
         <span>📅</span>
@@ -198,7 +198,7 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
             boxShadow: "0 4px 15px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "12px", boxSizing: "border-box"
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: "bold", fontSize: "16px" }}>{currentYear}. {monthsList[currentMonth]}</span>
+              <span style={{ fontWeight: "bold", fontSize: "16px", color: "#333" }}>{currentYear}. {monthsList[currentMonth]}</span>
               <div style={{ display: "flex", gap: "8px" }}>
                 <button type="button" onClick={prevMonth} style={{ background: "#f1f1f1", border: "none", padding: "6px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>←</button>
                 <button type="button" onClick={nextMonth} style={{ background: "#f1f1f1", border: "none", padding: "6px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>→</button>
@@ -239,15 +239,15 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
             </div>
 
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
-              <span style={{ fontSize: "13px", fontWeight: "bold" }}>Idő:</span>
-              <select value={selectedHour} onChange={(e) => setSelectedHour(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px" }}>
+              <span style={{ fontSize: "13px", fontWeight: "bold", color: "#333" }}>Idő:</span>
+              <select value={selectedHour} onChange={(e) => setSelectedHour(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px", color: "#333" }}>
                 {Array.from({ length: 24 }).map((_, h) => {
                   const hs = h.toString().padStart(2, "0");
                   return <option key={hs} value={hs}>{hs}</option>;
                 })}
               </select>
-              <span>:</span>
-              <select value={selectedMinute} onChange={(e) => setSelectedMinute(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px" }}>
+              <span style={{ color: "#333" }}>:</span>
+              <select value={selectedMinute} onChange={(e) => setSelectedMinute(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px", color: "#333" }}>
                 {validMinutes.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
@@ -587,7 +587,7 @@ export default function TasksPage() {
         }}>
           <div style={{
             background: "white", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "500px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: "12px", maxHeight: "90vh", overflowY: "auto"
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: "12px", maxHeight: "90vh", overflowY: "auto", color: "#333"
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #eee", paddingBottom: "8px" }}>
               <h2 style={{ margin: 0, fontSize: "18px" }}>
@@ -684,7 +684,8 @@ export default function TasksPage() {
               padding: "20px", 
               borderRadius: "12px", 
               border: editingTaskId ? "2px solid #d35400" : "1px solid #ddd", 
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              color: "#333"
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -711,19 +712,19 @@ export default function TasksPage() {
             <div className="form-grid">
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Név:</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ügyfél neve" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ügyfél neve" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", color: "#333" }} />
               </div>
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Cím / Helyszín:</label>
-                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Pl. Budapest, Fő u. 1." style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Pl. Budapest, Fő u. 1." style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", color: "#333" }} />
               </div>
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Telefonszám:</label>
-                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+36 30 123 4567" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+36 30 123 4567" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", color: "#333" }} />
               </div>
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Email cím:</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", color: "#333" }} />
               </div>
               
               <CustomDateTimePicker
@@ -741,14 +742,14 @@ export default function TasksPage() {
 
             <div>
               <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés:</label>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", color: "#333" }} />
             </div>
 
             <div style={{ background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #ccc" }}>
-              <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>Értesítés küldése ezekre a címekre:</label>
+              <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px", color: "#333" }}>Értesítés küldése ezekre a címekre:</label>
               {envEmails.map((emailAddr, index) => (
                 <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f9f9f9", padding: "6px 10px", borderRadius: "6px", marginBottom: "6px", border: "1px solid #eee" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", flex: 1 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", flex: 1, color: "#333" }}>
                     <input type="checkbox" checked={selectedRecipients.includes(emailAddr)} onChange={() => handleRecipientToggle(emailAddr)} />
                     <span>{emailAddr}</span>
                   </label>
@@ -756,7 +757,7 @@ export default function TasksPage() {
                 </div>
               ))}
               <div className="email-input-row" style={{ marginTop: "8px" }}>
-                <input type="email" value={customEmailInput} onChange={(e) => setCustomEmailInput(e.target.value)} placeholder="Új email cím..." style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid #ccc" }} />
+                <input type="email" value={customEmailInput} onChange={(e) => setCustomEmailInput(e.target.value)} placeholder="Új email cím..." style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid #ccc", color: "#333" }} />
                 <button type="button" onClick={handleAddCustomEmail} style={{ background: "#34495e", color: "white", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>Hozzáadás</button>
               </div>
             </div>
@@ -764,13 +765,13 @@ export default function TasksPage() {
             <div>
               <label style={{ fontWeight: "bold", display: "block", marginBottom: "6px" }}>Képek:</label>
               {existingImages.map((imgUrl, index) => (
-                <div key={index} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "6px", borderRadius: "6px", marginBottom: "4px", border: "1px solid #ccc" }}>
+                <div key={index} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "6px", borderRadius: "6px", marginBottom: "4px", border: "1px solid #ccc", color: "#333" }}>
                   <span style={{ fontSize: "13px" }}>📷 Mentett kép #{index + 1}</span>
                   <button type="button" onClick={() => handleRemoveExistingImage(index)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "2px 6px", borderRadius: "4px", fontSize: "11px" }}>Törlés</button>
                 </div>
               ))}
               {photos.map((photo, index) => (
-                <div key={index} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "6px", borderRadius: "6px", marginBottom: "4px", border: "1px solid #ccc" }}>
+                <div key={index} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "6px", borderRadius: "6px", marginBottom: "4px", border: "1px solid #ccc", color: "#333" }}>
                   <span style={{ fontSize: "13px" }}>📷 {photo.name}</span>
                   <button type="button" onClick={() => handleRemoveNewPhoto(index)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "2px 6px", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}>Törlés</button>
                 </div>
@@ -818,7 +819,7 @@ export default function TasksPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="🔍 Keresés név, cím, telefon vagy megjegyzés alapján..."
-            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", color: "#333" }}
           />
         </div>
 
@@ -827,25 +828,25 @@ export default function TasksPage() {
         ) : (
           <div className="cards-grid">
             {filteredTasks.map((task) => (
-              <div key={task.id} style={{ border: "1px solid #ddd", borderRadius: "10px", padding: "16px", background: "#fafafa", display: "flex", flexDirection: "column", gap: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+              <div key={task.id} style={{ border: "1px solid #4a5568", borderRadius: "10px", padding: "16px", background: "#1a202c", display: "flex", flexDirection: "column", gap: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: "bold", fontSize: "13px", background: task.type === "telepites" ? "#e8f4f8" : "#eafaf1", color: task.type === "telepites" ? "#2980b9" : "#27ae60", padding: "4px 8px", borderRadius: "4px" }}>
+                  <span style={{ fontWeight: "bold", fontSize: "13px", background: task.type === "telepites" ? "#2b6cb0" : "#2f855a", color: "#ffffff", padding: "4px 8px", borderRadius: "4px" }}>
                     {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
                   </span>
-                  <span style={{ fontSize: "13px", fontWeight: "bold", color: task.completed_at ? "#27ae60" : "#d35400", background: task.completed_at ? "#eafaf1" : "#fef5e7", padding: "2px 6px", borderRadius: "4px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "bold", color: task.completed_at ? "#68d391" : "#f6ad55", background: task.completed_at ? "rgba(104, 211, 145, 0.15)" : "rgba(246, 173, 85, 0.15)", padding: "2px 6px", borderRadius: "4px" }}>
                     {task.completed_at ? "✅ Kész" : "⏳ Folyamatban"}
                   </span>
                 </div>
 
-                <div style={{ fontSize: "16px", fontWeight: "bold", color: "#333" }}>{task.name || "Névtelen ügyfél"}</div>
-                {task.address && <div style={{ fontSize: "14px", color: "#555" }}>📍 {task.address}</div>}
-                {task.phone && <div style={{ fontSize: "14px", color: "#555" }}>📞 {task.phone}</div>}
-                {task.scheduled_at && <div style={{ fontSize: "13px", color: "#666" }}>📅 {formatDateWithDay(task.scheduled_at)}</div>}
+                <div style={{ fontSize: "16px", fontWeight: "bold", color: "#ffffff" }}>{task.name || "Névtelen ügyfél"}</div>
+                {task.address && <div style={{ fontSize: "14px", color: "#cbd5e0" }}>📍 {task.address}</div>}
+                {task.phone && <div style={{ fontSize: "14px", color: "#cbd5e0" }}>📞 {task.phone}</div>}
+                {task.scheduled_at && <div style={{ fontSize: "13px", color: "#a0aec0" }}>📅 {formatDateWithDay(task.scheduled_at)}</div>}
 
-                <div style={{ display: "flex", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #eee" }}>
-                  <button onClick={() => setViewingTask(task)} style={{ flex: 1, background: "#34495e", color: "white", border: "none", padding: "6px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Részletek</button>
-                  <button onClick={() => startEditing(task)} style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Szerkesztés</button>
-                  <button onClick={() => handleDelete(task.id)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Törlés</button>
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #2d3748" }}>
+                  <button onClick={() => setViewingTask(task)} style={{ flex: 1, background: "#4a5568", color: "white", border: "none", padding: "6px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Részletek</button>
+                  <button onClick={() => startEditing(task)} style={{ background: "#dd6b20", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Szerkesztés</button>
+                  <button onClick={() => handleDelete(task.id)} style={{ background: "#e53e3e", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Törlés</button>
                 </div>
               </div>
             ))}
