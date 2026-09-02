@@ -63,14 +63,21 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
   const [isOpen, setIsOpen] = useState(false);
   
   // Kezdő dátum beállítása a meglévő érték alapján vagy a mai napra
-  // Kezdő dátum beállítása
   const initialDate = value ? new Date(value.replace("T", " ").replace("Z", "")) : new Date();
   const [currentMonth, setCurrentMonth] = useState(initialDate.getMonth());
   const [currentYear, setCurrentYear] = useState(initialDate.getFullYear());
   
   const [selectedDay, setSelectedDay] = useState(initialDate.getDate());
   const [selectedHour, setSelectedHour] = useState(initialDate.getHours().toString().padStart(2, "0"));
-  const [selectedMinute, setSelectedMinute] = useState(initialDate.getMinutes().toString().padStart(2, "0"));
+  
+  // Biztosítjuk, hogy a perc ne vehessen fel hibás értéket
+  const initialMinute = initialDate.getMinutes();
+  const validMinutes = ["00", "15", "30", "45"];
+  const matchedMinute = validMinutes.includes(initialMinute.toString().padStart(2, "0")) 
+    ? initialMinute.toString().padStart(2, "0") 
+    : "00";
+  
+  const [selectedMinute, setSelectedMinute] = useState(matchedMinute);
 
   const monthsList = [
     "január", "február", "március", "április", "május", "június",
@@ -79,19 +86,19 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
 
   const daysOfWeek = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
 
-  // Hónap napjainak kiszámítása
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year: number, month: number) => {
     let day = new Date(year, month, 1).getDay();
-    return day === 0 ? 6 : day - 1; // Hétfő legyen az első nap (0)
+    return day === 0 ? 6 : day - 1;
   };
 
   const handleApply = (day: number, hour: string, minute: string, month: number, year: number) => {
     const formattedMonth = (month + 1).toString().padStart(2, "0");
     const formattedDay = day.toString().padStart(2, "0");
-    // Hozzáadjuk a helyi időzónát jelölő Z-t vagy pontosan stringként mentjük el konverzió nélkül,
-    // hogy a böngésző/szerver ne tolja el az időzónák miatt.
-    const dateStr = `${year}-${formattedMonth}-${formattedDay}T${hour}:${minute}:00`;
+    const safeHour = hour ? hour.padStart(2, "0") : "00";
+    const safeMinute = minute ? minute.padStart(2, "0") : "00";
+    
+    const dateStr = `${year}-${formattedMonth}-${formattedDay}T${safeHour}:${safeMinute}:00`;
     onChange(dateStr);
     setIsOpen(false);
   };
@@ -106,9 +113,11 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
     setCurrentMonth(now.getMonth());
     setCurrentYear(now.getFullYear());
     setSelectedDay(now.getDate());
-    setSelectedHour(now.getHours().toString().padStart(2, "0"));
-    setSelectedMinute(now.getMinutes().toString().padStart(2, "0"));
-    handleApply(now.getDate(), now.getHours().toString().padStart(2, "0"), now.getMinutes().toString().padStart(2, "0"), now.getMonth(), now.getFullYear());
+    const h = now.getHours().toString().padStart(2, "0");
+    const m = "00"; // Alapértelmezésben a "Ma" gomb is tiszta 00 perccel induljon, ha nem akarunk véletlen perceket
+    setSelectedHour(h);
+    setSelectedMinute(m);
+    handleApply(now.getDate(), h, m, now.getMonth(), now.getFullYear());
   };
 
   const prevMonth = () => {
@@ -131,8 +140,6 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth);
-
-  // Előző hónap utolsó napjai a kitöltéshez
   const prevMonthDays = getDaysInMonth(currentYear, currentMonth === 0 ? 11 : currentMonth - 1);
 
   return (
@@ -155,7 +162,6 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
             background: "white", padding: "16px", borderRadius: "12px", width: "100%", maxWidth: "380px",
             boxShadow: "0 4px 15px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "12px", boxSizing: "border-box"
           }}>
-            {/* Fejléc: Év Hónap + Nyilak */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: "bold", fontSize: "16px" }}>{currentYear}. {monthsList[currentMonth]}</span>
               <div style={{ display: "flex", gap: "8px" }}>
@@ -164,19 +170,16 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
               </div>
             </div>
 
-            {/* Naptár Grid */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", textAlign: "center" }}>
               {daysOfWeek.map((d, i) => (
                 <div key={i} style={{ fontSize: "12px", fontWeight: "bold", color: "#666", paddingBottom: "4px" }}>{d}</div>
               ))}
 
-              {/* Előző hónap lógó napjai */}
               {Array.from({ length: firstDayIndex }).map((_, i) => {
                 const dayNum = prevMonthDays - firstDayIndex + i + 1;
                 return <div key={`prev-${i}`} style={{ padding: "8px", color: "#ccc", fontSize: "13px" }}>{dayNum}</div>;
               })}
 
-              {/* Aktuális hónap napjai */}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const dayNum = i + 1;
                 const isSelected = dayNum === selectedDay;
@@ -200,7 +203,6 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
               })}
             </div>
 
-            {/* Óra / Perc választó */}
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
               <span style={{ fontSize: "13px", fontWeight: "bold" }}>Idő:</span>
               <select value={selectedHour} onChange={(e) => setSelectedHour(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px" }}>
@@ -211,13 +213,12 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
               </select>
               <span>:</span>
               <select value={selectedMinute} onChange={(e) => setSelectedMinute(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px" }}>
-                {["00", "15", "30", "45"].map((m) => (
+                {validMinutes.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>
             </div>
 
-            {/* Alsó gombok */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #eee", paddingTop: "10px" }}>
               <button type="button" onClick={handleClear} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>Törlés</button>
               <button type="button" onClick={handleToday} style={{ background: "none", border: "none", color: "#2980b9", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>Ma</button>
