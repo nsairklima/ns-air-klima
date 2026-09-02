@@ -63,7 +63,8 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
   const [isOpen, setIsOpen] = useState(false);
   
   // Kezdő dátum beállítása a meglévő érték alapján vagy a mai napra
-  const initialDate = value ? new Date(value.replace("T", " ")) : new Date();
+  // Kezdő dátum beállítása
+  const initialDate = value ? new Date(value.replace("T", " ").replace("Z", "")) : new Date();
   const [currentMonth, setCurrentMonth] = useState(initialDate.getMonth());
   const [currentYear, setCurrentYear] = useState(initialDate.getFullYear());
   
@@ -88,7 +89,9 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
   const handleApply = (day: number, hour: string, minute: string, month: number, year: number) => {
     const formattedMonth = (month + 1).toString().padStart(2, "0");
     const formattedDay = day.toString().padStart(2, "0");
-    const dateStr = `${year}-${formattedMonth}-${formattedDay}T${hour}:${minute}`;
+    // Hozzáadjuk a helyi időzónát jelölő Z-t vagy pontosan stringként mentjük el konverzió nélkül,
+    // hogy a böngésző/szerver ne tolja el az időzónák miatt.
+    const dateStr = `${year}-${formattedMonth}-${formattedDay}T${hour}:${minute}:00`;
     onChange(dateStr);
     setIsOpen(false);
   };
