@@ -126,7 +126,6 @@ export default function TasksPage() {
       setSelectedRecipients((prev) => [...prev, trimmed]); // Automatikusan ki is jelöljük
       setCustomEmailInput("");
     } else if (trimmed && envEmails.includes(trimmed)) {
-      // Ha már benne van, de nem volt kijelölve, kijelöljük
       if (!selectedRecipients.includes(trimmed)) {
         setSelectedRecipients((prev) => [...prev, trimmed]);
       }
@@ -171,7 +170,6 @@ export default function TasksPage() {
     formData.append("scheduledAt", scheduledAt);
     formData.append("completedAt", completedAt);
     
-    // A kiválasztott emailek küldése JSON tömbként
     formData.append("recipients", JSON.stringify(selectedRecipients));
     formData.append("existingImages", JSON.stringify(existingImages));
 
@@ -319,12 +317,20 @@ export default function TasksPage() {
           flex-direction: row;
           gap: 6px;
         }
+        .email-input-row {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
         @media (min-width: 600px) {
           .form-grid {
             grid-template-columns: 1fr 1fr;
           }
           .cards-grid {
             grid-template-columns: 1fr 1fr;
+          }
+          .email-input-row {
+            flex-direction: row;
           }
         }
       `}</style>
@@ -517,7 +523,7 @@ export default function TasksPage() {
               <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek a munkáról..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
             </div>
 
-            {/* Többszörös email cím kijelölése, hozzáadása és törlése */}
+            {/* Reszponzív e-mail választó és kezelő blokk */}
             <div style={{ background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #ccc" }}>
               <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>
                 Értesítés küldése ezekre a címekre (Több is kijelölhető):
@@ -528,21 +534,43 @@ export default function TasksPage() {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
                   {envEmails.map((emailAddr, index) => (
-                    <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8f9fa", padding: "6px 10px", borderRadius: "6px", border: "1px solid #e9ecef" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", flex: 1 }}>
+                    <div 
+                      key={index} 
+                      style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "space-between", 
+                        background: "#f8f9fa", 
+                        padding: "8px 10px", 
+                        borderRadius: "6px", 
+                        border: "1px solid #e9ecef",
+                        gap: "8px"
+                      }}
+                    >
+                      <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", flex: 1, wordBreak: "break-all" }}>
                         <input
                           type="checkbox"
                           checked={selectedRecipients.includes(emailAddr)}
                           onChange={() => handleRecipientToggle(emailAddr)}
-                          style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                          style={{ width: "18px", height: "18px", cursor: "pointer", flexShrink: 0 }}
                         />
-                        {emailAddr}
+                        <span>{emailAddr}</span>
                       </label>
                       <button
                         type="button"
                         onClick={() => handleRemoveEmailOption(emailAddr)}
                         title="Email cím törlése a listából"
-                        style={{ background: "#dc3545", color: "white", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontWeight: "bold" }}
+                        style={{ 
+                          background: "#dc3545", 
+                          color: "white", 
+                          border: "none", 
+                          padding: "6px 10px", 
+                          borderRadius: "4px", 
+                          cursor: "pointer", 
+                          fontSize: "12px", 
+                          fontWeight: "bold",
+                          flexShrink: 0
+                        }}
                       >
                         ❌ Törlés
                       </button>
@@ -551,27 +579,26 @@ export default function TasksPage() {
                 </div>
               )}
 
-              {/* Manuális email hozzáadása sor */}
-              <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+              {/* Reszponzív sor a manuális hozzáadáshoz */}
+              <div className="email-input-row" style={{ marginTop: "8px" }}>
                 <input
                   type="email"
                   value={customEmailInput}
                   onChange={(e) => setCustomEmailInput(e.target.value)}
                   placeholder="Új email cím manuális megadása..."
-                  style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px", boxSizing: "border-box" }}
+                  style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px", boxSizing: "border-box" }}
                 />
                 <button
                   type="button"
                   onClick={handleAddCustomEmail}
-                  style={{ background: "#0070f3", color: "white", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "13px" }}
+                  style={{ background: "#0070f3", color: "white", border: "none", padding: "10px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "14px", whiteSpace: "nowrap" }}
                 >
                   Hozzáadás
                 </button>
               </div>
 
-              {/* Kiválasztottak listázása visszajelzésként */}
               {selectedRecipients.length > 0 && (
-                <div style={{ marginTop: "8px", fontSize: "12px", color: "#444" }}>
+                <div style={{ marginTop: "10px", fontSize: "12px", color: "#444", wordBreak: "break-all" }}>
                   <strong>Kijelölt címzettek ({selectedRecipients.length}):</strong> {selectedRecipients.join(", ")}
                 </div>
               )}
