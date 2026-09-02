@@ -17,7 +17,7 @@ type Task = { // Egy egyedi TypeScript típusdefiníció (Task) a feladatok adat
   recipient_emails?: string;
 };
 
-// Segédfüggvény a dátumok szép formázásához és a nap nevének megjelenítéséhez
+// Segédfüggvény a dátumok szép formázásához a nap nevével együtt
 const formatDateWithDay = (dateString?: string) => {
   if (!dateString) return "-";
   try {
@@ -534,23 +534,23 @@ export default function TasksPage() {
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
               </div>
               
-              {/* Tervezett időpont mező nap kijelzéssel */}
+              {/* Tervezett időpont mobilon is jól látható nap kijelzéssel */}
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Tervezett időpont:</label>
                 <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} />
                 {scheduledAt && (
-                  <div style={{ marginTop: "4px", fontSize: "12px", color: "#0070f3", fontWeight: "bold", textTransform: "capitalize" }}>
+                  <div style={{ marginTop: "6px", padding: "8px 10px", background: "#e8f4fd", borderRadius: "6px", fontSize: "13px", color: "#0056b3", fontWeight: "bold", textTransform: "capitalize", border: "1px solid #b8daff" }}>
                     📅 Kiválasztva: {formatDateWithDay(scheduledAt)}
                   </div>
                 )}
               </div>
 
-              {/* Megvalósult időpont mező nap kijelzéssel */}
+              {/* Megvalósult időpont mobilon is jól látható nap kijelzéssel */}
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megvalósult időpont:</label>
                 <input type="datetime-local" value={completedAt} onChange={(e) => setCompletedAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} />
                 {completedAt && (
-                  <div style={{ marginTop: "4px", fontSize: "12px", color: "#28a745", fontWeight: "bold", textTransform: "capitalize" }}>
+                  <div style={{ marginTop: "6px", padding: "8px 10px", background: "#e2f0d9", borderRadius: "6px", fontSize: "13px", color: "#285723", fontWeight: "bold", textTransform: "capitalize", border: "1px solid #c3e6cb" }}>
                     ✅ Kiválasztva: {formatDateWithDay(completedAt)}
                   </div>
                 )}
