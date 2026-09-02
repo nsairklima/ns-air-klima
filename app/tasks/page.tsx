@@ -17,7 +17,6 @@ type Task = {
   recipient_emails?: string;
 };
 
-// Segédfüggvény a nap nevével történő formázáshoz
 const formatDateWithDay = (dateString?: string) => {
   if (!dateString) return "Nincs megadva";
   try {
@@ -58,7 +57,6 @@ const formatDateSimple = (dateString?: string) => {
   }
 };
 
-// Egyedi Magyar Naptár & Időválasztó Komponens
 function CustomDateTimePicker({ value, onChange, label }: { value: string; onChange: (val: string) => void; label: string }) {
   const [isOpen, setIsOpen] = useState(false);
   
@@ -123,7 +121,6 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
     const safeHour = hour ? hour.padStart(2, "0") : "00";
     const safeMinute = minute ? minute.padStart(2, "0") : "00";
     
-    // Hozzáadjuk a helyi időzóna eltolódást (pl. +01:00 vagy +02:00), hogy a szerver se tolja el UTC-be!
     const localDateObj = new Date(year, month, day, Number(safeHour), Number(safeMinute), 0);
     const timezoneOffsetMinutes = -localDateObj.getTimezoneOffset();
     const sign = timezoneOffsetMinutes >= 0 ? "+" : "-";
@@ -583,7 +580,6 @@ export default function TasksPage() {
         }
       `}</style>
 
-      {/* RÉSZLETEK MODÁLIS */}
       {viewingTask && (
         <div style={{
           position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
@@ -654,7 +650,6 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* ÚJ MUNKA GOMB / FORM */}
       <div style={{ marginBottom: "20px" }}>
         {!isFormOpen && !editingTaskId ? (
           <button
@@ -731,14 +726,12 @@ export default function TasksPage() {
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
               </div>
               
-              {/* Tervezett időpont */}
               <CustomDateTimePicker
                 label="Tervezett időpont:"
                 value={scheduledAt}
                 onChange={setScheduledAt}
               />
 
-              {/* Megvalósult időpont */}
               <CustomDateTimePicker
                 label="Megvalósult időpont:"
                 value={completedAt}
@@ -751,7 +744,6 @@ export default function TasksPage() {
               <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
             </div>
 
-            {/* Email értesítők */}
             <div style={{ background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #ccc" }}>
               <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>Értesítés küldése ezekre a címekre:</label>
               {envEmails.map((emailAddr, index) => (
@@ -769,7 +761,6 @@ export default function TasksPage() {
               </div>
             </div>
 
-            {/* Képek kezelése */}
             <div>
               <label style={{ fontWeight: "bold", display: "block", marginBottom: "6px" }}>Képek:</label>
               {existingImages.map((imgUrl, index) => (
@@ -807,7 +798,6 @@ export default function TasksPage() {
         )}
       </div>
 
-      {/* Szűrők és lista rész */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "white", padding: "16px", borderRadius: "12px", border: "1px solid #ddd" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
           <div className="filter-buttons">
@@ -839,10 +829,10 @@ export default function TasksPage() {
             {filteredTasks.map((task) => (
               <div key={task.id} style={{ border: "1px solid #ddd", borderRadius: "10px", padding: "16px", background: "#fafafa", display: "flex", flexDirection: "column", gap: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: "bold", fontSize: "14px", background: task.type === "telepites" ? "#e8f4f8" : "#eafaf1", color: task.type === "telepites" ? "#2980b9" : "#27ae60", padding: "4px 8px", borderRadius: "4px" }}>
+                  <span style={{ fontWeight: "bold", fontSize: "13px", background: task.type === "telepites" ? "#e8f4f8" : "#eafaf1", color: task.type === "telepites" ? "#2980b9" : "#27ae60", padding: "4px 8px", borderRadius: "4px" }}>
                     {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
                   </span>
-                  <span style={{ fontSize: "13px", fontWeight: "bold", color: task.completed_at ? "#27ae60" : "#d35400" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "bold", color: task.completed_at ? "#27ae60" : "#d35400", background: task.completed_at ? "#eafaf1" : "#fef5e7", padding: "2px 6px", borderRadius: "4px" }}>
                     {task.completed_at ? "✅ Kész" : "⏳ Folyamatban"}
                   </span>
                 </div>
@@ -855,7 +845,7 @@ export default function TasksPage() {
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #eee" }}>
                   <button onClick={() => setViewingTask(task)} style={{ flex: 1, background: "#34495e", color: "white", border: "none", padding: "6px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Részletek</button>
                   <button onClick={() => startEditing(task)} style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Szerkesztés</button>
-                  <button onClick={() => handleDelete(task.id)} style={{ background: " #e74c3c", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Törlés</button>
+                  <button onClick={() => handleDelete(task.id)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Törlés</button>
                 </div>
               </div>
             ))}
