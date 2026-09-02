@@ -179,7 +179,7 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
 
   return (
     <div>
-      <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>{label}</label>
+      <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px", color: "#333" }}>{label}</label>
       <div 
         onClick={() => setIsOpen(true)}
         style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", background: "white", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", boxSizing: "border-box", color: "#333" }}
@@ -799,17 +799,17 @@ export default function TasksPage() {
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "white", padding: "16px", borderRadius: "12px", border: "1px solid #ddd" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "#1a202c", padding: "16px", borderRadius: "12px", border: "1px solid #4a5568" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
           <div className="filter-buttons">
-            <button onClick={() => setFilterType("all")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", background: filterType === "all" ? "#34495e" : "white", color: filterType === "all" ? "white" : "#333", cursor: "pointer", fontWeight: "bold" }}>Összes típus</button>
-            <button onClick={() => setFilterType("telepites")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", background: filterType === "telepites" ? "#34495e" : "white", color: filterType === "telepites" ? "white" : "#333", cursor: "pointer", fontWeight: "bold" }}>Telepítés</button>
-            <button onClick={() => setFilterType("karbantartas")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", background: filterType === "karbantartas" ? "#34495e" : "white", color: filterType === "karbantartas" ? "white" : "#333", cursor: "pointer", fontWeight: "bold" }}>Karbantartás</button>
+            <button onClick={() => setFilterType("all")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "all" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>Összes típus</button>
+            <button onClick={() => setFilterType("telepites")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "telepites" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>Telepítés</button>
+            <button onClick={() => setFilterType("karbantartas")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "karbantartas" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>Karbantartás</button>
           </div>
           <div className="filter-buttons">
-            <button onClick={() => setFilterStatus("all")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", background: filterStatus === "all" ? "#2980b9" : "white", color: filterStatus === "all" ? "white" : "#333", cursor: "pointer", fontWeight: "bold" }}>Mind státusz</button>
-            <button onClick={() => setFilterStatus("folyamatban")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", background: filterStatus === "folyamatban" ? "#2980b9" : "white", color: filterStatus === "folyamatban" ? "white" : "#333", cursor: "pointer", fontWeight: "bold" }}>Folyamatban</button>
-            <button onClick={() => setFilterStatus("kesz")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", background: filterStatus === "kesz" ? "#2980b9" : "white", color: filterStatus === "kesz" ? "white" : "#333", cursor: "pointer", fontWeight: "bold" }}>Kész</button>
+            <button onClick={() => setFilterStatus("all")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "all" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>Mind státusz</button>
+            <button onClick={() => setFilterStatus("folyamatban")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "folyamatban" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>Folyamatban</button>
+            <button onClick={() => setFilterStatus("kesz")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "kesz" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>Kész</button>
           </div>
         </div>
 
@@ -819,31 +819,31 @@ export default function TasksPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="🔍 Keresés név, cím, telefon vagy megjegyzés alapján..."
-            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", color: "#333" }}
+            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #4a5568", background: "#ffffff", color: "#333", boxSizing: "border-box" }}
           />
         </div>
 
         {filteredTasks.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "24px", color: "#666" }}>Nincs találat a megadott feltételekkel.</div>
+          <div style={{ textAlign: "center", padding: "24px", color: "#a0aec0" }}>Nincs találat a megadott feltételekkel.</div>
         ) : (
           <div className="cards-grid">
             {filteredTasks.map((task) => (
-              <div key={task.id} style={{ border: "1px solid #4a5568", borderRadius: "10px", padding: "16px", background: "#1a202c", display: "flex", flexDirection: "column", gap: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+              <div key={task.id} style={{ border: "1px solid #cbd5e0", borderRadius: "10px", padding: "16px", background: "#ffffff", display: "flex", flexDirection: "column", gap: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: "bold", fontSize: "13px", background: task.type === "telepites" ? "#2b6cb0" : "#2f855a", color: "#ffffff", padding: "4px 8px", borderRadius: "4px" }}>
+                  <span style={{ fontWeight: "bold", fontSize: "13px", background: task.type === "telepites" ? "#ebf8ff" : "#f0fff4", color: task.type === "telepites" ? "#2b6cb0" : "#2f855a", padding: "4px 8px", borderRadius: "4px" }}>
                     {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
                   </span>
-                  <span style={{ fontSize: "13px", fontWeight: "bold", color: task.completed_at ? "#68d391" : "#f6ad55", background: task.completed_at ? "rgba(104, 211, 145, 0.15)" : "rgba(246, 173, 85, 0.15)", padding: "2px 6px", borderRadius: "4px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "bold", color: task.completed_at ? "#2f855a" : "#c05621", background: task.completed_at ? "#f0fff4" : "#fffaf0", padding: "2px 6px", borderRadius: "4px" }}>
                     {task.completed_at ? "✅ Kész" : "⏳ Folyamatban"}
                   </span>
                 </div>
 
-                <div style={{ fontSize: "16px", fontWeight: "bold", color: "#ffffff" }}>{task.name || "Névtelen ügyfél"}</div>
-                {task.address && <div style={{ fontSize: "14px", color: "#cbd5e0" }}>📍 {task.address}</div>}
-                {task.phone && <div style={{ fontSize: "14px", color: "#cbd5e0" }}>📞 {task.phone}</div>}
-                {task.scheduled_at && <div style={{ fontSize: "13px", color: "#a0aec0" }}>📅 {formatDateWithDay(task.scheduled_at)}</div>}
+                <div style={{ fontSize: "16px", fontWeight: "bold", color: "#1a202c" }}>{task.name || "Névtelen ügyfél"}</div>
+                {task.address && <div style={{ fontSize: "14px", color: "#4a5568" }}>📍 {task.address}</div>}
+                {task.phone && <div style={{ fontSize: "14px", color: "#4a5568" }}>📞 {task.phone}</div>}
+                {task.scheduled_at && <div style={{ fontSize: "13px", color: "#718096" }}>📅 {formatDateWithDay(task.scheduled_at)}</div>}
 
-                <div style={{ display: "flex", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #2d3748" }}>
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #edf2f7" }}>
                   <button onClick={() => setViewingTask(task)} style={{ flex: 1, background: "#4a5568", color: "white", border: "none", padding: "6px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Részletek</button>
                   <button onClick={() => startEditing(task)} style={{ background: "#dd6b20", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Szerkesztés</button>
                   <button onClick={() => handleDelete(task.id)} style={{ background: "#e53e3e", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Törlés</button>
