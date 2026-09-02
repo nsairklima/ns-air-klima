@@ -58,6 +58,185 @@ const formatDateSimple = (dateString?: string) => {
   }
 };
 
+// Egyedi Magyar Naptár & Időválasztó Komponens
+function CustomDateTimePicker({ value, onChange, label }: { value: string; onChange: (val: string) => void; label: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  // Kezdő dátum beállítása a meglévő érték alapján vagy a mai napra
+  const initialDate = value ? new Date(value.replace("T", " ")) : new Date();
+  const [currentMonth, setCurrentMonth] = useState(initialDate.getMonth());
+  const [currentYear, setCurrentYear] = useState(initialDate.getFullYear());
+  
+  const [selectedDay, setSelectedDay] = useState(initialDate.getDate());
+  const [selectedHour, setSelectedHour] = useState(initialDate.getHours().toString().padStart(2, "0"));
+  const [selectedMinute, setSelectedMinute] = useState(initialDate.getMinutes().toString().padStart(2, "0"));
+
+  const monthsList = [
+    "január", "február", "március", "április", "május", "június",
+    "július", "augusztus", "szeptember", "október", "november", "december"
+  ];
+
+  const daysOfWeek = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
+
+  // Hónap napjainak kiszámítása
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    let day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1; // Hétfő legyen az első nap (0)
+  };
+
+  const handleApply = (day: number, hour: string, minute: string, month: number, year: number) => {
+    const formattedMonth = (month + 1).toString().padStart(2, "0");
+    const formattedDay = day.toString().padStart(2, "0");
+    const dateStr = `${year}-${formattedMonth}-${formattedDay}T${hour}:${minute}`;
+    onChange(dateStr);
+    setIsOpen(false);
+  };
+
+  const handleClear = () => {
+    onChange("");
+    setIsOpen(false);
+  };
+
+  const handleToday = () => {
+    const now = new Date();
+    setCurrentMonth(now.getMonth());
+    setCurrentYear(now.getFullYear());
+    setSelectedDay(now.getDate());
+    setSelectedHour(now.getHours().toString().padStart(2, "0"));
+    setSelectedMinute(now.getMinutes().toString().padStart(2, "0"));
+    handleApply(now.getDate(), now.getHours().toString().padStart(2, "0"), now.getMinutes().toString().padStart(2, "0"), now.getMonth(), now.getFullYear());
+  };
+
+  const prevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+  };
+
+  const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+  const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth);
+
+  // Előző hónap utolsó napjai a kitöltéshez
+  const prevMonthDays = getDaysInMonth(currentYear, currentMonth === 0 ? 11 : currentMonth - 1);
+
+  return (
+    <div>
+      <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>{label}</label>
+      <div 
+        onClick={() => setIsOpen(true)}
+        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", background: "white", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", boxSizing: "border-box" }}
+      >
+        <span>{value ? formatDateWithDay(value) : "Válassz időpontot..."}</span>
+        <span>📅</span>
+      </div>
+
+      {isOpen && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
+          background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1100, padding: "10px"
+        }}>
+          <div style={{
+            background: "white", padding: "16px", borderRadius: "12px", width: "100%", maxWidth: "380px",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "12px", boxSizing: "border-box"
+          }}>
+            {/* Fejléc: Év Hónap + Nyilak */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontWeight: "bold", fontSize: "16px" }}>{currentYear}. {monthsList[currentMonth]}</span>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button type="button" onClick={prevMonth} style={{ background: "#f1f1f1", border: "none", padding: "6px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>←</button>
+                <button type="button" onClick={nextMonth} style={{ background: "#f1f1f1", border: "none", padding: "6px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>→</button>
+              </div>
+            </div>
+
+            {/* Naptár Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", textAlign: "center" }}>
+              {daysOfWeek.map((d, i) => (
+                <div key={i} style={{ fontSize: "12px", fontWeight: "bold", color: "#666", paddingBottom: "4px" }}>{d}</div>
+              ))}
+
+              {/* Előző hónap lógó napjai */}
+              {Array.from({ length: firstDayIndex }).map((_, i) => {
+                const dayNum = prevMonthDays - firstDayIndex + i + 1;
+                return <div key={`prev-${i}`} style={{ padding: "8px", color: "#ccc", fontSize: "13px" }}>{dayNum}</div>;
+              })}
+
+              {/* Aktuális hónap napjai */}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const isSelected = dayNum === selectedDay;
+                return (
+                  <div
+                    key={`day-${dayNum}`}
+                    onClick={() => setSelectedDay(dayNum)}
+                    style={{
+                      padding: "8px 0",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      background: isSelected ? "#34495e" : "transparent",
+                      color: isSelected ? "white" : "#333",
+                      fontWeight: isSelected ? "bold" : "normal",
+                      fontSize: "14px"
+                    }}
+                  >
+                    {dayNum}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Óra / Perc választó */}
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+              <span style={{ fontSize: "13px", fontWeight: "bold" }}>Idő:</span>
+              <select value={selectedHour} onChange={(e) => setSelectedHour(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px" }}>
+                {Array.from({ length: 24 }).map((_, h) => {
+                  const hs = h.toString().padStart(2, "0");
+                  return <option key={hs} value={hs}>{hs}</option>;
+                })}
+              </select>
+              <span>:</span>
+              <select value={selectedMinute} onChange={(e) => setSelectedMinute(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px" }}>
+                {["00", "15", "30", "45"].map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Alsó gombok */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+              <button type="button" onClick={handleClear} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>Törlés</button>
+              <button type="button" onClick={handleToday} style={{ background: "none", border: "none", color: "#2980b9", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>Ma</button>
+              <button 
+                type="button" 
+                onClick={() => handleApply(selectedDay, selectedHour, selectedMinute, currentMonth, currentYear)}
+                style={{ background: "#27ae60", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}
+              >
+                Kiválaszt
+              </button>
+            </div>
+
+            <button type="button" onClick={() => setIsOpen(false)} style={{ background: "#95a5a6", color: "white", border: "none", padding: "8px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", marginTop: "4px" }}>
+              Mégse
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TasksPage() {
   const [type, setType] = useState<"telepites" | "karbantartas">("telepites");
   const [name, setName] = useState("");
@@ -510,27 +689,19 @@ export default function TasksPage() {
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
               </div>
               
-              {/* Tervezett időpont */}
-              <div>
-                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Tervezett időpont:</label>
-                <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} />
-                {scheduledAt && (
-                  <div style={{ marginTop: "6px", padding: "8px 10px", background: "#f0fff4", borderRadius: "6px", fontSize: "13px", color: "#27ae60", fontWeight: "bold", border: "1px solid #c6f6d5", textTransform: "capitalize" }}>
-                    📅 Kiválasztott nap & idő: {formatDateWithDay(scheduledAt)}
-                  </div>
-                )}
-              </div>
+              {/* Tervezett időpont - Egyedi naptár */}
+              <CustomDateTimePicker
+                label="Tervezett időpont:"
+                value={scheduledAt}
+                onChange={setScheduledAt}
+              />
 
-              {/* Megvalósult időpont */}
-              <div>
-                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megvalósult időpont:</label>
-                <input type="datetime-local" value={completedAt} onChange={(e) => setCompletedAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} />
-                {completedAt && (
-                  <div style={{ marginTop: "6px", padding: "8px 10px", background: "#f0fff4", borderRadius: "6px", fontSize: "13px", color: "#27ae60", fontWeight: "bold", border: "1px solid #c6f6d5", textTransform: "capitalize" }}>
-                    ✅ Kiválasztott nap & idő: {formatDateWithDay(completedAt)}
-                  </div>
-                )}
-              </div>
+              {/* Megvalósult időpont - Egyedi naptár */}
+              <CustomDateTimePicker
+                label="Megvalósult időpont:"
+                value={completedAt}
+                onChange={setCompletedAt}
+              />
             </div>
 
             <div>
@@ -650,8 +821,7 @@ export default function TasksPage() {
                 <div><strong>Név:</strong> {task.name || "-"}</div>
                 <div><strong>Cím:</strong> {task.address || "-"}</div>
                 <div style={{ textTransform: "capitalize" }}>
-                  <strong>Tervezett időpont:</strong> {formatDateWithDay(task.scheduled_at)}
-                </div>
+                  <strong>Tervezett időpont:</strong> {formatDateWithDay(task.scheduled_at)}</div>
 
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
                   <button onClick={() => setViewingTask(task)} style={{ padding: "6px 12px", background: "#2980b9", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>🔍 Részletek</button>
