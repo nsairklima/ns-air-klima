@@ -17,7 +17,29 @@ type Task = { // Egy egyedi TypeScript típusdefiníció (Task) a feladatok adat
   recipient_emails?: string;
 };
 
-// Segédfüggvény a dátumok szép formázásához
+// Segédfüggvény a dátumok szép formázásához és a nap nevének megjelenítéséhez
+const formatDateWithDay = (dateString?: string) => {
+  if (!dateString) return "-";
+  try {
+    const cleanStr = dateString.replace("T", " ");
+    const dateObj = new Date(cleanStr);
+    if (isNaN(dateObj.getTime())) return dateString;
+
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    };
+
+    return new Intl.DateTimeFormat("hu-HU", options).format(dateObj);
+  } catch {
+    return dateString;
+  }
+};
+
 const formatDate = (dateString?: string) => {
   if (!dateString) return "-";
   try {
@@ -52,7 +74,6 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
-  // Új állapot a státusz szerinti szűréshez ("all" | "folyamatban" | "kesz")
   const [filterStatus, setFilterStatus] = useState<"all" | "folyamatban" | "kesz">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -60,7 +81,6 @@ export default function TasksPage() {
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // Új állapotok a többes email kiválasztáshoz és manuális megadáshoz
   const [envEmails, setEnvEmails] = useState<string[]>([]);
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [customEmailInput, setCustomEmailInput] = useState("");
@@ -78,13 +98,12 @@ export default function TasksPage() {
   useEffect(() => {
     fetchTasks();
 
-    // Emailek lekérése az API-tól az .env fájl alapján
     fetch("/api/settings/emails")
       .then((res) => res.json())
       .then((data) => {
         if (data.emails && data.emails.length > 0) {
           setEnvEmails(data.emails);
-          setSelectedRecipients([data.emails[0]]); // Alapértelmezésben az elsőt bejelöljük
+          setSelectedRecipients([data.emails[0]]);
         }
       })
       .catch((err) => console.error("Hiba az emailek betöltésekor:", err));
@@ -111,7 +130,6 @@ export default function TasksPage() {
     }
   };
 
-  // Checkbox kezelő több email kiválasztásához
   const handleRecipientToggle = (emailAddr: string) => {
     setSelectedRecipients((prev) =>
       prev.includes(emailAddr)
@@ -120,12 +138,11 @@ export default function TasksPage() {
     );
   };
 
-  // Manuális email hozzáadása a listához
   const handleAddCustomEmail = () => {
     const trimmed = customEmailInput.trim();
     if (trimmed && !envEmails.includes(trimmed)) {
       setEnvEmails((prev) => [...prev, trimmed]);
-      setSelectedRecipients((prev) => [...prev, trimmed]); // Automatikusan ki is jelöljük
+      setSelectedRecipients((prev) => [...prev, trimmed]);
       setCustomEmailInput("");
     } else if (trimmed && envEmails.includes(trimmed)) {
       if (!selectedRecipients.includes(trimmed)) {
@@ -135,7 +152,6 @@ export default function TasksPage() {
     }
   };
 
-  // Email törlése a választható listából
   const handleRemoveEmailOption = (emailToRemove: string) => {
     setEnvEmails((prev) => prev.filter((e) => e !== emailToRemove));
     setSelectedRecipients((prev) => prev.filter((e) => e !== emailToRemove));
@@ -281,18 +297,15 @@ export default function TasksPage() {
   };
 
   const filteredTasks = tasks.filter((task) => {
-    // Típus szűrés
     if (filterType !== "all" && task.type !== filterType) {
       return false;
     }
-    // Státusz szűrés
     if (filterStatus === "folyamatban" && task.completed_at) {
       return false;
     }
     if (filterStatus === "kesz" && !task.completed_at) {
       return false;
     }
-    // Keresőmező szűrés
     if (searchQuery.trim() !== "") {
       const q = searchQuery.toLowerCase();
       const matchName = task.name?.toLowerCase().includes(q) || false;
@@ -399,8 +412,8 @@ export default function TasksPage() {
               </div>
 
               {viewingTask.email && <div><strong>Email:</strong> ✉️ {viewingTask.email}</div>}
-              {viewingTask.scheduled_at && <div><strong>Tervezett időpont:</strong> 📅 {formatDate(viewingTask.scheduled_at)}</div>}
-              {viewingTask.completed_at && <div><strong>Megvalósult időpont:</strong> ✅ {formatDate(viewingTask.completed_at)}</div>}
+              {viewingTask.scheduled_at && <div><strong>Tervezett időpont:</strong> 📅 {formatDateWithDay(viewingTask.scheduled_at)}</div>}
+              {viewingTask.completed_at && <div><strong>Megvalósult időpont:</strong> ✅ {formatDateWithDay(viewingTask.completed_at)}</div>}
               <div><strong>Létrehozva:</strong> {formatDate(viewingTask.created_at)}</div>
               {viewingTask.note && <div><strong>Megjegyzés:</strong> {viewingTask.note}</div>}
 
@@ -510,7 +523,7 @@ export default function TasksPage() {
               </div>
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Cím / Helyszín:</label>
-                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Pl. 1051 Budapest, Kossuth L. tér 1." style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
               </div>
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Telefonszám:</label>
@@ -520,13 +533,27 @@ export default function TasksPage() {
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Email cím:</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ugyfel@email.com" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
               </div>
+              
+              {/* Tervezett időpont mező nap kijelzéssel */}
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Tervezett időpont:</label>
                 <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} />
+                {scheduledAt && (
+                  <div style={{ marginTop: "4px", fontSize: "12px", color: "#0070f3", fontWeight: "bold", textTransform: "capitalize" }}>
+                    📅 Kiválasztva: {formatDateWithDay(scheduledAt)}
+                  </div>
+                )}
               </div>
+
+              {/* Megvalósult időpont mező nap kijelzéssel */}
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megvalósult időpont:</label>
                 <input type="datetime-local" value={completedAt} onChange={(e) => setCompletedAt(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", background: "white" }} />
+                {completedAt && (
+                  <div style={{ marginTop: "4px", fontSize: "12px", color: "#28a745", fontWeight: "bold", textTransform: "capitalize" }}>
+                    ✅ Kiválasztva: {formatDateWithDay(completedAt)}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -591,7 +618,6 @@ export default function TasksPage() {
                 </div>
               )}
 
-              {/* Reszponzív sor a manuális hozzáadáshoz */}
               <div className="email-input-row" style={{ marginTop: "8px" }}>
                 <input
                   type="email"
@@ -674,7 +700,6 @@ export default function TasksPage() {
               </label>
             </div>
 
-            {/* Gombok: Mentés / Módosítás és Mégsem */}
             <div style={{ display: "flex", gap: "10px" }}>
               <button 
                 type="submit" 
@@ -706,7 +731,6 @@ export default function TasksPage() {
           style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box", fontSize: "14px" }}
         />
 
-        {/* Munkatípus szerinti szűrők */}
         <div className="filter-buttons">
           <button
             onClick={() => setFilterType("all")}
@@ -728,7 +752,6 @@ export default function TasksPage() {
           </button>
         </div>
 
-        {/* Új státusz szerinti szűrők (Minden / Folyamatban / Kész) */}
         <div className="filter-buttons">
           <button
             onClick={() => setFilterStatus("all")}
@@ -789,7 +812,7 @@ export default function TasksPage() {
 
                 <div><strong>Név:</strong> {task.name || "-"}</div>
                 <div><strong>Cím:</strong> {task.address || "-"}</div>
-                <div><strong>Tervezett időpont:</strong> {formatDate(task.scheduled_at)}</div>
+                <div><strong>Tervezett időpont:</strong> {formatDateWithDay(task.scheduled_at)}</div>
 
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
                   <button onClick={() => setViewingTask(task)} style={{ padding: "6px 10px", background: "#17a2b8", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>
