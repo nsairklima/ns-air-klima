@@ -827,32 +827,56 @@ export default function TasksPage() {
           <div style={{ textAlign: "center", padding: "24px", color: "#a0aec0" }}>Nincs találat a megadott feltételekkel.</div>
         ) : (
           <div className="cards-grid">
-            {filteredTasks.map((task) => (
-              <div key={task.id} style={{ border: "1px solid #cbd5e0", borderRadius: "10px", padding: "16px", background: "#ffffff", display: "flex", flexDirection: "column", gap: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: "bold", fontSize: "13px", background: task.type === "telepites" ? "#ebf8ff" : "#f0fff4", color: task.type === "telepites" ? "#2b6cb0" : "#2f855a", padding: "4px 8px", borderRadius: "4px" }}>
-                    {task.type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás"}
-                  </span>
-                  <span style={{ fontSize: "13px", fontWeight: "bold", color: task.completed_at ? "#2f855a" : "#c05621", background: task.completed_at ? "#f0fff4" : "#fffaf0", padding: "2px 6px", borderRadius: "4px" }}>
-                    {task.completed_at ? "✅ Kész" : "⏳ Folyamatban"}
-                  </span>
-                </div>
+            {filteredTasks.map((task) => {
+              const isTelepites = task.type === "telepites";
+              const isKesz = Boolean(task.completed_at);
 
-                <div style={{ fontSize: "16px", fontWeight: "bold", color: "#1a202c" }}>{task.name || "Névtelen ügyfél"}</div>
-                {task.address && <div style={{ fontSize: "14px", color: "#4a5568" }}>📍 {task.address}</div>}
-                {task.phone && <div style={{ fontSize: "14px", color: "#4a5568" }}>📞 {task.phone}</div>}
-                {task.email && <div style={{ fontSize: "14px", color: "#4a5568" }}>✉️ {task.email}</div>}
-                {task.scheduled_at && <div style={{ fontSize: "13px", color: "#718096" }}>📅 Tervezett: {formatDateWithDay(task.scheduled_at)}</div>}
-                {task.completed_at && <div style={{ fontSize: "13px", color: "#2f855a" }}>✅ Készülve: {formatDateWithDay(task.completed_at)}</div>}
-                {task.note && <div style={{ fontSize: "13px", color: "#4a5568", fontStyle: "italic", background: "#f7fafc", padding: "6px", borderRadius: "4px", borderLeft: "3px solid #cbd5e0" }}>💬 {task.note}</div>}
+              // Bal oldali sáv színe típus alapján: Telepítés = Kék (3182ce), Karbantartás = Zöld (38a169)
+              const typeColor = isTelepites ? "#3182ce" : "#38a169";
+              // Státusz keret: Kész = Vaskosabb zöld keret, Folyamatban = Narancs/sárga keret
+              const statusBorderColor = isKesz ? "#48bb78" : "#ed8936";
 
-                <div style={{ display: "flex", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #edf2f7" }}>
-                  <button onClick={() => setViewingTask(task)} style={{ flex: 1, background: "#4a5568", color: "white", border: "none", padding: "6px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Részletek</button>
-                  <button onClick={() => startEditing(task)} style={{ background: "#dd6b20", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Szerkesztés</button>
-                  <button onClick={() => handleDelete(task.id)} style={{ background: "#e53e3e", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Törlés</button>
+              return (
+                <div 
+                  key={task.id} 
+                  style={{ 
+                    border: "1px solid #cbd5e0", 
+                    borderLeft: `6px solid ${typeColor}`, 
+                    borderTop: `4px solid ${statusBorderColor}`,
+                    borderRadius: "10px", 
+                    padding: "16px", 
+                    background: "#ffffff", 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    gap: "8px", 
+                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)" 
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: "bold", fontSize: "13px", background: isTelepites ? "#ebf8ff" : "#f0fff4", color: isTelepites ? "#2b6cb0" : "#2f855a", padding: "4px 8px", borderRadius: "4px" }}>
+                      {isTelepites ? "🛠️ Telepítés" : "🧹 Karbantartás"}
+                    </span>
+                    <span style={{ fontSize: "13px", fontWeight: "bold", color: isKesz ? "#2f855a" : "#c05621", background: isKesz ? "#f0fff4" : "#fffaf0", padding: "2px 6px", borderRadius: "4px" }}>
+                      {isKesz ? "✅ Kész" : "⏳ Folyamatban"}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: "16px", fontWeight: "bold", color: "#1a202c" }}>{task.name || "Névtelen ügyfél"}</div>
+                  {task.address && <div style={{ fontSize: "14px", color: "#4a5568" }}>📍 {task.address}</div>}
+                  {task.phone && <div style={{ fontSize: "14px", color: "#4a5568" }}>📞 {task.phone}</div>}
+                  {task.email && <div style={{ fontSize: "14px", color: "#4a5568" }}>✉️ {task.email}</div>}
+                  {task.scheduled_at && <div style={{ fontSize: "13px", color: "#718096" }}>📅 Tervezett: {formatDateWithDay(task.scheduled_at)}</div>}
+                  {task.completed_at && <div style={{ fontSize: "13px", color: "#2f855a" }}>✅ Készülve: {formatDateWithDay(task.completed_at)}</div>}
+                  {task.note && <div style={{ fontSize: "13px", color: "#4a5568", fontStyle: "italic", background: "#f7fafc", padding: "6px", borderRadius: "4px", borderLeft: "3px solid #cbd5e0" }}>💬 {task.note}</div>}
+
+                  <div style={{ display: "flex", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #edf2f7" }}>
+                    <button onClick={() => setViewingTask(task)} style={{ flex: 1, background: "#4a5568", color: "white", border: "none", padding: "6px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Részletek</button>
+                    <button onClick={() => startEditing(task)} style={{ background: "#dd6b20", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Szerkesztés</button>
+                    <button onClick={() => handleDelete(task.id)} style={{ background: "#e53e3e", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Törlés</button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
