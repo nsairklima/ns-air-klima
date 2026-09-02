@@ -62,22 +62,48 @@ const formatDateSimple = (dateString?: string) => {
 function CustomDateTimePicker({ value, onChange, label }: { value: string; onChange: (val: string) => void; label: string }) {
   const [isOpen, setIsOpen] = useState(false);
   
-  // Kezdő dátum beállítása a meglévő érték alapján vagy a mai napra
-  const initialDate = value ? new Date(value.replace("T", " ").replace("Z", "")) : new Date();
-  const [currentMonth, setCurrentMonth] = useState(initialDate.getMonth());
-  const [currentYear, setCurrentYear] = useState(initialDate.getFullYear());
-  
-  const [selectedDay, setSelectedDay] = useState(initialDate.getDate());
-  const [selectedHour, setSelectedHour] = useState(initialDate.getHours().toString().padStart(2, "0"));
-  
-  // Biztosítjuk, hogy a perc ne vehessen fel hibás értéket
-  const initialMinute = initialDate.getMinutes();
-  const validMinutes = ["00", "15", "30", "45"];
-  const matchedMinute = validMinutes.includes(initialMinute.toString().padStart(2, "0")) 
-    ? initialMinute.toString().padStart(2, "0") 
-    : "00";
-  
-  const [selectedMinute, setSelectedMinute] = useState(matchedMinute);
+  // Biztonságos darabolás stringből, hogy elkerüljük a Date objektum timezone eltolódási hibáit
+  const parseInitialValue = (val: string) => {
+    const now = new Date();
+    if (!val) {
+      return {
+        year: now.getFullYear(),
+        month: now.getMonth(),
+        day: now.getDate(),
+        hour: now.getHours().toString().padStart(2, "0"),
+        minute: "00"
+      };
+    }
+    // Pl: "2026-06-12T14:30:00" feldolgozása
+    try {
+      const [datePart, timePart] = val.split("T");
+      const [y, m, d] = datePart.split("-").map(Number);
+      const [h, min] = timePart ? timePart.split(":") : ["12", "00"];
+      return {
+        year: y || now.getFullYear(),
+        month: m ? m - 1 : now.getMonth(),
+        day: d || now.getDate(),
+        hour: h || "12",
+        minute: min || "00"
+      };
+    } catch {
+      return {
+        year: now.getFullYear(),
+        month: now.getMonth(),
+        day: now.getDate(),
+        hour: "12",
+        minute: "00"
+      };
+    }
+  };
+
+  const initial = parseInitialValue(value);
+
+  const [currentMonth, setCurrentMonth] = useState(initial.month);
+  const [currentYear, setCurrentYear] = useState(initial.year);
+  const [selectedDay, setSelectedDay] = useState(initial.day);
+  const [selectedHour, setSelectedHour] = useState(initial.hour);
+  const [selectedMinute, setSelectedMinute] = useState(initial.minute);
 
   const monthsList = [
     "január", "február", "március", "április", "május", "június",
@@ -85,6 +111,7 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
   ];
 
   const daysOfWeek = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
+  const validMinutes = ["00", "15", "30", "45"];
 
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year: number, month: number) => {
@@ -98,6 +125,7 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
     const safeHour = hour ? hour.padStart(2, "0") : "00";
     const safeMinute = minute ? minute.padStart(2, "0") : "00";
     
+    // Pontosan azt a stringet küldjük vissza, amit a felhasználó kiválasztott, mindenféle timezone módosítás nélkül
     const dateStr = `${year}-${formattedMonth}-${formattedDay}T${safeHour}:${safeMinute}:00`;
     onChange(dateStr);
     setIsOpen(false);
@@ -110,14 +138,18 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
 
   const handleToday = () => {
     const now = new Date();
-    setCurrentMonth(now.getMonth());
-    setCurrentYear(now.getFullYear());
-    setSelectedDay(now.getDate());
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const d = now.getDate();
     const h = now.getHours().toString().padStart(2, "0");
-    const m = "00"; // Alapértelmezésben a "Ma" gomb is tiszta 00 perccel induljon, ha nem akarunk véletlen perceket
+    const min = "00";
+
+    setCurrentMonth(m);
+    setCurrentYear(y);
+    setSelectedDay(d);
     setSelectedHour(h);
-    setSelectedMinute(m);
-    handleApply(now.getDate(), h, m, now.getMonth(), now.getFullYear());
+    setSelectedMinute(min);
+    handleApply(d, h, min, m, y);
   };
 
   const prevMonth = () => {
