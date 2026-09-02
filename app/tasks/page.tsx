@@ -841,7 +841,10 @@ export default function TasksPage() {
                 <div style={{ fontSize: "16px", fontWeight: "bold", color: "#1a202c" }}>{task.name || "Névtelen ügyfél"}</div>
                 {task.address && <div style={{ fontSize: "14px", color: "#4a5568" }}>📍 {task.address}</div>}
                 {task.phone && <div style={{ fontSize: "14px", color: "#4a5568" }}>📞 {task.phone}</div>}
-                {task.scheduled_at && <div style={{ fontSize: "13px", color: "#718096" }}>📅 {formatDateWithDay(task.scheduled_at)}</div>}
+                {task.email && <div style={{ fontSize: "14px", color: "#4a5568" }}>✉️ {task.email}</div>}
+                {task.scheduled_at && <div style={{ fontSize: "13px", color: "#718096" }}>📅 Tervezett: {formatDateWithDay(task.scheduled_at)}</div>}
+                {task.completed_at && <div style={{ fontSize: "13px", color: "#2f855a" }}>✅ Készülve: {formatDateWithDay(task.completed_at)}</div>}
+                {task.note && <div style={{ fontSize: "13px", color: "#4a5568", fontStyle: "italic", background: "#f7fafc", padding: "6px", borderRadius: "4px", borderLeft: "3px solid #cbd5e0" }}>💬 {task.note}</div>}
 
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #edf2f7" }}>
                   <button onClick={() => setViewingTask(task)} style={{ flex: 1, background: "#4a5568", color: "white", border: "none", padding: "6px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>Részletek</button>
