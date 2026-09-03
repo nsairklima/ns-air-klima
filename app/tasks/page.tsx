@@ -1,4 +1,532 @@
-const filteredTasks = tasks.filter((task) => {
+
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Task = {
+  id: number;
+  type: string;
+  name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  note?: string;
+  scheduled_at?: string;
+  completed_at?: string;
+  images?: string[];
+  created_at: string;
+  recipient_emails?: string;
+};
+
+const formatDateWithDay = (dateString?: string) => {
+  if (!dateString) return "Nincs megadva";
+  try {
+    const cleanStr = dateString.replace("T", " ").replace("Z", "");
+    const dateObj = new Date(cleanStr);
+    if (isNaN(dateObj.getTime())) return dateString;
+
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    };
+
+    return new Intl.DateTimeFormat("hu-HU", options).format(dateObj);
+  } catch {
+    return dateString;
+  }
+};
+
+const formatDateSimple = (dateString?: string) => {
+  if (!dateString) return "-";
+  try {
+    const cleanStr = dateString.replace("T", " ").replace("Z", "");
+    const dateObj = new Date(cleanStr);
+    if (isNaN(dateObj.getTime())) return dateString;
+    return new Intl.DateTimeFormat("hu-HU", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(dateObj);
+  } catch {
+    return dateString;
+  }
+};
+
+function CustomDateTimePicker({ value, onChange, label }: { value: string; onChange: (val: string) => void; label: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const parseInitialValue = (val: string) => {
+    const now = new Date();
+    if (!val) {
+      return {
+        year: now.getFullYear(),
+        month: now.getMonth(),
+        day: now.getDate(),
+        hour: now.getHours().toString().padStart(2, "0"),
+        minute: "00"
+      };
+    }
+    try {
+      const [datePart, timePart] = val.split("T");
+      const [y, m, d] = datePart.split("-").map(Number);
+      const [h, min] = timePart ? timePart.split(":") : ["12", "00"];
+      return {
+        year: y || now.getFullYear(),
+        month: m ? m - 1 : now.getMonth(),
+        day: d || now.getDate(),
+        hour: h ? h.padStart(2, "0") : "12",
+        minute: min ? min.padStart(2, "0") : "00"
+      };
+    } catch {
+      return {
+        year: now.getFullYear(),
+        month: now.getMonth(),
+        day: now.getDate(),
+        hour: "12",
+        minute: "00"
+      };
+    }
+  };
+
+  const initial = parseInitialValue(value);
+
+  const [currentMonth, setCurrentMonth] = useState(initial.month);
+  const [currentYear, setCurrentYear] = useState(initial.year);
+  const [selectedDay, setSelectedDay] = useState(initial.day);
+  const [selectedHour, setSelectedHour] = useState(initial.hour);
+  const [selectedMinute, setSelectedMinute] = useState(initial.minute);
+
+  const monthsList = [
+    "január", "február", "március", "április", "május", "június",
+    "július", "augusztus", "szeptember", "október", "november", "december"
+  ];
+
+  const daysOfWeek = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
+  const validMinutes = ["00", "15", "30", "45"];
+
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    let day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1;
+  };
+
+  const handleApply = (day: number, hour: string, minute: string, month: number, year: number) => {
+    const formattedMonth = (month + 1).toString().padStart(2, "0");
+    const formattedDay = day.toString().padStart(2, "0");
+    const safeHour = hour ? hour.padStart(2, "0") : "00";
+    const safeMinute = minute ? minute.padStart(2, "0") : "00";
+    
+    const localDateObj = new Date(year, month, day, Number(safeHour), Number(safeMinute), 0);
+    const timezoneOffsetMinutes = -localDateObj.getTimezoneOffset();
+    const sign = timezoneOffsetMinutes >= 0 ? "+" : "-";
+    const absOffsetMinutes = Math.abs(timezoneOffsetMinutes);
+    const offsetHours = Math.floor(absOffsetMinutes / 60).toString().padStart(2, "0");
+    const offsetMins = (absOffsetMinutes % 60).toString().padStart(2, "0");
+    
+    const dateStr = `${year}-${formattedMonth}-${formattedDay}T${safeHour}:${safeMinute}:00${sign}${offsetHours}:${offsetMins}`;
+    
+    onChange(dateStr);
+    setIsOpen(false);
+  };
+
+  const handleClear = () => {
+    onChange("");
+    setIsOpen(false);
+  };
+
+  const handleToday = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const d = now.getDate();
+    const h = now.getHours().toString().padStart(2, "0");
+    const min = "00";
+
+    setCurrentMonth(m);
+    setCurrentYear(y);
+    setSelectedDay(d);
+    setSelectedHour(h);
+    setSelectedMinute(min);
+    handleApply(d, h, min, m, y);
+  };
+
+  const prevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+  };
+
+  const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+  const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth);
+  const prevMonthDays = getDaysInMonth(currentYear, currentMonth === 0 ? 11 : currentMonth - 1);
+
+  return (
+    <div>
+      <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px", color: "#333" }}>{label}</label>
+      <div 
+        onClick={() => setIsOpen(true)}
+        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", background: "white", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", boxSizing: "border-box", color: "#333" }}
+      >
+        <span>{value ? formatDateWithDay(value) : "Válassz időpontot..."}</span>
+        <span>📅</span>
+      </div>
+
+      {isOpen && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
+          background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1100, padding: "10px"
+        }}>
+          <div style={{
+            background: "white", padding: "16px", borderRadius: "12px", width: "100%", maxWidth: "380px",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "12px", boxSizing: "border-box"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontWeight: "bold", fontSize: "16px", color: "#333" }}>{currentYear}. {monthsList[currentMonth]}</span>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button type="button" onClick={prevMonth} style={{ background: "#f1f1f1", border: "none", padding: "6px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>←</button>
+                <button type="button" onClick={nextMonth} style={{ background: "#f1f1f1", border: "none", padding: "6px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>→</button>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", textAlign: "center" }}>
+              {daysOfWeek.map((d, i) => (
+                <div key={i} style={{ fontSize: "12px", fontWeight: "bold", color: "#666", paddingBottom: "4px" }}>{d}</div>
+              ))}
+
+              {Array.from({ length: firstDayIndex }).map((_, i) => {
+                const dayNum = prevMonthDays - firstDayIndex + i + 1;
+                return <div key={`prev-${i}`} style={{ padding: "8px", color: "#ccc", fontSize: "13px" }}>{dayNum}</div>;
+              })}
+
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const isSelected = dayNum === selectedDay;
+                return (
+                  <div
+                    key={`day-${dayNum}`}
+                    onClick={() => setSelectedDay(dayNum)}
+                    style={{
+                      padding: "8px 0",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      background: isSelected ? "#34495e" : "transparent",
+                      color: isSelected ? "white" : "#333",
+                      fontWeight: isSelected ? "bold" : "normal",
+                      fontSize: "14px"
+                    }}
+                  >
+                    {dayNum}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+              <span style={{ fontSize: "13px", fontWeight: "bold", color: "#333" }}>Idő:</span>
+              <select value={selectedHour} onChange={(e) => setSelectedHour(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px", color: "#333" }}>
+                {Array.from({ length: 24 }).map((_, h) => {
+                  const hs = h.toString().padStart(2, "0");
+                  return <option key={hs} value={hs}>{hs}</option>;
+                })}
+              </select>
+              <span style={{ color: "#333" }}>:</span>
+              <select value={selectedMinute} onChange={(e) => setSelectedMinute(e.target.value)} style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px", color: "#333" }}>
+                {validMinutes.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+              <button type="button" onClick={handleClear} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>Törlés</button>
+              <button type="button" onClick={handleToday} style={{ background: "none", border: "none", color: "#2980b9", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>Ma</button>
+              <button 
+                type="button" 
+                onClick={() => handleApply(selectedDay, selectedHour, selectedMinute, currentMonth, currentYear)}
+                style={{ background: "#27ae60", color: "white", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}
+              >
+                Kiválaszt
+              </button>
+            </div>
+
+            <button type="button" onClick={() => setIsOpen(false)} style={{ background: "#95a5a6", color: "white", border: "none", padding: "8px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", marginTop: "4px" }}>
+              Mégse
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function TasksPage() {
+  const [type, setType] = useState<"telepites" | "karbantartas">("telepites");
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [note, setNote] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [completedAt, setCompletedAt] = useState("");
+  
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+
+  const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "folyamatban" | "kesz">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+    // Számlálók kiszámítása a szűrt listából (vagy a teljes listából, ha úgy preferálod)
+  const countAllType = tasks.length;
+  const countTelepites = tasks.filter(t => t.type === "telepites").length;
+  const countKarbantartas = tasks.filter(t => t.type === "karbantartas").length;
+
+  const countAllStatus = tasks.length;
+  const countFolyamatban = tasks.filter(t => !t.completed_at).length;
+  const countKesz = tasks.filter(t => Boolean(t.completed_at)).length;
+
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const [envEmails, setEnvEmails] = useState<string[]>([]);
+  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
+  const [customEmailInput, setCustomEmailInput] = useState("");
+
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch("/api/tasks/list", { cache: "no-store" });
+      const data = res.ok ? await res.json() : { tasks: [] };
+      setTasks(data.tasks || []);
+    } catch (error) {
+      console.error("Hiba a betöltéskor:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+
+    fetch("/api/settings/emails")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.emails && data.emails.length > 0) {
+          setEnvEmails(data.emails);
+          setSelectedRecipients([data.emails[0]]);
+        }
+      })
+      .catch((err) => console.error("Hiba az emailek betöltésekor:", err));
+  }, []);
+
+  const resetForm = () => {
+    setType("telepites");
+    setName("");
+    setAddress("");
+    setPhone("");
+    setEmail("");
+    setNote("");
+    setScheduledAt("");
+    setCompletedAt("");
+    setPhotos([]);
+    setExistingImages([]);
+    setEditingTaskId(null);
+    setIsFormOpen(false);
+    setCustomEmailInput("");
+    if (envEmails.length > 0) {
+      setSelectedRecipients([envEmails[0]]);
+    } else {
+      setSelectedRecipients([]);
+    }
+  };
+
+  const handleRecipientToggle = (emailAddr: string) => {
+    setSelectedRecipients((prev) =>
+      prev.includes(emailAddr)
+        ? prev.filter((e) => e !== emailAddr)
+        : [...prev, emailAddr]
+    );
+  };
+
+  const handleAddCustomEmail = () => {
+    const trimmed = customEmailInput.trim();
+    if (trimmed && !envEmails.includes(trimmed)) {
+      setEnvEmails((prev) => [...prev, trimmed]);
+      setSelectedRecipients((prev) => [...prev, trimmed]);
+      setCustomEmailInput("");
+    } else if (trimmed && envEmails.includes(trimmed)) {
+      if (!selectedRecipients.includes(trimmed)) {
+        setSelectedRecipients((prev) => [...prev, trimmed]);
+      }
+      setCustomEmailInput("");
+    }
+  };
+
+  const handleRemoveEmailOption = (emailToRemove: string) => {
+    setEnvEmails((prev) => prev.filter((e) => e !== emailToRemove));
+    setSelectedRecipients((prev) => prev.filter((e) => e !== emailToRemove));
+  };
+
+  const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const newFile = e.target.files[0];
+      setPhotos((prev) => [...prev, newFile]);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveNewPhoto = (indexToRemove: number) => {
+    setPhotos((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleRemoveExistingImage = (indexToRemove: number) => {
+    setExistingImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setStatusMessage("");
+
+    const formData = new FormData();
+    formData.append("type", type);
+    formData.append("name", name);
+    formData.append("address", address);
+    formData.append("phone", phone);
+    formData.append("email", email);
+    formData.append("note", note);
+    formData.append("scheduledAt", scheduledAt);
+    formData.append("completedAt", completedAt);
+    
+    formData.append("recipients", JSON.stringify(selectedRecipients));
+    formData.append("existingImages", JSON.stringify(existingImages));
+
+    photos.forEach((photo) => {
+      formData.append("photos", photo);
+    });
+
+    if (editingTaskId) {
+      try {
+        const res = await fetch(`/api/tasks/${editingTaskId}`, {
+          method: "PUT",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          setStatusMessage("✅ Munka sikeresen módosítva!");
+          resetForm();
+          fetchTasks();
+        } else {
+          setStatusMessage("❌ " + (data.error || "Hiba történt a módosítás során."));
+        }
+      } catch {
+        setStatusMessage("❌ Hálózati hiba történt.");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      try {
+        const res = await fetch("/api/tasks", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          setStatusMessage("✅ " + data.message);
+          resetForm();
+          fetchTasks();
+        } else {
+          setStatusMessage("❌ " + (data.error || "Hiba történt."));
+        }
+      } catch {
+        setStatusMessage("❌ Hálózati hiba történt.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Biztosan törlöd ezt a munkát?")) return;
+    try {
+      const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        if (editingTaskId === id) resetForm();
+        fetchTasks();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const startEditing = (task: Task) => {
+    setEditingTaskId(task.id);
+    setType((task.type as "telepites" | "karbantartas") || "telepites");
+    setName(task.name || "");
+    setAddress(task.address || "");
+    setPhone(task.phone || "");
+
+    let taskEmail = task.email || "";
+    let taskNote = task.note || "";
+
+    if (!taskEmail && taskNote.includes("| Email:")) {
+      const parts = taskNote.split("| Email:");
+      taskNote = parts[0].trim();
+      taskEmail = parts[1].trim();
+    }
+
+    setEmail(taskEmail);
+    setNote(taskNote);
+    setScheduledAt(task.scheduled_at ? task.scheduled_at.replace(" ", "T").slice(0, 19) : "");
+    setCompletedAt(task.completed_at ? task.completed_at.replace(" ", "T").slice(0, 19) : "");
+    setPhotos([]);
+    setExistingImages(task.images || []);
+
+    if (task.recipient_emails) {
+      const savedRecipients = task.recipient_emails.split(",").map(e => e.trim()).filter(Boolean);
+      setSelectedRecipients(savedRecipients);
+      
+      savedRecipients.forEach(savedEmail => {
+        if (!envEmails.includes(savedEmail)) {
+          setEnvEmails(prev => [...prev, savedEmail]);
+        }
+      });
+    } else {
+      if (envEmails.length > 0) {
+        setSelectedRecipients([envEmails[0]]);
+      } else {
+        setSelectedRecipients([]);
+      }
+    }
+
+    setStatusMessage("");
+    setIsFormOpen(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const filteredTasks = tasks.filter((task) => {
     if (filterType !== "all" && task.type !== filterType) {
       return false;
     }
@@ -23,15 +551,6 @@ const filteredTasks = tasks.filter((task) => {
     }
     return true;
   });
-
-  // Számlálók kiszámítása a teljes tasks listából (vagy a keresési szűrés figyelembevételével)
-  const countAll = tasks.length;
-  const countTelepites = tasks.filter(t => t.type === "telepites").length;
-  const countKarbantartas = tasks.filter(t => t.type === "karbantartas").length;
-  
-  const countStatusAll = tasks.length;
-  const countFolyamatban = tasks.filter(t => !t.completed_at).length;
-  const countKesz = tasks.filter(t => Boolean(t.completed_at)).length;
 
   return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
@@ -290,28 +809,28 @@ const filteredTasks = tasks.filter((task) => {
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "#1a202c", padding: "16px", borderRadius: "12px", border: "1px solid #4a5568" }}>
+     <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "#1a202c", padding: "16px", borderRadius: "12px", border: "1px solid #4a5568" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
           <div className="filter-buttons">
             <button onClick={() => setFilterType("all")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "all" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              Összes típus ({countAll})
+              Összes típus ({countAllType})
             </button>
             <button onClick={() => setFilterType("telepites")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "telepites" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              Telepítés ({countTelepites})
+              🛠️ Telepítés ({countTelepites})
             </button>
             <button onClick={() => setFilterType("karbantartas")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "karbantartas" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              Karbantartás ({countKarbantartas})
+              🧹 Karbantartás ({countKarbantartas})
             </button>
           </div>
           <div className="filter-buttons">
             <button onClick={() => setFilterStatus("all")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "all" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              Mind státusz ({countStatusAll})
+              Mind státusz ({countAllStatus})
             </button>
             <button onClick={() => setFilterStatus("folyamatban")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "folyamatban" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              Folyamatban ({countFolyamatban})
+              ⏳ Folyamatban ({countFolyamatban})
             </button>
             <button onClick={() => setFilterStatus("kesz")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "kesz" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              Kész ({countKesz})
+              ✅ Kész ({countKesz})
             </button>
           </div>
         </div>
@@ -334,7 +853,9 @@ const filteredTasks = tasks.filter((task) => {
               const isTelepites = task.type === "telepites";
               const isKesz = Boolean(task.completed_at);
 
+              // Bal oldali sáv színe típus alapján: Telepítés = Kék (3182ce), Karbantartás = Zöld (38a169)
               const typeColor = isTelepites ? "#3182ce" : "#38a169";
+              // Státusz keret: Kész = Vaskosabb zöld keret, Folyamatban = Narancs/sárga keret
               const statusBorderColor = isKesz ? "#48bb78" : "#ed8936";
 
               return (
@@ -383,3 +904,4 @@ const filteredTasks = tasks.filter((task) => {
       </div>
     </main>
   );
+}
