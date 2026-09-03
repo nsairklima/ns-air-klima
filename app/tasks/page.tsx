@@ -858,6 +858,19 @@ export default function TasksPage() {
               // Státusz keret: Kész = Vaskosabb zöld keret, Folyamatban = Narancs/sárga keret
               const statusBorderColor = isKesz ? "#48bb78" : "#ed8936";
 
+            // Számlálók kiszámítása
+  const countAll = tasks.length;
+  const countTelepites = tasks.filter(t => t.type === "telepites").length;
+  const countKarbantartas = tasks.filter(t => t.type === "karbantartas").length;
+  
+  const countStatusAll = tasks.length;
+  const countFolyamatban = tasks.filter(t => !t.completed_at).length;
+  const countKesz = tasks.filter(t => Boolean(t.completed_at)).length;
+
+  return (
+    <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
+      {/* ... a többi kód ... */}
+
               return (
                 <div 
                   key={task.id} 
