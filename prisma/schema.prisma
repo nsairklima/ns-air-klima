@@ -547,17 +547,17 @@ model CalendarEvent {
 model Task {
   id               Int       @id @default(autoincrement())
   type             String    @default("installation")
-  title            String?   // <--- ? jel kötelező
-  clientName       String?   // <--- ? jel kötelező
+  title            String?
+  clientName       String?
   phone            String?
   address          String?
   assignedTo       String?
-  date             String?   // <--- ? jel kötelező
+  date             String?
   description      String?
   status           String    @default("pending")
   scheduled_at     DateTime?
   completed_at     DateTime?
-  images           String[]  
+  images           String[]  @default([])  // <--- Javítva `@default([])`-re
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
