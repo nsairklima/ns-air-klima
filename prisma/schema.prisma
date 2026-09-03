@@ -557,7 +557,7 @@ model Task {
   status           String    @default("pending")
   scheduled_at     DateTime?
   completed_at     DateTime?
-  images           String[]  @default([])  // <--- Javítva `@default([])`-re
+  images           String    @default("[]") // <--- Visszaállítva String-re, hogy kezelt legyen a JSON tömb string
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
