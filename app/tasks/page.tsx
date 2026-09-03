@@ -552,7 +552,7 @@ export default function TasksPage() {
     return true;
   });
 
-  return (
+
     return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
       <style dangerouslySetInnerHTML={{ __html: `
