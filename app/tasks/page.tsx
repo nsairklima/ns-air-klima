@@ -553,8 +553,9 @@ export default function TasksPage() {
   });
 
   return (
+    return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .form-grid {
           display: grid;
           grid-template-columns: 1fr;
@@ -588,7 +589,7 @@ export default function TasksPage() {
             flex-direction: row;
           }
         }
-      `}</style>
+      `}} />
 
       {viewingTask && (
         <div style={{
