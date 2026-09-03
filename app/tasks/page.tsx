@@ -809,28 +809,28 @@ export default function TasksPage() {
         )}
       </div>
 
-     <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "#1a202c", padding: "16px", borderRadius: "12px", border: "1px solid #4a5568" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-          <div className="filter-buttons">
-            <button onClick={() => setFilterType("all")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "all" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              Összes típus ({countAllType})
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "#1a202c", padding: "16px", borderRadius: "12px", border: "1px solid #4a5568" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div className="filter-buttons" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+            <button onClick={() => setFilterType("all")} style={{ padding: "8px 4px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "all" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold", fontSize: "12px", textAlign: "center" }}>
+              Összes ({countAll})
             </button>
-            <button onClick={() => setFilterType("telepites")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "telepites" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              🛠️ Telepítés ({countTelepites})
+            <button onClick={() => setFilterType("telepites")} style={{ padding: "8px 4px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "telepites" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold", fontSize: "12px", textAlign: "center" }}>
+              Telepítés ({countTelepites})
             </button>
-            <button onClick={() => setFilterType("karbantartas")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "karbantartas" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              🧹 Karbantartás ({countKarbantartas})
+            <button onClick={() => setFilterType("karbantartas")} style={{ padding: "8px 4px", borderRadius: "6px", border: "1px solid #4a5568", background: filterType === "karbantartas" ? "#4a5568" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold", fontSize: "12px", textAlign: "center" }}>
+              Karbant. ({countKarbantartas})
             </button>
           </div>
-          <div className="filter-buttons">
-            <button onClick={() => setFilterStatus("all")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "all" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              Mind státusz ({countAllStatus})
+          <div className="filter-buttons" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+            <button onClick={() => setFilterStatus("all")} style={{ padding: "8px 4px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "all" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold", fontSize: "12px", textAlign: "center" }}>
+              Mind ({countStatusAll})
             </button>
-            <button onClick={() => setFilterStatus("folyamatban")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "folyamatban" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              ⏳ Folyamatban ({countFolyamatban})
+            <button onClick={() => setFilterStatus("folyamatban")} style={{ padding: "8px 4px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "folyamatban" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold", fontSize: "12px", textAlign: "center" }}>
+              Folyamatban ({countFolyamatban})
             </button>
-            <button onClick={() => setFilterStatus("kesz")} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "kesz" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold" }}>
-              ✅ Kész ({countKesz})
+            <button onClick={() => setFilterStatus("kesz")} style={{ padding: "8px 4px", borderRadius: "6px", border: "1px solid #4a5568", background: filterStatus === "kesz" ? "#3182ce" : "#2d3748", color: "white", cursor: "pointer", fontWeight: "bold", fontSize: "12px", textAlign: "center" }}>
+              Kész ({countKesz})
             </button>
           </div>
         </div>
