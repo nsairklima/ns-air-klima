@@ -20,6 +20,8 @@ export async function POST(req: Request) {
     const mailOptions = {
       from: '"NS-AIR KLÍMA" <info@nsairklima.hu>',
       to: email,
+      bcc: "info@nsairklima.hu", // ID ÍRD BE A SAJÁT EMAIL CÍMEDET! (Titkos másolat)
+      // cc: "sajat@emailcimed.hu", // Ezt használd a bcc helyett, ha azt akarod, hogy az ügyfél is lássa, hogy másolatot kaptál.
       subject: `Árajánlat - NS-AIR KLÍMA - #${quoteId}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 25px; border-radius: 12px; color: #2c3e50;">
