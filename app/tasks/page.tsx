@@ -526,7 +526,7 @@ export default function TasksPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const filteredTasks = tasks.filter((task) => {
+ const filteredTasks = tasks.filter((task) => {
     if (filterType !== "all" && task.type !== filterType) {
       return false;
     }
@@ -543,8 +543,8 @@ export default function TasksPage() {
       const matchPhone = task.phone?.toLowerCase().includes(q) || false;
       const matchEmail = task.email?.toLowerCase().includes(q) || false;
       const matchNote = task.note?.toLowerCase().includes(q) || false;
-      const matchType = task.type.toLowerCase().includes(q) || false;
-      
+      const matchType = task.type?.toLowerCase().includes(q) || false;
+
       if (!matchName && !matchAddress && !matchPhone && !matchEmail && !matchNote && !matchType) {
         return false;
       }
@@ -552,8 +552,7 @@ export default function TasksPage() {
     return true;
   });
 
-
-    return (
+  return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
       <style dangerouslySetInnerHTML={{ __html: `
         .form-grid {
