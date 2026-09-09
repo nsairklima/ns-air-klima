@@ -279,7 +279,7 @@ export default function TasksPage() {
       (filterStatus === "folyamatban" && !isDone);
 
     return matchesSearch && matchesType && matchesStatus;
-  };
+  });
 
   return (
     <main style={{ maxWidth: "800px", margin: "0 auto", padding: "20px", fontFamily: "sans-serif" }}>
