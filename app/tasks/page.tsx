@@ -830,12 +830,12 @@ return true;
     onChange={(e) => setSearchQuery(e.target.value)}
     style={{
       width: "100%",
-      padding: "14px",
-      borderRadius: "12px",
+      padding: "10px 12px",
+      borderRadius: "10px",
       border: "1px solid #d0d7de",
       boxSizing: "border-box",
-      fontSize: "15px",
-      marginBottom: "16px",
+      fontSize: "14px",
+      marginBottom: "14px",
       background: "#fff",
     }}
   />
@@ -843,18 +843,18 @@ return true;
   <div
     style={{
       background: "#fff",
-      borderRadius: "14px",
-      padding: "16px",
+      borderRadius: "10px",
+      padding: "12px",
       border: "1px solid #e5e7eb",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
     }}
   >
     <div
       style={{
-        fontSize: "12px",
+        fontSize: "11px",
         fontWeight: "bold",
         color: "#6b7280",
-        marginBottom: "10px",
+        marginBottom: "8px",
         textTransform: "uppercase",
         letterSpacing: "1px",
       }}
@@ -866,33 +866,44 @@ return true;
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(3, 1fr)",
-        gap: "10px",
-        marginBottom: "18px",
+        gap: "6px",
+        marginBottom: "12px",
       }}
     >
       <button
         onClick={() => setFilterType("all")}
         style={{
-          padding: "14px",
-          borderRadius: "12px",
-          border: "none",
+          padding: "8px",
+          borderRadius: "8px",
+          border:
+            filterType === "all"
+              ? "2px solid #34495e"
+              : "1px solid #d1d5db",
           cursor: "pointer",
           background:
             filterType === "all"
               ? "#34495e"
-              : "#f8fafc",
+              : "#ffffff",
           color:
             filterType === "all"
               ? "white"
               : "#333",
         }}
       >
-        <div>📋 Összes</div>
         <div
           style={{
-            fontSize: "22px",
+            fontSize: "11px",
+            fontWeight: "600",
+          }}
+        >
+          📋 Összes
+        </div>
+
+        <div
+          style={{
+            fontSize: "15px",
             fontWeight: "bold",
-            marginTop: "6px",
+            marginTop: "2px",
           }}
         >
           {tasks.length}
@@ -902,26 +913,37 @@ return true;
       <button
         onClick={() => setFilterType("telepites")}
         style={{
-          padding: "14px",
-          borderRadius: "12px",
-          border: "none",
+          padding: "8px",
+          borderRadius: "8px",
+          border:
+            filterType === "telepites"
+              ? "2px solid #34495e"
+              : "1px solid #d1d5db",
           cursor: "pointer",
           background:
             filterType === "telepites"
               ? "#34495e"
-              : "#f8fafc",
+              : "#ffffff",
           color:
             filterType === "telepites"
               ? "white"
               : "#333",
         }}
       >
-        <div>🛠️ Telepítés</div>
         <div
           style={{
-            fontSize: "22px",
+            fontSize: "11px",
+            fontWeight: "600",
+          }}
+        >
+          🛠️ Telepítés
+        </div>
+
+        <div
+          style={{
+            fontSize: "15px",
             fontWeight: "bold",
-            marginTop: "6px",
+            marginTop: "2px",
           }}
         >
           {
@@ -937,26 +959,37 @@ return true;
           setFilterType("karbantartas")
         }
         style={{
-          padding: "14px",
-          borderRadius: "12px",
-          border: "none",
+          padding: "8px",
+          borderRadius: "8px",
+          border:
+            filterType === "karbantartas"
+              ? "2px solid #d35400"
+              : "1px solid #d1d5db",
           cursor: "pointer",
           background:
             filterType === "karbantartas"
-              ? "#34495e"
-              : "#f8fafc",
+              ? "#d35400"
+              : "#ffffff",
           color:
             filterType === "karbantartas"
               ? "white"
               : "#333",
         }}
       >
-        <div>🧹 Karbantartás</div>
         <div
           style={{
-            fontSize: "22px",
+            fontSize: "11px",
+            fontWeight: "600",
+          }}
+        >
+          🧹 Karbant.
+        </div>
+
+        <div
+          style={{
+            fontSize: "15px",
             fontWeight: "bold",
-            marginTop: "6px",
+            marginTop: "2px",
           }}
         >
           {
@@ -971,10 +1004,10 @@ return true;
 
     <div
       style={{
-        fontSize: "12px",
+        fontSize: "11px",
         fontWeight: "bold",
         color: "#6b7280",
-        marginBottom: "10px",
+        marginBottom: "8px",
         textTransform: "uppercase",
         letterSpacing: "1px",
       }}
@@ -986,32 +1019,43 @@ return true;
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(3, 1fr)",
-        gap: "10px",
+        gap: "6px",
       }}
     >
       <button
         onClick={() => setFilterStatus("all")}
         style={{
-          padding: "14px",
-          borderRadius: "12px",
-          border: "none",
+          padding: "8px",
+          borderRadius: "8px",
+          border:
+            filterStatus === "all"
+              ? "2px solid #7f8c8d"
+              : "1px solid #d1d5db",
           cursor: "pointer",
           background:
             filterStatus === "all"
               ? "#7f8c8d"
-              : "#f8fafc",
+              : "#ffffff",
           color:
             filterStatus === "all"
               ? "white"
               : "#333",
         }}
       >
-        <div>📊 Minden</div>
         <div
           style={{
-            fontSize: "22px",
+            fontSize: "11px",
+            fontWeight: "600",
+          }}
+        >
+          📊 Minden
+        </div>
+
+        <div
+          style={{
+            fontSize: "15px",
             fontWeight: "bold",
-            marginTop: "6px",
+            marginTop: "2px",
           }}
         >
           {tasks.length}
@@ -1023,26 +1067,37 @@ return true;
           setFilterStatus("folyamatban")
         }
         style={{
-          padding: "14px",
-          borderRadius: "12px",
-          border: "none",
+          padding: "8px",
+          borderRadius: "8px",
+          border:
+            filterStatus === "folyamatban"
+              ? "2px solid #e67e22"
+              : "1px solid #d1d5db",
           cursor: "pointer",
           background:
             filterStatus === "folyamatban"
               ? "#e67e22"
-              : "#f8fafc",
+              : "#ffffff",
           color:
             filterStatus === "folyamatban"
               ? "white"
               : "#333",
         }}
       >
-        <div>⏳ Folyamatban</div>
         <div
           style={{
-            fontSize: "22px",
+            fontSize: "11px",
+            fontWeight: "600",
+          }}
+        >
+          ⏳ Folyamatban
+        </div>
+
+        <div
+          style={{
+            fontSize: "15px",
             fontWeight: "bold",
-            marginTop: "6px",
+            marginTop: "2px",
           }}
         >
           {
@@ -1054,28 +1109,41 @@ return true;
       </button>
 
       <button
-        onClick={() => setFilterStatus("kesz")}
+        onClick={() =>
+          setFilterStatus("kesz")
+        }
         style={{
-          padding: "14px",
-          borderRadius: "12px",
-          border: "none",
+          padding: "8px",
+          borderRadius: "8px",
+          border:
+            filterStatus === "kesz"
+              ? "2px solid #27ae60"
+              : "1px solid #d1d5db",
           cursor: "pointer",
           background:
             filterStatus === "kesz"
               ? "#27ae60"
-              : "#f8fafc",
+              : "#ffffff",
           color:
             filterStatus === "kesz"
               ? "white"
               : "#333",
         }}
       >
-        <div>✅ Kész</div>
         <div
           style={{
-            fontSize: "22px",
+            fontSize: "11px",
+            fontWeight: "600",
+          }}
+        >
+          ✅ Kész
+        </div>
+
+        <div
+          style={{
+            fontSize: "15px",
             fontWeight: "bold",
-            marginTop: "6px",
+            marginTop: "2px",
           }}
         >
           {
@@ -1088,6 +1156,7 @@ return true;
     </div>
   </div>
 </div>
+``
       {/* LISTA KÁRTYÁK */}
 
 <div style={{ marginBottom: "20px" }}>
