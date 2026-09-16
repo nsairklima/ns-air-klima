@@ -622,12 +622,24 @@ return true;
               <div><strong>Név:</strong> {viewingTask.name || "-"}</div>
               <div>
                 <strong>Cím:</strong>{" "}
-                {viewingTask.address ? (
-                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(viewingTask.address)}`} target="_blank" rel="noopener noreferrer" style={{ color: "#1a0dab", textDecoration: "underline", fontWeight: "bold" }}>
-                    📍 {viewingTask.address}
-                  </a>
-                ) : "-"}
-              </div>
+                <div>
+  <strong>Cím:</strong>{" "}
+  {viewingTask.address ? (
+    {`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: "#1a0dab",
+        textDecoration: "underline",
+        fontWeight: "bold",
+      }}
+    >
+      📍 {viewingTask.address}
+    </a>
+  ) : (
+    "-"
+  )}
+</div>
               <div>
                 <strong>Telefon:</strong>{" "}
                 {viewingTask.phone ? (
