@@ -1,23 +1,101 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 export default function TasksMap({
   tasks,
 }: {
   tasks: any[];
 }) {
-  return (
-    <div
-      style={{
-        height: "600px",
-        border: "2px solid green",
-        borderRadius: "10px",
-        padding: "20px",
-        background: "#f5fff5",
-      }}
-    >
-      <h2>🗺️ Térkép</h2>
+  const mapRef = useRef<HTMLDivElement>(null);
 
-      <p>Feladatok száma: {tasks.length}</p>
+  useEffect(() => {
+    const apiKey =
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+    if (!apiKey) {
+      console.error("Hiányzik a Google Maps API kulcs");
+      return;
+    }
+
+    const initMap = () => {
+      if (!window.google || !mapRef.current) {
+        return;
+      }
+
+      const map = new window.google.maps.Map(
+        mapRef.current,
+        {
+          center: {
+            lat: 47.4979,
+            lng: 19.0402,
+          },
+          zoom: 7,
+        }
+      );
+
+      new window.google.maps.Marker({
+        map,
+        position: {
+          lat: 47.6875,
+          lng: 17.6504,
+        },
+        title: "Győr teszt",
+      });
+    };
+
+    const existingScript =
+      document.getElementById(
+        "google-maps-script"
+      );
+
+    if (existingScript) {
+      initMap();
+      return;
+    }
+
+    const script =
+      document.createElement("script");
+
+    script.id = "google-maps-script";
+
+    script.src =
+      `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+
+    script.async = true;
+
+    script.onload = initMap;
+
+    document.body.appendChild(script);
+  }, []);
+
+  return (
+    <div>
+      <div
+        style={{
+          marginBottom: "10px",
+          fontWeight: "bold",
+        }}
+      >
+        Feladatok száma: {tasks.length}
+      </div>
+
+      <div
+        ref={mapRef}
+        style={{
+          width: "100%",
+          height: "600px",
+          borderRadius: "10px",
+          border: "1px solid #ddd",
+        }}
+      />
     </div>
   );
 }
+``
