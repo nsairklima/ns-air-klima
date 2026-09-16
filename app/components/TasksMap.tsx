@@ -44,99 +44,92 @@ export default function TasksMap({
 
 if (tasks.length > 0 && tasks[0].address) {
   
-console.log(
-  "KERESÉS:",
-  `${tasks[0].address}, Magyarország`
-);
+const fullAddress = tasks[0].address.trim();
 
-  
-  fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-     `${tasks[0].address}, Magyarország`
-    )}`
-  )
-    .then((res) => res.json())
-.then((data) => {
-  console.log("NOMINATIM:", data);
+const firstSpaceIndex = fullAddress.indexOf(" ");
 
-  if (!data.length) {
-    console.log("NEM TALÁLT CÍMET");
-    return;
-  }
+const city =
+  firstSpaceIndex > 0
+    ? fullAddress.slice(0, firstSpaceIndex)
+    : fullAddress;
 
-  const lat = Number(data[0].lat);
-  const lng = Number(data[0].lon);
+const street =
+  firstSpaceIndex > 0
+    ? fullAddress.slice(firstSpaceIndex + 1)
+    : "";
 
-  console.log("LAT:", lat);
-  console.log("LNG:", lng);
+const searchAddress = street
+  ? `${street}, ${city}`
+  : city;
 
-  const marker = new window.google.maps.Marker({
-    map,
-    position: {
-      lat,
-      lng,
-    },
-    title: tasks[0].name || "Feladat",
-  });
+console.log("EREDETI CÍM:", fullAddress);
+console.log("KERESÉSI CÍM:", searchAddress);
 
-  console.log("MARKER:", marker);
+const searchUrl =
+  "https://nominatim.openstreetmap.org/search" +
+  "?format=jsonv2" +
+  "&limit=1" +
+  "&countrycodes=hu" +
+  "&q=" +
+  encodeURIComponent(searchAddress);
 
-  map.setCenter({
-    lat,
-    lng,
-  });
-
-  map.setZoom(14);
-});
-}
-    };
-
-    const existingScript =
-      document.getElementById(
-        "google-maps-script"
+fetch(searchUrl, {
+  headers: {
+    Accept: "application/json",
+  },
+})
+  .then((response) => {
+    if (!response.ok) {
+      throw new Error(
+        `Nominatim HTTP hiba: ${response.status}`
       );
+    }
 
-    if (existingScript) {
-      initMap();
+    return response.json();
+  })
+  .then((data) => {
+    console.log("NOMINATIM TALÁLAT:", data);
+
+    if (!Array.isArray(data) || data.length === 0) {
+      console.error(
+        "A cím nem található:",
+        searchAddress
+      );
       return;
     }
 
-    const script =
-      document.createElement("script");
+    const lat = Number(data[0].lat);
+    const lng = Number(data[0].lon);
 
-    script.id = "google-maps-script";
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      console.error(
+        "Hibás koordináták:",
+        data[0]
+      );
+      return;
+    }
 
-    script.src =
-      `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+    new window.google.maps.Marker({
+      map,
+      position: {
+        lat,
+        lng,
+      },
+      title: tasks[0].name || "Feladat",
+    });
 
-    script.async = true;
+    map.setCenter({
+      lat,
+      lng,
+    });
 
-    script.onload = initMap;
+    map.setZoom(16);
+  })
+  .catch((error) => {
+    console.error(
+      "Címkeresési hiba:",
+      error
+    );
+  });
 
-    document.body.appendChild(script);
-  }, []);
-
-  return (
-    <div>
-      <div
-        style={{
-          marginBottom: "10px",
-          fontWeight: "bold",
-        }}
-      >
-        Feladatok száma: {tasks.length}
-      </div>
-
-      <div
-        ref={mapRef}
-        style={{
-          width: "100%",
-          height: "600px",
-          borderRadius: "10px",
-          border: "1px solid #ddd",
-        }}
-      />
-    </div>
-  );
-}
 
