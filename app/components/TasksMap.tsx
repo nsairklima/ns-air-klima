@@ -29,13 +29,19 @@ console.log("API KEY:", apiKey);
     const initMap = () => {
       if (!window.google || !mapRef.current) return;
 
-      new window.google.maps.Map(mapRef.current, {
-        center: {
-          lat: 47.4979,
-          lng: 19.0402,
-        },
-        zoom: 7,
-      });
+      const map = new window.google.maps.Map(
+  mapRef.current,
+  {
+    center: {
+      lat: 47.4979,
+      lng: 19.0402,
+    },
+    zoom: 7,
+  }
+);
+
+console.log(tasks);
+``
     };
 
     const existingScript =
