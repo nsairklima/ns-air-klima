@@ -832,28 +832,29 @@ return true;
       width: "100%",
       padding: "10px 12px",
       borderRadius: "10px",
-      border: "1px solid #d0d7de",
+      border: "1px solid #4b5563",
       boxSizing: "border-box",
       fontSize: "14px",
-      marginBottom: "14px",
-      background: "#fff",
+      marginBottom: "12px",
+      background: "#1f2937",
+      color: "white",
     }}
   />
 
   <div
     style={{
-      background: "#fff",
+      background: "#1f2937",
       borderRadius: "10px",
       padding: "12px",
-      border: "1px solid #e5e7eb",
-      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+      border: "1px solid #374151",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.20)",
     }}
   >
     <div
       style={{
         fontSize: "11px",
         fontWeight: "bold",
-        color: "#6b7280",
+        color: "#d1d5db",
         marginBottom: "8px",
         textTransform: "uppercase",
         letterSpacing: "1px",
@@ -877,17 +878,14 @@ return true;
           borderRadius: "8px",
           border:
             filterType === "all"
-              ? "2px solid #34495e"
-              : "1px solid #d1d5db",
+              ? "2px solid #1abc9c"
+              : "1px solid #4b5563",
           cursor: "pointer",
           background:
             filterType === "all"
-              ? "#34495e"
-              : "#ffffff",
-          color:
-            filterType === "all"
-              ? "white"
-              : "#333",
+              ? "#1abc9c"
+              : "#34495e",
+          color: "white",
         }}
       >
         <div
@@ -917,17 +915,14 @@ return true;
           borderRadius: "8px",
           border:
             filterType === "telepites"
-              ? "2px solid #34495e"
-              : "1px solid #d1d5db",
+              ? "2px solid #3498db"
+              : "1px solid #4b5563",
           cursor: "pointer",
           background:
             filterType === "telepites"
-              ? "#34495e"
-              : "#ffffff",
-          color:
-            filterType === "telepites"
-              ? "white"
-              : "#333",
+              ? "#3498db"
+              : "#34495e",
+          color: "white",
         }}
       >
         <div
@@ -963,17 +958,14 @@ return true;
           borderRadius: "8px",
           border:
             filterType === "karbantartas"
-              ? "2px solid #d35400"
-              : "1px solid #d1d5db",
+              ? "2px solid #f39c12"
+              : "1px solid #4b5563",
           cursor: "pointer",
           background:
             filterType === "karbantartas"
-              ? "#d35400"
-              : "#ffffff",
-          color:
-            filterType === "karbantartas"
-              ? "white"
-              : "#333",
+              ? "#f39c12"
+              : "#34495e",
+          color: "white",
         }}
       >
         <div
@@ -1006,7 +998,7 @@ return true;
       style={{
         fontSize: "11px",
         fontWeight: "bold",
-        color: "#6b7280",
+        color: "#d1d5db",
         marginBottom: "8px",
         textTransform: "uppercase",
         letterSpacing: "1px",
@@ -1029,17 +1021,14 @@ return true;
           borderRadius: "8px",
           border:
             filterStatus === "all"
-              ? "2px solid #7f8c8d"
-              : "1px solid #d1d5db",
+              ? "2px solid #95a5a6"
+              : "1px solid #4b5563",
           cursor: "pointer",
           background:
             filterStatus === "all"
-              ? "#7f8c8d"
-              : "#ffffff",
-          color:
-            filterStatus === "all"
-              ? "white"
-              : "#333",
+              ? "#95a5a6"
+              : "#34495e",
+          color: "white",
         }}
       >
         <div
@@ -1071,17 +1060,14 @@ return true;
           borderRadius: "8px",
           border:
             filterStatus === "folyamatban"
-              ? "2px solid #e67e22"
-              : "1px solid #d1d5db",
+              ? "2px solid #f39c12"
+              : "1px solid #4b5563",
           cursor: "pointer",
           background:
             filterStatus === "folyamatban"
-              ? "#e67e22"
-              : "#ffffff",
-          color:
-            filterStatus === "folyamatban"
-              ? "white"
-              : "#333",
+              ? "#f39c12"
+              : "#34495e",
+          color: "white",
         }}
       >
         <div
@@ -1090,7 +1076,7 @@ return true;
             fontWeight: "600",
           }}
         >
-          ⏳ Folyamatban
+          ⏳ Foly.
         </div>
 
         <div
@@ -1117,17 +1103,14 @@ return true;
           borderRadius: "8px",
           border:
             filterStatus === "kesz"
-              ? "2px solid #27ae60"
-              : "1px solid #d1d5db",
+              ? "2px solid #2ecc71"
+              : "1px solid #4b5563",
           cursor: "pointer",
           background:
             filterStatus === "kesz"
-              ? "#27ae60"
-              : "#ffffff",
-          color:
-            filterStatus === "kesz"
-              ? "white"
-              : "#333",
+              ? "#2ecc71"
+              : "#34495e",
+          color: "white",
         }}
       >
         <div
