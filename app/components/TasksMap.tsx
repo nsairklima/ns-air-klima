@@ -41,6 +41,37 @@ console.log("API KEY:", apiKey);
 );
 
 console.log(tasks);
+
+      const geocoder = new window.google.maps.Geocoder();
+
+tasks.forEach((task) => {
+  if (!task.address) return;
+
+  geocoder.geocode(
+    {
+      address: task.address + ", Hungary",
+    },
+    (results: any, status: string) => {
+      if (
+        status !== "OK" ||
+        !results ||
+        !results[0]
+      ) {
+        return;
+      }
+
+      const marker =
+        new window.google.maps.Marker({
+          map,
+          position:
+            results[0].geometry.location,
+          title:
+            task.name || "Feladat",
+        });
+    }
+  );
+});
+
 ``
     };
 
