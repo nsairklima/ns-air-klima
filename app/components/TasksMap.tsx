@@ -40,14 +40,38 @@ export default function TasksMap({
         }
       );
 
+    console.log(tasks[0]);
+
+if (tasks.length > 0 && tasks[0].address) {
+  fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      tasks[0].address + ", Hungary"
+    )}`
+  )
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data.length) return;
+
+      const lat = Number(data[0].lat);
+      const lng = Number(data[0].lon);
+
       new window.google.maps.Marker({
         map,
         position: {
-          lat: 47.6875,
-          lng: 17.6504,
+          lat,
+          lng,
         },
-        title: "Győr teszt",
+        title: tasks[0].name || "Feladat",
       });
+
+      map.setCenter({
+        lat,
+        lng,
+      });
+
+      map.setZoom(14);
+    });
+}
     };
 
     const existingScript =
