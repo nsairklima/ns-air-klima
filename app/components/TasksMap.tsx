@@ -44,17 +44,15 @@ export default function TasksMap({
 
 if (tasks.length > 0 && tasks[0].address) {
   
-  console.log(
-2
-"KERESÉS:",
-3
-tasks[0].address
-4
+console.log(
+  "KERESÉS:",
+  `${tasks[0].address}, Magyarország`
 );
+
   
   fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-     tasks[0].address
+     `${tasks[0].address}, Magyarország`
     )}`
   )
     .then((res) => res.json())
