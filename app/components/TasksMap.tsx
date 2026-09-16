@@ -1,43 +1,83 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 export default function TasksMap({
   tasks,
 }: {
   tasks: any[];
 }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const apiKey =
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+    if (!apiKey) {
+      console.error("Hiányzik a Google Maps API kulcs");
+      return;
+    }
+
+    const initMap = () => {
+      if (!window.google || !mapRef.current) return;
+
+      new window.google.maps.Map(mapRef.current, {
+        center: {
+          lat: 47.4979,
+          lng: 19.0402,
+        },
+        zoom: 7,
+      });
+    };
+
+    const existingScript =
+      document.getElementById("google-maps-script");
+
+    if (existingScript) {
+      initMap();
+      return;
+    }
+
+    const script = document.createElement("script");
+
+    script.id = "google-maps-script";
+
+    script.src =
+      `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+
+    script.async = true;
+
+    script.onload = initMap;
+
+    document.body.appendChild(script);
+  }, []);
+
   return (
-    <div
-      style={{
-        height: "600px",
-        border: "2px solid #4285f4",
-        borderRadius: "10px",
-        padding: "20px",
-        overflow: "auto",
-        background: "#f8fbff",
-      }}
-    >
-      <h2>🗺️ Térkép előkészítés</h2>
+    <div>
+      <div
+        style={{
+          marginBottom: "10px",
+          fontWeight: "bold",
+        }}
+      >
+        Szűrt feladatok: {tasks.length}
+      </div>
 
-      <p>Szűrt feladatok száma: {tasks.length}</p>
-
-      {tasks.map((task) => (
-        <div
-          key={task.id}
-          style={{
-            marginBottom: "10px",
-            padding: "10px",
-            background: "white",
-            borderRadius: "8px",
-            border: "1px solid #ddd",
-          }}
-        >
-          <strong>{task.name || "Nincs név"}</strong>
-
-          <br />
-
-          {task.address || "Nincs cím"}
-        </div>
-      ))}
+      <div
+        ref={mapRef}
+        style={{
+          width: "100%",
+          height: "600px",
+          borderRadius: "10px",
+          border: "1px solid #ddd",
+        }}
+      />
     </div>
   );
 }
