@@ -802,27 +802,113 @@ export default function TasksPage() {
       </div>
 
       {/* SZŰRŐ ÉS KERESŐ */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
-        <input
-          type="text"
-          placeholder="🔍 Keresés név, cím, telefon vagy megjegyzés alapján..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #ccc", boxSizing: "border-box", fontSize: "14px" }}
-        />
+      <div className="filter-buttons">
+  <button
+    onClick={() => setFilterType("all")}
+    style={{
+      flex: 1,
+      padding: "10px",
+      background: filterType === "all" ? "#34495e" : "#f1f1f1",
+      color: filterType === "all" ? "white" : "#333",
+      border: "none",
+      borderRadius: "8px",
+      fontWeight: "bold",
+      cursor: "pointer",
+    }}
+  >
+    Összes ({tasks.length})
+  </button>
 
-        <div className="filter-buttons">
-          <button onClick={() => setFilterType("all")} style={{ flex: 1, padding: "10px", background: filterType === "all" ? "#34495e" : "#f1f1f1", color: filterType === "all" ? "white" : "#333", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>Összes ({tasks.length})</button>
-          <button onClick={() => setFilterType("telepites")} style={{ flex: 1, padding: "10px", background: filterType === "telepites" ? "#34495e" : "#f1f1f1", color: filterType === "telepites" ? "white" : "#333", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>Telepítés</button>
-          <button onClick={() => setFilterType("karbantartas")} style={{ flex: 1, padding: "10px", background: filterType === "karbantartas" ? "#34495e" : "#f1f1f1", color: filterType === "karbantartas" ? "white" : "#333", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>Karbantartás</button>
-        </div>
+  <button
+    onClick={() => setFilterType("telepites")}
+    style={{
+      flex: 1,
+      padding: "10px",
+      background: filterType === "telepites" ? "#34495e" : "#f1f1f1",
+      color: filterType === "telepites" ? "white" : "#333",
+      border: "none",
+      borderRadius: "8px",
+      fontWeight: "bold",
+      cursor: "pointer",
+    }}
+  >
+    🛠️ Telepítés (
+    {tasks.filter((t) => t.type === "telepites").length}
+    )
+  </button>
 
-        <div className="filter-buttons">
-          <button onClick={() => setFilterStatus("all")} style={{ flex: 1, padding: "10px", background: filterStatus === "all" ? "#7f8c8d" : "#ecf0f1", color: filterStatus === "all" ? "white" : "#333", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>Minden státusz</button>
-          <button onClick={() => setFilterStatus("folyamatban")} style={{ flex: 1, padding: "10px", background: filterStatus === "folyamatban" ? "#e67e22" : "#ecf0f1", color: filterStatus === "folyamatban" ? "white" : "#333", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>⏳ Folyamatban</button>
-          <button onClick={() => setFilterStatus("kesz")} style={{ flex: 1, padding: "10px", background: filterStatus === "kesz" ? "#27ae60" : "#ecf0f1", color: filterStatus === "kesz" ? "white" : "#333", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>✅ Kész</button>
-        </div>
-      </div>
+  <button
+    onClick={() => setFilterType("karbantartas")}
+    style={{
+      flex: 1,
+      padding: "10px",
+      background: filterType === "karbantartas" ? "#34495e" : "#f1f1f1",
+      color: filterType === "karbantartas" ? "white" : "#333",
+      border: "none",
+      borderRadius: "8px",
+      fontWeight: "bold",
+      cursor: "pointer",
+    }}
+  >
+    🧹 Karbantartás (
+    {tasks.filter((t) => t.type === "karbantartas").length}
+    )
+  </button>
+</div>
+
+<div className="filter-buttons">
+  <button
+    onClick={() => setFilterStatus("all")}
+    style={{
+      flex: 1,
+      padding: "10px",
+      background: filterStatus === "all" ? "#7f8c8d" : "#ecf0f1",
+      color: filterStatus === "all" ? "white" : "#333",
+      border: "none",
+      borderRadius: "8px",
+      fontWeight: "bold",
+      cursor: "pointer",
+    }}
+  >
+    Minden státusz ({tasks.length})
+  </button>
+
+  <button
+    onClick={() => setFilterStatus("folyamatban")}
+    style={{
+      flex: 1,
+      padding: "10px",
+      background: filterStatus === "folyamatban" ? "#e67e22" : "#ecf0f1",
+      color: filterStatus === "folyamatban" ? "white" : "#333",
+      border: "none",
+      borderRadius: "8px",
+      fontWeight: "bold",
+      cursor: "pointer",
+    }}
+  >
+    ⏳ Folyamatban (
+    {tasks.filter((t) => !t.completed_at).length}
+    )
+  </button>
+
+  <button
+    onClick={() => setFilterStatus("kesz")}
+    style={{
+      flex: 1,
+      padding: "10px",
+      background: filterStatus === "kesz" ? "#27ae60" : "#ecf0f1",
+      color: filterStatus === "kesz" ? "white" : "#333",
+      border: "none",
+      borderRadius: "8px",
+      fontWeight: "bold",
+      cursor: "pointer",
+    }}
+  >
+    ✅ Kész (
+    {tasks.filter((t) => t.completed_at).length}
+    )
+  </button>
+</div>
 
       {/* LISTA KÁRTYÁK */}
 
