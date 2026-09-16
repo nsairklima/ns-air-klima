@@ -528,21 +528,36 @@ export default function TasksPage() {
     if (filterStatus === "kesz" && !task.completed_at) {
       return false;
     }
-    if (searchQuery.trim() !== "") {
-      const q = searchQuery.toLowerCase();
-      const matchName = task.name?.toLowerCase().includes(q) || false;
-      const matchAddress = task.address?.toLowerCase().includes(q) || false;
-      const matchPhone = task.phone?.toLowerCase().includes(q) || false;
-      const matchEmail = task.email?.toLowerCase().includes(q) || false;
-      const matchNote = task.note?.toLowerCase().includes(q) || false;
-      const matchType = task.type.toLowerCase().includes(q) || false;
-      
-      if (!matchName && !matchAddress && !matchPhone && !matchEmail && !matchNote && !matchType) {
-        return false;
-      }
-    }
-    return true;
-  });
+  if (searchQuery.trim() !== "") {
+  const q = searchQuery.toLowerCase();
+
+  const searchableText = [
+    task.id,
+    task.type,
+    task.name,
+    task.address,
+    task.phone,
+    task.email,
+    task.note,
+    task.scheduled_at,
+    task.completed_at,
+    task.created_at,
+    task.completed_at ? "kész" : "folyamatban",
+    task.type === "telepites"
+      ? "telepítés"
+      : "karbantartás",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (!searchableText.includes(q)) {
+    return false;
+  }
+}
+
+return true;
+});
 
   return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
