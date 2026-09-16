@@ -1142,7 +1142,10 @@ return true;
     </div>
   </div>
 </div>
-``
+
+
+
+      
       {/* LISTA KÁRTYÁK */}
 
 <div style={{ marginBottom: "20px" }}>
