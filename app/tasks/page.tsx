@@ -831,6 +831,22 @@ return true;
       cursor: "pointer",
     }}
   >
+<input
+  type="text"
+  placeholder="🔍 Keresés bármely adatban (név, cím, telefon, email, megjegyzés, státusz, dátum, azonosító)..."
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+  style={{
+    width: "100%",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid #ccc",
+    boxSizing: "border-box",
+    fontSize: "14px",
+    marginBottom: "12px",
+  }}
+/>
+    
     Összes ({tasks.length})
   </button>
 
