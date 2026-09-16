@@ -17,7 +17,9 @@ export default function TasksMap({
 
   useEffect(() => {
     const apiKey =
-      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+console.log("API KEY:", apiKey);
 
     if (!apiKey) {
       console.error("Hiányzik a Google Maps API kulcs");
