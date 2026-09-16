@@ -49,28 +49,38 @@ if (tasks.length > 0 && tasks[0].address) {
     )}`
   )
     .then((res) => res.json())
-    .then((data) => {
-      if (!data.length) return;
+.then((data) => {
+  console.log("NOMINATIM:", data);
 
-      const lat = Number(data[0].lat);
-      const lng = Number(data[0].lon);
+  if (!data.length) {
+    console.log("NEM TALÁLT CÍMET");
+    return;
+  }
 
-      new window.google.maps.Marker({
-        map,
-        position: {
-          lat,
-          lng,
-        },
-        title: tasks[0].name || "Feladat",
-      });
+  const lat = Number(data[0].lat);
+  const lng = Number(data[0].lon);
 
-      map.setCenter({
-        lat,
-        lng,
-      });
+  console.log("LAT:", lat);
+  console.log("LNG:", lng);
 
-      map.setZoom(14);
-    });
+  const marker = new window.google.maps.Marker({
+    map,
+    position: {
+      lat,
+      lng,
+    },
+    title: tasks[0].name || "Feladat",
+  });
+
+  console.log("MARKER:", marker);
+
+  map.setCenter({
+    lat,
+    lng,
+  });
+
+  map.setZoom(14);
+});
 }
     };
 
