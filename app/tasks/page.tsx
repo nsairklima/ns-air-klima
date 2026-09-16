@@ -846,7 +846,7 @@ export default function TasksPage() {
 </div>
 
 {showMap && (
-  <TasksMap />
+<TasksMap tasks={filteredTasks} />
 )}
 
 
