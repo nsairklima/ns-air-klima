@@ -299,6 +299,9 @@ export default function TasksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showMap, setShowMap] = useState(false);
 
+  const [selectedTaskId, setSelectedTaskId] =
+  useState<number | null>(null);
+
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -1162,7 +1165,26 @@ return true;
 </div>
 
 {showMap && (
-<TasksMap tasks={filteredTasks} />
+  <TasksMap
+    tasks={filteredTasks}
+    onTaskSelect={(taskId) => {
+      setShowMap(false);
+      setSelectedTaskId(taskId);
+
+      setTimeout(() => {
+        const card = document.getElementById(
+          `task-card-${taskId}`
+        );
+
+        if (card) {
+          card.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
+      }, 300);
+    }}
+  />
 )}
 
 
@@ -1180,18 +1202,37 @@ return true;
 
             return (
               <div
-                key={task.id}
+                <div
+  id={`task-card-${task.id}`}
+  key={task.id}
                 style={{
-                  background: "#fff",
-                  border: "1px solid #ddd",
-                  borderLeft: `6px solid ${borderColor}`,
-                  borderRadius: "10px",
-                  padding: "16px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-                  boxShadow: "0 2px 5px rgba(0,0,0,0.05)"
-                }}
+  background:
+    selectedTaskId === task.id
+      ? "#fff8d6"
+      : "#fff",
+
+  border:
+    selectedTaskId === task.id
+      ? "2px solid #f39c12"
+      : "1px solid #ddd",
+
+  borderLeft: `6px solid ${borderColor}`,
+
+  borderRadius: "10px",
+
+  padding: "16px",
+
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+
+  boxShadow:
+    selectedTaskId === task.id
+      ? "0 0 15px rgba(243,156,18,.65)"
+      : "0 2px 5px rgba(0,0,0,0.05)",
+
+  transition: "all .3s ease"
+}}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: "bold", fontSize: "15px" }}>
