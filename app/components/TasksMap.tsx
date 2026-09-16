@@ -43,9 +43,18 @@ export default function TasksMap({
     console.log(tasks[0]);
 
 if (tasks.length > 0 && tasks[0].address) {
+  
+  console.log(
+2
+"KERESÉS:",
+3
+tasks[0].address
+4
+);
+  
   fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-      tasks[0].address + ", Hungary"
+     tasks[0].address
     )}`
   )
     .then((res) => res.json())
