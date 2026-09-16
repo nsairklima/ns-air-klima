@@ -183,8 +183,10 @@ async function findCoordinates(
 
 export default function TasksMap({
   tasks,
+  onTaskSelect,
 }: {
   tasks: Task[];
+  onTaskSelect: (taskId: number) => void;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
 
@@ -405,6 +407,23 @@ export default function TasksMap({
         const infoWindow =
           new window.google.maps.InfoWindow({
             content: infoContent,
+            +
+"<br><br>" +
+
+'<button ' +
+'data-task-id="' + task.id + '" ' +
+'style="' +
+'width:100%;' +
+'padding:8px;' +
+'background:#2980b9;' +
+'color:white;' +
+'border:none;' +
+'border-radius:6px;' +
+'cursor:pointer;' +
+'font-weight:bold;' +
+'">' +
+'📋 Ugrás a feladathoz' +
+'</button>'
           });
 
         marker.addListener("click", () => {
@@ -416,6 +435,23 @@ export default function TasksMap({
             anchor: marker,
             map,
           });
+          window.setTimeout(() => {
+  const button =
+    document.querySelector(
+      `[data-task-id="${task.id}"]`
+    );
+
+  if (button) {
+    button.addEventListener(
+      "click",
+      () => {
+        onTaskSelect(task.id);
+      },
+      { once: true }
+    );
+  }
+}, 100);
+``
 
           openedInfoWindow = infoWindow;
         });
