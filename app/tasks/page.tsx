@@ -621,9 +621,8 @@ return true;
               <div><strong>Státusz:</strong> {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}</div>
               <div><strong>Név:</strong> {viewingTask.name || "-"}</div>
               <div>
-   <div>
+<div>
   <strong>Cím:</strong>{" "}
-
   {viewingTask.address ? (
     <a
       href={
@@ -644,7 +643,6 @@ return true;
     "-"
   )}
 </div>
-              <div>
                 <strong>Telefon:</strong>{" "}
                 {viewingTask.phone ? (
                   <a href={`tel:${viewingTask.phone}`} style={{ color: "#27ae60", textDecoration: "underline", fontWeight: "bold" }}>
