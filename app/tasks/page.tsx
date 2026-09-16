@@ -4,6 +4,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import TasksMap from "../components/TasksMap";
 
 type Task = {
   id: number;
@@ -296,6 +297,7 @@ export default function TasksPage() {
   const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "folyamatban" | "kesz">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showMap, setShowMap] = useState(false);
 
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
@@ -823,6 +825,33 @@ export default function TasksPage() {
       </div>
 
       {/* LISTA KÁRTYÁK */}
+
+<div style={{ marginBottom: "20px" }}>
+  <button
+    onClick={() => setShowMap(!showMap)}
+    style={{
+      width: "100%",
+      padding: "14px",
+      border: "none",
+      borderRadius: "10px",
+      background: "#4285f4",
+      color: "white",
+      fontWeight: "bold",
+      cursor: "pointer",
+      fontSize: "16px"
+    }}
+  >
+    {showMap ? "📋 Lista nézet" : "🗺️ Térkép nézet"}
+  </button>
+</div>
+
+{showMap && (
+  <TasksMap />
+)}
+
+
+
+      
       <div className="cards-grid">
         {filteredTasks.length === 0 ? (
           <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "#666", background: "#f9f9f9", borderRadius: "10px" }}>
