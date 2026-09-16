@@ -816,131 +816,245 @@ return true;
         )}
       </div>
 
-      {/* SZŰRŐ ÉS KERESŐ */}
-      <div className="filter-buttons">
-  <button
-    onClick={() => setFilterType("all")}
-    style={{
-      flex: 1,
-      padding: "10px",
-      background: filterType === "all" ? "#34495e" : "#f1f1f1",
-      color: filterType === "all" ? "white" : "#333",
-      border: "none",
-      borderRadius: "8px",
-      fontWeight: "bold",
-      cursor: "pointer",
-    }}
-  >
-<input
-  type="text"
-  placeholder="🔍 Keresés bármely adatban (név, cím, telefon, email, megjegyzés, státusz, dátum, azonosító)..."
-  value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
+    {/* SZŰRŐ ÉS KERESŐ */}
+
+<div
   style={{
-    width: "100%",
-    padding: "12px",
-    borderRadius: "10px",
-    border: "1px solid #ccc",
-    boxSizing: "border-box",
-    fontSize: "14px",
-    marginBottom: "12px",
+    marginBottom: "20px",
   }}
-/>
-    
-    Összes ({tasks.length})
-  </button>
-
-  <button
-    onClick={() => setFilterType("telepites")}
+>
+  <input
+    type="text"
+    placeholder="🔍 Keresés bármely adatban..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
     style={{
-      flex: 1,
-      padding: "10px",
-      background: filterType === "telepites" ? "#34495e" : "#f1f1f1",
-      color: filterType === "telepites" ? "white" : "#333",
-      border: "none",
-      borderRadius: "8px",
-      fontWeight: "bold",
-      cursor: "pointer",
+      width: "100%",
+      padding: "12px",
+      borderRadius: "10px",
+      border: "1px solid #d0d7de",
+      boxSizing: "border-box",
+      fontSize: "14px",
+      marginBottom: "15px",
+    }}
+  />
+
+  <div
+    style={{
+      background: "#fff",
+      borderRadius: "12px",
+      padding: "12px",
+      border: "1px solid #e5e7eb",
     }}
   >
-    🛠️ Telepítés (
-    {tasks.filter((t) => t.type === "telepites").length}
-    )
-  </button>
+    <div
+      style={{
+        fontSize: "12px",
+        color: "#666",
+        marginBottom: "8px",
+        fontWeight: "bold",
+      }}
+    >
+      TÍPUS
+    </div>
 
-  <button
-    onClick={() => setFilterType("karbantartas")}
-    style={{
-      flex: 1,
-      padding: "10px",
-      background: filterType === "karbantartas" ? "#34495e" : "#f1f1f1",
-      color: filterType === "karbantartas" ? "white" : "#333",
-      border: "none",
-      borderRadius: "8px",
-      fontWeight: "bold",
-      cursor: "pointer",
-    }}
-  >
-    🧹 Karbantartás (
-    {tasks.filter((t) => t.type === "karbantartas").length}
-    )
-  </button>
+    <div className="filter-buttons">
+      <button
+        onClick={() => setFilterType("all")}
+        style={{
+          flex: 1,
+          padding: "12px",
+          background:
+            filterType === "all"
+              ? "#34495e"
+              : "#f8fafc",
+          color:
+            filterType === "all"
+              ? "white"
+              : "#333",
+          border: "1px solid #e5e7eb",
+          borderRadius: "10px",
+          cursor: "pointer",
+        }}
+      >
+        📋<br />
+        <strong>{tasks.length}</strong>
+      </button>
+
+      <button
+        onClick={() =>
+          setFilterType("telepites")
+        }
+        style={{
+          flex: 1,
+          padding: "12px",
+          background:
+            filterType === "telepites"
+              ? "#34495e"
+              : "#f8fafc",
+          color:
+            filterType === "telepites"
+              ? "white"
+              : "#333",
+          border: "1px solid #e5e7eb",
+          borderRadius: "10px",
+          cursor: "pointer",
+        }}
+      >
+        🛠️<br />
+        <strong>
+          {
+            tasks.filter(
+              (t) =>
+                t.type ===
+                "telepites"
+            ).length
+          }
+        </strong>
+      </button>
+
+      <button
+        onClick={() =>
+          setFilterType(
+            "karbantartas"
+          )
+        }
+        style={{
+          flex: 1,
+          padding: "12px",
+          background:
+            filterType ===
+            "karbantartas"
+              ? "#34495e"
+              : "#f8fafc",
+          color:
+            filterType ===
+            "karbantartas"
+              ? "white"
+              : "#333",
+          border: "1px solid #e5e7eb",
+          borderRadius: "10px",
+          cursor: "pointer",
+        }}
+      >
+        🧹<br />
+        <strong>
+          {
+            tasks.filter(
+              (t) =>
+                t.type ===
+                "karbantartas"
+            ).length
+          }
+        </strong>
+      </button>
+    </div>
+
+    <div
+      style={{
+        fontSize: "12px",
+        color: "#666",
+        marginTop: "15px",
+        marginBottom: "8px",
+        fontWeight: "bold",
+      }}
+    >
+      STÁTUSZ
+    </div>
+
+    <div className="filter-buttons">
+      <button
+        onClick={() =>
+          setFilterStatus("all")
+        }
+        style={{
+          flex: 1,
+          padding: "12px",
+          background:
+            filterStatus === "all"
+              ? "#7f8c8d"
+              : "#f8fafc",
+          color:
+            filterStatus === "all"
+              ? "white"
+              : "#333",
+          border: "1px solid #e5e7eb",
+          borderRadius: "10px",
+          cursor: "pointer",
+        }}
+      >
+        📊<br />
+        <strong>{tasks.length}</strong>
+      </button>
+
+      <button
+        onClick={() =>
+          setFilterStatus(
+            "folyamatban"
+          )
+        }
+        style={{
+          flex: 1,
+          padding: "12px",
+          background:
+            filterStatus ===
+            "folyamatban"
+              ? "#e67e22"
+              : "#f8fafc",
+          color:
+            filterStatus ===
+            "folyamatban"
+              ? "white"
+              : "#333",
+          border: "1px solid #e5e7eb",
+          borderRadius: "10px",
+          cursor: "pointer",
+        }}
+      >
+        ⏳<br />
+        <strong>
+          {
+            tasks.filter(
+              (t) =>
+                !t.completed_at
+            ).length
+          }
+        </strong>
+      </button>
+
+      <button
+        onClick={() =>
+          setFilterStatus("kesz")
+        }
+        style={{
+          flex: 1,
+          padding: "12px",
+          background:
+            filterStatus === "kesz"
+              ? "#27ae60"
+              : "#f8fafc",
+          color:
+            filterStatus === "kesz"
+              ? "white"
+              : "#333",
+          border: "1px solid #e5e7eb",
+          borderRadius: "10px",
+          cursor: "pointer",
+        }}
+      >
+        ✅<br />
+        <strong>
+          {
+            tasks.filter(
+              (t) =>
+                t.completed_at
+            ).length
+          }
+        </strong>
+      </button>
+    </div>
+  </div>
 </div>
-
-<div className="filter-buttons">
-  <button
-    onClick={() => setFilterStatus("all")}
-    style={{
-      flex: 1,
-      padding: "10px",
-      background: filterStatus === "all" ? "#7f8c8d" : "#ecf0f1",
-      color: filterStatus === "all" ? "white" : "#333",
-      border: "none",
-      borderRadius: "8px",
-      fontWeight: "bold",
-      cursor: "pointer",
-    }}
-  >
-    Minden státusz ({tasks.length})
-  </button>
-
-  <button
-    onClick={() => setFilterStatus("folyamatban")}
-    style={{
-      flex: 1,
-      padding: "10px",
-      background: filterStatus === "folyamatban" ? "#e67e22" : "#ecf0f1",
-      color: filterStatus === "folyamatban" ? "white" : "#333",
-      border: "none",
-      borderRadius: "8px",
-      fontWeight: "bold",
-      cursor: "pointer",
-    }}
-  >
-    ⏳ Folyamatban (
-    {tasks.filter((t) => !t.completed_at).length}
-    )
-  </button>
-
-  <button
-    onClick={() => setFilterStatus("kesz")}
-    style={{
-      flex: 1,
-      padding: "10px",
-      background: filterStatus === "kesz" ? "#27ae60" : "#ecf0f1",
-      color: filterStatus === "kesz" ? "white" : "#333",
-      border: "none",
-      borderRadius: "8px",
-      fontWeight: "bold",
-      cursor: "pointer",
-    }}
-  >
-    ✅ Kész (
-    {tasks.filter((t) => t.completed_at).length}
-    )
-  </button>
-</div>
-
       {/* LISTA KÁRTYÁK */}
 
 <div style={{ marginBottom: "20px" }}>
