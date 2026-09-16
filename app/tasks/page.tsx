@@ -816,7 +816,7 @@ return true;
         )}
       </div>
 
-    {/* SZŰRŐ ÉS KERESŐ */}
+   {/* SZŰRŐ ÉS KERESŐ */}
 
 <div
   style={{
@@ -825,45 +825,58 @@ return true;
 >
   <input
     type="text"
-    placeholder="🔍 Keresés bármely adatban..."
+    placeholder="🔍 Keresés név, cím, telefon, email, megjegyzés, státusz vagy azonosító alapján..."
     value={searchQuery}
     onChange={(e) => setSearchQuery(e.target.value)}
     style={{
       width: "100%",
-      padding: "12px",
-      borderRadius: "10px",
+      padding: "14px",
+      borderRadius: "12px",
       border: "1px solid #d0d7de",
       boxSizing: "border-box",
-      fontSize: "14px",
-      marginBottom: "15px",
+      fontSize: "15px",
+      marginBottom: "16px",
+      background: "#fff",
     }}
   />
 
   <div
     style={{
       background: "#fff",
-      borderRadius: "12px",
-      padding: "12px",
+      borderRadius: "14px",
+      padding: "16px",
       border: "1px solid #e5e7eb",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
     }}
   >
     <div
       style={{
         fontSize: "12px",
-        color: "#666",
-        marginBottom: "8px",
         fontWeight: "bold",
+        color: "#6b7280",
+        marginBottom: "10px",
+        textTransform: "uppercase",
+        letterSpacing: "1px",
       }}
     >
-      TÍPUS
+      Típus
     </div>
 
-    <div className="filter-buttons">
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "10px",
+        marginBottom: "18px",
+      }}
+    >
       <button
         onClick={() => setFilterType("all")}
         style={{
-          flex: 1,
-          padding: "12px",
+          padding: "14px",
+          borderRadius: "12px",
+          border: "none",
+          cursor: "pointer",
           background:
             filterType === "all"
               ? "#34495e"
@@ -872,22 +885,27 @@ return true;
             filterType === "all"
               ? "white"
               : "#333",
-          border: "1px solid #e5e7eb",
-          borderRadius: "10px",
-          cursor: "pointer",
         }}
       >
-        📋<br />
-        <strong>{tasks.length}</strong>
+        <div>📋 Összes</div>
+        <div
+          style={{
+            fontSize: "22px",
+            fontWeight: "bold",
+            marginTop: "6px",
+          }}
+        >
+          {tasks.length}
+        </div>
       </button>
 
       <button
-        onClick={() =>
-          setFilterType("telepites")
-        }
+        onClick={() => setFilterType("telepites")}
         style={{
-          flex: 1,
-          padding: "12px",
+          padding: "14px",
+          borderRadius: "12px",
+          border: "none",
+          cursor: "pointer",
           background:
             filterType === "telepites"
               ? "#34495e"
@@ -896,80 +914,88 @@ return true;
             filterType === "telepites"
               ? "white"
               : "#333",
-          border: "1px solid #e5e7eb",
-          borderRadius: "10px",
-          cursor: "pointer",
         }}
       >
-        🛠️<br />
-        <strong>
+        <div>🛠️ Telepítés</div>
+        <div
+          style={{
+            fontSize: "22px",
+            fontWeight: "bold",
+            marginTop: "6px",
+          }}
+        >
           {
             tasks.filter(
-              (t) =>
-                t.type ===
-                "telepites"
+              (t) => t.type === "telepites"
             ).length
           }
-        </strong>
+        </div>
       </button>
 
       <button
         onClick={() =>
-          setFilterType(
-            "karbantartas"
-          )
+          setFilterType("karbantartas")
         }
         style={{
-          flex: 1,
-          padding: "12px",
+          padding: "14px",
+          borderRadius: "12px",
+          border: "none",
+          cursor: "pointer",
           background:
-            filterType ===
-            "karbantartas"
+            filterType === "karbantartas"
               ? "#34495e"
               : "#f8fafc",
           color:
-            filterType ===
-            "karbantartas"
+            filterType === "karbantartas"
               ? "white"
               : "#333",
-          border: "1px solid #e5e7eb",
-          borderRadius: "10px",
-          cursor: "pointer",
         }}
       >
-        🧹<br />
-        <strong>
+        <div>🧹 Karbantartás</div>
+        <div
+          style={{
+            fontSize: "22px",
+            fontWeight: "bold",
+            marginTop: "6px",
+          }}
+        >
           {
             tasks.filter(
               (t) =>
-                t.type ===
-                "karbantartas"
+                t.type === "karbantartas"
             ).length
           }
-        </strong>
+        </div>
       </button>
     </div>
 
     <div
       style={{
         fontSize: "12px",
-        color: "#666",
-        marginTop: "15px",
-        marginBottom: "8px",
         fontWeight: "bold",
+        color: "#6b7280",
+        marginBottom: "10px",
+        textTransform: "uppercase",
+        letterSpacing: "1px",
       }}
     >
-      STÁTUSZ
+      Státusz
     </div>
 
-    <div className="filter-buttons">
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "10px",
+      }}
+    >
       <button
-        onClick={() =>
-          setFilterStatus("all")
-        }
+        onClick={() => setFilterStatus("all")}
         style={{
-          flex: 1,
-          padding: "12px",
+          padding: "14px",
+          borderRadius: "12px",
+          border: "none",
+          cursor: "pointer",
           background:
             filterStatus === "all"
               ? "#7f8c8d"
@@ -978,57 +1004,62 @@ return true;
             filterStatus === "all"
               ? "white"
               : "#333",
-          border: "1px solid #e5e7eb",
-          borderRadius: "10px",
-          cursor: "pointer",
         }}
       >
-        📊<br />
-        <strong>{tasks.length}</strong>
+        <div>📊 Minden</div>
+        <div
+          style={{
+            fontSize: "22px",
+            fontWeight: "bold",
+            marginTop: "6px",
+          }}
+        >
+          {tasks.length}
+        </div>
       </button>
 
       <button
         onClick={() =>
-          setFilterStatus(
-            "folyamatban"
-          )
+          setFilterStatus("folyamatban")
         }
         style={{
-          flex: 1,
-          padding: "12px",
+          padding: "14px",
+          borderRadius: "12px",
+          border: "none",
+          cursor: "pointer",
           background:
-            filterStatus ===
-            "folyamatban"
+            filterStatus === "folyamatban"
               ? "#e67e22"
               : "#f8fafc",
           color:
-            filterStatus ===
-            "folyamatban"
+            filterStatus === "folyamatban"
               ? "white"
               : "#333",
-          border: "1px solid #e5e7eb",
-          borderRadius: "10px",
-          cursor: "pointer",
         }}
       >
-        ⏳<br />
-        <strong>
+        <div>⏳ Folyamatban</div>
+        <div
+          style={{
+            fontSize: "22px",
+            fontWeight: "bold",
+            marginTop: "6px",
+          }}
+        >
           {
             tasks.filter(
-              (t) =>
-                !t.completed_at
+              (t) => !t.completed_at
             ).length
           }
-        </strong>
+        </div>
       </button>
 
       <button
-        onClick={() =>
-          setFilterStatus("kesz")
-        }
+        onClick={() => setFilterStatus("kesz")}
         style={{
-          flex: 1,
-          padding: "12px",
+          padding: "14px",
+          borderRadius: "12px",
+          border: "none",
+          cursor: "pointer",
           background:
             filterStatus === "kesz"
               ? "#27ae60"
@@ -1037,20 +1068,22 @@ return true;
             filterStatus === "kesz"
               ? "white"
               : "#333",
-          border: "1px solid #e5e7eb",
-          borderRadius: "10px",
-          cursor: "pointer",
         }}
       >
-        ✅<br />
-        <strong>
+        <div>✅ Kész</div>
+        <div
+          style={{
+            fontSize: "22px",
+            fontWeight: "bold",
+            marginTop: "6px",
+          }}
+        >
           {
             tasks.filter(
-              (t) =>
-                t.completed_at
+              (t) => t.completed_at
             ).length
           }
-        </strong>
+        </div>
       </button>
     </div>
   </div>
