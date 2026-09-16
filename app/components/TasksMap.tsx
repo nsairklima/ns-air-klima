@@ -17,73 +17,117 @@ export default function TasksMap({
 
   useEffect(() => {
     const apiKey =
-  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-console.log("API KEY:", apiKey);
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     if (!apiKey) {
       console.error("Hiányzik a Google Maps API kulcs");
       return;
     }
 
-    const initMap = () => {
+    const initMap = async () => {
       if (!window.google || !mapRef.current) return;
 
       const map = new window.google.maps.Map(
-  mapRef.current,
-  {
-    center: {
-      lat: 47.4979,
-      lng: 19.0402,
-    },
-    zoom: 7,
-  }
-);
+        mapRef.current,
+        {
+          center: {
+            lat: 47.4979,
+            lng: 19.0402,
+          },
+          zoom: 7,
+        }
+      );
 
-console.log(tasks);
+      console.log(tasks);
 
-      const geocoder = new window.google.maps.Geocoder();
+      for (const task of tasks) {
+        if (!task.address) continue;
 
-tasks.forEach((task) => {
-  if (!task.address) return;
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+              task.address + ", Hungary"
+            )}`
+          );
 
-  geocoder.geocode(
-    {
-      address: task.address + ", Hungary",
-    },
-    (results: any, status: string) => {
-      if (
-        status !== "OK" ||
-        !results ||
-        !results[0]
-      ) {
-        return;
+          const data = await response.json();
+
+          if (!data.length) continue;
+
+          const lat = Number(data[0].lat);
+          const lng = Number(data[0].lon);
+
+          const marker =
+            new window.google.maps.Marker({
+              map,
+              position: {
+                lat,
+                lng,
+              },
+              title: task.name || "Feladat",
+            });
+
+          const infoWindow =
+            new window.google.maps.InfoWindow({
+              content: `
+                <div style="min-width:250px">
+                  <h3>${task.name || "-"}</h3>
+
+                  <p>
+                    <b>Cím:</b><br>
+                    ${task.address || "-"}
+                  </p>
+
+                  <p>
+                    <b>Telefon:</b><br>
+                    ${task.phone || "-"}
+                  </p>
+
+                  <p>
+                    <b>Email:</b><br>
+                    ${task.email || "-"}
+                  </p>
+
+                  <p>
+                    <b>Státusz:</b>
+                    ${
+                      task.completed_at
+                        ? "✅ Kész"
+                        : "⏳ Folyamatban"
+                    }
+                  </p>
+                </div>
+              `,
+            });
+
+          marker.addListener("click", () => {
+            infoWindow.open({
+              anchor: marker,
+              map,
+            });
+          });
+        } catch (error) {
+          console.error(
+            "Geokódolási hiba",
+            task.address,
+            error
+          );
+        }
       }
-
-      const marker =
-        new window.google.maps.Marker({
-          map,
-          position:
-            results[0].geometry.location,
-          title:
-            task.name || "Feladat",
-        });
-    }
-  );
-});
-
-``
     };
 
     const existingScript =
-      document.getElementById("google-maps-script");
+      document.getElementById(
+        "google-maps-script"
+      );
 
     if (existingScript) {
       initMap();
       return;
     }
 
-    const script = document.createElement("script");
+    const script =
+      document.createElement("script");
 
     script.id = "google-maps-script";
 
@@ -94,29 +138,4 @@ tasks.forEach((task) => {
 
     script.onload = initMap;
 
-    document.body.appendChild(script);
-  }, []);
-
-  return (
-    <div>
-      <div
-        style={{
-          marginBottom: "10px",
-          fontWeight: "bold",
-        }}
-      >
-        Szűrt feladatok: {tasks.length}
-      </div>
-
-      <div
-        ref={mapRef}
-        style={{
-          width: "100%",
-          height: "600px",
-          borderRadius: "10px",
-          border: "1px solid #ddd",
-        }}
-      />
-    </div>
-  );
-}
+   
