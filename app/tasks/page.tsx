@@ -621,11 +621,15 @@ return true;
               <div><strong>Státusz:</strong> {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}</div>
               <div><strong>Név:</strong> {viewingTask.name || "-"}</div>
               <div>
-                <strong>Cím:</strong>{" "}
-                <div>
+   <div>
   <strong>Cím:</strong>{" "}
+
   {viewingTask.address ? (
-    {`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(}`}
+    <a
+      href={
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent(viewingTask.address)
+      }
       target="_blank"
       rel="noopener noreferrer"
       style={{
@@ -1215,40 +1219,37 @@ return true;
             const isTelepites = task.type === "telepites";
             const borderColor = isTelepites ? "#34495e" : "#d35400";
 
-            return (
-              <div
-                <div
-  id={`task-card-${task.id}`}
-  key={task.id}
-                style={{
-  background:
-    selectedTaskId === task.id
-      ? "#fff8d6"
-      : "#fff",
+   return (
+  <div
+    id={"task-card-" + task.id}
+    key={task.id}
+    style={{
+      background:
+        selectedTaskId === task.id
+          ? "#fff8d6"
+          : "#fff",
 
-  border:
-    selectedTaskId === task.id
-      ? "2px solid #f39c12"
-      : "1px solid #ddd",
+      border:
+        selectedTaskId === task.id
+          ? "2px solid #f39c12"
+          : "1px solid #ddd",
 
-  borderLeft: `6px solid ${borderColor}`,
+      borderLeft: `6px solid ${borderColor}`,
+      borderRadius: "10px",
+      padding: "16px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "8px",
 
-  borderRadius: "10px",
+      boxShadow:
+        selectedTaskId === task.id
+          ? "0 0 15px rgba(243,156,18,0.65)"
+          : "0 2px 5px rgba(0,0,0,0.05)",
 
-  padding: "16px",
-
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-
-  boxShadow:
-    selectedTaskId === task.id
-      ? "0 0 15px rgba(243,156,18,.65)"
-      : "0 2px 5px rgba(0,0,0,0.05)",
-
-  transition: "all .3s ease"
-}}
-              >
+      transition: "all 0.3s ease",
+      scrollMarginTop: "30px",
+    }}
+  >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: "bold", fontSize: "15px" }}>
                     {isTelepites ? "🛠️ Telepítés" : "🧹 Karbantartás"}
