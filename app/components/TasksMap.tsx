@@ -16,6 +16,17 @@ type Task = {
   created_at?: string;
 };
 
+type NotFoundTask = {
+  id: number;
+  name?: string;
+  address?: string;
+};
+
+type Coordinates = {
+  lat: number;
+  lng: number;
+};
+
 declare global {
   interface Window {
     google: any;
@@ -34,7 +45,7 @@ function escapeHtml(value?: string) {
 }
 
 function wait(milliseconds: number) {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     window.setTimeout(resolve, milliseconds);
   });
 }
@@ -58,9 +69,7 @@ function formatDate(dateString?: string) {
 }
 
 function createSearchVariants(address: string) {
-  const cleanAddress = address
-    .trim()
-    .replace(/\s+/g, " ");
+  const cleanAddress = address.trim().replace(/\s+/g, " ");
 
   const firstSpaceIndex = cleanAddress.indexOf(" ");
 
@@ -74,22 +83,24 @@ function createSearchVariants(address: string) {
   return [
     street + ", " + city,
     cleanAddress,
+    cleanAddress + ", Magyarország",
     city + ", Magyarország",
   ];
 }
 
-async function findCoordinates(address: string) {
+async function findCoordinates(
+  address: string
+): Promise<Coordinates | null> {
   const cacheKey =
-    "tasks-map-coordinate-" +
-    address.toLowerCase().trim();
+    "tasks-map-coordinate-" + address.toLowerCase().trim();
 
-  const cachedValue =
-    window.localStorage.getItem(cacheKey);
+  const cachedValue = window.localStorage.getItem(cacheKey);
 
   if (cachedValue) {
     try {
-      const cachedCoordinates =
-        JSON.parse(cachedValue);
+      const cachedCoordinates = JSON.parse(
+        cachedValue
+      ) as Coordinates;
 
       if (
         Number.isFinite(cachedCoordinates.lat) &&
@@ -102,8 +113,7 @@ async function findCoordinates(address: string) {
     }
   }
 
-  const searchVariants =
-    createSearchVariants(address);
+  const searchVariants = createSearchVariants(address);
 
   for (const searchAddress of searchVariants) {
     const baseUrl =
@@ -137,24 +147,18 @@ async function findCoordinates(address: string) {
 
       const data = await response.json();
 
-      if (
-        !Array.isArray(data) ||
-        data.length === 0
-      ) {
+      if (!Array.isArray(data) || data.length === 0) {
         continue;
       }
 
       const lat = Number(data[0].lat);
       const lng = Number(data[0].lon);
 
-      if (
-        !Number.isFinite(lat) ||
-        !Number.isFinite(lng)
-      ) {
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         continue;
       }
 
-      const coordinates = {
+      const coordinates: Coordinates = {
         lat,
         lng,
       };
@@ -182,24 +186,23 @@ export default function TasksMap({
 }: {
   tasks: Task[];
 }) {
-  const mapRef =
-    useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
 
-  const [loadingText, setLoadingText] =
-    useState("");
+  const [loadingText, setLoadingText] = useState("");
 
-  const [markerCount, setMarkerCount] =
-    useState(0);
+  const [markerCount, setMarkerCount] = useState(0);
 
-  const [notFoundCount, setNotFoundCount] =
-    useState(0);
+  const [notFoundAddresses, setNotFoundAddresses] =
+    useState<NotFoundTask[]>([]);
+
+  const [showNotFoundAddresses, setShowNotFoundAddresses] =
+    useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     const apiKey =
-      process.env
-        .NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     if (!apiKey) {
       setLoadingText(
@@ -219,30 +222,29 @@ export default function TasksMap({
       }
 
       setMarkerCount(0);
-      setNotFoundCount(0);
+      setNotFoundAddresses([]);
+      setShowNotFoundAddresses(false);
 
-      const map =
-        new window.google.maps.Map(
-          mapRef.current,
-          {
-            center: {
-              lat: 47.6875,
-              lng: 17.6504,
-            },
-            zoom: 8,
-            streetViewControl: false,
-            mapTypeControl: true,
-            fullscreenControl: true,
-          }
-        );
+      const map = new window.google.maps.Map(
+        mapRef.current,
+        {
+          center: {
+            lat: 47.6875,
+            lng: 17.6504,
+          },
+          zoom: 8,
+          streetViewControl: false,
+          mapTypeControl: true,
+          fullscreenControl: true,
+        }
+      );
 
       const bounds =
         new window.google.maps.LatLngBounds();
 
-      const tasksWithAddress =
-        tasks.filter((task) => {
-          return Boolean(task.address?.trim());
-        });
+      const tasksWithAddress = tasks.filter((task) => {
+        return Boolean(task.address?.trim());
+      });
 
       if (tasksWithAddress.length === 0) {
         setLoadingText(
@@ -253,7 +255,7 @@ export default function TasksMap({
       }
 
       let successfulMarkers = 0;
-      let failedAddresses = 0;
+      let failedTasks: NotFoundTask[] = [];
       let openedInfoWindow: any = null;
 
       for (
@@ -272,16 +274,22 @@ export default function TasksMap({
             tasksWithAddress.length
         );
 
-        const coordinates =
-          await findCoordinates(
-            task.address || ""
-          );
+        const coordinates = await findCoordinates(
+          task.address || ""
+        );
 
         if (cancelled) return;
 
         if (!coordinates) {
-          failedAddresses += 1;
-          setNotFoundCount(failedAddresses);
+          const failedTask: NotFoundTask = {
+            id: task.id,
+            name: task.name,
+            address: task.address,
+          };
+
+          failedTasks = [...failedTasks, failedTask];
+
+          setNotFoundAddresses(failedTasks);
 
           console.warn(
             "A cím nem található:",
@@ -292,15 +300,14 @@ export default function TasksMap({
           continue;
         }
 
-        const marker =
-          new window.google.maps.Marker({
-            map,
-            position: coordinates,
-            title:
-              task.name ||
-              task.address ||
-              "Feladat",
-          });
+        const marker = new window.google.maps.Marker({
+          map,
+          position: coordinates,
+          title:
+            task.name ||
+            task.address ||
+            "Feladat",
+        });
 
         bounds.extend(coordinates);
 
@@ -312,14 +319,12 @@ export default function TasksMap({
             ? "🛠️ Telepítés"
             : "🧹 Karbantartás";
 
-        const taskStatus =
-          task.completed_at
-            ? "✅ Kész"
-            : "⏳ Folyamatban";
+        const taskStatus = task.completed_at
+          ? "✅ Kész"
+          : "⏳ Folyamatban";
 
         const imageLinks =
-          task.images &&
-          task.images.length > 0
+          task.images && task.images.length > 0
             ? task.images
                 .map((imageUrl, imageIndex) => {
                   const safeImageUrl =
@@ -331,7 +336,8 @@ export default function TasksMap({
                     '' +
                     "🖼️ " +
                     (imageIndex + 1) +
-                    ". kép</a>"
+                    ". kép" +
+                    "</a>"
                   );
                 })
                 .join("")
@@ -341,9 +347,7 @@ export default function TasksMap({
           "https:" +
           "//www.google.com/maps/search/" +
           "?api=1&query=" +
-          encodeURIComponent(
-            task.address || ""
-          );
+          encodeURIComponent(task.address || "");
 
         const infoContent =
           '<div style="' +
@@ -353,7 +357,6 @@ export default function TasksMap({
           "font-size:13px;" +
           "line-height:1.45;" +
           'color:#222;">' +
-
           '<div style="' +
           "font-size:16px;" +
           "font-weight:bold;" +
@@ -362,53 +365,41 @@ export default function TasksMap({
           'margin-bottom:8px;">' +
           taskType +
           "</div>" +
-
+          "<p><strong>Azonosító:</strong> #" +
+          task.id +
+          "</p>" +
           "<p><strong>Státusz:</strong> " +
           taskStatus +
           "</p>" +
-
           "<p><strong>Név:</strong> " +
           escapeHtml(task.name) +
           "</p>" +
-
           "<p><strong>Cím:</strong><br>" +
           escapeHtml(task.address) +
           "</p>" +
-
           "<p><strong>Telefon:</strong><br>" +
           escapeHtml(task.phone) +
           "</p>" +
-
           "<p><strong>Email:</strong><br>" +
           escapeHtml(task.email) +
           "</p>" +
-
           "<p><strong>Tervezett időpont:</strong><br>" +
-          escapeHtml(
-            formatDate(task.scheduled_at)
-          ) +
+          escapeHtml(formatDate(task.scheduled_at)) +
           "</p>" +
-
           "<p><strong>Megvalósult időpont:</strong><br>" +
-          escapeHtml(
-            formatDate(task.completed_at)
-          ) +
+          escapeHtml(formatDate(task.completed_at)) +
           "</p>" +
-
           "<p><strong>Megjegyzés:</strong><br>" +
           escapeHtml(task.note) +
           "</p>" +
-
           "<p><strong>Képek:</strong><br>" +
           imageLinks +
           "</p>" +
-
           '' +
           googleMapsSearchUrl +
           '' +
           "📍 Megnyitás Google Mapsben" +
           "</a>" +
-
           "</div>";
 
         const infoWindow =
@@ -416,21 +407,18 @@ export default function TasksMap({
             content: infoContent,
           });
 
-        marker.addListener(
-          "click",
-          () => {
-            if (openedInfoWindow) {
-              openedInfoWindow.close();
-            }
-
-            infoWindow.open({
-              anchor: marker,
-              map,
-            });
-
-            openedInfoWindow = infoWindow;
+        marker.addListener("click", () => {
+          if (openedInfoWindow) {
+            openedInfoWindow.close();
           }
-        );
+
+          infoWindow.open({
+            anchor: marker,
+            map,
+          });
+
+          openedInfoWindow = infoWindow;
+        });
 
         await wait(1100);
       }
@@ -441,6 +429,10 @@ export default function TasksMap({
         setLoadingText(
           "Egyik cím sem volt megtalálható."
         );
+
+        if (failedTasks.length > 0) {
+          setShowNotFoundAddresses(true);
+        }
 
         return;
       }
@@ -478,8 +470,7 @@ export default function TasksMap({
         return;
       }
 
-      const script =
-        document.createElement("script");
+      const script = document.createElement("script");
 
       script.id = "google-maps-script";
 
@@ -543,19 +534,102 @@ export default function TasksMap({
           Jelölők: {markerCount}
         </span>
 
-        {notFoundCount > 0 && (
-          <span
+        {notFoundAddresses.length > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              setShowNotFoundAddresses(
+                !showNotFoundAddresses
+              )
+            }
             style={{
               background: "#fef5e7",
               color: "#9c640c",
               padding: "7px 10px",
               borderRadius: "7px",
+              border: "1px solid #f0b56b",
+              fontSize: "13px",
+              fontWeight: "bold",
+              cursor: "pointer",
             }}
           >
-            Nem található: {notFoundCount}
-          </span>
+            ❌ Nem található:{" "}
+            {notFoundAddresses.length}{" "}
+            {showNotFoundAddresses ? "▲" : "▼"}
+          </button>
         )}
       </div>
+
+      {notFoundAddresses.length > 0 &&
+        showNotFoundAddresses && (
+          <div
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              marginBottom: "12px",
+              padding: "12px",
+              background: "#fff3f3",
+              border: "1px solid #f5b7b1",
+              borderRadius: "8px",
+              fontSize: "13px",
+            }}
+          >
+            <div
+              style={{
+                marginBottom: "10px",
+                fontWeight: "bold",
+                color: "#922b21",
+              }}
+            >
+              Az alábbi címeket nem sikerült
+              megtalálni:
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "7px",
+              }}
+            >
+              {notFoundAddresses.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    padding: "10px",
+                    background: "white",
+                    borderRadius: "7px",
+                    border: "1px solid #eee",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    ❌ {item.name || "Név nélkül"}
+                  </div>
+
+                  <div
+                    style={{
+                      marginBottom: "3px",
+                      color: "#666",
+                    }}
+                  >
+                    Feladat azonosító: #{item.id}
+                  </div>
+
+                  <div>
+                    📍{" "}
+                    {item.address ||
+                      "Nincs megadott cím"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       {loadingText && (
         <div
