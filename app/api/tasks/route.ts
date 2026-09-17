@@ -424,7 +424,14 @@ try {
      */
     const insertedTasks = await sql`
      INSERT INTO "Task" (
-  ...
+     "type",
+"title",
+"clientName",
+"address",
+"phone",
+"date",
+"description",
+"images",
   "scheduled_at",
   "completed_at",
   "latitude",
