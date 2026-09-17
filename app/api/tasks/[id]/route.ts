@@ -128,50 +128,51 @@ async function createClientIfMissing({
     }
   }
 
-  /*
-   * 2. Ellenőrzés telefonszám alapján.
-   *
-   * Először lekérjük a telefonszámmal
-   * rendelkező ügyfeleket, majd egységes
-   * formátumban hasonlítjuk össze.
-   */
-  const normalizedPhone =
-    no*malizePhone(cleanPhone);
+  /
+    2. Ellenőrzés telefonszám alapján.
+   
+    Először lekérjük a telefonszámmal
+    rendelkező ügyfeleket, majd egységes
+    formátumban hasonlítjuk össze.
+   /
+ const normalizedPhone =
+  normalizePhone(cleanPhone);
 
-  if (no*malizedPhone) {
-    const clientsW*thPhone =
-      await prisma.clien*.findMany({
-        where: {
-     *    phone: {
-            not: null*
-          },
+if (normalizedPhone) {
+  const clientsWithPhone =
+    await prisma.client.findMany({
+      where: {
+        phone: {
+          not: null,
         },
-        s*lect: {
-          id: true,
-      *   phone: true,
-        },
-      });
+      },
+      select: {
+        id: true,
+        phone: true,
+      },
+    });
 
-    const phoneClient =
-      clientsWithPhone.find((client) => {
-        return (
-          normalizePhone(client.phone || "") ===
-          normalizedPhone
-        );
-      });
+  const phoneClient =
+    clientsWithPhone.find((client) => {
+      return (
+        normalizePhone(client.phone || "") ===
+        normalizedPhone
+      );
+    });
 
-    if (phoneClient) {
-      return {
-        created: false,
-        reason: "existing-phone",
-        clientId: phoneClient.id,
-      };
-    }
+  if (phoneClient) {
+    return {
+      created: false,
+      reason: "existing-phone",
+      clientId: phoneClient.id,
+    };
+  }
+}
   }
 
-  /*
-   * 3. Ellenőrzés név alapján.
-   */
+  /
+    3. Ellenőrzés név alapján.
+   /
   const clientsWithSameName =
     await prisma.client.findMany({
       where: {
@@ -190,10 +191,10 @@ async function createClientIfMissing({
   const normalizedAddress =
     normalizeText(cleanAddress);
 
-  /*
-   * Ha cím is van, név és cím alapján
-   * keressük a pontos egyezést.
-   */
+  /
+    Ha cím is van, név és cím alapján
+    keressük a pontos egyezést.
+   /
   if (normalizedAddress) {
     const nameAddressClient =
       clientsWithSameName.find((client) => {
@@ -214,10 +215,10 @@ async function createClientIfMissing({
     }
   }
 
-  /*
-   * Ha nincs email, telefonszám és cím,
-   * a pontos névegyezést használjuk.
-   */
+  /
+    Ha nincs email, telefonszám és cím,
+    a pontos névegyezést használjuk.
+   /
   if (
     !cleanEmail &&
     !normalizedPhone &&
@@ -231,10 +232,10 @@ async function createClientIfMissing({
     };
   }
 
-  /*
-   * Nem találtunk meglévő ügyfelet,
-   * ezért létrehozzuk.
-   */
+  /
+    Nem találtunk meglévő ügyfelet,
+    ezért létrehozzuk.
+   /
   const newClient =
     await prisma.client.create({
       data: {
@@ -381,9 +382,9 @@ export async function PUT(
     const note =
       cleanText(formData.get("note"));
 
-    /*
-     * Email-címzettek feldolgozása.
-     */
+    /
+      Email-címzettek feldolgozása.
+     /
     const recipientsRaw =
       cleanText(
         formData.get("recipients")
@@ -426,9 +427,9 @@ export async function PUT(
           .filter(Boolean);
     }
 
-    /*
-     * Időpontok feldolgozása.
-     */
+    /
+      Időpontok feldolgozása.
+     /
     const scheduledAtRaw =
       cleanText(
         formData.get("scheduledAt")
@@ -458,9 +459,9 @@ export async function PUT(
         ? `Email: ${email}`
         : "";
 
-    /*
-     * Jelenlegi képek lekérése.
-     */
+    /
+      Jelenlegi képek lekérése.
+     /
     const currentTasks = await sql`
       SELECT "images"
       FROM "Task"
@@ -495,9 +496,9 @@ export async function PUT(
       }
     }
 
-    /*
-     * Megtartandó képek feldolgozása.
-     */
+    /
+      Megtartandó képek feldolgozása.
+     /
     let keptImages: string[] = [];
 
     const existingImagesRaw =
@@ -518,9 +519,9 @@ export async function PUT(
       }
     }
 
-    /*
-     * Eltávolított képek törlése.
-     */
+    /
+      Eltávolított képek törlése.
+     /
     const imagesToDelete =
       oldImagesInDb.filter((imageUrl) => {
         return !keptImages.includes(
@@ -548,9 +549,9 @@ export async function PUT(
       }
     }
 
-    /*
-     * Új képek feltöltése.
-     */
+    /
+      Új képek feltöltése.
+     /
     const photos =
       formData.getAll("photos") as File[];
 
@@ -610,9 +611,9 @@ export async function PUT(
       ...newImageUrls,
     ];
 
-    /*
-     * Munka frissítése.
-     */
+    /
+      Munka frissítése.
+     /
     const updatedTasks = await sql`
       UPDATE "Task"
       SET
@@ -644,10 +645,10 @@ export async function PUT(
       );
     }
 
-    /*
-     * Ügyfél ellenőrzése és szükség esetén
-     * automatikus létrehozása.
-     */
+    /
+      Ügyfél ellenőrzése és szükség esetén
+      automatikus létrehozása.
+     /
     let clientSyncResult:
       | ClientSyncResult
       | null = null;
@@ -682,9 +683,9 @@ export async function PUT(
       );
     }
 
-    /*
-     * Email-küldés.
-     */
+    /
+      Email-küldés.
+     /
     let emailSent = false;
 
     if (notificationEmails.length > 0) {
