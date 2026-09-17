@@ -135,7 +135,7 @@ async function createClientIfMissing({
     *rendelkező ügyfeleket, majd egységes
     *formátumban hasonlítjuk össze.
    */
- const normalizedPhone =
+const normalizedPhone =
   normalizePhone(cleanPhone);
 
 if (normalizedPhone) {
@@ -167,28 +167,25 @@ if (normalizedPhone) {
       clientId: phoneClient.id,
     };
   }
- }
+}
 
-  /*
-    * 3. Ellenőrzés név alapján.
-  */
-  const clientsWithSameName =
-    await prisma.client.findMany({
-      where: {
-        name: {
-          equals: cleanName,
-          mode: "insensitive",
-        },
+const clientsWithSameName =
+  await prisma.client.findMany({
+    where: {
+      name: {
+        equals: cleanName,
+        mode: "insensitive",
       },
-      select: {
-        id: true,
-        name: true,
-        address: true,
-      },
-    });
+    },
+    select: {
+      id: true,
+      name: true,
+      address: true,
+    },
+  });
 
-  const normalizedAddress =
-    normalizeText(cleanAddress);
+const normalizedAddress =
+  normalizeText(cleanAddress);
 
   /
     Ha cím is van, név és cím alapján
