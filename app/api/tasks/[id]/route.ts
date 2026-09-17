@@ -423,9 +423,9 @@ export async function PUT(
           .filter(Boolean);
     }
 
-    /
-      Időpontok feldolgozása.
-     /
+    /*
+    *  Időpontok feldolgozása.
+     */
     const scheduledAtRaw =
       cleanText(
         formData.get("scheduledAt")
@@ -455,9 +455,9 @@ export async function PUT(
         ? `Email: ${email}`
         : "";
 
-    /
-      Jelenlegi képek lekérése.
-     /
+    /*
+     * Jelenlegi képek lekérése.
+     */
     const currentTasks = await sql`
       SELECT "images"
       FROM "Task"
@@ -492,9 +492,9 @@ export async function PUT(
       }
     }
 
-    /
-      Megtartandó képek feldolgozása.
-     /
+    /*
+     * Megtartandó képek feldolgozása.
+     */
     let keptImages: string[] = [];
 
     const existingImagesRaw =
@@ -515,9 +515,9 @@ export async function PUT(
       }
     }
 
-    /
-      Eltávolított képek törlése.
-     /
+    /*
+     * Eltávolított képek törlése.
+     */
     const imagesToDelete =
       oldImagesInDb.filter((imageUrl) => {
         return !keptImages.includes(
@@ -545,9 +545,9 @@ export async function PUT(
       }
     }
 
-    /
-      Új képek feltöltése.
-     /
+    /*
+     * Új képek feltöltése.
+     */
     const photos =
       formData.getAll("photos") as File[];
 
@@ -607,9 +607,9 @@ export async function PUT(
       ...newImageUrls,
     ];
 
-    /
-      Munka frissítése.
-     /
+    /*
+     * Munka frissítése.
+     */
     const updatedTasks = await sql`
       UPDATE "Task"
       SET
@@ -679,9 +679,9 @@ export async function PUT(
       );
     }
 
-    /
-      Email-küldés.
-     /
+    /*
+     * Email-küldés.
+     */
     let emailSent = false;
 
     if (notificationEmails.length > 0) {
