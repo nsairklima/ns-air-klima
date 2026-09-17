@@ -187,10 +187,10 @@ const clientsWithSameName =
 const normalizedAddress =
   normalizeText(cleanAddress);
 
-  /
-    Ha cím is van, név és cím alapján
-    keressük a pontos egyezést.
-   /
+  /*
+   * Ha cím is van, név és cím alapján
+   * keressük a pontos egyezést.
+   */
   if (normalizedAddress) {
     const nameAddressClient =
       clientsWithSameName.find((client) => {
@@ -211,10 +211,10 @@ const normalizedAddress =
     }
   }
 
-  /
-    Ha nincs email, telefonszám és cím,
-    a pontos névegyezést használjuk.
-   /
+  /*
+   * Ha nincs email, telefonszám és cím,
+   * a pontos névegyezést használjuk.
+   */
   if (
     !cleanEmail &&
     !normalizedPhone &&
@@ -228,10 +228,10 @@ const normalizedAddress =
     };
   }
 
-  /
-    Nem találtunk meglévő ügyfelet,
-    ezért létrehozzuk.
-   /
+  /*
+    * Nem találtunk meglévő ügyfelet,
+   * ezért létrehozzuk.
+   */
   const newClient =
     await prisma.client.create({
       data: {
