@@ -252,6 +252,13 @@ export async function POST(request: Request) {
 
     const name = cleanText(formData.get("name"));
     const address = cleanText(formData.get("address"));
+    const latitude = Number(
+  formData.get("latitude")
+) || null;
+
+const longitude = Number(
+  formData.get("longitude")
+) || null;
     const phone = cleanText(formData.get("phone"));
     const email = cleanText(formData.get("email"));
     const note = cleanText(formData.get("note"));
