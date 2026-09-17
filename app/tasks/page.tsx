@@ -422,14 +422,99 @@ const [statusType, setStatusType] =
     setEnvEmails((prev) => prev.filter((e) => e !== emailToRemove));
     setSelectedRecipients((prev) => prev.filter((e) => e !== emailToRemove));
   };
+const resizeImage = (
+  file: File
+): Promise<File> => {
+  return new Promise((resolve) => {
+    const img = new Image();
 
-  const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const newFile = e.target.files[0];
-      setPhotos((prev) => [...prev, newFile]);
-      e.target.value = "";
-    }
-  };
+    img.onload = () => {
+      const canvas =
+        document.createElement("canvas");
+
+      const ctx =
+        canvas.getContext("2d");
+
+      let width = img.width;
+      let height = img.height;
+
+      const MAX_SIZE = 1600;
+
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height =
+            (height * MAX_SIZE) / width;
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width =
+            (width * MAX_SIZE) / height;
+          height = MAX_SIZE;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      ctx?.drawImage(
+        img,
+        0,
+        0,
+        width,
+        height
+      );
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+
+          const compressedFile =
+            new File(
+              [blob],
+              file.name,
+              {
+                type: "image/jpeg",
+              }
+            );
+
+          resolve(compressedFile);
+        },
+
+        "image/jpeg",
+
+        0.75
+      );
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
+const handleAddPhoto = async (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  if (!e.target.files?.length) return;
+
+  const files =
+    Array.from(e.target.files);
+
+  const compressedFiles =
+    await Promise.all(
+      files.map((file) =>
+        resizeImage(file)
+      )
+    );
+
+  setPhotos((prev) => [
+    ...prev,
+    ...compressedFiles,
+  ]);
+
+  e.target.value = "";
+};
 
   const handleRemoveNewPhoto = (indexToRemove: number) => {
     setPhotos((prev) => prev.filter((_, index) => index !== indexToRemove));
@@ -900,7 +985,12 @@ return true;
               ))}
               <label style={{ display: "inline-block", background: "#34495e", color: "white", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "13px", marginTop: "4px" }}>
                 ➕ Kép hozzáadása
-                <input type="file" accept="image/*" onChange={handleAddPhoto} style={{ display: "none" }} />
+                <input
+  type="file"
+  accept="image/*"
+  multiple
+  onChange={handleAddPhoto}
+/>
               </label>
             </div>
 
