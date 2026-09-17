@@ -417,31 +417,7 @@ try {
   );
 }
     
-let latitude: number | null = null;
-let longitude: number | null = null;
 
-try {
-  if (address.trim()) {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hu&q=${encodeURIComponent(address)}`
-    );
-
-    const data = await response.json();
-
-    if (
-      Array.isArray(data) &&
-      data.length > 0
-    ) {
-      latitude = Number(data[0].lat);
-      longitude = Number(data[0].lon);
-    }
-  }
-} catch (error) {
-  console.error(
-    "Geokódolási hiba:",
-    error
-  );
-}
     
     /*
      * Munka létrehozása.
