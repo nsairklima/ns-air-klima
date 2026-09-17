@@ -383,6 +383,32 @@ console.log("POST completedAt:", completedAt);
         ? `Email: ${email}`
         : "";
 
+let latitude: number | null = null;
+let longitude: number | null = null;
+
+try {
+  if (address.trim()) {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hu&q=${encodeURIComponent(address)}`
+    );
+
+    const data = await response.json();
+
+    if (
+      Array.isArray(data) &&
+      data.length > 0
+    ) {
+      latitude = Number(data[0].lat);
+      longitude = Number(data[0].lon);
+    }
+  }
+} catch (error) {
+  console.error(
+    "Geokódolási hiba:",
+    error
+  );
+}
+    
     /*
      * Munka létrehozása.
      */
@@ -396,9 +422,11 @@ console.log("POST completedAt:", completedAt);
         "date",
         "description",
         "images",
-        "scheduled_at",
-        "completed_at",
-        "updatedAt"
+       "scheduled_at",
+"completed_at",
+"latitude",
+"longitude",
+"updatedAt"
       )
       VALUES (
         ${type},
@@ -409,8 +437,10 @@ console.log("POST completedAt:", completedAt);
         ${currentDate},
         ${description},
         ${JSON.stringify(imageUrls)},
-       ${scheduledAt}::timestamp without time zone,
-${completedAt}::timestamp without time zone,
+      ${scheduledAt},
+${completedAt},
+${latitude},
+${longitude},
 NOW()
 
       )
