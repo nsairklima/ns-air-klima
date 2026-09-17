@@ -528,11 +528,43 @@ const handleAddPhoto = async (
     e.preventDefault();
     setLoading(true);
     setStatusMessage("");
+let latitude = "";
+let longitude = "";
 
+if (address.trim()) {
+  try {
+    const coordinates =
+      await findCoordinates(address);
+
+    if (coordinates) {
+      latitude =
+        coordinates.lat.toString();
+
+      longitude =
+        coordinates.lng.toString();
+    }
+  } catch (error) {
+    console.error(
+      "Koordináta lekérési hiba:",
+      error
+    );
+  }
+}
     const formData = new FormData();
     formData.append("type", type);
     formData.append("name", name);
     formData.append("address", address);
+formData.append(
+  "latitude",
+  latitude
+);
+
+formData.append(
+  "longitude",
+  longitude
+);
+
+    
     formData.append("phone", phone);
     formData.append("email", email);
     formData.append("note", note);
