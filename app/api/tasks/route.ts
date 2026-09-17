@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
 import nodemailer from "nodemailer";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -10,34 +11,60 @@ const sql = neon(process.env.POSTGRES_URL || "");
 try {
   cloudinary.config();
 } catch (error) {
-  console.error("Cloudinary config hiba:", error);
+  console.error("Cloudinary konfigurációs hiba:", error);
 }
 
-function cleanValue(value: string) {
-  return value.trim();
+function cleanText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
 }
+
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function normalizePhone(value: string): string {
+  return value.replace(/[^0-9+]/g, "");
+}
+
+function normalizeGeneralText(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("hu-HU")
+    .replace(/\s+/g, " ");
+}
+
+type ClientSyncResult = {
+  created: boolean;
+  reason:
+    | "created"
+    | "existing-email"
+    | "existing-phone"
+    | "existing-name-address"
+    | "existing-name"
+    | "missing-name";
+  clientId?: number;
+};
 
 async function createClientIfMissing({
   name,
   address,
   phone,
   email,
+  note,
 }: {
   name: string;
   address: string;
   phone: string;
   email: string;
-}) {
-  const cleanName = cleanValue(name);
-  const cleanAddress = cleanValue(address);
-  const cleanPhone = cleanValue(phone);
-  const cleanEmail = cleanValue(email).toLowerCase();
+  note: string;
+}): Promise<ClientSyncResult> {
+  const cleanName = cleanText(name);
+  const cleanAddress = cleanText(address);
+  const cleanPhone = cleanText(phone);
+  const cleanEmail = normalizeEmail(cleanText(email));
+  const cleanNote = cleanText(note);
 
   if (!cleanName) {
-    console.log(
-      "Az ügyfél nem került létrehozásra, mert nincs megadva név."
-    );
-
     return {
       created: false,
       reason: "missing-name",
@@ -45,143 +72,174 @@ async function createClientIfMissing({
   }
 
   /*
-   * 1. Email alapján keresünk, ha van email.
+   * Lehetséges egyezések lekérése.
+   *
+   * Ugyanazt a Prisma Client modellt használjuk,
+   * mint az app/api/clients/route.ts.
+   */
+  const possibleClients = await prisma.client.findMany({
+    where: {
+      OR: [
+        ...(cleanEmail
+          ? [
+              {
+                email: {
+                  equals: cleanEmail,
+                  mode: "insensitive" as const,
+                },
+              },
+            ]
+          : []),
+
+        ...(cleanPhone
+          ? [
+              {
+                phone: {
+                  not: null,
+                },
+              },
+            ]
+          : []),
+
+        {
+          name: {
+            equals: cleanName,
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      address: true,
+      phone: true,
+      email: true,
+    },
+  });
+
+  /*
+   * 1. Email alapján ellenőrzés.
    */
   if (cleanEmail) {
-    const clientsByEmail = await sql`
-      SELECT
-        "id",
-        "name"
-      FROM "Client"
-      WHERE LOWER(TRIM(COALESCE("email", ''))) = ${cleanEmail}
-      LIMIT 1
-    `;
-
-    if (clientsByEmail.length > 0) {
-      console.log(
-        "Az ügyfél már létezik email alapján:",
-        clientsByEmail[0]
+    const emailMatch = possibleClients.find((client) => {
+      return (
+        normalizeEmail(client.email || "") === cleanEmail
       );
+    });
 
+    if (emailMatch) {
       return {
         created: false,
         reason: "existing-email",
-        client: clientsByEmail[0],
+        clientId: emailMatch.id,
       };
     }
   }
 
   /*
-   * 2. Telefonszám alapján keresünk, ha van telefonszám.
-   *
-   * A regexp_replace eltávolítja a szóközöket,
-   * kötőjeleket, zárójeleket és egyéb karaktereket.
+   * 2. Telefonszám alapján ellenőrzés.
    */
-  if (cleanPhone) {
-    const clientsByPhone = await sql`
-      SELECT
-        "id",
-        "name"
-      FROM "Client"
-      WHERE
-        REGEXP_REPLACE(
-          COALESCE("phone", ''),
-          '[^0-9+]',
-          '',
-          'g'
-        ) =
-        REGEXP_REPLACE(
-          ${cleanPhone},
-          '[^0-9+]',
-          '',
-          'g'
-        )
-      LIMIT 1
-    `;
+  const normalizedPhone = normalizePhone(cleanPhone);
 
-    if (clientsByPhone.length > 0) {
-      console.log(
-        "Az ügyfél már létezik telefonszám alapján:",
-        clientsByPhone[0]
+  if (normalizedPhone) {
+    const phoneMatch = possibleClients.find((client) => {
+      return (
+        normalizePhone(client.phone || "") ===
+        normalizedPhone
       );
+    });
 
+    if (phoneMatch) {
       return {
         created: false,
         reason: "existing-phone",
-        client: clientsByPhone[0],
+        clientId: phoneMatch.id,
       };
     }
   }
 
   /*
-   * 3. Név és cím alapján keresünk.
+   * 3. Név és cím alapján ellenőrzés.
    */
-  const clientsByNameAndAddress = await sql`
-    SELECT
-      "id",
-      "name"
-    FROM "Client"
-    WHERE
-      LOWER(TRIM("name")) = LOWER(TRIM(${cleanName}))
-      AND
-      LOWER(TRIM(COALESCE("address", ''))) =
-      LOWER(TRIM(${cleanAddress}))
-    LIMIT 1
-  `;
+  const normalizedName =
+    normalizeGeneralText(cleanName);
 
-  if (clientsByNameAndAddress.length > 0) {
-    console.log(
-      "Az ügyfél már létezik név és cím alapján:",
-      clientsByNameAndAddress[0]
+  const normalizedAddress =
+    normalizeGeneralText(cleanAddress);
+
+  if (normalizedAddress) {
+    const nameAddressMatch = possibleClients.find(
+      (client) => {
+        return (
+          normalizeGeneralText(client.name) ===
+            normalizedName &&
+          normalizeGeneralText(client.address || "") ===
+            normalizedAddress
+        );
+      }
     );
 
-    return {
-      created: false,
-      reason: "existing-name-address",
-      client: clientsByNameAndAddress[0],
-    };
+    if (nameAddressMatch) {
+      return {
+        created: false,
+        reason: "existing-name-address",
+        clientId: nameAddressMatch.id,
+      };
+    }
   }
 
   /*
-   * Ha egyik keresés sem adott találatot,
-   * létrehozzuk az ügyfelet.
+   * 4. Ha nincs email, telefonszám és cím,
+   * csak pontos névegyezés alapján ellenőrzünk.
    */
-  const insertedClients = await sql`
-    INSERT INTO "Client" (
-      "name",
-      "address",
-      "phone",
-      "email",
-      "notes",
-      "createdAt",
-      "updatedAt"
-    )
-    VALUES (
-      ${cleanName},
-      ${cleanAddress || null},
-      ${cleanPhone || null},
-      ${cleanEmail || null},
-      ${"Automatikusan létrehozva új munka rögzítésekor."},
-      NOW(),
-      NOW()
-    )
-    RETURNING
-      "id",
-      "name",
-      "address",
-      "phone",
-      "email"
-  `;
+  if (!cleanEmail && !normalizedPhone && !normalizedAddress) {
+    const nameMatch = possibleClients.find((client) => {
+      return (
+        normalizeGeneralText(client.name) ===
+        normalizedName
+      );
+    });
+
+    if (nameMatch) {
+      return {
+        created: false,
+        reason: "existing-name",
+        clientId: nameMatch.id,
+      };
+    }
+  }
+
+  /*
+   * Nincs megfelelő meglévő ügyfél,
+   * ezért létrehozzuk.
+   */
+  const newClient = await prisma.client.create({
+    data: {
+      name: cleanName,
+      address: cleanAddress || null,
+      phone: cleanPhone || null,
+      email: cleanEmail || null,
+      notes: cleanNote
+        ? cleanNote +
+          "\n\nAutomatikusan létrehozva munkafelvételkor."
+        : "Automatikusan létrehozva munkafelvételkor.",
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
 
   console.log(
     "Új ügyfél automatikusan létrehozva:",
-    insertedClients[0]
+    newClient
   );
 
   return {
     created: true,
-    reason: "new-client",
-    client: insertedClients[0],
+    reason: "created",
+    clientId: newClient.id,
   };
 }
 
@@ -190,29 +248,20 @@ export async function POST(request: Request) {
     const formData = await request.formData();
 
     const type =
-      (formData.get("type") as string) ||
-      "telepites";
+      cleanText(formData.get("type")) || "telepites";
 
-    const name =
-      (formData.get("name") as string) || "";
-
-    const address =
-      (formData.get("address") as string) || "";
-
-    const phone =
-      (formData.get("phone") as string) || "";
-
-    const email =
-      (formData.get("email") as string) || "";
-
-    const note =
-      (formData.get("note") as string) || "";
+    const name = cleanText(formData.get("name"));
+    const address = cleanText(formData.get("address"));
+    const phone = cleanText(formData.get("phone"));
+    const email = cleanText(formData.get("email"));
+    const note = cleanText(formData.get("note"));
 
     /*
-     * Címzettek feldolgozása.
+     * Email-címzettek feldolgozása.
      */
-    const recipientsRaw =
-      formData.get("recipients") as string;
+    const recipientsRaw = cleanText(
+      formData.get("recipients")
+    );
 
     let notificationEmails: string[] = [];
 
@@ -222,41 +271,40 @@ export async function POST(request: Request) {
           JSON.parse(recipientsRaw);
 
         if (Array.isArray(parsedRecipients)) {
-          notificationEmails =
-            parsedRecipients
-              .map((item) => String(item).trim())
-              .filter(Boolean);
+          notificationEmails = parsedRecipients
+            .map((item) => cleanText(item))
+            .filter(Boolean);
         }
       } catch {
-        notificationEmails =
-          recipientsRaw
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean);
+        notificationEmails = recipientsRaw
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
       }
     }
 
     if (notificationEmails.length === 0) {
-      const envEmails =
+      const environmentEmails =
         process.env.NOTIFICATION_EMAILS ||
         process.env.EMAIL_USER ||
         "";
 
-      notificationEmails =
-        envEmails
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
+      notificationEmails = environmentEmails
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
     }
 
     /*
      * Időpontok feldolgozása.
      */
-    const scheduledAtRaw =
-      formData.get("scheduledAt") as string;
+    const scheduledAtRaw = cleanText(
+      formData.get("scheduledAt")
+    );
 
-    const completedAtRaw =
-      formData.get("completedAt") as string;
+    const completedAtRaw = cleanText(
+      formData.get("completedAt")
+    );
 
     const scheduledAt = scheduledAtRaw
       ? scheduledAtRaw.replace("T", " ")
@@ -269,70 +317,59 @@ export async function POST(request: Request) {
     /*
      * Képek feltöltése.
      */
-    const photos =
-      formData.getAll("photos") as File[];
-
+    const photos = formData.getAll("photos") as File[];
     const imageUrls: string[] = [];
 
     for (const photo of photos) {
-      if (
-        !photo ||
-        typeof photo !== "object" ||
-        !("size" in photo) ||
-        photo.size <= 0
-      ) {
+      if (!photo || photo.size <= 0) {
         continue;
       }
 
       try {
-        const arrayBuffer =
-          await photo.arrayBuffer();
+        const arrayBuffer = await photo.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-        const buffer =
-          Buffer.from(arrayBuffer);
-
-        const uploadResult =
-          await new Promise<any>(
-            (resolve, reject) => {
-              const uploadStream =
-                cloudinary.uploader.upload_stream(
-                  {
-                    folder: "tasks",
-                    resource_type: "auto",
-                  },
-                  (error, result) => {
-                    if (error) {
-                      reject(error);
-                      return;
-                    }
-
-                    resolve(result);
+        const uploadResult = await new Promise<any>(
+          (resolve, reject) => {
+            const uploadStream =
+              cloudinary.uploader.upload_stream(
+                {
+                  folder: "tasks",
+                  resource_type: "auto",
+                },
+                (uploadError, result) => {
+                  if (uploadError) {
+                    reject(uploadError);
+                    return;
                   }
-                );
 
-              uploadStream.end(buffer);
-            }
-          );
+                  resolve(result);
+                }
+              );
+
+            uploadStream.end(buffer);
+          }
+        );
 
         if (uploadResult?.secure_url) {
-          imageUrls.push(
-            uploadResult.secure_url
-          );
+          imageUrls.push(uploadResult.secure_url);
         }
       } catch (uploadError: any) {
         console.error(
           "Képfeltöltési hiba:",
-          uploadError?.message ||
-            uploadError
+          uploadError?.message || uploadError
         );
       }
     }
 
-    const currentDate =
-      new Date()
-        .toISOString()
-        .split("T")[0];
+    const currentDate = new Date()
+      .toISOString()
+      .split("T")[0];
 
+    /*
+     * Mivel a Task modellben nincs külön email mező,
+     * az email továbbra is a description mezőben marad.
+     */
     const description = note
       ? email
         ? `${note} | Email: ${email}`
@@ -342,7 +379,7 @@ export async function POST(request: Request) {
         : "";
 
     /*
-     * Munka adatbázisba mentése.
+     * Munka létrehozása.
      */
     const insertedTasks = await sql`
       INSERT INTO "Task" (
@@ -371,51 +408,57 @@ export async function POST(request: Request) {
         ${completedAt},
         NOW()
       )
-      RETURNING "id"
+      RETURNING
+        "id",
+        "clientName"
     `;
 
-    const newTaskId =
-      insertedTasks[0]?.id;
+    const newTaskId = insertedTasks[0]?.id;
+
+    console.log(
+      "Munka létrehozva, azonosító:",
+      newTaskId
+    );
 
     /*
-     * Ügyfél automatikus létrehozása,
-     * ha még nem szerepel a Client táblában.
+     * Ügyfél automatikus létrehozása.
+     *
+     * Ha ez hibára fut, most már a frontend
+     * megkapja a tényleges hibaüzenetet.
      */
-    let clientSyncResult: {
-      created: boolean;
-      reason: string;
-      client?: any;
-    } = {
-      created: false,
-      reason: "not-processed",
-    };
+    let clientSyncResult: ClientSyncResult;
 
     try {
-      clientSyncResult =
-        await createClientIfMissing({
-          name,
-          address,
-          phone,
-          email,
-        });
-    } catch (clientError) {
-      /*
-       * Az ügyfélszinkronizálás hibája nem törli
-       * a már sikeresen létrehozott munkát.
-       */
+      clientSyncResult = await createClientIfMissing({
+        name,
+        address,
+        phone,
+        email,
+        note,
+      });
+    } catch (clientError: any) {
       console.error(
         "Automatikus ügyféllétrehozási hiba:",
         clientError
       );
 
-      clientSyncResult = {
-        created: false,
-        reason: "client-sync-error",
-      };
+      return NextResponse.json(
+        {
+          error:
+            "A munka létrejött, de az ügyfél mentése nem sikerült: " +
+            (clientError?.message ||
+              String(clientError)),
+          taskId: newTaskId,
+          clientCreated: false,
+        },
+        {
+          status: 500,
+        }
+      );
     }
 
     /*
-     * Email-értesítés.
+     * Email-küldés.
      */
     let emailSent = false;
 
@@ -424,9 +467,7 @@ export async function POST(request: Request) {
         const transporter =
           nodemailer.createTransport({
             host: process.env.EMAIL_HOST,
-            port: Number(
-              process.env.EMAIL_PORT
-            ),
+            port: Number(process.env.EMAIL_PORT),
             secure: true,
             auth: {
               user: process.env.EMAIL_USER,
@@ -445,13 +486,10 @@ export async function POST(request: Request) {
         await transporter.sendMail({
           from:
             `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
-
           to: notificationEmails,
-
           subject:
             `📋 Új munka felvéve: ${typeLabel} ` +
             `(${name || "Névtelen"})`,
-
           html: `
             <div
               style="
@@ -466,218 +504,55 @@ export async function POST(request: Request) {
               <div
                 style="
                   background-color: #2c3e50;
-                  color: #ffffff;
+                  color: white;
                   padding: 20px;
                   text-align: center;
                 "
               >
                 <h2 style="margin: 0;">
-                  Új munka érkezett a rendszerbe
+                  Új munka érkezett
                 </h2>
 
-                <p
-                  style="
-                    margin: 5px 0 0 0;
-                    opacity: 0.8;
-                  "
-                >
+                <p style="margin: 6px 0 0;">
                   ${typeLabel}
                 </p>
               </div>
 
-              <div
-                style="
-                  padding: 20px;
-                  font-size: 14px;
-                  color: #333;
-                "
-              >
-                <table
-                  style="
-                    width: 100%;
-                    border-collapse: collapse;
-                  "
-                >
-                  <tr
-                    style="
-                      border-bottom: 1px solid #eee;
-                    "
-                  >
-                    <td
-                      style="
-                        padding: 10px;
-                        font-weight: bold;
-                        width: 35%;
-                      "
-                    >
-                      Munkaazonosító:
-                    </td>
+              <div style="padding: 20px;">
+                <p>
+                  <strong>Munkaazonosító:</strong>
+                  #${newTaskId || "-"}
+                </p>
 
-                    <td style="padding: 10px;">
-                      #${newTaskId || "-"}
-                    </td>
-                  </tr>
+                <p>
+                  <strong>Név:</strong>
+                  ${name || "-"}
+                </p>
 
-                  <tr
-                    style="
-                      border-bottom: 1px solid #eee;
-                    "
-                  >
-                    <td
-                      style="
-                        padding: 10px;
-                        font-weight: bold;
-                      "
-                    >
-                      Munkatípus:
-                    </td>
+                <p>
+                  <strong>Cím:</strong>
+                  ${address || "-"}
+                </p>
 
-                    <td style="padding: 10px;">
-                      ${typeLabel}
-                    </td>
-                  </tr>
+                <p>
+                  <strong>Telefon:</strong>
+                  ${phone || "-"}
+                </p>
 
-                  <tr
-                    style="
-                      border-bottom: 1px solid #eee;
-                    "
-                  >
-                    <td
-                      style="
-                        padding: 10px;
-                        font-weight: bold;
-                      "
-                    >
-                      Név:
-                    </td>
+                <p>
+                  <strong>Email:</strong>
+                  ${email || "-"}
+                </p>
 
-                    <td style="padding: 10px;">
-                      ${name || "-"}
-                    </td>
-                  </tr>
+                <p>
+                  <strong>Tervezett időpont:</strong>
+                  ${scheduledAt || "-"}
+                </p>
 
-                  <tr
-                    style="
-                      border-bottom: 1px solid #eee;
-                    "
-                  >
-                    <td
-                      style="
-                        padding: 10px;
-                        font-weight: bold;
-                      "
-                    >
-                      Cím:
-                    </td>
-
-                    <td style="padding: 10px;">
-                      ${address || "-"}
-                    </td>
-                  </tr>
-
-                  <tr
-                    style="
-                      border-bottom: 1px solid #eee;
-                    "
-                  >
-                    <td
-                      style="
-                        padding: 10px;
-                        font-weight: bold;
-                      "
-                    >
-                      Telefon:
-                    </td>
-
-                    <td style="padding: 10px;">
-                      ${phone || "-"}
-                    </td>
-                  </tr>
-
-                  <tr
-                    style="
-                      border-bottom: 1px solid #eee;
-                    "
-                  >
-                    <td
-                      style="
-                        padding: 10px;
-                        font-weight: bold;
-                      "
-                    >
-                      Email:
-                    </td>
-
-                    <td style="padding: 10px;">
-                      ${email || "-"}
-                    </td>
-                  </tr>
-
-                  <tr
-                    style="
-                      border-bottom: 1px solid #eee;
-                    "
-                  >
-                    <td
-                      style="
-                        padding: 10px;
-                        font-weight: bold;
-                      "
-                    >
-                      Tervezett időpont:
-                    </td>
-
-                    <td style="padding: 10px;">
-                      ${scheduledAt || "-"}
-                    </td>
-                  </tr>
-
-                  <tr
-                    style="
-                      border-bottom: 1px solid #eee;
-                    "
-                  >
-                    <td
-                      style="
-                        padding: 10px;
-                        font-weight: bold;
-                      "
-                    >
-                      Megvalósult időpont:
-                    </td>
-
-                    <td style="padding: 10px;">
-                      ${completedAt || "-"}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td
-                      style="
-                        padding: 10px;
-                        font-weight: bold;
-                      "
-                    >
-                      Megjegyzés:
-                    </td>
-
-                    <td style="padding: 10px;">
-                      ${note || "-"}
-                    </td>
-                  </tr>
-                </table>
-              </div>
-
-              <div
-                style="
-                  background-color: #f8f9fa;
-                  padding: 15px;
-                  text-align: center;
-                  font-size: 12px;
-                  color: #7f8c8d;
-                "
-              >
-                Automata üzenet az NS-AIR Rendszerből.
+                <p>
+                  <strong>Megjegyzés:</strong>
+                  ${note || "-"}
+                </p>
               </div>
             </div>
           `,
@@ -686,77 +561,20 @@ export async function POST(request: Request) {
         emailSent = true;
       } catch (mailError) {
         console.error(
-          "Email küldési hiba az új munkánál:",
+          "Email küldési hiba:",
           mailError
         );
       }
     }
 
-    let message =
-      "Munka sikeresen elmentve.";
+    let message = "Munka sikeresen elmentve.";
 
     if (clientSyncResult.created) {
       message +=
         " Az ügyfél automatikusan bekerült az ügyfelek közé.";
     } else if (
-      clientSyncResult.reason ===
-        "existing-email" ||
-      clientSyncResult.reason ===
-        "existing-phone" ||
-      clientSyncResult.reason ===
-        "existing-name-address"
+      clientSyncResult.reason === "missing-name"
     ) {
       message +=
-        " Az ügyfél már szerepelt az ügyfelek között.";
-    } else if (
-      clientSyncResult.reason ===
-      "missing-name"
-    ) {
-      message +=
-        " Ügyfél nem készült, mert nem volt megadva név.";
-    } else if (
-      clientSyncResult.reason ===
-      "client-sync-error"
-    ) {
-      message +=
-        " Az ügyfél automatikus mentése nem sikerült.";
-    }
-
-    if (emailSent) {
-      message +=
-        " Az értesítő email elküldve.";
-    } else if (
-      notificationEmails.length > 0
-    ) {
-      message +=
-        " Az email elküldése nem sikerült.";
-    }
-
-    return NextResponse.json({
-      message,
-      taskId: newTaskId,
-      clientCreated:
-        clientSyncResult.created,
-      clientId:
-        clientSyncResult.client?.id || null,
-      emailSent,
-      driveLinks: imageUrls,
-    });
-  } catch (error: any) {
-    console.error(
-      "Adatbázis mentési hiba részletei:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        error:
-          error?.message ||
-          "Hiba történt a mentés során.",
-      },
-      {
-        status: 500,
-      }
-    );
-  }
-}
+        " Ügyfél nem készült, mert nincs megadva név.";
+    } else
