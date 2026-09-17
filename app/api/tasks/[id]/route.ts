@@ -436,13 +436,18 @@ export async function PUT(
         formData.get("completedAt")
       );
 
-    const scheduledAt = scheduledAtRaw
-      ? scheduledAtRaw.replace("T", " ")
-      : null;
+   const scheduledAt = scheduledAtRaw
+  ? scheduledAtRaw.slice(0, 19).replace("T", " ")
+  : null;
 
-    const completedAt = completedAtRaw
-      ? completedAtRaw.replace("T", " ")
-      : null;
+const completedAt = completedAtRaw
+  ? completedAtRaw.slice(0, 19).replace("T", " ")
+  : null;
+
+console.log("PUT scheduledAtRaw:", scheduledAtRaw);
+console.log("PUT scheduledAt:", scheduledAt);
+console.log("PUT completedAtRaw:", completedAtRaw);
+console.log("PUT completedAt:", completedAt);
 
     const taskTitle =
       name || "Módosított munka";
@@ -622,8 +627,11 @@ export async function PUT(
         "images" = ${JSON.stringify(
           finalImages
         )},
-        "scheduled_at" = ${scheduledAt},
-        "completed_at" = ${completedAt},
+      "scheduled_at" =
+  ${scheduledAt}::timestamp without time zone,
+
+"completed_at" =
+  ${completedAt}::timestamp without time zone,
         "updatedAt" = NOW()
       WHERE "id" = ${taskId}
       RETURNING "id"
