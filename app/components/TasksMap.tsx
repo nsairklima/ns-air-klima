@@ -160,10 +160,16 @@ async function findCoordinates(
         continue;
       }
 
-      const coordinates: Coordinates = {
-        lat,
-        lng,
-      };
+    const coordinates =
+  task.latitude &&
+  task.longitude
+    ? {
+        lat: Number(task.latitude),
+        lng: Number(task.longitude),
+      }
+    : await findCoordinates(
+        task.address || ""
+      );
 
       window.localStorage.setItem(
         cacheKey,
