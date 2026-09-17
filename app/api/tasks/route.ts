@@ -11,26 +11,10 @@ const sql = neon(process.env.POSTGRES_URL || "");
 try {
   cloudinary.config();
 } catch (error) {
-  console.error("Cloudinary konfigurációs hiba:", error);
-}
-
-function cleanText(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizeEmail(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-function normalizePhone(value: string): string {
-  return value.replace(/[^0-9+]/g, "");
-}
-
-function normalizeGeneralText(value: string): string {
-  return value
-    .trim()
-    .toLocaleLowerCase("hu-HU")
-    .replace(/\s+/g, " ");
+  console.error(
+    "Cloudinary konfigurációs hiba:",
+    error
+  );
 }
 
 type ClientSyncResult = {
@@ -44,6 +28,45 @@ type ClientSyncResult = {
     | "missing-name";
   clientId?: number;
 };
+
+function cleanText(value: unknown): string {
+  return typeof value === "string"
+    ? value.trim()
+    : "";
+}
+
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function normalizePhone(value: string): string {
+  return value.replace(/[^0-9+]/g, "");
+}
+
+function normalizeGeneralText(
+  value: string
+): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("hu-HU")
+    .replace(/\s+/g, " ");
+}
+
+function parseCoordinate(
+  value: FormDataEntryValue | null
+): number | null {
+  const rawValue = cleanText(value);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  const parsedValue = Number(rawValue);
+
+  return Number.isFinite(parsedValue)
+    ? parsedValue
+    : null;
+}
 
 async function createClientIfMissing({
   name,
@@ -61,7 +84,9 @@ async function createClientIfMissing({
   const cleanName = cleanText(name);
   const cleanAddress = cleanText(address);
   const cleanPhone = cleanText(phone);
-  const cleanEmail = normalizeEmail(cleanText(email));
+  const cleanEmail = normalizeEmail(
+    cleanText(email)
+  );
   const cleanNote = cleanText(note);
 
   if (!cleanName) {
@@ -71,62 +96,56 @@ async function createClientIfMissing({
     };
   }
 
-  /*
-   * Lehetséges egyezések lekérése.
-   *
-   * Ugyanazt a Prisma Client modellt használjuk,
-   * mint az app/api/clients/route.ts.
-   */
-  const possibleClients = await prisma.client.findMany({
-    where: {
-      OR: [
-        ...(cleanEmail
-          ? [
-              {
-                email: {
-                  equals: cleanEmail,
-                  mode: "insensitive" as const,
+  const possibleClients =
+    await prisma.client.findMany({
+      where: {
+        OR: [
+          ...(cleanEmail
+            ? [
+                {
+                  email: {
+                    equals: cleanEmail,
+                    mode: "insensitive" as const,
+                  },
                 },
-              },
-            ]
-          : []),
+              ]
+            : []),
 
-        ...(cleanPhone
-          ? [
-              {
-                phone: {
-                  not: null,
+          ...(cleanPhone
+            ? [
+                {
+                  phone: {
+                    not: null,
+                  },
                 },
-              },
-            ]
-          : []),
+              ]
+            : []),
 
-        {
-          name: {
-            equals: cleanName,
-            mode: "insensitive",
+          {
+            name: {
+              equals: cleanName,
+              mode: "insensitive",
+            },
           },
-        },
-      ],
-    },
-    select: {
-      id: true,
-      name: true,
-      address: true,
-      phone: true,
-      email: true,
-    },
-  });
-
-  /*
-   * 1. Email alapján ellenőrzés.
-   */
-  if (cleanEmail) {
-    const emailMatch = possibleClients.find((client) => {
-      return (
-        normalizeEmail(client.email || "") === cleanEmail
-      );
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        phone: true,
+        email: true,
+      },
     });
+
+  if (cleanEmail) {
+    const emailMatch =
+      possibleClients.find((client) => {
+        return (
+          normalizeEmail(client.email || "") ===
+          cleanEmail
+        );
+      });
 
     if (emailMatch) {
       return {
@@ -137,18 +156,18 @@ async function createClientIfMissing({
     }
   }
 
-  /*
-   * 2. Telefonszám alapján ellenőrzés.
-   */
-  const normalizedPhone = normalizePhone(cleanPhone);
+  const normalizedPhone =
+    normalizePhone(cleanPhone);
 
   if (normalizedPhone) {
-    const phoneMatch = possibleClients.find((client) => {
-      return (
-        normalizePhone(client.phone || "") ===
-        normalizedPhone
-      );
-    });
+    const phoneMatch =
+      possibleClients.find((client) => {
+        return (
+          normalizePhone(
+            client.phone || ""
+          ) === normalizedPhone
+        );
+      });
 
     if (phoneMatch) {
       return {
@@ -159,9 +178,6 @@ async function createClientIfMissing({
     }
   }
 
-  /*
-   * 3. Név és cím alapján ellenőrzés.
-   */
   const normalizedName =
     normalizeGeneralText(cleanName);
 
@@ -169,16 +185,17 @@ async function createClientIfMissing({
     normalizeGeneralText(cleanAddress);
 
   if (normalizedAddress) {
-    const nameAddressMatch = possibleClients.find(
-      (client) => {
+    const nameAddressMatch =
+      possibleClients.find((client) => {
         return (
-          normalizeGeneralText(client.name) ===
-            normalizedName &&
-          normalizeGeneralText(client.address || "") ===
-            normalizedAddress
+          normalizeGeneralText(
+            client.name
+          ) === normalizedName &&
+          normalizeGeneralText(
+            client.address || ""
+          ) === normalizedAddress
         );
-      }
-    );
+      });
 
     if (nameAddressMatch) {
       return {
@@ -189,17 +206,19 @@ async function createClientIfMissing({
     }
   }
 
-  /*
-   * 4. Ha nincs email, telefonszám és cím,
-   * csak pontos névegyezés alapján ellenőrzünk.
-   */
-  if (!cleanEmail && !normalizedPhone && !normalizedAddress) {
-    const nameMatch = possibleClients.find((client) => {
-      return (
-        normalizeGeneralText(client.name) ===
-        normalizedName
-      );
-    });
+  if (
+    !cleanEmail &&
+    !normalizedPhone &&
+    !normalizedAddress
+  ) {
+    const nameMatch =
+      possibleClients.find((client) => {
+        return (
+          normalizeGeneralText(
+            client.name
+          ) === normalizedName
+        );
+      });
 
     if (nameMatch) {
       return {
@@ -210,26 +229,23 @@ async function createClientIfMissing({
     }
   }
 
-  /*
-   * Nincs megfelelő meglévő ügyfél,
-   * ezért létrehozzuk.
-   */
-  const newClient = await prisma.client.create({
-    data: {
-      name: cleanName,
-      address: cleanAddress || null,
-      phone: cleanPhone || null,
-      email: cleanEmail || null,
-      notes: cleanNote
-        ? cleanNote +
-          "\n\nAutomatikusan létrehozva munkafelvételkor."
-        : "Automatikusan létrehozva munkafelvételkor.",
-    },
-    select: {
-      id: true,
-      name: true,
-    },
-  });
+  const newClient =
+    await prisma.client.create({
+      data: {
+        name: cleanName,
+        address: cleanAddress || null,
+        phone: cleanPhone || null,
+        email: cleanEmail || null,
+        notes: cleanNote
+          ? cleanNote +
+            "\n\nAutomatikusan létrehozva munkafelvételkor."
+          : "Automatikusan létrehozva munkafelvételkor.",
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
 
   console.log(
     "Új ügyfél automatikusan létrehozva:",
@@ -243,32 +259,55 @@ async function createClientIfMissing({
   };
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request
+) {
   try {
-    const formData = await request.formData();
+    const formData =
+      await request.formData();
 
     const type =
-      cleanText(formData.get("type")) || "telepites";
+      cleanText(formData.get("type")) ||
+      "telepites";
 
-    const name = cleanText(formData.get("name"));
-    const address = cleanText(formData.get("address"));
-    const latitude = Number(
-  formData.get("latitude")
-) || null;
+    const name =
+      cleanText(formData.get("name"));
 
-const longitude = Number(
-  formData.get("longitude")
-) || null;
-    const phone = cleanText(formData.get("phone"));
-    const email = cleanText(formData.get("email"));
-    const note = cleanText(formData.get("note"));
+    const address =
+      cleanText(formData.get("address"));
 
-    /*
-     * Email-címzettek feldolgozása.
-     */
-    const recipientsRaw = cleanText(
-      formData.get("recipients")
+    const phone =
+      cleanText(formData.get("phone"));
+
+    const email =
+      cleanText(formData.get("email"));
+
+    const note =
+      cleanText(formData.get("note"));
+
+    const latitude =
+      parseCoordinate(
+        formData.get("latitude")
+      );
+
+    const longitude =
+      parseCoordinate(
+        formData.get("longitude")
+      );
+
+    console.log(
+      "Frontendről érkező koordináták:",
+      {
+        address,
+        latitude,
+        longitude,
+      }
     );
+
+    const recipientsRaw =
+      cleanText(
+        formData.get("recipients")
+      );
 
     let notificationEmails: string[] = [];
 
@@ -277,59 +316,84 @@ const longitude = Number(
         const parsedRecipients =
           JSON.parse(recipientsRaw);
 
-        if (Array.isArray(parsedRecipients)) {
-          notificationEmails = parsedRecipients
-            .map((item) => cleanText(item))
-            .filter(Boolean);
+        if (
+          Array.isArray(parsedRecipients)
+        ) {
+          notificationEmails =
+            parsedRecipients
+              .map((item) =>
+                cleanText(item)
+              )
+              .filter(Boolean);
         }
       } catch {
-        notificationEmails = recipientsRaw
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
+        notificationEmails =
+          recipientsRaw
+            .split(",")
+            .map((item) =>
+              item.trim()
+            )
+            .filter(Boolean);
       }
     }
 
-    if (notificationEmails.length === 0) {
+    if (
+      notificationEmails.length === 0
+    ) {
       const environmentEmails =
-        process.env.NOTIFICATION_EMAILS ||
+        process.env
+          .NOTIFICATION_EMAILS ||
         process.env.EMAIL_USER ||
         "";
 
-      notificationEmails = environmentEmails
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
+      notificationEmails =
+        environmentEmails
+          .split(",")
+          .map((item) =>
+            item.trim()
+          )
+          .filter(Boolean);
     }
 
-    /*
-     * Időpontok feldolgozása.
-     */
-    const scheduledAtRaw = cleanText(
-      formData.get("scheduledAt")
+    const scheduledAtRaw =
+      cleanText(
+        formData.get("scheduledAt")
+      );
+
+    const completedAtRaw =
+      cleanText(
+        formData.get("completedAt")
+      );
+
+    const scheduledAt =
+      scheduledAtRaw
+        ? scheduledAtRaw
+            .slice(0, 19)
+            .replace("T", " ")
+        : null;
+
+    const completedAt =
+      completedAtRaw
+        ? completedAtRaw
+            .slice(0, 19)
+            .replace("T", " ")
+        : null;
+
+    console.log(
+      "POST időpontok:",
+      {
+        scheduledAtRaw,
+        scheduledAt,
+        completedAtRaw,
+        completedAt,
+      }
     );
 
-    const completedAtRaw = cleanText(
-      formData.get("completedAt")
-    );
+    const photos =
+      formData.getAll(
+        "photos"
+      ) as File[];
 
-    const scheduledAt = scheduledAtRaw
-  ? scheduledAtRaw.slice(0, 19).replace("T", " ")
-  : null;
-
-const completedAt = completedAtRaw
-  ? completedAtRaw.slice(0, 19).replace("T", " ")
-  : null;
-
-console.log("POST scheduledAtRaw:", scheduledAtRaw);
-console.log("POST scheduledAt:", scheduledAt);
-console.log("POST completedAtRaw:", completedAtRaw);
-console.log("POST completedAt:", completedAt);
-
-    /*
-     * Képek feltöltése.
-     */
-    const photos = formData.getAll("photos") as File[];
     const imageUrls: string[] = [];
 
     for (const photo of photos) {
@@ -338,50 +402,63 @@ console.log("POST completedAt:", completedAt);
       }
 
       try {
-        const arrayBuffer = await photo.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const arrayBuffer =
+          await photo.arrayBuffer();
 
-        const uploadResult = await new Promise<any>(
-          (resolve, reject) => {
-            const uploadStream =
-              cloudinary.uploader.upload_stream(
-                {
-                  folder: "tasks",
-                  resource_type: "auto",
-                },
-                (uploadError, result) => {
-                  if (uploadError) {
-                    reject(uploadError);
-                    return;
-                  }
+        const buffer =
+          Buffer.from(arrayBuffer);
 
-                  resolve(result);
-                }
-              );
+        const uploadResult =
+          await new Promise<any>(
+            (resolve, reject) => {
+              const uploadStream =
+                cloudinary.uploader
+                  .upload_stream(
+                    {
+                      folder: "tasks",
+                      resource_type:
+                        "auto",
+                    },
+                    (
+                      uploadError,
+                      result
+                    ) => {
+                      if (uploadError) {
+                        reject(
+                          uploadError
+                        );
+                        return;
+                      }
 
-            uploadStream.end(buffer);
-          }
-        );
+                      resolve(result);
+                    }
+                  );
 
-        if (uploadResult?.secure_url) {
-          imageUrls.push(uploadResult.secure_url);
+              uploadStream.end(buffer);
+            }
+          );
+
+        if (
+          uploadResult?.secure_url
+        ) {
+          imageUrls.push(
+            uploadResult.secure_url
+          );
         }
       } catch (uploadError: any) {
         console.error(
           "Képfeltöltési hiba:",
-          uploadError?.message || uploadError
+          uploadError?.message ||
+            uploadError
         );
       }
     }
 
-    const currentDate = new Date()
-      .toISOString()
-      .split("T")[0];
+    const currentDate =
+      new Date()
+        .toISOString()
+        .split("T")[0];
 
-    /*
-     * Mivel a Task modellben nincs külön email mező,
-     * az email továbbra is a description mezőben marad.
-     */
     const description = note
       ? email
         ? `${note} | Email: ${email}`
@@ -390,104 +467,73 @@ console.log("POST completedAt:", completedAt);
         ? `Email: ${email}`
         : "";
 
-let latitude: number | null = null;
-let longitude: number | null = null;
+    const insertedTasks =
+      await sql`
+        INSERT INTO "Task" (
+          "type",
+          "title",
+          "clientName",
+          "address",
+          "phone",
+          "date",
+          "description",
+          "images",
+          "scheduled_at",
+          "completed_at",
+          "latitude",
+          "longitude",
+          "updatedAt"
+        )
+        VALUES (
+          ${type},
+          ${name || "Új munka"},
+          ${name},
+          ${address},
+          ${phone},
+          ${currentDate},
+          ${description},
+          ${JSON.stringify(
+            imageUrls
+          )},
+          ${scheduledAt},
+          ${completedAt},
+          ${latitude},
+          ${longitude},
+          NOW()
+        )
+        RETURNING
+          "id",
+          "clientName",
+          "latitude",
+          "longitude"
+      `;
 
-try {
-  if (address.trim()) {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hu&q=${encodeURIComponent(address)}`
-    );
-
-    const data = await response.json();
-
-    if (
-      Array.isArray(data) &&
-      data.length > 0
-    ) {
-      latitude = Number(data[0].lat);
-      longitude = Number(data[0].lon);
-
-      console.log(
-        "Koordináták:",
-        latitude,
-        longitude
-      );
-    }
-  }
-} catch (error) {
-  console.error(
-    "Geokódolási hiba:",
-    error
-  );
-}
-
-    
-
-    
-    /*
-     * Munka létrehozása.
-     */
-    const insertedTasks = await sql`
-     INSERT INTO "Task" (
-     "type",
-"title",
-"clientName",
-"address",
-"phone",
-"date",
-"description",
-"images",
-  "scheduled_at",
-  "completed_at",
-  "latitude",
-  "longitude",
-  "updatedAt"
-)
-      VALUES (
-        ${type},
-        ${name || "Új munka"},
-        ${name},
-        ${address},
-        ${phone},
-        ${currentDate},
-        ${description},
-        ${JSON.stringify(imageUrls)},
-      ${scheduledAt},
-${completedAt},
-${latitude},
-${longitude},
-NOW()
-
-      )
-      RETURNING
-        "id",
-        "clientName"
-    `;
-
-    const newTaskId = insertedTasks[0]?.id;
+    const newTaskId =
+      insertedTasks[0]?.id;
 
     console.log(
-      "Munka létrehozva, azonosító:",
-      newTaskId
+      "Munka létrehozva:",
+      {
+        id: newTaskId,
+        latitude:
+          insertedTasks[0]?.latitude,
+        longitude:
+          insertedTasks[0]?.longitude,
+      }
     );
 
-    /*
-     * Ügyfél automatikus létrehozása.
-     *
-     * Ha ez hibára fut, most már a frontend
-     * megkapja a tényleges hibaüzenetet.
-     */
-    let clientSyncResult: ClientSyncResult;
+    let clientSyncResult:
+      ClientSyncResult;
 
     try {
-      clientSyncResult = await createClientIfMissing({
-        name,
-        address,
-        phone,
-        email,
-        note,
-      });
+      clientSyncResult =
+        await createClientIfMissing({
+          name,
+          address,
+          phone,
+          email,
+          note,
+        });
     } catch (clientError: any) {
       console.error(
         "Automatikus ügyféllétrehozási hiba:",
@@ -509,21 +555,25 @@ NOW()
       );
     }
 
-    /*
-     * Email-küldés.
-     */
     let emailSent = false;
 
-    if (notificationEmails.length > 0) {
+    if (
+      notificationEmails.length > 0
+    ) {
       try {
         const transporter =
           nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: Number(process.env.EMAIL_PORT),
+            host:
+              process.env.EMAIL_HOST,
+            port: Number(
+              process.env.EMAIL_PORT
+            ),
             secure: true,
             auth: {
-              user: process.env.EMAIL_USER,
-              pass: process.env.EMAIL_PASS,
+              user:
+                process.env.EMAIL_USER,
+              pass:
+                process.env.EMAIL_PASS,
             },
             tls: {
               rejectUnauthorized: false,
@@ -538,10 +588,13 @@ NOW()
         await transporter.sendMail({
           from:
             `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
+
           to: notificationEmails,
+
           subject:
             `📋 Új munka felvéve: ${typeLabel} ` +
             `(${name || "Névtelen"})`,
+
           html: `
             <div
               style="
@@ -565,14 +618,25 @@ NOW()
                   Új munka érkezett
                 </h2>
 
-                <p style="margin: 6px 0 0;">
+                <p
+                  style="
+                    margin: 6px 0 0;
+                  "
+                >
                   ${typeLabel}
                 </p>
               </div>
 
-              <div style="padding: 20px;">
+              <div
+                style="
+                  padding: 20px;
+                  color: #333;
+                "
+              >
                 <p>
-                  <strong>Munkaazonosító:</strong>
+                  <strong>
+                    Munkaazonosító:
+                  </strong>
                   #${newTaskId || "-"}
                 </p>
 
@@ -597,14 +661,38 @@ NOW()
                 </p>
 
                 <p>
-                  <strong>Tervezett időpont:</strong>
+                  <strong>
+                    Tervezett időpont:
+                  </strong>
                   ${scheduledAt || "-"}
                 </p>
 
                 <p>
-                  <strong>Megjegyzés:</strong>
+                  <strong>
+                    Megvalósult időpont:
+                  </strong>
+                  ${completedAt || "-"}
+                </p>
+
+                <p>
+                  <strong>
+                    Megjegyzés:
+                  </strong>
                   ${note || "-"}
                 </p>
+              </div>
+
+              <div
+                style="
+                  background-color: #f8f9fa;
+                  padding: 15px;
+                  text-align: center;
+                  font-size: 12px;
+                  color: #7f8c8d;
+                "
+              >
+                Automata üzenet az
+                NS-AIR Rendszerből.
               </div>
             </div>
           `,
@@ -619,49 +707,63 @@ NOW()
       }
     }
 
-    let message = "Munka sikeresen elmentve.";
+    let message =
+      "Munka sikeresen elmentve.";
 
-  if (clientSyncResult.created) {
-  message +=
-    " Az ügyfél automatikusan bekerült az ügyfelek közé.";
-} else if (
-  clientSyncResult.reason === "missing-name"
-) {
-  message +=
-    " Ügyfél nem készült, mert nincs megadva név.";
-} else {
-  message +=
-    " Az ügyfél már szerepel az ügyfelek között.";
-}
-    if (emailSent) {
-  message +=
-    " Az értesítő email elküldve.";
-}
-
-return NextResponse.json({
-  message,
-  taskId: newTaskId,
-  clientCreated: clientSyncResult.created,
-  clientId: clientSyncResult.clientId || null,
-  emailSent,
-  driveLinks: imageUrls,
-});
-
-} catch (error: any) {
-  console.error(
-    "Munka mentési hiba:",
-    error
-  );
-
-  return NextResponse.json(
-    {
-      error:
-        error?.message ||
-        "Hiba történt a mentés során.",
-    },
-    {
-      status: 500,
+    if (clientSyncResult.created) {
+      message +=
+        " Az ügyfél automatikusan bekerült az ügyfelek közé.";
+    } else if (
+      clientSyncResult.reason ===
+      "missing-name"
+    ) {
+      message +=
+        " Ügyfél nem készült, mert nincs megadva név.";
+    } else {
+      message +=
+        " Az ügyfél már szerepel az ügyfelek között.";
     }
-  );
-}
+
+    if (latitude === null) {
+      message +=
+        " A címhez nem érkezett koordináta.";
+    }
+
+    if (emailSent) {
+      message +=
+        " Az értesítő email elküldve.";
+    }
+
+    return NextResponse.json({
+      message,
+      taskId: newTaskId,
+      clientCreated:
+        clientSyncResult.created,
+      clientId:
+        clientSyncResult.clientId ||
+        null,
+      clientMatchReason:
+        clientSyncResult.reason,
+      emailSent,
+      latitude,
+      longitude,
+      driveLinks: imageUrls,
+    });
+  } catch (error: any) {
+    console.error(
+      "Munka mentési hiba:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          error?.message ||
+          "Hiba történt a mentés során.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }
