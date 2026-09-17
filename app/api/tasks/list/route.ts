@@ -3,63 +3,183 @@ import { neon } from "@neondatabase/serverless";
 
 export const dynamic = "force-dynamic";
 
-const sql = neon(process.env.POSTGRES_URL || "");
+const sql = neon(
+  process.env.POSTGRES_URL || ""
+);
 
 export async function GET() {
   try {
     const rawTasks = await sql`
       SELECT *
       FROM "Task"
-      ORDER BY id DESC
+      ORDER BY "id" DESC
     `;
 
-    const tasks = rawTasks.map((t: any) => {
-      let imagesArray: string[] = [];
-      if (Array.isArray(t.images)) {
-        imagesArray = t.images;
-      } else if (typeof t.images === "string" && t.images.startsWith("[")) {
-        try {
-          imagesArray = JSON.parse(t.images);
-        } catch {}
-      } else if (typeof t.images === "string" && t.images.trim() !== "") {
-        imagesArray = [t.images];
+    const tasks = rawTasks.map(
+      (task: any) => {
+        let imagesArray: string[] = [];
+
+        if (Array.isArray(task.images)) {
+          imagesArray = task.images;
+        } else if (
+          typeof task.images === "string" &&
+          task.images.startsWith("[")
+        ) {
+          try {
+            const parsedImages =
+              JSON.parse(task.images);
+
+            imagesArray =
+              Array.isArray(parsedImages)
+                ? parsedImages
+                : [];
+          } catch {
+            imagesArray = [];
+          }
+        } else if (
+          typeof task.images === "string" &&
+          task.images.trim() !== ""
+        ) {
+          imagesArray = [task.images];
+        }
+
+        let description =
+          task.description || "";
+
+        let extractedEmail = "";
+
+        if (
+          description.includes("| Email:")
+        ) {
+          const parts =
+            description.split("| Email:");
+
+          description =
+            parts[0]?.trim() || "";
+
+          extractedEmail =
+            parts
+              .slice(1)
+              .join("| Email:")
+              .trim();
+        } else if (
+          description.startsWith("Email:")
+        ) {
+          extractedEmail =
+            description
+              .replace("Email:", "")
+              .trim();
+
+          description = "";
+        }
+
+        const latitudeValue =
+          task.latitude === null ||
+          task.latitude === undefined ||
+          task.latitude === ""
+            ? null
+            : Number(task.latitude);
+
+        const longitudeValue =
+          task.longitude === null ||
+          task.longitude === undefined ||
+          task.longitude === ""
+            ? null
+            : Number(task.longitude);
+
+        const latitude =
+          latitudeValue !== null &&
+          Number.isFinite(latitudeValue)
+            ? latitudeValue
+            : null;
+
+        const longitude =
+          longitudeValue !== null &&
+          Number.isFinite(longitudeValue)
+            ? longitudeValue
+            : null;
+
+        return {
+          id: Number(task.id),
+
+          type:
+            task.type || "telepites",
+
+          name:
+            task.clientName ||
+            task.title ||
+            "",
+
+          address:
+            task.address || "",
+
+          phone:
+            task.phone || "",
+
+          email:
+            task.email ||
+            extractedEmail ||
+            "",
+
+          note: description,
+
+          scheduled_at:
+            task.scheduled_at ||
+            task.scheduledAt ||
+            "",
+
+          completed_at:
+            task.completed_at ||
+            task.completedAt ||
+            "",
+
+          images: imagesArray,
+
+          created_at:
+            task.createdAt ||
+            task.created_at ||
+            task.date ||
+            task.updatedAt ||
+            "",
+
+          recipient_emails:
+            task.recipient_emails || "",
+
+          latitude,
+
+          longitude,
+        };
       }
+    );
 
-      let description = t.description || "";
-      let extractedEmail = "";
-
-      if (description.includes("| Email:")) {
-        const parts = description.split("| Email:");
-        description = parts[0].trim();
-        extractedEmail = parts[1].trim();
-      } else if (description.startsWith("Email:")) {
-        extractedEmail = description.replace("Email:", "").trim();
-        description = "";
-      }
-
-      return {
-        id: t.id,
-        type: t.type || "telepites",
-        name: t.clientName || t.title || "",
-        address: t.address || "",
-        phone: t.phone || "",
-        email: t.email || extractedEmail,
-        note: description,
-        scheduled_at: t.scheduled_at || t.scheduledAt || "",
-        completed_at: t.completed_at || t.completedAt || "",
-        images: imagesArray,
-        created_at: t.date || t.updatedAt || "",
-      };
-    });
-
-    return NextResponse.json({
-      tasks,
-    });
-  } catch (error) {
-    console.error("Lekérdezési hiba:", error);
     return NextResponse.json(
-      { error: "Lekérdezési hiba" },
-      { status: 500 }
+      {
+        tasks,
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
+  } catch (error: any) {
+    console.error(
+      "Feladatok lekérdezési hibája:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        tasks: [],
+        error:
+          error?.message ||
+          "Lekérdezési hiba",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
