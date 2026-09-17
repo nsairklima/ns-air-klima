@@ -128,13 +128,13 @@ async function createClientIfMissing({
     }
   }
 
-  /
-    2. Ellenőrzés telefonszám alapján.
-   
-    Először lekérjük a telefonszámmal
-    rendelkező ügyfeleket, majd egységes
-    formátumban hasonlítjuk össze.
-   /
+  /*
+    *2. Ellenőrzés telefonszám alapján.
+   *
+    *Először lekérjük a telefonszámmal
+    *rendelkező ügyfeleket, majd egységes
+    *formátumban hasonlítjuk össze.
+   */
  const normalizedPhone =
   normalizePhone(cleanPhone);
 
