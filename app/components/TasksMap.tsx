@@ -14,6 +14,8 @@ type Task = {
   completed_at?: string;
   images?: string[];
   created_at?: string;
+  latitude?: number | null;
+longitude?: number | null;
 };
 
 type NotFoundTask = {
@@ -276,9 +278,31 @@ export default function TasksMap({
             tasksWithAddress.length
         );
 
-        const coordinates = await findCoordinates(
-          task.address || ""
-        );
+       let coordinates: Coordinates | null =
+  null;
+
+const savedLatitude =
+  Number(task.latitude);
+
+const savedLongitude =
+  Number(task.longitude);
+
+if (
+  Number.isFinite(savedLatitude) &&
+  Number.isFinite(savedLongitude) &&
+  savedLatitude !== 0 &&
+  savedLongitude !== 0
+) {
+  coordinates = {
+    lat: savedLatitude,
+    lng: savedLongitude,
+  };
+} else {
+  coordinates =
+    await findCoordinates(
+      task.address || ""
+    );
+}
 
         if (cancelled) return;
 
