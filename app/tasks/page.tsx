@@ -292,6 +292,8 @@ export default function TasksPage() {
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+const [statusType, setStatusType] =
+  useState<"success" | "warning">("success");
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
@@ -700,10 +702,32 @@ return true;
       )}
 
       {statusMessage && (
-        <div style={{ marginBottom: "16px", padding: "12px", background: "#f0fff4", color: "#27ae60", border: "1px solid #27ae60", borderRadius: "8px", fontWeight: "bold" }}>
-          {statusMessage}
-        </div>
-      )}
+  <div
+    style={{
+      marginBottom: "16px",
+      padding: "12px",
+      background:
+        statusType === "success"
+          ? "#f0fff4"
+          : "#fff8e1",
+
+      color:
+        statusType === "success"
+          ? "#27ae60"
+          : "#d97706",
+
+      border:
+        statusType === "success"
+          ? "1px solid #27ae60"
+          : "1px solid #d97706",
+
+      borderRadius: "8px",
+      fontWeight: "bold",
+    }}
+  >
+    {statusMessage}
+  </div>
+)}
 
       {/* ÚJ MUNKA GOMB / FORM */}
       <div style={{ marginBottom: "20px" }}>
