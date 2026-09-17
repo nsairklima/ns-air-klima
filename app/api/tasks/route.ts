@@ -389,6 +389,40 @@ let longitude: number | null = null;
 try {
   if (address.trim()) {
     const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hu&q=${encodeURIComponent(
+        address
+      )}`
+    );
+
+    const data = await response.json();
+
+    if (
+      Array.isArray(data) &&
+      data.length > 0
+    ) {
+      latitude = Number(data[0].lat);
+      longitude = Number(data[0].lon);
+
+      console.log(
+        "Koordináták:",
+        latitude,
+        longitude
+      );
+    }
+  }
+} catch (error) {
+  console.error(
+    "Geokódolási hiba:",
+    error
+  );
+}
+    
+let latitude: number | null = null;
+let longitude: number | null = null;
+
+try {
+  if (address.trim()) {
+    const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hu&q=${encodeURIComponent(address)}`
     );
 
@@ -413,21 +447,14 @@ try {
      * Munka létrehozása.
      */
     const insertedTasks = await sql`
-      INSERT INTO "Task" (
-        "type",
-        "title",
-        "clientName",
-        "address",
-        "phone",
-        "date",
-        "description",
-        "images",
-       "scheduled_at",
-"completed_at",
-"latitude",
-"longitude",
-"updatedAt"
-      )
+     INSERT INTO "Task" (
+  ...
+  "scheduled_at",
+  "completed_at",
+  "latitude",
+  "longitude",
+  "updatedAt"
+)
       VALUES (
         ${type},
         ${name || "Új munka"},
