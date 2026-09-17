@@ -19,6 +19,13 @@ type Task = {
   images?: string[];
   created_at: string;
   recipient_emails?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+type FormCoordinates = {
+  lat: number;
+  lng: number;
 };
 
 // Segédfüggvény a nap nevével történő formázáshoz (pl.: 2026. 06. 12., csütörtök 14:30)
@@ -100,6 +107,146 @@ const formatDateSimple = (
     return dateString;
   }
 };
+
+function normalizeAddressForCache(
+  addressValue: string
+) {
+  return addressValue
+    .trim()
+    .toLocaleLowerCase("hu-HU")
+    .replace(/\s+/g, " ");
+}
+
+async function findCoordinatesForTask(
+  addressValue: string
+): Promise<FormCoordinates | null> {
+  const cleanAddress =
+    normalizeAddressForCache(addressValue);
+
+  if (!cleanAddress) {
+    return null;
+  }
+
+  const cacheKey =
+    "tasks-map-coordinate-" + cleanAddress;
+
+  const cachedValue =
+    window.localStorage.getItem(cacheKey);
+
+  if (cachedValue) {
+    try {
+      const cachedCoordinates =
+        JSON.parse(
+          cachedValue
+        ) as FormCoordinates;
+
+      if (
+        Number.isFinite(
+          cachedCoordinates.lat
+        ) &&
+        Number.isFinite(
+          cachedCoordinates.lng
+        )
+      ) {
+        return cachedCoordinates;
+      }
+    } catch {
+      window.localStorage.removeItem(
+        cacheKey
+      );
+    }
+  }
+
+  const searchUrl =
+    "https:" +
+    "//nominatim.openstreetmap.org/search" +
+    "?format=jsonv2" +
+    "&limit=1" +
+    "&countrycodes=hu" +
+    "&addressdetails=1" +
+    "&q=" +
+    encodeURIComponent(addressValue.trim());
+
+  try {
+    const response = await fetch(
+      searchUrl,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error(
+        "Geokódolási HTTP hiba:",
+        response.status
+      );
+
+      return null;
+    }
+
+    const contentType =
+      response.headers.get(
+        "content-type"
+      ) || "";
+
+    if (
+      !contentType.includes(
+        "application/json"
+      )
+    ) {
+      const responseText =
+        await response.text();
+
+      console.error(
+        "A geokódoló nem JSON választ adott:",
+        responseText.slice(0, 200)
+      );
+
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (
+      !Array.isArray(data) ||
+      data.length === 0
+    ) {
+      return null;
+    }
+
+    const lat = Number(data[0].lat);
+    const lng = Number(data[0].lon);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng)
+    ) {
+      return null;
+    }
+
+    const coordinates: FormCoordinates = {
+      lat,
+      lng,
+    };
+
+    window.localStorage.setItem(
+      cacheKey,
+      JSON.stringify(coordinates)
+    );
+
+    return coordinates;
+  } catch (error) {
+    console.error(
+      "Koordináta-lekérési hiba:",
+      error
+    );
+
+    return null;
+  }
+}
 
 // Egyedi Magyar Naptár & Időválasztó Komponens
 function CustomDateTimePicker({ value, onChange, label }: { value: string; onChange: (val: string) => void; label: string }) {
@@ -524,92 +671,190 @@ const handleAddPhoto = async (
     setExistingImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setStatusMessage("");
+const handleSubmit = async (
+  e: React.FormEvent
+) => {
+  e.preventDefault();
+
+  setLoading(true);
+  setStatusMessage("");
+  setStatusType("success");
+
+  try {
+    let latitude = "";
+    let longitude = "";
+
+    if (address.trim()) {
+      const coordinates =
+        await findCoordinatesForTask(
+          address
+        );
+
+      if (coordinates) {
+        latitude =
+          coordinates.lat.toString();
+
+        longitude =
+          coordinates.lng.toString();
+
+        console.log(
+          "Mentett koordináták:",
+          {
+            latitude,
+            longitude,
+          }
+        );
+      } else {
+        console.warn(
+          "A címhez nem található koordináta:",
+          address
+        );
+      }
+    }
 
     const formData = new FormData();
+
     formData.append("type", type);
     formData.append("name", name);
-    formData.append("address", address);
-
-    
+    formData.append(
+      "address",
+      address
+    );
     formData.append("phone", phone);
     formData.append("email", email);
     formData.append("note", note);
-    formData.append("scheduledAt", scheduledAt);
-    formData.append("completedAt", completedAt);
-    
-    formData.append("recipients", JSON.stringify(selectedRecipients));
-    formData.append("existingImages", JSON.stringify(existingImages));
+
+    formData.append(
+      "scheduledAt",
+      scheduledAt
+    );
+
+    formData.append(
+      "completedAt",
+      completedAt
+    );
+
+    formData.append(
+      "latitude",
+      latitude
+    );
+
+    formData.append(
+      "longitude",
+      longitude
+    );
+
+    formData.append(
+      "recipients",
+      JSON.stringify(
+        selectedRecipients
+      )
+    );
+
+    formData.append(
+      "existingImages",
+      JSON.stringify(
+        existingImages
+      )
+    );
 
     photos.forEach((photo) => {
-      formData.append("photos", photo);
+      formData.append(
+        "photos",
+        photo
+      );
     });
 
-    if (editingTaskId) {
-      try {
-        const res = await fetch(`/api/tasks/${editingTaskId}`, {
-          method: "PUT",
-          body: formData,
-        });
-        const data = await res.json();
+    const isEditing =
+      editingTaskId !== null;
 
-        if (res.ok) {
-  let msg = "✅ Munka sikeresen módosítva!";
+    const requestUrl = isEditing
+      ? `/api/tasks/${editingTaskId}`
+      : "/api/tasks";
 
-  if (data.clientCreated) {
-    msg += " 👤 Új ügyfél automatikusan létrehozva.";
-  } else {
-    msg += " 👤 Az ügyfél már létezett.";
-  }
+    const requestMethod = isEditing
+      ? "PUT"
+      : "POST";
 
-  setStatusMessage(msg);
-
-  resetForm();
-  fetchTasks();
-}
-        else {
-          setStatusMessage("❌ " + (data.error || "Hiba történt a módosítás során."));
-        }
-      } catch {
-        setStatusMessage("❌ Hálózati hiba történt.");
-      } finally {
-        setLoading(false);
+    const res = await fetch(
+      requestUrl,
+      {
+        method: requestMethod,
+        body: formData,
       }
-    } else {
-      try {
-        const res = await fetch("/api/tasks", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json();
+    );
 
-        if (res.ok) {
-  let msg = "✅ Munka sikeresen létrehozva!";
+    let data: any = {};
 
-  if (data.clientCreated) {
-    msg += " 👤 Új ügyfél automatikusan létrehozva.";
-  } else {
-    msg += " 👤 Az ügyfél már létezett.";
-  }
-
-  setStatusMessage(msg);
-
-  resetForm();
-  fetchTasks();
-} 
-        else {
-          setStatusMessage("❌ " + (data.error || "Hiba történt."));
-        }
-      } catch {
-        setStatusMessage("❌ Hálózati hiba történt.");
-      } finally {
-        setLoading(false);
-      }
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(
+        "A szerver nem értelmezhető választ adott."
+      );
     }
-  };
+
+    if (!res.ok) {
+      throw new Error(
+        data.error ||
+          "Hiba történt a mentés során."
+      );
+    }
+
+    let message = isEditing
+      ? "✅ Munka sikeresen módosítva!"
+      : "✅ Munka sikeresen létrehozva!";
+
+    if (data.clientCreated) {
+      setStatusType("success");
+
+      message +=
+        " 👤 Új ügyfél automatikusan létrehozva.";
+    } else if (
+      data.clientMatchReason ===
+      "missing-name"
+    ) {
+      setStatusType("warning");
+
+      message +=
+        " ⚠️ Ügyfél nem készült, mert nincs megadva név.";
+    } else {
+      setStatusType("warning");
+
+      message +=
+        " ⚠️ Az ügyfél már létezett.";
+    }
+
+    if (!latitude || !longitude) {
+      setStatusType("warning");
+
+      message +=
+        " 📍 A cím koordinátája nem volt megtalálható.";
+    }
+
+    setStatusMessage(message);
+
+    resetForm();
+
+    await fetchTasks();
+  } catch (error) {
+    console.error(
+      "Munka mentési hiba:",
+      error
+    );
+
+    setStatusType("warning");
+
+    setStatusMessage(
+      "❌ " +
+        (error instanceof Error
+          ? error.message
+          : "Hálózati hiba történt.")
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleDelete = async (id: number) => {
     if (!confirm("Biztosan törlöd ezt a munkát?")) return;
