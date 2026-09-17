@@ -378,9 +378,9 @@ export async function PUT(
     const note =
       cleanText(formData.get("note"));
 
-    /
-      Email-címzettek feldolgozása.
-     /
+    /*
+    *  Email-címzettek feldolgozása.
+     */
     const recipientsRaw =
       cleanText(
         formData.get("recipients")
