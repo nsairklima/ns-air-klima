@@ -307,12 +307,17 @@ export async function POST(request: Request) {
     );
 
     const scheduledAt = scheduledAtRaw
-      ? scheduledAtRaw.replace("T", " ")
-      : null;
+  ? scheduledAtRaw.slice(0, 19).replace("T", " ")
+  : null;
 
-    const completedAt = completedAtRaw
-      ? completedAtRaw.replace("T", " ")
-      : null;
+const completedAt = completedAtRaw
+  ? completedAtRaw.slice(0, 19).replace("T", " ")
+  : null;
+
+console.log("POST scheduledAtRaw:", scheduledAtRaw);
+console.log("POST scheduledAt:", scheduledAt);
+console.log("POST completedAtRaw:", completedAtRaw);
+console.log("POST completedAt:", completedAt);
 
     /*
      * Képek feltöltése.
@@ -404,9 +409,10 @@ export async function POST(request: Request) {
         ${currentDate},
         ${description},
         ${JSON.stringify(imageUrls)},
-        ${scheduledAt},
-        ${completedAt},
-        NOW()
+       ${scheduledAt}::timestamp without time zone,
+${completedAt}::timestamp without time zone,
+NOW()
+
       )
       RETURNING
         "id",
