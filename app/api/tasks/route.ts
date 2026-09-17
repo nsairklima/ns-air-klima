@@ -569,12 +569,15 @@ export async function POST(request: Request) {
 
     let message = "Munka sikeresen elmentve.";
 
-    if (clientSyncResult.created) {
-      message +=
-        " Az ügyfél automatikusan bekerült az ügyfelek közé.";
-    } else if (
-      clientSyncResult.reason === "missing-name"
-    ) {
-      message +=
-        " Ügyfél nem készült, mert nincs megadva név.";
-    } else
+  if (clientSyncResult.created) {
+  message +=
+    " Az ügyfél automatikusan bekerült az ügyfelek közé.";
+} else if (
+  clientSyncResult.reason === "missing-name"
+) {
+  message +=
+    " Ügyfél nem készült, mert nincs megadva név.";
+} else {
+  message +=
+    " Az ügyfél már szerepel az ügyfelek között.";
+}
