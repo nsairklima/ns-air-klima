@@ -581,3 +581,35 @@ export async function POST(request: Request) {
   message +=
     " Az ügyfél már szerepel az ügyfelek között.";
 }
+    if (emailSent) {
+  message +=
+    " Az értesítő email elküldve.";
+}
+
+return NextResponse.json({
+  message,
+  taskId: newTaskId,
+  clientCreated: clientSyncResult.created,
+  clientId: clientSyncResult.clientId || null,
+  emailSent,
+  driveLinks: imageUrls,
+});
+
+} catch (error: any) {
+  console.error(
+    "Munka mentési hiba:",
+    error
+  );
+
+  return NextResponse.json(
+    {
+      error:
+        error?.message ||
+        "Hiba történt a mentés során.",
+    },
+    {
+      status: 500,
+    }
+  );
+}
+}
