@@ -459,10 +459,20 @@ export default function TasksPage() {
         const data = await res.json();
 
         if (res.ok) {
-          setStatusMessage("✅ " + data.message);
-          resetForm();
-          fetchTasks();
-        } else {
+  let msg = "✅ Munka sikeresen létrehozva!";
+
+  if (data.clientCreated) {
+    msg += " 👤 Új ügyfél automatikusan létrehozva.";
+  } else {
+    msg += " 👤 Az ügyfél már létezett.";
+  }
+
+  setStatusMessage(msg);
+
+  resetForm();
+  fetchTasks();
+} 
+        else {
           setStatusMessage("❌ " + (data.error || "Hiba történt."));
         }
       } catch {
