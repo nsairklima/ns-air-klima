@@ -377,6 +377,37 @@ export async function PUT(
 
     const note =
       cleanText(formData.get("note"));
+    const latitudeRaw =
+  cleanText(
+    formData.get("latitude")
+  );
+
+const longitudeRaw =
+  cleanText(
+    formData.get("longitude")
+  );
+
+const parsedLatitude =
+  latitudeRaw !== ""
+    ? Number(latitudeRaw)
+    : null;
+
+const parsedLongitude =
+  longitudeRaw !== ""
+    ? Number(longitudeRaw)
+    : null;
+
+const latitude =
+  parsedLatitude !== null &&
+  Number.isFinite(parsedLatitude)
+    ? parsedLatitude
+    : null;
+
+const longitude =
+  parsedLongitude !== null &&
+  Number.isFinite(parsedLongitude)
+    ? parsedLongitude
+    : null;
 
     /*
     *  Email-címzettek feldolgozása.
@@ -615,27 +646,29 @@ console.log("PUT completedAt:", completedAt);
     /*
      * Munka frissítése.
      */
-    const updatedTasks = await sql`
-      UPDATE "Task"
-      SET
-        "type" = ${type},
-        "title" = ${taskTitle},
-        "clientName" = ${name},
-        "address" = ${address},
-        "phone" = ${phone},
-        "description" = ${description},
-        "images" = ${JSON.stringify(
-          finalImages
-        )},
-      "scheduled_at" =
-  ${scheduledAt}::timestamp without time zone,
-
-"completed_at" =
-  ${completedAt}::timestamp without time zone,
-        "updatedAt" = NOW()
-      WHERE "id" = ${taskId}
-      RETURNING "id"
-    `;
+   const updatedTasks = await sql`
+  UPDATE "Task"
+  SET
+    "type" = ${type},
+    "title" = ${taskTitle},
+    "clientName" = ${name},
+    "address" = ${address},
+    "phone" = ${phone},
+    "description" = ${description},
+    "images" = ${JSON.stringify(
+      finalImages
+    )},
+    "scheduled_at" = ${scheduledAt},
+    "completed_at" = ${completedAt},
+    "latitude" = ${latitude},
+    "longitude" = ${longitude},
+    "updatedAt" = NOW()
+  WHERE "id" = ${taskId}
+  RETURNING
+    "id",
+    "latitude",
+    "longitude"
+`;
 
     if (updatedTasks.length === 0) {
       return NextResponse.json(
