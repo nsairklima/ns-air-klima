@@ -24,32 +24,71 @@ type Task = {
 // Segédfüggvény a nap nevével történő formázáshoz (pl.: 2026. 06. 12., csütörtök 14:30)
 const formatDateWithDay = (dateString?: string) => {
   if (!dateString) return "Nincs megadva";
-  try {
-    const cleanStr = dateString.replace("T", " ");
-    const dateObj = new Date(cleanStr);
-    if (isNaN(dateObj.getTime())) return dateString;
 
-    const options: Intl.DateTimeFormatOptions = {
+  try {
+    const [datePart, timePart] = dateString
+      .replace("T", " ")
+      .split(" ");
+
+    if (!datePart) return dateString;
+
+    const [year, month, day] = datePart
+      .split("-")
+      .map(Number);
+
+    const [hour, minute] = (timePart || "00:00")
+      .split(":")
+      .map(Number);
+
+    const dateObj = new Date(
+      year,
+      month - 1,
+      day,
+      hour,
+      minute
+    );
+
+    return new Intl.DateTimeFormat("hu-HU", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
       weekday: "long",
       hour: "2-digit",
       minute: "2-digit",
-    };
-
-    return new Intl.DateTimeFormat("hu-HU", options).format(dateObj);
+    }).format(dateObj);
   } catch {
     return dateString;
   }
 };
 
-const formatDateSimple = (dateString?: string) => {
+const formatDateSimple = (
+  dateString?: string
+) => {
   if (!dateString) return "-";
+
   try {
-    const cleanStr = dateString.replace("T", " ");
-    const dateObj = new Date(cleanStr);
-    if (isNaN(dateObj.getTime())) return dateString;
+    const [datePart, timePart] = dateString
+      .replace("T", " ")
+      .split(" ");
+
+    if (!datePart) return dateString;
+
+    const [year, month, day] = datePart
+      .split("-")
+      .map(Number);
+
+    const [hour, minute] = (timePart || "00:00")
+      .split(":")
+      .map(Number);
+
+    const dateObj = new Date(
+      year,
+      month - 1,
+      day,
+      hour,
+      minute
+    );
+
     return new Intl.DateTimeFormat("hu-HU", {
       year: "numeric",
       month: "2-digit",
