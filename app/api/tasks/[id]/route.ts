@@ -171,7 +171,7 @@ if (normalizedPhone) {
 
   /*
     * 3. Ellenőrzés név alapján.
-  * /
+  */
   const clientsWithSameName =
     await prisma.client.findMany({
       where: {
