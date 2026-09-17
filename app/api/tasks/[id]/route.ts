@@ -641,10 +641,10 @@ export async function PUT(
       );
     }
 
-    /
-      Ügyfél ellenőrzése és szükség esetén
-      automatikus létrehozása.
-     /
+    /*
+     * Ügyfél ellenőrzése és szükség esetén
+     * automatikus létrehozása.
+     */
     let clientSyncResult:
       | ClientSyncResult
       | null = null;
