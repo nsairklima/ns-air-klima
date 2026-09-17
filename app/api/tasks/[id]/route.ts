@@ -781,4 +781,89 @@ export async function PUT(
 
                 <p>
                   <strong>Megvalósult időpont:</strong>
+                                    ${completedAt || "-"}
+                </p>
+
+                <p>
+                  <strong>Megjegyzés:</strong>
+                  ${note || "-"}
+                </p>
+              </div>
+
+              <div
+                style="
+                  background-color: #f8f9fa;
+                  padding: 15px;
+                  text-align: center;
+                  font-size: 12px;
+                  color: #7f8c8d;
+                "
+              >
+                Automata üzenet az NS-AIR Rendszerből.
+              </div>
+            </div>
+          `,
+        });
+
+        emailSent = true;
+      } catch (mailError) {
+        console.error(
+          "Email küldési hiba módosításkor:",
+          mailError
+        );
+      }
+    }
+
+    let message =
+      "Munka sikeresen módosítva.";
+
+    if (clientSyncResult?.created) {
+      message +=
+        " Az ügyfél automatikusan bekerült az ügyfelek közé.";
+    } else if (
+      clientSyncResult?.reason ===
+      "missing-name"
+    ) {
+      message +=
+        " Ügyfél nem készült, mert nincs megadva név.";
+    } else {
+      message +=
+        " Az ügyfél már szerepel az ügyfelek között.";
+    }
+
+    if (emailSent) {
+      message +=
+        " Az értesítő email elküldve.";
+    }
+
+    return NextResponse.json({
+      message,
+      taskId,
+      images: finalImages,
+      clientCreated:
+        clientSyncResult?.created || false,
+      clientId:
+        clientSyncResult?.clientId || null,
+      clientMatchReason:
+        clientSyncResult?.reason || null,
+      emailSent,
+    });
+  } catch (error: any) {
+    console.error(
+      "Szerkesztési hiba részletei:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          error?.message ||
+          "Szerkesztési hiba",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
     
