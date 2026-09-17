@@ -167,7 +167,7 @@ if (normalizedPhone) {
       clientId: phoneClient.id,
     };
   }
-
+ }
 
   /*
     * 3. Ellenőrzés név alapján.
