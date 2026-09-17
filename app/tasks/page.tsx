@@ -429,10 +429,20 @@ export default function TasksPage() {
         const data = await res.json();
 
         if (res.ok) {
-          setStatusMessage("✅ Munka sikeresen módosítva!");
-          resetForm();
-          fetchTasks();
-        } else {
+  let msg = "✅ Munka sikeresen módosítva!";
+
+  if (data.clientCreated) {
+    msg += " 👤 Új ügyfél automatikusan létrehozva.";
+  } else {
+    msg += " 👤 Az ügyfél már létezett.";
+  }
+
+  setStatusMessage(msg);
+
+  resetForm();
+  fetchTasks();
+}
+        else {
           setStatusMessage("❌ " + (data.error || "Hiba történt a módosítás során."));
         }
       } catch {
