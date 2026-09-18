@@ -489,6 +489,7 @@ const [statusType, setStatusType] =
   const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "folyamatban" | "kesz">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [scheduledDateFilter, setScheduledDateFilter] = useState("");
   const [showMap, setShowMap] = useState(false);
 
   const [selectedTaskId, setSelectedTaskId] =
@@ -928,6 +929,19 @@ const handleSubmit = async (
     if (filterStatus === "kesz" && !task.completed_at) {
       return false;
     }
+if (scheduledDateFilter) {
+  const taskScheduledDate = task.scheduled_at
+    ? task.scheduled_at
+        .replace(" ", "T")
+        .slice(0, 10)
+    : "";
+
+  if (taskScheduledDate !== scheduledDateFilter) {
+    return false;
+  }
+}
+
+    
   if (searchQuery.trim() !== "") {
   const q = searchQuery.toLowerCase();
 
@@ -984,6 +998,17 @@ return true;
           flex-direction: column;
           gap: 8px;
         }
+
+.search-calendar-row {
+  grid-template-columns:
+    minmax(0, 1fr) minmax(210px, 260px);
+}
+
+       @media (max-width: 699px) {
+  .search-calendar-row {
+    grid-template-columns: 1fr !important;
+  }
+} 
         @media (min-width: 600px) {
           .form-grid {
             grid-template-columns: 1fr 1fr;
@@ -1264,23 +1289,235 @@ return true;
     marginBottom: "20px",
   }}
 >
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns:
+      "minmax(0, 1fr) minmax(210px, 260px)",
+    gap: "10px",
+    marginBottom: "12px",
+    alignItems: "stretch",
+  }}
+  className="search-calendar-row"
+>
+  <div
+  style={{
+    display: "grid",
+    gridTemplateColumns:
+      "minmax(0, 1fr) minmax(210px, 260px)",
+    gap: "10px",
+    marginBottom: "12px",
+    alignItems: "stretch",
+  }}
+  className="search-calendar-row"
+>
   <input
     type="text"
-    placeholder="🔍 Keresés név, cím, telefon, email, megjegyzés, státusz vagy azonosító alapján..."
+    placeholder="🔍 Keresés név, cím, telefon, klíma, fizetés vagy megjegyzés alapján..."
     value={searchQuery}
-    onChange={(e) => setSearchQuery(e.target.value)}
+    onChange={(event) =>
+      setSearchQuery(event.target.value)
+    }
     style={{
       width: "100%",
+      minWidth: 0,
       padding: "10px 12px",
       borderRadius: "10px",
       border: "1px solid #4b5563",
       boxSizing: "border-box",
       fontSize: "14px",
-      marginBottom: "12px",
       background: "#1f2937",
       color: "white",
     }}
   />
+
+  <div
+    style={{
+      display: "flex",
+      gap: "6px",
+      padding: "5px",
+      borderRadius: "10px",
+      border: "1px solid #4b5563",
+      background: "#1f2937",
+      boxSizing: "border-box",
+    }}
+  >
+    <input
+      type="date"
+      value={scheduledDateFilter}
+      onChange={(event) =>
+        setScheduledDateFilter(
+          event.target.value
+        )
+      }
+      title="Keresés a tervezett időpontok között"
+      aria-label="Tervezett időpont szűrése"
+      style={{
+        flex: 1,
+        minWidth: 0,
+        padding: "6px 8px",
+        borderRadius: "7px",
+        border: "1px solid #64748b",
+        background: "white",
+        color: "#111827",
+        fontSize: "13px",
+        cursor: "pointer",
+        boxSizing: "border-box",
+      }}
+    />
+
+    <button
+      type="button"
+      onClick={() => {
+        const today = new Date();
+
+        const year = today.getFullYear();
+
+        const month = String(
+          today.getMonth() + 1
+        ).padStart(2, "0");
+
+        const day = String(
+          today.getDate()
+        ).padStart(2, "0");
+
+        setScheduledDateFilter(
+          `${year}-${month}-${day}`
+        );
+      }}
+      title="Mai tervezett feladatok"
+      style={{
+        border: "none",
+        borderRadius: "7px",
+        padding: "6px 9px",
+        background: "#2563eb",
+        color: "white",
+        fontWeight: "bold",
+        fontSize: "12px",
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      Ma
+    </button>
+
+    {scheduledDateFilter && (
+      <button
+        type="button"
+        onClick={() =>
+          setScheduledDateFilter("")
+        }
+        title="Dátumszűrés törlése"
+        style={{
+          border: "none",
+          borderRadius: "7px",
+          padding: "6px 9px",
+          background: "#dc2626",
+          color: "white",
+          fontWeight: "bold",
+          fontSize: "12px",
+          cursor: "pointer",
+        }}
+      >
+        ✕
+      </button>
+    )}
+  </div>
+</div>
+
+  <div
+    style={{
+      display: "flex",
+      gap: "6px",
+      padding: "5px",
+      borderRadius: "10px",
+      border: "1px solid #4b5563",
+      background: "#1f2937",
+      boxSizing: "border-box",
+    }}
+  >
+    <input
+      type="date"
+      value={scheduledDateFilter}
+      onChange={(event) =>
+        setScheduledDateFilter(
+          event.target.value
+        )
+      }
+      title="Keresés a tervezett időpontok között"
+      aria-label="Tervezett időpont szűrése"
+      style={{
+        flex: 1,
+        minWidth: 0,
+        padding: "6px 8px",
+        borderRadius: "7px",
+        border: "1px solid #64748b",
+        background: "white",
+        color: "#111827",
+        fontSize: "13px",
+        cursor: "pointer",
+        boxSizing: "border-box",
+      }}
+    />
+
+    <button
+      type="button"
+      onClick={() => {
+        const today = new Date();
+
+        const year = today.getFullYear();
+
+        const month = String(
+          today.getMonth() + 1
+        ).padStart(2, "0");
+
+        const day = String(
+          today.getDate()
+        ).padStart(2, "0");
+
+        setScheduledDateFilter(
+          `${year}-${month}-${day}`
+        );
+      }}
+      title="Mai tervezett feladatok"
+      style={{
+        border: "none",
+        borderRadius: "7px",
+        padding: "6px 9px",
+        background: "#2563eb",
+        color: "white",
+        fontWeight: "bold",
+        fontSize: "12px",
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      Ma
+    </button>
+
+    {scheduledDateFilter && (
+      <button
+        type="button"
+        onClick={() =>
+          setScheduledDateFilter("")
+        }
+        title="Dátumszűrés törlése"
+        style={{
+          border: "none",
+          borderRadius: "7px",
+          padding: "6px 9px",
+          background: "#dc2626",
+          color: "white",
+          fontWeight: "bold",
+          fontSize: "12px",
+          cursor: "pointer",
+        }}
+      >
+        ✕
+      </button>
+    )}
+  </div>
+</div>
 <div
   style={{
     background: "#111827",
@@ -1294,7 +1531,21 @@ return true;
     fontSize: "16px",
   }}
 >
+ <div>
   📊 Találatok száma: {filteredTasks.length}
+
+  {scheduledDateFilter && (
+    <span
+      style={{
+        marginLeft: "8px",
+        color: "#93c5fd",
+        fontSize: "13px",
+      }}
+    >
+      📅 {scheduledDateFilter}
+    </span>
+  )}
+</div>
 </div>
   <div
     style={{
