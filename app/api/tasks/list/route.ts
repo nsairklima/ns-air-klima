@@ -15,6 +15,21 @@ export async function GET() {
       ORDER BY "id" DESC
     `;
 
+    const taskIds = rawTasks.map((task: any) =>
+      Number(task.id)
+    );
+
+    let rawAirConditioners: any[] = [];
+
+    if (taskIds.length > 0) {
+      rawAirConditioners = await sql`
+        SELECT *
+        FROM "TaskAirConditioner"
+        WHERE "taskId" = ANY(${taskIds})
+        ORDER BY "id" ASC
+      `;
+    }
+
     const tasks = rawTasks.map(
       (task: any) => {
         let imagesArray: string[] = [];
@@ -99,11 +114,55 @@ export async function GET() {
             ? longitudeValue
             : null;
 
+        const airConditioners =
+          rawAirConditioners
+            .filter(
+              (item) =>
+                Number(item.taskId) ===
+                Number(task.id)
+            )
+            .map((item) => ({
+              id: Number(item.id),
+
+              name:
+                item.name || "",
+
+              warranty:
+                Boolean(
+                  item.warranty
+                ),
+
+              washing:
+                Boolean(
+                  item.washing
+                ),
+
+              disinfection:
+                Boolean(
+                  item.disinfection
+                ),
+
+              washingPrice:
+                Number(
+                  item.washingPrice
+                ) || 0,
+
+              disinfectionPrice:
+                Number(
+                  item.disinfectionPrice
+                ) || 0,
+
+              paymentMethod:
+                item.paymentMethod ||
+                "",
+            }));
+
         return {
           id: Number(task.id),
 
           type:
-            task.type || "telepites",
+            task.type ||
+            "telepites",
 
           name:
             task.clientName ||
@@ -143,11 +202,14 @@ export async function GET() {
             "",
 
           recipient_emails:
-            task.recipient_emails || "",
+            task.recipient_emails ||
+            "",
 
           latitude,
 
           longitude,
+
+          airConditioners,
         };
       }
     );
