@@ -1281,7 +1281,21 @@ return true;
       color: "white",
     }}
   />
-
+<div
+  style={{
+    background: "#111827",
+    color: "white",
+    borderRadius: "10px",
+    padding: "10px 14px",
+    marginBottom: "12px",
+    border: "1px solid #374151",
+    textAlign: "center",
+    fontWeight: "bold",
+    fontSize: "16px",
+  }}
+>
+  📊 Találatok száma: {filteredTasks.length}
+</div>
   <div
     style={{
       background: "#1f2937",
