@@ -1425,17 +1425,7 @@ return true;
   </div>
 </div>
 
-  <div
-    style={{
-      display: "flex",
-      gap: "6px",
-      padding: "5px",
-      borderRadius: "10px",
-      border: "1px solid #4b5563",
-      background: "#1f2937",
-      boxSizing: "border-box",
-    }}
-  >
+ 
     <input
       type="date"
       value={scheduledDateFilter}
