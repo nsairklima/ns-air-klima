@@ -1355,14 +1355,27 @@ return (
         boxSizing: "border-box",
       }}
     >
-      <input
-        type="date"
-        value={scheduledDateFilter}
-        onChange={(event) =>
-          setScheduledDateFilter(
-            event.target.value
-          )
-        }
+     <input
+  type={
+    scheduledDateFilter
+      ? "date"
+      : "text"
+  }
+  placeholder="📅 Dátum választó"
+  value={scheduledDateFilter}
+  onFocus={(e) => {
+    e.target.type = "date";
+  }}
+  onBlur={(e) => {
+    if (!scheduledDateFilter) {
+      e.target.type = "text";
+    }
+  }}
+  onChange={(event) =>
+    setScheduledDateFilter(
+      event.target.value
+    )
+  }
         title="Keresés a tervezett időpontok között"
         aria-label="Tervezett időpont szűrése"
         style={{
