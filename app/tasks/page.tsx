@@ -1016,7 +1016,15 @@ return (
           flex-direction: column;
           gap: 8px;
         }
+.mobile-date-placeholder {
+  display: none;
+}
 
+@media (max-width: 699px) {
+  .mobile-date-placeholder {
+    display: block;
+  }
+}
         .search-calendar-row {
           grid-template-columns: minmax(0, 1fr) minmax(210px, 260px);
         }
@@ -1030,6 +1038,7 @@ return (
           .form-grid {
             grid-template-columns: 1fr 1fr;
           }
+          
           .cards-grid {
             grid-template-columns: 1fr 1fr;
           }
@@ -1363,21 +1372,22 @@ return (
   }}
 >
   {!scheduledDateFilter && (
-    <span
-      style={{
-        position: "absolute",
-        left: "10px",
-        top: "50%",
-        transform: "translateY(-50%)",
-        color: "#9ca3af",
-        fontSize: "13px",
-        pointerEvents: "none",
-        zIndex: 5,
-      }}
-    >
-      📅 Dátum választó
-    </span>
-  )}
+  <span
+    className="mobile-date-placeholder"
+    style={{
+      position: "absolute",
+      left: "10px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#9ca3af",
+      fontSize: "13px",
+      pointerEvents: "none",
+      zIndex: 5,
+    }}
+  >
+    📅 Dátum választó
+  </span>
+)}
 
   <input
     type="date"
