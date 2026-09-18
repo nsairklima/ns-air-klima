@@ -190,11 +190,7 @@ model TaskAirConditioner {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  task Task @relation(
-    fields: [taskId],
-    references: [id],
-    onDelete: Cascade
-  )
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
 }
