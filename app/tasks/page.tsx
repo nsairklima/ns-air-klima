@@ -971,7 +971,8 @@ if (scheduledDateFilter) {
 }
 
 return true;
-});
+}
+);
 
   return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
@@ -1042,7 +1043,7 @@ return true;
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
               <div><strong>Státusz:</strong> {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}</div>
               <div><strong>Név:</strong> {viewingTask.name || "-"}</div>
-              <div>
+          
 <div>
   <strong>Cím:</strong>{" "}
   {viewingTask.address ? (
