@@ -1355,42 +1355,53 @@ return (
         boxSizing: "border-box",
       }}
     >
-     <input
-  type={
-    scheduledDateFilter
-      ? "date"
-      : "text"
-  }
-  placeholder="📅 Dátum választó"
-  value={scheduledDateFilter}
-  onFocus={(e) => {
-    e.target.type = "date";
+    <div
+  style={{
+    position: "relative",
+    flex: 1,
+    minWidth: 0,
   }}
-  onBlur={(e) => {
-    if (!scheduledDateFilter) {
-      e.target.type = "text";
+>
+  {!scheduledDateFilter && (
+    <span
+      style={{
+        position: "absolute",
+        left: "10px",
+        top: "50%",
+        transform: "translateY(-50%)",
+        color: "#9ca3af",
+        fontSize: "13px",
+        pointerEvents: "none",
+        zIndex: 5,
+      }}
+    >
+      📅 Dátum választó
+    </span>
+  )}
+
+  <input
+    type="date"
+    value={scheduledDateFilter}
+    onChange={(event) =>
+      setScheduledDateFilter(
+        event.target.value
+      )
     }
-  }}
-  onChange={(event) =>
-    setScheduledDateFilter(
-      event.target.value
-    )
-  }
-        title="Keresés a tervezett időpontok között"
-        aria-label="Tervezett időpont szűrése"
-        style={{
-          flex: 1,
-          minWidth: 0,
-          padding: "6px 8px",
-          borderRadius: "7px",
-          border: "1px solid #64748b",
-          background: "white",
-          color: "#111827",
-          fontSize: "13px",
-          cursor: "pointer",
-          boxSizing: "border-box",
-        }}
-      />
+    title="Keresés a tervezett időpontok között"
+    aria-label="Tervezett időpont szűrése"
+    style={{
+      width: "100%",
+      padding: "6px 8px",
+      borderRadius: "7px",
+      border: "1px solid #64748b",
+      background: "white",
+      color: "#111827",
+      fontSize: "13px",
+      cursor: "pointer",
+      boxSizing: "border-box",
+    }}
+  />
+</div>
 
       <button
         type="button"
