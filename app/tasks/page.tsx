@@ -942,36 +942,34 @@ if (scheduledDateFilter) {
 }
 
     
-  if (searchQuery.trim() !== "") {
-  const q = searchQuery.toLowerCase();
+if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase();
 
-  const searchableText = [
-    task.id,
-    task.type,
-    task.name,
-    task.address,
-    task.phone,
-    task.email,
-    task.note,
-    task.scheduled_at,
-    task.completed_at,
-    task.created_at,
-    task.completed_at ? "kész" : "folyamatban",
-    task.type === "telepites"
-      ? "telepítés"
-      : "karbantartás",
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+      const searchableText = [
+        task.id,
+        task.type,
+        task.name,
+        task.address,
+        task.phone,
+        task.email,
+        task.note,
+        task.scheduled_at,
+        task.completed_at,
+        task.created_at,
+        task.completed_at ? "kész" : "folyamatban",
+        task.type === "telepites" ? "telepítés" : "karbantartás",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
-  if (!searchableText.includes(q)) {
-    return false;
-  }
-}
+      if (!searchableText.includes(q)) {
+        return false;
+      }
+    }
 
-return true;
-});
+    return true;
+  });
 
   return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
@@ -999,16 +997,15 @@ return true;
           gap: 8px;
         }
 
-.search-calendar-row {
-  grid-template-columns:
-    minmax(0, 1fr) minmax(210px, 260px);
-}
+        .search-calendar-row {
+          grid-template-columns: minmax(0, 1fr) minmax(210px, 260px);
+        }
 
-       @media (max-width: 699px) {
-  .search-calendar-row {
-    grid-template-columns: 1fr !important;
-  }
-} 
+        @media (max-width: 699px) {
+          .search-calendar-row {
+            grid-template-columns: 1fr !important;
+          }
+        } 
         @media (min-width: 600px) {
           .form-grid {
             grid-template-columns: 1fr 1fr;
