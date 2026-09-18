@@ -965,7 +965,7 @@ if (searchQuery.trim() !== "") {
 
       if (!searchableText.includes(q)) {
         return false;
-      }
+      
     }
 
     return true;
