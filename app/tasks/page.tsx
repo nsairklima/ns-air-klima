@@ -1066,9 +1066,15 @@ return true;
     "-"
   )}
 </div>
-                <strong>Telefon:</strong>{" "}
-                {viewingTask.phone ? (
-                  <a href={`tel:${viewingTask.phone}`} style={{ color: "#27ae60", textDecoration: "underline", fontWeight: "bold" }}>
+
+<div>
+  <strong>Telefon:</strong>{" "}
+  {viewingTask.phone ? (
+    <a
+      href={`tel:${viewingTask.phone}`}
+      style={{
+        color: "#27ae60",
+         textDecoration: "underline", fontWeight: "bold" }}>
                     📞 {viewingTask.phone}
                   </a>
                 ) : "-"}
