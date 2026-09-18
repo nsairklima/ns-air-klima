@@ -153,13 +153,50 @@ model Task {
   date         String?
   description  String?
   status       String    @default("pending")
+
   scheduled_at DateTime?
   completed_at DateTime?
+
   images       String    @default("[]")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-latitude Float?
-longitude Float?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  latitude     Float?
+  longitude    Float?
+
+  airConditioners TaskAirConditioner[]
+}
+
+model TaskAirConditioner {
+  id Int @id @default(autoincrement())
+
+  taskId Int
+
+  name String?
+
+  warranty Boolean @default(false)
+
+  washing Boolean @default(false)
+
+  disinfection Boolean @default(false)
+
+  washingPrice Int @default(0)
+
+  disinfectionPrice Int @default(0)
+
+  paymentMethod String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task Task @relation(
+    fields: [taskId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  @@index([taskId])
 }
 
 model EmailSetting {
