@@ -1478,6 +1478,16 @@ return (
     }}
   >
 
+<div
+  style={{
+    fontSize: "11px",
+    fontWeight: "bold",
+    color: "#d1d5db",
+    marginBottom: "8px",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+  }}
+>
 
     
       Típus
