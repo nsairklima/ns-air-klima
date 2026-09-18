@@ -969,7 +969,7 @@ if (searchQuery.trim() !== "") {
     }
 
     return true;
-  );
+  });
 
   return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
@@ -1016,7 +1016,7 @@ if (searchQuery.trim() !== "") {
           .email-input-row {
             flex-direction: row;
           }
-        }
+        
       `}</style>
 
       {/* RÉSZLETEK MODÁLIS */}
