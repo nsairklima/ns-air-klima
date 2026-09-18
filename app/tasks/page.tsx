@@ -919,60 +919,81 @@ const handleSubmit = async (
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const filteredTasks = tasks.filter((task) => {
-    if (filterType !== "all" && task.type !== filterType) {
-      return false;
-    }
-    if (filterStatus === "folyamatban" && task.completed_at) {
-      return false;
-    }
-    if (filterStatus === "kesz" && !task.completed_at) {
-      return false;
-    }
-if (scheduledDateFilter) {
-  const taskScheduledDate = task.scheduled_at
-    ? task.scheduled_at
-        .replace(" ", "T")
-        .slice(0, 10)
-    : "";
-
-  if (taskScheduledDate !== scheduledDateFilter) {
+const filteredTasks = tasks.filter((task) => {
+  if (
+    filterType !== "all" &&
+    task.type !== filterType
+  ) {
     return false;
   }
-}
 
-    
-if (searchQuery.trim() !== "") {
-      const q = searchQuery.toLowerCase();
+  if (
+    filterStatus === "folyamatban" &&
+    task.completed_at
+  ) {
+    return false;
+  }
 
-      const searchableText = [
-        task.id,
-        task.type,
-        task.name,
-        task.address,
-        task.phone,
-        task.email,
-        task.note,
-        task.scheduled_at,
-        task.completed_at,
-        task.created_at,
-        task.completed_at ? "kész" : "folyamatban",
-        task.type === "telepites" ? "telepítés" : "karbantartás",
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+  if (
+    filterStatus === "kesz" &&
+    !task.completed_at
+  ) {
+    return false;
+  }
 
-      if (!searchableText.includes(q)) {
-        return false;
-      }
+  if (scheduledDateFilter) {
+    const taskScheduledDate =
+      task.scheduled_at
+        ? task.scheduled_at
+            .replace(" ", "T")
+            .slice(0, 10)
+        : "";
+
+    if (
+      taskScheduledDate !==
+      scheduledDateFilter
+    ) {
+      return false;
     }
+  }
 
-    return true;
-  });
+  if (searchQuery.trim() !== "") {
+    const q = searchQuery
+      .trim()
+      .toLocaleLowerCase("hu-HU");
 
-  return (
-    <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
+    const searchableText = [
+      task.id,
+      task.type,
+      task.name,
+      task.address,
+      task.phone,
+      task.email,
+      task.note,
+      task.scheduled_at,
+      task.completed_at,
+      task.created_at,
+      task.completed_at
+        ? "kész"
+        : "folyamatban",
+      task.type === "telepites"
+        ? "telepítés"
+        : "karbantartás",
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLocaleLowerCase("hu-HU");
+
+    if (!searchableText.includes(q)) {
+      return false;
+    }
+  }
+
+  return true;
+});
+
+return (
+  <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
       <style jsx>{`
         .form-grid {
           display: grid;
@@ -1016,7 +1037,7 @@ if (searchQuery.trim() !== "") {
           .email-input-row {
             flex-direction: row;
           }
-        
+        }
       `}</style>
 
       {/* RÉSZLETEK MODÁLIS */}
