@@ -1,3 +1,7 @@
+app/api/tasks/route.ts
+
+
+
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
@@ -27,16 +31,6 @@ type ClientSyncResult = {
     | "existing-name"
     | "missing-name";
   clientId?: number;
-};
-
-type AirConditionerInput = {
-  name: string;
-  warranty: boolean;
-  washing: boolean;
-  disinfection: boolean;
-  washingPrice: number;
-  disinfectionPrice: number;
-  paymentMethod: "cash" | "transfer";
 };
 
 function cleanText(value: unknown): string {
@@ -78,118 +72,6 @@ function parseCoordinate(
     : null;
 }
 
-function parseNonNegativeInteger(
-  value: unknown
-): number {
-  const parsedValue = Number(value);
-
-  if (
-    !Number.isFinite(parsedValue) ||
-    parsedValue < 0
-  ) {
-    return 0;
-  }
-
-  return Math.round(parsedValue);
-}
-
-function parseAirConditioners(
-  rawValue: FormDataEntryValue | null
-): AirConditionerInput[] {
-  const textValue = cleanText(rawValue);
-
-  if (!textValue) {
-    return [];
-  }
-
-  let parsedValue: unknown;
-
-  try {
-    parsedValue = JSON.parse(textValue);
-  } catch {
-    throw new Error(
-      "A klímaadatok JSON formátuma hibás."
-    );
-  }
-
-  if (!Array.isArray(parsedValue)) {
-    throw new Error(
-      "A klímaadatok nem megfelelő formátumban érkeztek."
-    );
-  }
-
-  return parsedValue.map(
-    (item: any, index: number) => {
-      const warranty =
-        item?.warranty === true;
-
-      const washing =
-        item?.washing === true;
-
-      const disinfection =
-        item?.disinfection === true;
-
-      const washingPrice = washing
-        ? parseNonNegativeInteger(
-            item?.washingPrice
-          )
-        : 0;
-
-      const disinfectionPrice =
-        disinfection
-          ? parseNonNegativeInteger(
-              item?.disinfectionPrice
-            )
-          : 0;
-
-      const rawPaymentMethod =
-        cleanText(item?.paymentMethod);
-
-      if (!washing && !disinfection) {
-        throw new Error(
-          `${index + 1}. klíma: válassz legalább egy elvégzett munkát.`
-        );
-      }
-
-      if (
-        rawPaymentMethod !== "cash" &&
-        rawPaymentMethod !== "transfer"
-      ) {
-        throw new Error(
-          `${index + 1}. klíma: válassz fizetési módot.`
-        );
-      }
-
-      return {
-        name: cleanText(item?.name),
-        warranty,
-        washing,
-        disinfection,
-        washingPrice,
-        disinfectionPrice,
-        paymentMethod: rawPaymentMethod,
-      };
-    }
-  );
-}
-
-function escapeHtml(value: unknown): string {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function formatPrice(value: number): string {
-  return (
-    new Intl.NumberFormat("hu-HU").format(
-      value
-    ) + " Ft"
-  );
-}
-
 async function createClientIfMissing({
   name,
   address,
@@ -206,11 +88,9 @@ async function createClientIfMissing({
   const cleanName = cleanText(name);
   const cleanAddress = cleanText(address);
   const cleanPhone = cleanText(phone);
-
   const cleanEmail = normalizeEmail(
     cleanText(email)
   );
-
   const cleanNote = cleanText(note);
 
   if (!cleanName) {
@@ -324,8 +204,7 @@ async function createClientIfMissing({
     if (nameAddressMatch) {
       return {
         created: false,
-        reason:
-          "existing-name-address",
+        reason: "existing-name-address",
         clientId: nameAddressMatch.id,
       };
     }
@@ -387,8 +266,6 @@ async function createClientIfMissing({
 export async function POST(
   request: Request
 ) {
-  let createdTaskId: number | null = null;
-
   try {
     const formData =
       await request.formData();
@@ -412,17 +289,14 @@ export async function POST(
     const note =
       cleanText(formData.get("note"));
 
-    const latitude = parseCoordinate(
-      formData.get("latitude")
-    );
+    const latitude =
+      parseCoordinate(
+        formData.get("latitude")
+      );
 
-    const longitude = parseCoordinate(
-      formData.get("longitude")
-    );
-
-    const airConditioners =
-      parseAirConditioners(
-        formData.get("airConditioners")
+    const longitude =
+      parseCoordinate(
+        formData.get("longitude")
       );
 
     console.log(
@@ -434,14 +308,10 @@ export async function POST(
       }
     );
 
-    console.log(
-      "Frontendről érkező klímák:",
-      airConditioners
-    );
-
-    const recipientsRaw = cleanText(
-      formData.get("recipients")
-    );
+    const recipientsRaw =
+      cleanText(
+        formData.get("recipients")
+      );
 
     let notificationEmails: string[] = [];
 
@@ -489,13 +359,15 @@ export async function POST(
           .filter(Boolean);
     }
 
-    const scheduledAtRaw = cleanText(
-      formData.get("scheduledAt")
-    );
+    const scheduledAtRaw =
+      cleanText(
+        formData.get("scheduledAt")
+      );
 
-    const completedAtRaw = cleanText(
-      formData.get("completedAt")
-    );
+    const completedAtRaw =
+      cleanText(
+        formData.get("completedAt")
+      );
 
     const scheduledAt =
       scheduledAtRaw
@@ -511,12 +383,15 @@ export async function POST(
             .replace("T", " ")
         : null;
 
-    console.log("POST időpontok:", {
-      scheduledAtRaw,
-      scheduledAt,
-      completedAtRaw,
-      completedAt,
-    });
+    console.log(
+      "POST időpontok:",
+      {
+        scheduledAtRaw,
+        scheduledAt,
+        completedAtRaw,
+        completedAt,
+      }
+    );
 
     const photos =
       formData.getAll(
@@ -596,59 +471,49 @@ export async function POST(
         ? `Email: ${email}`
         : "";
 
-    const insertedTasks = await sql`
-      INSERT INTO "Task" (
-        "type",
-        "title",
-        "clientName",
-        "address",
-        "phone",
-        "date",
-        "description",
-        "images",
-        "scheduled_at",
-        "completed_at",
-        "latitude",
-        "longitude",
-        "updatedAt"
-      )
-      VALUES (
-        ${type},
-        ${name || "Új munka"},
-        ${name},
-        ${address},
-        ${phone},
-        ${currentDate},
-        ${description},
-        ${JSON.stringify(imageUrls)},
-        ${scheduledAt},
-        ${completedAt},
-        ${latitude},
-        ${longitude},
-        NOW()
-      )
-      RETURNING
-        "id",
-        "clientName",
-        "latitude",
-        "longitude"
-    `;
-
-    const rawTaskId =
-      insertedTasks[0]?.id;
+    const insertedTasks =
+      await sql`
+        INSERT INTO "Task" (
+          "type",
+          "title",
+          "clientName",
+          "address",
+          "phone",
+          "date",
+          "description",
+          "images",
+          "scheduled_at",
+          "completed_at",
+          "latitude",
+          "longitude",
+          "updatedAt"
+        )
+        VALUES (
+          ${type},
+          ${name || "Új munka"},
+          ${name},
+          ${address},
+          ${phone},
+          ${currentDate},
+          ${description},
+          ${JSON.stringify(
+            imageUrls
+          )},
+          ${scheduledAt},
+          ${completedAt},
+          ${latitude},
+          ${longitude},
+          NOW()
+        )
+        RETURNING
+          "id",
+          "clientName",
+          "latitude",
+          "longitude"
+      `;
 
     const newTaskId =
-      Number(rawTaskId);
-
-    if (
-      !Number.isFinite(newTaskId)
-    ) {
-      throw new Error(
-        "A munka létrejött, de az azonosítója nem olvasható."
-      );
-    }
-
-    createdTaskId = newTaskId;
+      insertedTasks[0]?.id;
 
     console.log(
       "Munka létrehozva:",
@@ -658,51 +523,6 @@ export async function POST(
           insertedTasks[0]?.latitude,
         longitude:
           insertedTasks[0]?.longitude,
-      }
-    );
-
-    for (
-      let index = 0;
-      index < airConditioners.length;
-      index += 1
-    ) {
-      const airConditioner =
-        airConditioners[index];
-
-      await sql`
-        INSERT INTO "TaskAirConditioner" (
-          "taskId",
-          "name",
-          "warranty",
-          "washing",
-          "disinfection",
-          "washingPrice",
-          "disinfectionPrice",
-          "paymentMethod",
-          "createdAt",
-          "updatedAt"
-        )
-        VALUES (
-          ${newTaskId},
-          ${airConditioner.name || null},
-          ${airConditioner.warranty},
-          ${airConditioner.washing},
-          ${airConditioner.disinfection},
-          ${airConditioner.washingPrice},
-          ${airConditioner.disinfectionPrice},
-          ${airConditioner.paymentMethod},
-          NOW(),
-          NOW()
-        )
-      `;
-    }
-
-    console.log(
-      "Klímák sikeresen elmentve:",
-      {
-        taskId: newTaskId,
-        count:
-          airConditioners.length,
       }
     );
 
@@ -727,12 +547,10 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "A munka és a klímák létrejöttek, de az ügyfél mentése nem sikerült: " +
+            "A munka létrejött, de az ügyfél mentése nem sikerült: " +
             (clientError?.message ||
               String(clientError)),
           taskId: newTaskId,
-          airConditionerCount:
-            airConditioners.length,
           clientCreated: false,
         },
         {
@@ -740,154 +558,6 @@ export async function POST(
         }
       );
     }
-
-    const totalPrice =
-      airConditioners.reduce(
-        (
-          total,
-          airConditioner
-        ) => {
-          return (
-            total +
-            (airConditioner.washing
-              ? airConditioner.washingPrice
-              : 0) +
-            (airConditioner.disinfection
-              ? airConditioner.disinfectionPrice
-              : 0)
-          );
-        },
-        0
-      );
-
-    const airConditionersHtml =
-      airConditioners.length > 0
-        ? airConditioners
-            .map(
-              (
-                airConditioner,
-                index
-              ) => {
-                const itemTotal =
-                  (airConditioner.washing
-                    ? airConditioner.washingPrice
-                    : 0) +
-                  (airConditioner.disinfection
-                    ? airConditioner.disinfectionPrice
-                    : 0);
-
-                const workTypes = [
-                  airConditioner.washing
-                    ? "Mosás"
-                    : "",
-                  airConditioner.disinfection
-                    ? "Fertőtlenítés"
-                    : "",
-                ]
-                  .filter(Boolean)
-                  .join(", ");
-
-                const paymentLabel =
-                  airConditioner.paymentMethod ===
-                  "cash"
-                    ? "Készpénz"
-                    : "Utalás";
-
-                return `
-                  <div
-                    style="
-                      background: #f8fafc;
-                      border: 1px solid #dbe3ea;
-                      border-radius: 8px;
-                      padding: 12px;
-                      margin-bottom: 10px;
-                    "
-                  >
-                    <p style="margin: 0 0 8px;">
-                      <strong>
-                        Klíma ${index + 1}${
-                          airConditioner.name
-                            ? `: ${escapeHtml(
-                                airConditioner.name
-                              )}`
-                            : ""
-                        }
-                      </strong>
-                    </p>
-
-                    <p style="margin: 4px 0;">
-                      <strong>Garanciás:</strong>
-                      ${
-                        airConditioner.warranty
-                          ? "Igen"
-                          : "Nem"
-                      }
-                    </p>
-
-                    <p style="margin: 4px 0;">
-                      <strong>Elvégzett munka:</strong>
-                      ${escapeHtml(workTypes)}
-                    </p>
-
-                    ${
-                      airConditioner.washing
-                        ? `
-                          <p style="margin: 4px 0;">
-                            <strong>Mosás díja:</strong>
-                            ${escapeHtml(
-                              formatPrice(
-                                airConditioner.washingPrice
-                              )
-                            )}
-                          </p>
-                        `
-                        : ""
-                    }
-
-                    ${
-                      airConditioner.disinfection
-                        ? `
-                          <p style="margin: 4px 0;">
-                            <strong>Fertőtlenítés díja:</strong>
-                            ${escapeHtml(
-                              formatPrice(
-                                airConditioner.disinfectionPrice
-                              )
-                            )}
-                          </p>
-                        `
-                        : ""
-                    }
-
-                    <p style="margin: 4px 0;">
-                      <strong>Fizetési mód:</strong>
-                      ${paymentLabel}
-                    </p>
-
-                    <p
-                      style="
-                        margin: 8px 0 0;
-                        padding-top: 8px;
-                        border-top: 1px solid #dbe3ea;
-                        color: #1e8449;
-                        font-weight: bold;
-                      "
-                    >
-                      Klíma összege:
-                      ${escapeHtml(
-                        formatPrice(itemTotal)
-                      )}
-                    </p>
-                  </div>
-                `;
-              }
-            )
-            .join("")
-        : `
-            <p style="color: #777;">
-              Ehhez a munkához nem lett klíma rögzítve.
-            </p>
-          `;
 
     let emailSent = false;
 
@@ -910,8 +580,7 @@ export async function POST(
                 process.env.EMAIL_PASS,
             },
             tls: {
-              rejectUnauthorized:
-                false,
+              rejectUnauthorized: false,
             },
           });
 
@@ -953,7 +622,11 @@ export async function POST(
                   Új munka érkezett
                 </h2>
 
-                <p style="margin: 6px 0 0;">
+                <p
+                  style="
+                    margin: 6px 0 0;
+                  "
+                >
                   ${typeLabel}
                 </p>
               </div>
@@ -968,101 +641,49 @@ export async function POST(
                   <strong>
                     Munkaazonosító:
                   </strong>
-                  #${newTaskId}
+                  #${newTaskId || "-"}
                 </p>
 
                 <p>
                   <strong>Név:</strong>
-                  ${escapeHtml(name || "-")}
+                  ${name || "-"}
                 </p>
 
                 <p>
                   <strong>Cím:</strong>
-                  ${escapeHtml(address || "-")}
+                  ${address || "-"}
                 </p>
 
                 <p>
                   <strong>Telefon:</strong>
-                  ${escapeHtml(phone || "-")}
+                  ${phone || "-"}
                 </p>
 
                 <p>
                   <strong>Email:</strong>
-                  ${escapeHtml(email || "-")}
+                  ${email || "-"}
                 </p>
 
                 <p>
                   <strong>
                     Tervezett időpont:
                   </strong>
-                  ${escapeHtml(
-                    scheduledAt || "-"
-                  )}
+                  ${scheduledAt || "-"}
                 </p>
 
                 <p>
                   <strong>
                     Megvalósult időpont:
                   </strong>
-                  ${escapeHtml(
-                    completedAt || "-"
-                  )}
+                  ${completedAt || "-"}
                 </p>
 
                 <p>
                   <strong>
                     Megjegyzés:
                   </strong>
-                  ${escapeHtml(note || "-")}
+                  ${note || "-"}
                 </p>
-
-                <div
-                  style="
-                    border-top: 1px solid #ddd;
-                    margin-top: 18px;
-                    padding-top: 16px;
-                  "
-                >
-                  <h3
-                    style="
-                      margin: 0 0 12px;
-                      color: #2c3e50;
-                    "
-                  >
-                    Rögzített klímák
-                  </h3>
-
-                  ${airConditionersHtml}
-
-                  ${
-                    airConditioners.length >
-                    0
-                      ? `
-                        <div
-                          style="
-                            background: #eafaf1;
-                            border: 1px solid #27ae60;
-                            border-radius: 8px;
-                            padding: 12px;
-                            margin-top: 12px;
-                            color: #1e8449;
-                            font-weight: bold;
-                          "
-                        >
-                          Klímák száma:
-                          ${airConditioners.length} db
-                          <br>
-                          Teljes összeg:
-                          ${escapeHtml(
-                            formatPrice(
-                              totalPrice
-                            )
-                          )}
-                        </div>
-                      `
-                      : ""
-                  }
-                </div>
               </div>
 
               <div
@@ -1093,11 +714,6 @@ export async function POST(
     let message =
       "Munka sikeresen elmentve.";
 
-    if (airConditioners.length > 0) {
-      message +=
-        ` ${airConditioners.length} klíma elmentve.`;
-    }
-
     if (clientSyncResult.created) {
       message +=
         " Az ügyfél automatikusan bekerült az ügyfelek közé.";
@@ -1125,9 +741,6 @@ export async function POST(
     return NextResponse.json({
       message,
       taskId: newTaskId,
-      airConditionerCount:
-        airConditioners.length,
-      totalPrice,
       clientCreated:
         clientSyncResult.created,
       clientId:
@@ -1145,31 +758,6 @@ export async function POST(
       "Munka mentési hiba:",
       error
     );
-
-    /*
-     * Ha a Task létrejött, de a klímák mentése
-     * közben hiba történt, eltávolítjuk a félkész
-     * munkát. Az ON DELETE CASCADE miatt az addig
-     * létrejött klímák is törlődnek.
-     */
-    if (createdTaskId !== null) {
-      try {
-        await sql`
-          DELETE FROM "Task"
-          WHERE "id" = ${createdTaskId}
-        `;
-
-        console.log(
-          "Félkész munka visszavonva:",
-          createdTaskId
-        );
-      } catch (rollbackError) {
-        console.error(
-          "A félkész munka visszavonása nem sikerült:",
-          rollbackError
-        );
-      }
-    }
 
     return NextResponse.json(
       {
