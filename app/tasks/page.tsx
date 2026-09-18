@@ -965,11 +965,11 @@ if (searchQuery.trim() !== "") {
 
       if (!searchableText.includes(q)) {
         return false;
-      
+      }
     }
 
     return true;
-  });
+  );
 
   return (
     <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
