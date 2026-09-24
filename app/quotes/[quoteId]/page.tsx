@@ -140,6 +140,50 @@ export default function QuoteEditPage() {
     }
   };
 
+const [savingAll, setSavingAll] = useState(false);
+
+const handleSaveAndRecalculate = async () => {
+  if (savingAll) return;
+
+  setSavingAll(true);
+
+  try {
+    const res = await fetch(`/api/quotes/${quoteId}/items`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        recalculateAll: true,
+      }),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      throw new Error(
+        result.details ||
+        result.error ||
+        "Nem sikerült újraszámolni az ajánlatot."
+      );
+    }
+
+    await loadQuote();
+
+    alert("✅ Az ajánlat minden tétele és a profit újraszámolva.");
+  } catch (error: any) {
+    console.error("Ajánlat újraszámítási hiba:", error);
+
+    alert(
+      "❌ Hiba az újraszámításkor: " +
+      (error?.message || "Ismeretlen hiba")
+    );
+  } finally {
+    setSavingAll(false);
+  }
+};
+
+  
   // Kijelölés az áttekinthető ablakból (modal) - Cikkszám átvételével!
   const handleSelectItem = (item: any) => {
     setDesc(item.name);
@@ -493,6 +537,31 @@ export default function QuoteEditPage() {
           onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')} 
           style={{ marginTop: 20, padding: "16px 30px", borderRadius: 12, cursor: "pointer", background: "#f1f5f9", color: "#0f172a", border: "none", fontWeight: "bold", width: "100%", maxWidth: "300px", fontSize: "15px" }}
         >
+         
+<button
+  type="button"
+  onClick={handleSaveAndRecalculate}
+  disabled={savingAll}
+  style={{
+    marginTop: 20,
+    padding: "16px 30px",
+    borderRadius: 12,
+    cursor: savingAll ? "not-allowed" : "pointer",
+    background: savingAll ? "#64748b" : "#2ecc71",
+    color: "#fff",
+    border: "none",
+    fontWeight: "bold",
+    width: "100%",
+    maxWidth: "300px",
+    fontSize: "15px",
+    opacity: savingAll ? 0.7 : 1,
+  }}
+>
+  {savingAll
+    ? "ÚJRASZÁMÍTÁS..."
+    : "💾 MENTÉS ÉS PROFIT ÚJRASZÁMÍTÁSA"}
+</button>
+          
           📄 PDF GENERÁLÁSA
         </button>
       </div>
