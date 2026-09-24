@@ -9,7 +9,9 @@ type QuoteItem = {
   sku?: string;
   code?: string;
   articleNumber?: string;
-};
+
+  profitAbs?: number;
+  };
 
 type Quote = {
   id: number;
@@ -213,6 +215,14 @@ export default function QuotesPage() {
           const isAccepted = currentStatus === "accepted" || currentStatus === "elfogadva";
           const isRejected = currentStatus === "rejected" || currentStatus === "elutasítva";
 
+      const totalProfitNet =
+  q.items?.reduce(
+    (sum, item) => sum + Number(item.profitAbs || 0),
+    0
+  ) || 0;
+
+const totalProfitGross = Math.round(totalProfitNet * 1.27);
+
           return (
             <div key={q.id} style={card}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
@@ -307,9 +317,31 @@ export default function QuotesPage() {
                 justifyContent: "space-between",
                 alignItems: "center" 
               }}>
-                <div style={{ fontWeight: "bold", fontSize: 17, color: "#333" }}>
-                  Bruttó: <span style={{ color: "#2c3e50" }}>{q.grossTotal?.toLocaleString("hu-HU")} Ft</span>
-                </div>
+                <div>
+  <div
+    style={{
+      fontWeight: "bold",
+      fontSize: 15,
+      color: "#16a34a",
+      marginBottom: 4,
+    }}
+  >
+    Haszon (bruttó): {totalProfitGross.toLocaleString("hu-HU")} Ft
+  </div>
+
+  <div
+    style={{
+      fontWeight: "bold",
+      fontSize: 17,
+      color: "#333",
+    }}
+  >
+    Bruttó:{" "}
+    <span style={{ color: "#2c3e50" }}>
+      {q.grossTotal?.toLocaleString("hu-HU")} Ft
+    </span>
+  </div>
+</div>
                 <Link href={`/quotes/${q.id}`} style={detailsLink}>
                   Részletek és szerkesztés →
                 </Link>
