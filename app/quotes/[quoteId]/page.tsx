@@ -10,34 +10,45 @@ export default function QuoteEditPage() {
 
   const [q, setQ] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [savingAll, setSavingAll] = useState(false);
   const [dbItems, setDbItems] = useState<any[]>([]);
 
-  // Anyagválasztó Modal állapota és keresője
+  // Anyagválasztó modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemSearchQuery, setItemSearchQuery] = useState("");
 
+  // Ajánlat címe
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
 
+  // Tételszerkesztés
   const [editingId, setEditingId] = useState<number | null>(null);
   const [desc, setDesc] = useState("");
-  const [itemSku, setItemSku] = useState(""); // ÚJ: Cikkszám állapota a beviteli mezőhöz
+  const [itemSku, setItemSku] = useState("");
 
-  // A gépelési akadások elkerülésére stringként tároljuk a beviteli mezőket
+  // Beviteli mezők
   const [qty, setQty] = useState<string>("1");
   const [unit, setUnit] = useState("db");
-  const [basePriceNet, setBasePriceNet] = useState<string>(""); 
-  const [profitValue, setProfitValue] = useState<string>(""); 
+  const [basePriceNet, setBasePriceNet] = useState<string>("");
+  const [profitValue, setProfitValue] = useState<string>("");
   const [profitType, setProfitType] = useState<"percent" | "fix">("fix");
 
   const loadQuote = async () => {
     try {
-      const res = await fetch(`/api/quotes/${quoteId}`);
+      const res = await fetch(`/api/quotes/${quoteId}`, {
+        cache: "no-store",
+      });
+
       if (res.ok) {
         const data = await res.json();
+
         if (data.items) {
-          data.items.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+          data.items.sort(
+            (a: any, b: any) =>
+              (a.sortOrder || 0) - (b.sortOrder || 0)
+          );
         }
+
         setQ(data);
         setTempTitle(data.title || "");
       }
@@ -50,7 +61,10 @@ export default function QuoteEditPage() {
 
   const loadDbItems = async () => {
     try {
-      const res = await fetch("/api/items");
+      const res = await fetch("/api/items", {
+        cache: "no-store",
+      });
+
       if (res.ok) {
         const data = await res.json();
         setDbItems(data);
@@ -72,63 +86,115 @@ export default function QuoteEditPage() {
       setIsEditingTitle(false);
       return;
     }
-    try {
-      await fetch(`/api/quotes/${quoteId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: tempTitle }),
-      });
-      setQ({ ...q, title: tempTitle });
-    } catch (err) {
-      console.error("Cím mentési hiba", err);
-    }
-    setIsEditingTitle(false);
-  };
-
-  const moveItem = async (index: number, direction: 'up' | 'down') => {
-    if (!q || !q.items) return;
-    const newItems = [...q.items];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newItems.length) return;
-
-    [newItems[index], newItems[targetIndex]] = [newItems[targetIndex], newItems[index]];
-    
-    const itemsWithNewOrder = newItems.map((item, idx) => ({ ...item, sortOrder: idx }));
-    
-    setQ({ ...q, items: itemsWithNewOrder });
 
     try {
-      const res = await fetch(`/api/quotes/${quoteId}/items/reorder`, {
+      const res = await fetch(`/api/quotes/${quoteId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          items: itemsWithNewOrder.map(i => ({ 
-            id: Number(i.id), 
-            sortOrder: Number(i.sortOrder) 
-          })) 
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: tempTitle,
         }),
       });
+
+      if (!res.ok) {
+        throw new Error("Nem sikerült elmenteni az ajánlat címét.");
+      }
+
+      setQ({
+        ...q,
+        title: tempTitle,
+      });
+    } catch (err) {
+      console.error("Cím mentési hiba", err);
+      alert("Nem sikerült elmenteni az ajánlat címét.");
+    } finally {
+      setIsEditingTitle(false);
+    }
+  };
+
+  const moveItem = async (
+    index: number,
+    direction: "up" | "down"
+  ) => {
+    if (!q || !q.items) return;
+
+    const newItems = [...q.items];
+    const targetIndex =
+      direction === "up" ? index - 1 : index + 1;
+
+    if (targetIndex < 0 || targetIndex >= newItems.length) {
+      return;
+    }
+
+    [newItems[index], newItems[targetIndex]] = [
+      newItems[targetIndex],
+      newItems[index],
+    ];
+
+    const itemsWithNewOrder = newItems.map((item, idx) => ({
+      ...item,
+      sortOrder: idx,
+    }));
+
+    setQ({
+      ...q,
+      items: itemsWithNewOrder,
+    });
+
+    try {
+      const res = await fetch(
+        `/api/quotes/${quoteId}/items/reorder`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: itemsWithNewOrder.map((item) => ({
+              id: Number(item.id),
+              sortOrder: Number(item.sortOrder),
+            })),
+          }),
+        }
+      );
 
       if (!res.ok) {
         throw new Error("Sikertelen mentés a szerveren.");
       }
     } catch (err) {
-      console.error("Sorrend mentési hiba, visszaállítás...", err);
-      loadQuote();
+      console.error(
+        "Sorrend mentési hiba, visszaállítás...",
+        err
+      );
+
+      await loadQuote();
     }
   };
 
   const handleCloneQuote = async () => {
     if (!quoteId) return;
-    if (!confirm("Biztosan le szeretnéd másolni ezt az ajánlatot egy új változatba?")) return;
+
+    if (
+      !confirm(
+        "Biztosan le szeretnéd másolni ezt az ajánlatot egy új változatba?"
+      )
+    ) {
+      return;
+    }
 
     try {
-      const res = await fetch(`/api/quotes/${quoteId}/clone`, {
-        method: "POST",
-      });
+      const res = await fetch(
+        `/api/quotes/${quoteId}/clone`,
+        {
+          method: "POST",
+        }
+      );
 
       if (res.ok) {
         const data = await res.json();
+
         alert("Ajánlat sikeresen lemásolva!");
         router.push(`/quotes/${data.newQuoteId}`);
       } else {
@@ -140,239 +206,536 @@ export default function QuoteEditPage() {
     }
   };
 
-const [savingAll, setSavingAll] = useState(false);
+  const handleSaveAndRecalculate = async () => {
+    if (savingAll) return;
 
-const handleSaveAndRecalculate = async () => {
-  if (savingAll) return;
+    setSavingAll(true);
 
-  setSavingAll(true);
-
-  try {
-    const res = await fetch(`/api/quotes/${quoteId}/items`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        recalculateAll: true,
-      }),
-    });
-
-    const result = await res.json();
-
-    if (!res.ok) {
-      throw new Error(
-        result.details ||
-        result.error ||
-        "Nem sikerült újraszámolni az ajánlatot."
+    try {
+      const res = await fetch(
+        `/api/quotes/${quoteId}/items`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            recalculateAll: true,
+          }),
+        }
       );
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          result.details ||
+            result.error ||
+            "Nem sikerült újraszámolni az ajánlatot."
+        );
+      }
+
+      await loadQuote();
+
+      alert(
+        "✅ Az ajánlat minden tétele és a profit újraszámolva."
+      );
+    } catch (error: any) {
+      console.error(
+        "Ajánlat újraszámítási hiba:",
+        error
+      );
+
+      alert(
+        "❌ Hiba az újraszámításkor: " +
+          (error?.message || "Ismeretlen hiba")
+      );
+    } finally {
+      setSavingAll(false);
     }
+  };
 
-    await loadQuote();
-
-    alert("✅ Az ajánlat minden tétele és a profit újraszámolva.");
-  } catch (error: any) {
-    console.error("Ajánlat újraszámítási hiba:", error);
-
-    alert(
-      "❌ Hiba az újraszámításkor: " +
-      (error?.message || "Ismeretlen hiba")
-    );
-  } finally {
-    setSavingAll(false);
-  }
-};
-
-  
-  // Kijelölés az áttekinthető ablakból (modal) - Cikkszám átvételével!
   const handleSelectItem = (item: any) => {
     setDesc(item.name);
-    setItemSku(item.sku || item.code || item.articleNumber || "");
+    setItemSku(
+      item.sku ||
+        item.code ||
+        item.articleNumber ||
+        ""
+    );
     setBasePriceNet(String(item.price || ""));
-    setProfitValue(""); 
-    setUnit(item.unit || "db"); 
+    setProfitValue("");
+    setUnit(item.unit || "db");
     setIsModalOpen(false);
   };
 
-  // Biztonságos számmá alakítás a kalkulációkhoz
-  const n_beszerzes = basePriceNet === "" ? 0 : Number(basePriceNet);
-  const n_profit = profitValue === "" ? 0 : Number(profitValue);
-  const n_mennyiseg = qty === "" ? 0 : Number(qty);
+  // Kalkuláció
+  const n_beszerzes =
+    basePriceNet === "" ? 0 : Number(basePriceNet);
+
+  const n_profit =
+    profitValue === "" ? 0 : Number(profitValue);
+
+  const n_mennyiseg =
+    qty === "" ? 0 : Number(qty);
 
   const brutto_beszerzes = n_beszerzes * 1.27;
-  const brutto_haszon = profitType === "percent" 
-    ? brutto_beszerzes * (n_profit / 100)
-    : n_profit;
 
-  const sellPriceGross = brutto_beszerzes + brutto_haszon;
+  const brutto_haszon =
+    profitType === "percent"
+      ? brutto_beszerzes * (n_profit / 100)
+      : n_profit;
+
+  const sellPriceGross =
+    brutto_beszerzes + brutto_haszon;
+
   const sellPriceNet = sellPriceGross / 1.27;
-  const lineTotalGross = sellPriceGross * n_mennyiseg;
 
-  const totalGross = q?.items?.reduce((sum: number, it: any) => sum + Number(it.lineGross), 0) || 0;
+  const lineTotalGross =
+    sellPriceGross * n_mennyiseg;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const totalGross =
+    q?.items?.reduce(
+      (sum: number, item: any) =>
+        sum + Number(item.lineGross),
+      0
+    ) || 0;
+
+  const totalProfitNet =
+    q?.items?.reduce(
+      (sum: number, item: any) =>
+        sum + Number(item.profitAbs || 0),
+      0
+    ) || 0;
+
+  const totalProfitGross = Math.round(
+    totalProfitNet * 1.27
+  );
+
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
+
     const method = editingId ? "PATCH" : "POST";
-    
+
     try {
-      const res = await fetch(`/api/quotes/${quoteId}/items`, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-  id: editingId,
-  description: desc,
-  sku: itemSku,
-  quantity: n_mennyiseg,
-  unit,
+      const res = await fetch(
+        `/api/quotes/${quoteId}/items`,
+        {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: editingId,
+            description: desc,
+            sku: itemSku,
+            quantity: n_mennyiseg,
+            unit,
 
-  basePrice: n_beszerzes,
-  costNet: n_beszerzes,
+            basePrice: n_beszerzes,
+            costNet: n_beszerzes,
 
-  unitPriceNet: sellPriceNet,
+            unitPriceNet: sellPriceNet,
 
-  lineNet: Math.round(sellPriceNet * n_mennyiseg),
-  lineVat: Math.round(
-    lineTotalGross - sellPriceNet * n_mennyiseg
-  ),
-  lineGross: Math.round(lineTotalGross),
+            lineNet: Math.round(
+              sellPriceNet * n_mennyiseg
+            ),
 
-  profitAbs: Math.round(
-    (brutto_haszon / 1.27) * n_mennyiseg
-  ),
+            lineVat: Math.round(
+              lineTotalGross -
+                sellPriceNet * n_mennyiseg
+            ),
 
-  profitPct:
-    n_beszerzes > 0
-      ? Math.round(
-          ((sellPriceNet - n_beszerzes) / n_beszerzes) * 10000
-        ) / 100
-      : 0,
+            lineGross: Math.round(
+              lineTotalGross
+            ),
 
-  sortOrder: editingId
-    ? q.items.find((i: any) => i.id === editingId)?.sortOrder
-    : q.items.length,
-}),
-      });
+            profitAbs: Math.round(
+              (brutto_haszon / 1.27) *
+                n_mennyiseg
+            ),
+
+            profitPct:
+              n_beszerzes > 0
+                ? Math.round(
+                    ((sellPriceNet -
+                      n_beszerzes) /
+                      n_beszerzes) *
+                      10000
+                  ) / 100
+                : 0,
+
+            sortOrder: editingId
+              ? q.items.find(
+                  (item: any) =>
+                    item.id === editingId
+                )?.sortOrder
+              : q.items.length,
+          }),
+        }
+      );
 
       if (res.ok) {
         resetForm();
-        loadQuote();
+        await loadQuote();
       } else {
-        alert("Nem sikerült menteni a tételt.");
+        const errorData = await res
+          .json()
+          .catch(() => null);
+
+        alert(
+          errorData?.details ||
+            errorData?.error ||
+            "Nem sikerült menteni a tételt."
+        );
       }
     } catch (err) {
-      console.error("Tétel mentési hiba:", err);
+      console.error(
+        "Tétel mentési hiba:",
+        err
+      );
+
+      alert(
+        "Hálózati hiba történt a tétel mentésekor."
+      );
     }
   };
 
-  const startEdit = (it: any) => {
-    setEditingId(it.id);
-    setDesc(it.description);
-    setItemSku(it.sku || it.code || it.articleNumber || "");
-    const m = Number(it.quantity) || 1;
-    setQty(String(m));
-    setUnit(it.unit || "db");
-    
-    const mentettNettoAlap = Number(it.basePrice || it.costNet || 0);
-    setBasePriceNet(mentettNettoAlap === 0 ? "" : String(mentettNettoAlap));
+  const startEdit = (item: any) => {
+    setEditingId(item.id);
+    setDesc(item.description);
 
-    const mentettTeljesBrutto = Number(it.lineGross) || 0;
-    const bruttoEladasiEgysegar = mentettTeljesBrutto / m;
-    const bruttoBeszerzesiEgysegar = mentettNettoAlap * 1.27;
-    
-    const diff = Math.round(bruttoEladasiEgysegar - bruttoBeszerzesiEgysegar);
+    setItemSku(
+      item.sku ||
+        item.code ||
+        item.articleNumber ||
+        ""
+    );
+
+    const quantity =
+      Number(item.quantity) || 1;
+
+    setQty(String(quantity));
+    setUnit(item.unit || "db");
+
+    const savedCostNet = Number(
+      item.basePrice || item.costNet || 0
+    );
+
+    setBasePriceNet(
+      savedCostNet === 0
+        ? ""
+        : String(savedCostNet)
+    );
+
+    const savedLineGross =
+      Number(item.lineGross) || 0;
+
+    const grossUnitPrice =
+      savedLineGross / quantity;
+
+    const grossCostUnitPrice =
+      savedCostNet * 1.27;
+
+    const difference = Math.round(
+      grossUnitPrice - grossCostUnitPrice
+    );
 
     setProfitType("fix");
-    setProfitValue(diff === 0 ? "" : String(diff));
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setProfitValue(
+      difference === 0
+        ? ""
+        : String(difference)
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const resetForm = () => {
-    setEditingId(null); 
-    setDesc(""); 
+    setEditingId(null);
+    setDesc("");
     setItemSku("");
-    setQty("1"); 
-    setUnit("db"); 
-    setBasePriceNet(""); 
+    setQty("1");
+    setUnit("db");
+    setBasePriceNet("");
     setProfitValue("");
+    setProfitType("fix");
   };
 
-  // Szűrt tételek a keresőhöz (Név vagy Cikkszám alapján)
-  const filteredDbItems = dbItems.filter(item => {
-    const q = itemSearchQuery.toLowerCase();
-    const nameMatch = item.name?.toLowerCase().includes(q);
-    const skuMatch = (item.sku || item.code || item.articleNumber || "").toLowerCase().includes(q);
-    return nameMatch || skuMatch;
-  });
+  const filteredDbItems = dbItems.filter(
+    (item) => {
+      const query =
+        itemSearchQuery.toLowerCase();
 
-  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Betöltés...</div>;
-  if (!q) return <div style={{ padding: 40, textAlign: "center", color: "#fff" }}>Az ajánlat nem található.</div>;
+      const nameMatch = item.name
+        ?.toLowerCase()
+        .includes(query);
 
-  const navBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #334155", background: "#1e293b", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
-  const cloneBtn = { padding: "10px 15px", borderRadius: "8px", border: "1px solid #9b59b6", background: "#8e44ad", color: "#fff", cursor: "pointer", fontWeight: "bold" as const };
-  const inputS = { width: "100%", padding: "13px", borderRadius: "10px", border: "1px solid #334155", boxSizing: "border-box" as const, color: "#fff", backgroundColor: "#0f172a", fontSize: "16px", outline: "none" };
-  const labS = { fontSize: "11px", fontWeight: "bold", color: "#94a3b8", textTransform: "uppercase" as const, marginBottom: "6px", display: "block", letterSpacing: "0.5px" };
-  
-  const resultBar = { 
-    background: "#0f172a", 
-    color: "#fff", 
-    padding: "16px", 
-    borderRadius: "10px", 
-    display: "flex", 
-    flexWrap: "wrap" as const, 
-    gap: "10px", 
-    justifyContent: "space-between", 
+      const skuMatch = (
+        item.sku ||
+        item.code ||
+        item.articleNumber ||
+        ""
+      )
+        .toLowerCase()
+        .includes(query);
+
+      return nameMatch || skuMatch;
+    }
+  );
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          padding: 40,
+          textAlign: "center",
+          color: "#fff",
+        }}
+      >
+        Betöltés...
+      </div>
+    );
+  }
+
+  if (!q) {
+    return (
+      <div
+        style={{
+          padding: 40,
+          textAlign: "center",
+          color: "#fff",
+        }}
+      >
+        Az ajánlat nem található.
+      </div>
+    );
+  }
+
+  const navBtn: React.CSSProperties = {
+    padding: "10px 15px",
+    borderRadius: "8px",
+    border: "1px solid #334155",
+    background: "#1e293b",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: "bold",
+  };
+
+  const cloneBtn: React.CSSProperties = {
+    padding: "10px 15px",
+    borderRadius: "8px",
+    border: "1px solid #9b59b6",
+    background: "#8e44ad",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: "bold",
+  };
+
+  const inputS: React.CSSProperties = {
+    width: "100%",
+    padding: "13px",
+    borderRadius: "10px",
+    border: "1px solid #334155",
+    boxSizing: "border-box",
+    color: "#fff",
+    backgroundColor: "#0f172a",
+    fontSize: "16px",
+    outline: "none",
+  };
+
+  const labS: React.CSSProperties = {
+    fontSize: "11px",
+    fontWeight: "bold",
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    marginBottom: "6px",
+    display: "block",
+    letterSpacing: "0.5px",
+  };
+
+  const resultBar: React.CSSProperties = {
+    background: "#0f172a",
+    color: "#fff",
+    padding: "16px",
+    borderRadius: "10px",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "10px",
+    justifyContent: "space-between",
     marginTop: 5,
-    border: "1px solid #334155"
+    border: "1px solid #334155",
   };
-  
-  const btnBase = { color: "#fff", padding: "15px", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: "bold" as const, width: "100%", fontSize: "16px" };
 
-  const responsiveGrid = {
+  const btnBase: React.CSSProperties = {
+    color: "#fff",
+    padding: "15px",
+    border: "none",
+    borderRadius: "12px",
+    cursor: "pointer",
+    fontWeight: "bold",
+    width: "100%",
+    fontSize: "16px",
+  };
+
+  const responsiveGrid: React.CSSProperties = {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(240px, 1fr))",
     gap: "14px",
-    width: "100%"
+    width: "100%",
   };
 
-  const arrowBtn = (disabled: boolean) => ({
-    background: disabled ? "#1e293b" : "#334155", 
-    border: "1px solid #475569", 
-    color: disabled ? "#475569" : "#fff", 
-    cursor: disabled ? "default" : "pointer", 
-    borderRadius: 6, 
-    padding: "6px 10px", 
+  const arrowBtn = (
+    disabled: boolean
+  ): React.CSSProperties => ({
+    background: disabled
+      ? "#1e293b"
+      : "#334155",
+    border: "1px solid #475569",
+    color: disabled ? "#475569" : "#fff",
+    cursor: disabled
+      ? "default"
+      : "pointer",
+    borderRadius: 6,
+    padding: "6px 10px",
     fontSize: 12,
-    fontWeight: "bold" as const
+    fontWeight: "bold",
   });
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#121826", padding: "20px 12px", maxWidth: 1000, margin: "0 auto", color: "#fff", boxSizing: "border-box", fontFamily: "sans-serif" }}>
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-        <button onClick={() => router.push(`/quotes`)} style={navBtn}>⬅️ Lista</button>
-        <button onClick={() => router.push("/")} style={navBtn}>🏠 Főoldal</button>
-        <button onClick={handleCloneQuote} style={cloneBtn}>👯 Másolás újként</button>
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#121826",
+        padding: "20px 12px",
+        maxWidth: 1000,
+        margin: "0 auto",
+        color: "#fff",
+        boxSizing: "border-box",
+        fontFamily: "sans-serif",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          marginBottom: 20,
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            router.push("/quotes")
+          }
+          style={navBtn}
+        >
+          ⬅️ Lista
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          style={navBtn}
+        >
+          🏠 Főoldal
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCloneQuote}
+          style={cloneBtn}
+        >
+          👯 Másolás újként
+        </button>
       </div>
 
-      <div style={{ marginBottom: 25, borderBottom: "1px solid #334155", paddingBottom: "15px" }}>
-        <h1 onClick={() => setIsEditingTitle(true)} style={{ cursor: "pointer", fontSize: "1.6rem", fontWeight: "800", wordBreak: "break-word", margin: 0 }}>
+      <div
+        style={{
+          marginBottom: 25,
+          borderBottom:
+            "1px solid #334155",
+          paddingBottom: "15px",
+        }}
+      >
+        <h1
+          onClick={() =>
+            setIsEditingTitle(true)
+          }
+          style={{
+            cursor: "pointer",
+            fontSize: "1.6rem",
+            fontWeight: "800",
+            wordBreak: "break-word",
+            margin: 0,
+          }}
+        >
           {isEditingTitle ? (
-            <input value={tempTitle} onChange={e => setTempTitle(e.target.value)} onBlur={saveTitle} autoFocus style={inputS} />
+            <input
+              value={tempTitle}
+              onChange={(e) =>
+                setTempTitle(e.target.value)
+              }
+              onBlur={saveTitle}
+              autoFocus
+              style={inputS}
+            />
           ) : (
-            <>{q.title} ✏️</>
+            <>
+              {q.title} ✏️
+            </>
           )}
         </h1>
       </div>
 
-      <div style={{ background: "#1e293b", padding: "20px 16px", borderRadius: 16, marginBottom: 30, border: "1px solid #334155", boxShadow: "0 4px 15px rgba(0,0,0,0.3)" }}>
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 15 }}>
-          
-          {/* ÁTLÁTHATÓ ANYAGVÁLASZTÓ GOMB */}
-          <div style={{ background: "#141b2b", padding: 14, borderRadius: 10, border: "1px solid #2d3748" }}>
-            <label style={{ ...labS, color: "#2ecc71" }}>Gyors betöltés adatbázisból</label>
+      <div
+        style={{
+          background: "#1e293b",
+          padding: "20px 16px",
+          borderRadius: 16,
+          marginBottom: 30,
+          border: "1px solid #334155",
+          boxShadow:
+            "0 4px 15px rgba(0,0,0,0.3)",
+        }}
+      >
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: "grid",
+            gap: 15,
+          }}
+        >
+          <div
+            style={{
+              background: "#141b2b",
+              padding: 14,
+              borderRadius: 10,
+              border:
+                "1px solid #2d3748",
+            }}
+          >
+            <label
+              style={{
+                ...labS,
+                color: "#2ecc71",
+              }}
+            >
+              Gyors betöltés adatbázisból
+            </label>
+
             <button
               type="button"
-              onClick={() => setIsModalOpen(true)}
+              onClick={() =>
+                setIsModalOpen(true)
+              }
               style={{
                 ...inputS,
                 borderColor: "#2ecc71",
@@ -380,300 +743,912 @@ const handleSaveAndRecalculate = async () => {
                 textAlign: "left",
                 cursor: "pointer",
                 display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center"
+                justifyContent:
+                  "space-between",
+                alignItems: "center",
               }}
             >
-              <span>🔍 Választás a törzsadatok közül...</span>
-              <span style={{ fontSize: 12, background: "#2ecc71", color: "#0f172a", padding: "2px 8px", borderRadius: 4, fontWeight: "bold" }}>Böngészés</span>
+              <span>
+                🔍 Választás a törzsadatok
+                közül...
+              </span>
+
+              <span
+                style={{
+                  fontSize: 12,
+                  background: "#2ecc71",
+                  color: "#0f172a",
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  fontWeight: "bold",
+                }}
+              >
+                Böngészés
+              </span>
             </button>
           </div>
 
           <div>
-            <label style={labS}>Megnevezés</label>
-            <input placeholder="Tétel megnevezése" value={desc} onChange={e => setDesc(e.target.value)} style={inputS} required />
+            <label style={labS}>
+              Megnevezés
+            </label>
+
+            <input
+              placeholder="Tétel megnevezése"
+              value={desc}
+              onChange={(e) =>
+                setDesc(e.target.value)
+              }
+              style={inputS}
+              required
+            />
           </div>
-          
+
           <div style={responsiveGrid}>
             <div>
-              <label style={labS}>Mennyiség és Egység</label>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input 
-                  type="number" 
-                  value={qty} 
-                  onChange={e => setQty(e.target.value)} 
-                  style={inputS} 
+              <label style={labS}>
+                Mennyiség és egység
+              </label>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                }}
+              >
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={qty}
+                  onChange={(e) =>
+                    setQty(e.target.value)
+                  }
+                  style={inputS}
                 />
-                <select value={unit} onChange={e => setUnit(e.target.value)} style={{ ...inputS, width: 90, padding: "13px 8px" }}>
-                  <option value="db">db</option>
-                  <option value="m">méter (m)</option>
+
+                <select
+                  value={unit}
+                  onChange={(e) =>
+                    setUnit(e.target.value)
+                  }
+                  style={{
+                    ...inputS,
+                    width: 90,
+                    padding: "13px 8px",
+                  }}
+                >
+                  <option value="db">
+                    db
+                  </option>
+                  <option value="m">
+                    méter (m)
+                  </option>
                 </select>
               </div>
             </div>
+
             <div>
-              <label style={labS}>Nettó Beszerzés (Ft)</label>
-              <input 
-                type="number" 
+              <label style={labS}>
+                Nettó beszerzés (Ft)
+              </label>
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
                 placeholder="0"
-                value={basePriceNet} 
-                onChange={e => setBasePriceNet(e.target.value)} 
-                style={inputS} 
+                value={basePriceNet}
+                onChange={(e) =>
+                  setBasePriceNet(
+                    e.target.value
+                  )
+                }
+                style={inputS}
               />
             </div>
+
             <div>
-              <label style={labS}>Haszon ({profitType === 'percent' ? '%' : 'Ft'})</label>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input 
-                  type="number" 
+              <label style={labS}>
+                Haszon (
+                {profitType === "percent"
+                  ? "%"
+                  : "Ft"}
+                )
+              </label>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                }}
+              >
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
                   placeholder="0"
-                  value={profitValue} 
-                  onChange={e => setProfitValue(e.target.value)} 
-                  style={inputS} 
+                  value={profitValue}
+                  onChange={(e) =>
+                    setProfitValue(
+                      e.target.value
+                    )
+                  }
+                  style={inputS}
                 />
-                <select value={profitType} onChange={e => setProfitType(e.target.value as any)} style={{ ...inputS, width: 80, padding: "13px 6px" }}>
-                  <option value="fix">Ft</option>
-                  <option value="percent">%</option>
+
+                <select
+                  value={profitType}
+                  onChange={(e) =>
+                    setProfitType(
+                      e.target.value as
+                        | "percent"
+                        | "fix"
+                    )
+                  }
+                  style={{
+                    ...inputS,
+                    width: 80,
+                    padding: "13px 6px",
+                  }}
+                >
+                  <option value="fix">
+                    Ft
+                  </option>
+
+                  <option value="percent">
+                    %
+                  </option>
                 </select>
               </div>
             </div>
           </div>
 
           <div style={resultBar}>
-            <div>Bruttó egységár: <strong style={{ color: "#2ecc71" }}>{Math.round(sellPriceGross).toLocaleString()} Ft</strong></div>
-            <div>Összesen: <strong style={{ color: "#2ecc71" }}>{Math.round(lineTotalGross).toLocaleString()} Ft</strong></div>
+            <div>
+              Bruttó egységár:{" "}
+              <strong
+                style={{
+                  color: "#2ecc71",
+                }}
+              >
+                {Math.round(
+                  sellPriceGross
+                ).toLocaleString("hu-HU")}{" "}
+                Ft
+              </strong>
+            </div>
+
+            <div>
+              Összesen:{" "}
+              <strong
+                style={{
+                  color: "#2ecc71",
+                }}
+              >
+                {Math.round(
+                  lineTotalGross
+                ).toLocaleString("hu-HU")}{" "}
+                Ft
+              </strong>
+            </div>
           </div>
 
-          <button type="submit" style={{ ...btnBase, background: editingId ? "#e67e22" : "#2ecc71", marginTop: 10 }}>
-            {editingId ? "MENTÉS" : "TÉTEL HOZZÁADÁSA"}
+          <button
+            type="submit"
+            style={{
+              ...btnBase,
+              background: editingId
+                ? "#e67e22"
+                : "#2ecc71",
+              marginTop: 10,
+            }}
+          >
+            {editingId
+              ? "MENTÉS"
+              : "TÉTEL HOZZÁADÁSA"}
           </button>
-          {editingId && <button type="button" onClick={resetForm} style={{ ...btnBase, background: "#475569", marginTop: -5 }}>MÉGSEM</button>}
+
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetForm}
+              style={{
+                ...btnBase,
+                background: "#475569",
+                marginTop: -5,
+              }}
+            >
+              MÉGSEM
+            </button>
+          )}
         </form>
       </div>
 
-      {/* ÁTALAKÍTOTT TÉTELLISTA KÁRTYÁK - CIKKSZÁM MEGJELENÍTÉSSEL */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {q.items && q.items.map((it: any, index: number) => {
-          const sku = it.sku || it.code || it.articleNumber || it.item?.sku || it.item?.code || it.item?.articleNumber;
-
-          return (
-            <div 
-              key={it.id} 
-              style={{ 
-                background: "#0f172a", 
-                padding: "14px 16px", 
-                borderRadius: 10, 
-                border: "1px solid #334155", 
-                display: "flex", 
-                justifyContent: "space-between", 
-                alignItems: "center",
-                transition: "background 0.15s",
-                gap: 12
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
-            >
-              {/* Bal oldal: Mozgatás + Név, Cikkszám és Mennyiség */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <button onClick={() => moveItem(index, 'up')} disabled={index === 0} style={arrowBtn(index === 0)}>▲</button>
-                  <button onClick={() => moveItem(index, 'down')} disabled={index === q.items.length - 1} style={arrowBtn(index === q.items.length - 1)}>▼</button>
-                </div>
-                
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-                    <span style={{ fontWeight: "bold", fontSize: 15, color: "#fff", wordBreak: "break-word" }}>
-                      {it.description}
-                    </span>
-                    {sku && (
-                      <span style={{ fontSize: 11, background: "#0284c7", color: "#fff", padding: "1px 6px", borderRadius: 4, fontWeight: "600" }}>
-                        CS: {sku}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                    Mennyiség: <span style={{ color: "#fff", fontWeight: "bold" }}>{it.quantity} {it.unit || "db"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Jobb oldal: Ár + Művelet gombok */}
-              <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 16 }}>
-                <div>
-                  <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
-                    {Number(it.lineGross).toLocaleString()} Ft
-                  </div>
-                  <div style={{ fontSize: 11, color: "#64748b" }}>Bruttó érték</div>
-                </div>
-
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button 
-                    onClick={() => startEdit(it)} 
-                    style={{ background: "#1e293b", border: "1px solid #334155", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 14 }} 
-                    title="Szerkesztés"
-                  >
-                    ✏️
-                  </button>
-                  <button 
-                    onClick={() => { 
-                      if(confirm("Biztosan törlöd ezt a tételt?")) {
-                        fetch(`/api/quotes/${quoteId}/items?id=${it.id}`, {method: "DELETE"}).then(loadQuote);
-                      }
-                    }} 
-                    style={{ background: "#1e293b", border: "1px solid #334155", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 14 }} 
-                    title="Törlés"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{ marginTop: 35, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", borderTop: "1px solid #334155", paddingTop: "20px" }}>
-        <div style={{ fontSize: "1.4rem", fontWeight: "900" }}>Bruttó összesen: <span style={{ color: "#2ecc71" }}>{totalGross.toLocaleString()} Ft</span></div>
-        <button 
-          onClick={() => window.open(`/quotes/${quoteId}/print`, '_blank')} 
-          style={{ marginTop: 20, padding: "16px 30px", borderRadius: 12, cursor: "pointer", background: "#f1f5f9", color: "#0f172a", border: "none", fontWeight: "bold", width: "100%", maxWidth: "300px", fontSize: "15px" }}
-        >
-         
-<button
-  type="button"
-  onClick={handleSaveAndRecalculate}
-  disabled={savingAll}
-  style={{
-    marginTop: 20,
-    padding: "16px 30px",
-    borderRadius: 12,
-    cursor: savingAll ? "not-allowed" : "pointer",
-    background: savingAll ? "#64748b" : "#2ecc71",
-    color: "#fff",
-    border: "none",
-    fontWeight: "bold",
-    width: "100%",
-    maxWidth: "300px",
-    fontSize: "15px",
-    opacity: savingAll ? 0.7 : 1,
-  }}
->
-  {savingAll
-    ? "ÚJRASZÁMÍTÁS..."
-    : "💾 MENTÉS ÉS PROFIT ÚJRASZÁMÍTÁSA"}
-</button>
-          
-          📄 PDF GENERÁLÁSA
-        </button>
-      </div>
-
-      {/* SZELLŐS ÉS KERESHETŐ TÉTELVÁLASZTÓ ABLAK (MODAL) - CIKKSZÁM MEGJELENÍTÉSSEL */}
-      {isModalOpen && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.75)",
+      <div
+        style={{
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: 1000,
-          padding: 16
-        }}>
-          <div style={{
-            background: "#1e293b",
-            borderRadius: 16,
-            width: "100%",
-            maxWidth: 600,
-            maxHeight: "85vh",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        {q.items &&
+          q.items.map(
+            (item: any, index: number) => {
+              const sku =
+                item.sku ||
+                item.code ||
+                item.articleNumber ||
+                item.item?.sku ||
+                item.item?.code ||
+                item.item?.articleNumber;
+
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    background: "#0f172a",
+                    padding: "14px 16px",
+                    borderRadius: 10,
+                    border:
+                      "1px solid #334155",
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    transition:
+                      "background 0.15s",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background =
+                      "#1e293b";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background =
+                      "#0f172a";
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection:
+                          "column",
+                        gap: 4,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          moveItem(
+                            index,
+                            "up"
+                          )
+                        }
+                        disabled={index === 0}
+                        style={arrowBtn(
+                          index === 0
+                        )}
+                      >
+                        ▲
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          moveItem(
+                            index,
+                            "down"
+                          )
+                        }
+                        disabled={
+                          index ===
+                          q.items.length - 1
+                        }
+                        style={arrowBtn(
+                          index ===
+                            q.items.length -
+                              1
+                        )}
+                      >
+                        ▼
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        minWidth: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems:
+                            "center",
+                          gap: 8,
+                          flexWrap: "wrap",
+                          marginBottom: 4,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight:
+                              "bold",
+                            fontSize: 15,
+                            color: "#fff",
+                            wordBreak:
+                              "break-word",
+                          }}
+                        >
+                          {
+                            item.description
+                          }
+                        </span>
+
+                        {sku && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              background:
+                                "#0284c7",
+                              color: "#fff",
+                              padding:
+                                "1px 6px",
+                              borderRadius: 4,
+                              fontWeight:
+                                "600",
+                            }}
+                          >
+                            CS: {sku}
+                          </span>
+                        )}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "#94a3b8",
+                        }}
+                      >
+                        Mennyiség:{" "}
+                        <span
+                          style={{
+                            color: "#fff",
+                            fontWeight:
+                              "bold",
+                          }}
+                        >
+                          {item.quantity}{" "}
+                          {item.unit ||
+                            "db"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      textAlign: "right",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 16,
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          color: "#2ecc71",
+                          fontWeight: "bold",
+                          fontSize: 15,
+                        }}
+                      >
+                        {Number(
+                          item.lineGross
+                        ).toLocaleString(
+                          "hu-HU"
+                        )}{" "}
+                        Ft
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "#64748b",
+                        }}
+                      >
+                        Bruttó érték
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          startEdit(item)
+                        }
+                        style={{
+                          background:
+                            "#1e293b",
+                          border:
+                            "1px solid #334155",
+                          color: "#fff",
+                          borderRadius: 6,
+                          padding:
+                            "6px 10px",
+                          cursor: "pointer",
+                          fontSize: 14,
+                        }}
+                        title="Szerkesztés"
+                      >
+                        ✏️
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (
+                            !confirm(
+                              "Biztosan törlöd ezt a tételt?"
+                            )
+                          ) {
+                            return;
+                          }
+
+                          try {
+                            const res =
+                              await fetch(
+                                `/api/quotes/${quoteId}/items?id=${item.id}`,
+                                {
+                                  method:
+                                    "DELETE",
+                                }
+                              );
+
+                            if (!res.ok) {
+                              throw new Error(
+                                "Nem sikerült törölni a tételt."
+                              );
+                            }
+
+                            await loadQuote();
+                          } catch (err) {
+                            console.error(
+                              "Törlési hiba:",
+                              err
+                            );
+
+                            alert(
+                              "Nem sikerült törölni a tételt."
+                            );
+                          }
+                        }}
+                        style={{
+                          background:
+                            "#1e293b",
+                          border:
+                            "1px solid #334155",
+                          color: "#fff",
+                          borderRadius: 6,
+                          padding:
+                            "6px 10px",
+                          cursor: "pointer",
+                          fontSize: 14,
+                        }}
+                        title="Törlés"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+          )}
+      </div>
+
+      {/* ÖSSZESÍTÉS ÉS KÜLÖNÁLLÓ GOMBOK */}
+      <div
+        style={{
+          marginTop: 35,
+          borderTop:
+            "1px solid #334155",
+          paddingTop: "20px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            fontSize: "1.4rem",
+            fontWeight: "900",
+            textAlign: "right",
+          }}
+        >
+          Bruttó összesen:{" "}
+          <span
+            style={{
+              color: "#2ecc71",
+            }}
+          >
+            {totalGross.toLocaleString(
+              "hu-HU"
+            )}{" "}
+            Ft
+          </span>
+        </div>
+
+        <div
+          style={{
+            fontSize: "1.1rem",
+            fontWeight: "800",
+            textAlign: "right",
+            color: "#86efac",
+          }}
+        >
+          Bruttó haszon:{" "}
+          {totalProfitGross.toLocaleString(
+            "hu-HU"
+          )}{" "}
+          Ft
+        </div>
+
+        <div
+          style={{
             display: "flex",
             flexDirection: "column",
-            border: "1px solid #334155",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-            overflow: "hidden"
-          }}>
-            {/* Fejléc és Kereső */}
-            <div style={{ padding: 20, borderBottom: "1px solid #334155" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <h3 style={{ margin: 0, fontSize: 18, color: "#fff" }}>Válassz anyagot / tételt</h3>
+            gap: 12,
+            width: "100%",
+            maxWidth: "340px",
+            marginTop: 8,
+          }}
+        >
+          <button
+            type="button"
+            onClick={
+              handleSaveAndRecalculate
+            }
+            disabled={savingAll}
+            style={{
+              padding: "16px 20px",
+              borderRadius: 12,
+              cursor: savingAll
+                ? "not-allowed"
+                : "pointer",
+              background: savingAll
+                ? "#64748b"
+                : "#2ecc71",
+              color: "#fff",
+              border: "none",
+              fontWeight: "bold",
+              width: "100%",
+              fontSize: "15px",
+              opacity: savingAll
+                ? 0.7
+                : 1,
+            }}
+          >
+            {savingAll
+              ? "ÚJRASZÁMÍTÁS..."
+              : "💾 MENTÉS ÉS PROFIT ÚJRASZÁMÍTÁSA"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              window.open(
+                `/quotes/${quoteId}/print`,
+                "_blank"
+              )
+            }
+            style={{
+              padding: "16px 20px",
+              borderRadius: 12,
+              cursor: "pointer",
+              background: "#f1f5f9",
+              color: "#0f172a",
+              border: "none",
+              fontWeight: "bold",
+              width: "100%",
+              fontSize: "15px",
+            }}
+          >
+            📄 PDF GENERÁLÁSA
+          </button>
+        </div>
+      </div>
+
+      {/* TÉTELVÁLASZTÓ MODAL */}
+      {isModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor:
+              "rgba(0,0,0,0.75)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              borderRadius: 16,
+              width: "100%",
+              maxWidth: 600,
+              maxHeight: "85vh",
+              display: "flex",
+              flexDirection: "column",
+              border:
+                "1px solid #334155",
+              boxShadow:
+                "0 10px 30px rgba(0,0,0,0.5)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                padding: 20,
+                borderBottom:
+                  "1px solid #334155",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 18,
+                    color: "#fff",
+                  }}
+                >
+                  Válassz anyagot / tételt
+                </h3>
+
                 <button
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 20, cursor: "pointer" }}
+                  type="button"
+                  onClick={() =>
+                    setIsModalOpen(false)
+                  }
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#94a3b8",
+                    fontSize: 20,
+                    cursor: "pointer",
+                  }}
                 >
                   ✖
                 </button>
               </div>
+
               <input
                 type="text"
                 placeholder="🔍 Keresés név vagy cikkszám alapján..."
                 value={itemSearchQuery}
-                onChange={(e) => setItemSearchQuery(e.target.value)}
+                onChange={(e) =>
+                  setItemSearchQuery(
+                    e.target.value
+                  )
+                }
                 style={inputS}
                 autoFocus
               />
             </div>
 
-            {/* Szellős lista kártyákkal */}
-            <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-              {filteredDbItems.length === 0 ? (
-                <div style={{ textAlign: "center", padding: 30, color: "#94a3b8" }}>
-                  Nincs a keresésnek megfelelő anyag.
+            <div
+              style={{
+                padding: 16,
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              {filteredDbItems.length ===
+              0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: 30,
+                    color: "#94a3b8",
+                  }}
+                >
+                  Nincs a keresésnek
+                  megfelelő anyag.
                 </div>
               ) : (
-                filteredDbItems.map((item) => {
-                  const itemSkuVal = item.sku || item.code || item.articleNumber;
+                filteredDbItems.map(
+                  (item) => {
+                    const itemSkuVal =
+                      item.sku ||
+                      item.code ||
+                      item.articleNumber;
 
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleSelectItem(item)}
-                      style={{
-                        background: "#0f172a",
-                        padding: "14px 16px",
-                        borderRadius: 10,
-                        border: "1px solid #334155",
-                        cursor: "pointer",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        transition: "background 0.15s"
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
-                    >
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-                          <span style={{ fontWeight: "bold", fontSize: 15, color: "#fff" }}>
-                            {item.name}
-                          </span>
-                          {itemSkuVal && (
-                            <span style={{ fontSize: 11, background: "#0284c7", color: "#fff", padding: "1px 6px", borderRadius: 4, fontWeight: "600" }}>
-                              CS: {itemSkuVal}
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() =>
+                          handleSelectItem(
+                            item
+                          )
+                        }
+                        style={{
+                          background:
+                            "#0f172a",
+                          padding:
+                            "14px 16px",
+                          borderRadius: 10,
+                          border:
+                            "1px solid #334155",
+                          cursor: "pointer",
+                          display: "flex",
+                          justifyContent:
+                            "space-between",
+                          alignItems:
+                            "center",
+                          gap: 12,
+                          transition:
+                            "background 0.15s",
+                        }}
+                        onMouseEnter={(
+                          e
+                        ) => {
+                          e.currentTarget.style.background =
+                            "#1e293b";
+                        }}
+                        onMouseLeave={(
+                          e
+                        ) => {
+                          e.currentTarget.style.background =
+                            "#0f172a";
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems:
+                                "center",
+                              gap: 8,
+                              flexWrap:
+                                "wrap",
+                              marginBottom: 4,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontWeight:
+                                  "bold",
+                                fontSize: 15,
+                                color: "#fff",
+                              }}
+                            >
+                              {item.name}
                             </span>
-                          )}
+
+                            {itemSkuVal && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  background:
+                                    "#0284c7",
+                                  color:
+                                    "#fff",
+                                  padding:
+                                    "1px 6px",
+                                  borderRadius: 4,
+                                  fontWeight:
+                                    "600",
+                                }}
+                              >
+                                CS:{" "}
+                                {
+                                  itemSkuVal
+                                }
+                              </span>
+                            )}
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color:
+                                "#94a3b8",
+                            }}
+                          >
+                            Egység:{" "}
+                            {item.unit ||
+                              "db"}
+                          </div>
                         </div>
-                        <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                          Egység: {item.unit || "db"}
+
+                        <div
+                          style={{
+                            textAlign:
+                              "right",
+                          }}
+                        >
+                          <div
+                            style={{
+                              color:
+                                "#2ecc71",
+                              fontWeight:
+                                "bold",
+                              fontSize: 15,
+                            }}
+                          >
+                            {Number(
+                              item.price || 0
+                            ).toLocaleString(
+                              "hu-HU"
+                            )}{" "}
+                            Ft
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color:
+                                "#64748b",
+                            }}
+                          >
+                            Nettó alapár
+                          </div>
                         </div>
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ color: "#2ecc71", fontWeight: "bold", fontSize: 15 }}>
-                          {item.price?.toLocaleString()} Ft
-                        </div>
-                        <div style={{ fontSize: 11, color: "#64748b" }}>Nettó alapár</div>
-                      </div>
-                    </div>
-                  );
-                })
+                    );
+                  }
+                )
               )}
             </div>
 
-            {/* Lábléc bezáró gomb */}
-            <div style={{ padding: 12, borderTop: "1px solid #334155", textAlign: "right" }}>
+            <div
+              style={{
+                padding: 12,
+                borderTop:
+                  "1px solid #334155",
+                textAlign: "right",
+              }}
+            >
               <button
-                onClick={() => setIsModalOpen(false)}
-                style={{ ...navBtn, width: "100%" }}
+                type="button"
+                onClick={() =>
+                  setIsModalOpen(false)
+                }
+                style={{
+                  ...navBtn,
+                  width: "100%",
+                }}
               >
                 Mégsem
               </button>
