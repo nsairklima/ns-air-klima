@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// Összesítő számoló segédfüggvény
 async function updateQuoteTotals(quoteId: number) {
   const allItems = await prisma.quoteItem.findMany({
     where: { quoteId },
@@ -32,7 +31,7 @@ async function updateQuoteTotals(quoteId: number) {
   });
 }
 
-// ÚJ TÉTEL LÉTREHOZÁSA
+// Új tétel létrehozása
 export async function POST(
   req: Request,
   { params }: { params: { quoteId: string } }
@@ -42,14 +41,7 @@ export async function POST(
     const qId = Number(params.quoteId);
 
     const quantity = Number(data.quantity || 0);
-
-let costNet = 0;
-
-if (data.costNet !== undefined) {
-  costNet = Number(data.costNet);
-} else {
-  costNet = Number(data.basePrice || 0);
-}
+    const costNet = Number(data.costNet || data.basePrice || 0);
     const unitPriceNet = Number(data.unitPriceNet || 0);
 
     const lineNet = unitPriceNet * quantity;
@@ -69,18 +61,14 @@ if (data.costNet !== undefined) {
         description: data.description,
         quantity,
         unit: data.unit || "db",
-
         costNet,
         unitPriceNet,
         vatRate: 27,
-
         lineNet: Math.round(lineNet),
         lineVat: Math.round(lineVat),
         lineGross: Math.round(lineGross),
-
         profitAbs: Math.round(profitAbs * 100) / 100,
         profitPct: Math.round(profitPct * 100) / 100,
-
         sortOrder: Number(data.sortOrder || 0),
       },
     });
@@ -94,14 +82,14 @@ if (data.costNet !== undefined) {
     return NextResponse.json(
       {
         error: "Hiba a mentéskor",
-        details: error?.message,
+        details: error?.message || "Ismeretlen hiba",
       },
       { status: 500 }
     );
   }
 }
 
-// TÉTEL MÓDOSÍTÁSA VAGY SORRENDEZÉS
+// Tétel módosítása vagy sorrendezése
 export async function PATCH(
   req: Request,
   { params }: { params: { quoteId: string } }
@@ -114,7 +102,9 @@ export async function PATCH(
     if (data.items && Array.isArray(data.items)) {
       const updates = data.items.map((item: any) =>
         prisma.quoteItem.update({
-          where: { id: Number(item.id) },
+          where: {
+            id: Number(item.id),
+          },
           data: {
             sortOrder: Number(item.sortOrder),
           },
@@ -127,13 +117,91 @@ export async function PATCH(
     }
 
     // Egy tétel módosítása
-   const quantity = Number(data.quantity || 0);
+    const quantity = Number(data.quantity || 0);
+    const costNet = Number(data.costNet || data.basePrice || 0);
+    const unitPriceNet = Number(data.unitPriceNet || 0);
 
-let costNet = 0;
+    const lineNet = unitPriceNet * quantity;
+    const lineVat = lineNet * 0.27;
+    const lineGross = lineNet + lineVat;
 
-if (data.costNet !== undefined) {
-  costNet = Number(data.costNet);
-} else {
-  costNet = Number(data.basePrice || 0);
+    const profitAbs = (unitPriceNet - costNet) * quantity;
+
+    const profitPct =
+      costNet > 0
+        ? ((unitPriceNet - costNet) / costNet) * 100
+        : 0;
+
+    const updatedItem = await prisma.quoteItem.update({
+      where: {
+        id: Number(data.id),
+      },
+      data: {
+        description: data.description,
+        quantity,
+        unit: data.unit || "db",
+        costNet,
+        unitPriceNet,
+        vatRate: 27,
+        lineNet: Math.round(lineNet),
+        lineVat: Math.round(lineVat),
+        lineGross: Math.round(lineGross),
+        profitAbs: Math.round(profitAbs * 100) / 100,
+        profitPct: Math.round(profitPct * 100) / 100,
+        sortOrder: Number(data.sortOrder || 0),
+      },
+    });
+
+    await updateQuoteTotals(qId);
+
+    return NextResponse.json(updatedItem);
+  } catch (error: any) {
+    console.error("Tétel módosítási hiba:", error);
+
+    return NextResponse.json(
+      {
+        error: "Hiba a módosításkor",
+        details: error?.message || "Ismeretlen hiba",
+      },
+      { status: 500 }
+    );
+  }
 }
- 
+
+// Tétel törlése
+export async function DELETE(
+  req: Request,
+  { params }: { params: { quoteId: string } }
+) {
+  try {
+    const { searchParams } = new URL(req.url);
+
+    const id = Number(searchParams.get("id"));
+    const qId = Number(params.quoteId);
+
+    if (!id || Number.isNaN(id)) {
+      return NextResponse.json(
+        { error: "Hiányzó vagy hibás tételazonosító" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.quoteItem.delete({
+      where: { id },
+    });
+
+    await updateQuoteTotals(qId);
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Tétel törlési hiba:", error);
+
+    return NextResponse.json(
+      {
+        error: "Hiba a törléskor",
+        details: error?.message || "Ismeretlen hiba",
+      },
+      { status: 500 }
+    );
+  }
+}
