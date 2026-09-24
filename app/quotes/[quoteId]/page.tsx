@@ -175,16 +175,38 @@ export default function QuoteEditPage() {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: editingId,
-          description: desc,
-          sku: itemSku, // Cikkszám mentése
-          quantity: n_mennyiseg,
-          unit,
-          basePrice: n_beszerzes, 
-          unitPriceNet: sellPriceNet,
-          lineGross: Math.round(lineTotalGross),
-          sortOrder: editingId ? q.items.find((i: any) => i.id === editingId)?.sortOrder : q.items.length
-        }),
+  id: editingId,
+  description: desc,
+  sku: itemSku,
+  quantity: n_mennyiseg,
+  unit,
+
+  basePrice: n_beszerzes,
+  costNet: n_beszerzes,
+
+  unitPriceNet: sellPriceNet,
+
+  lineNet: Math.round(sellPriceNet * n_mennyiseg),
+  lineVat: Math.round(
+    lineTotalGross - sellPriceNet * n_mennyiseg
+  ),
+  lineGross: Math.round(lineTotalGross),
+
+  profitAbs: Math.round(
+    (brutto_haszon / 1.27) * n_mennyiseg
+  ),
+
+  profitPct:
+    n_beszerzes > 0
+      ? Math.round(
+          ((sellPriceNet - n_beszerzes) / n_beszerzes) * 10000
+        ) / 100
+      : 0,
+
+  sortOrder: editingId
+    ? q.items.find((i: any) => i.id === editingId)?.sortOrder
+    : q.items.length,
+}),
       });
 
       if (res.ok) {
