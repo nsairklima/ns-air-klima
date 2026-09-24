@@ -42,11 +42,14 @@ export async function POST(
     const qId = Number(params.quoteId);
 
     const quantity = Number(data.quantity || 0);
-    const costNet = Number(
-  data.costNet !== undefined
-    ? data.costNet
-    : data.basePrice || 0
-);
+
+let costNet = 0;
+
+if (data.costNet !== undefined) {
+  costNet = Number(data.costNet);
+} else {
+  costNet = Number(data.basePrice || 0);
+}
     const unitPriceNet = Number(data.unitPriceNet || 0);
 
     const lineNet = unitPriceNet * quantity;
@@ -124,10 +127,13 @@ export async function PATCH(
     }
 
     // Egy tétel módosítása
-    const quantity = Number(data.quantity || 0);
-    const costNet = Number(
-  data.costNet !== undefined
-    ? data.costNet
-    : data.basePrice || 0
-);
+   const quantity = Number(data.quantity || 0);
+
+let costNet = 0;
+
+if (data.costNet !== undefined) {
+  costNet = Number(data.costNet);
+} else {
+  costNet = Number(data.basePrice || 0);
+}
  
