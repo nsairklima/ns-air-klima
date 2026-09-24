@@ -40,54 +40,7 @@ export async function POST(
     const data = await req.json();
     const qId = Number(params.quoteId);
 
-    // Az ajánlat összes tételének újraszámítása
-if (data.recalculateAll === true) {
-  const items = await prisma.quoteItem.findMany({
-    where: { quoteId: qId },
-  });
-
-  const updates = items.map((item) => {
-    const quantity = Number(item.quantity || 0);
-    const costNet = Number(item.costNet || 0);
-    const unitPriceNet = Number(item.unitPriceNet || 0);
-
-    const lineNet = unitPriceNet * quantity;
-    const lineVat = lineNet * 0.27;
-    const lineGross = lineNet + lineVat;
-
-    const profitAbs = (unitPriceNet - costNet) * quantity;
-
-    const profitPct =
-      costNet > 0
-        ? ((unitPriceNet - costNet) / costNet) * 100
-        : 0;
-
-    return prisma.quoteItem.update({
-      where: { id: item.id },
-      data: {
-        lineNet: Math.round(lineNet),
-        lineVat: Math.round(lineVat),
-        lineGross: Math.round(lineGross),
-        profitAbs: Math.round(profitAbs * 100) / 100,
-        profitPct: Math.round(profitPct * 100) / 100,
-      },
-    });
-  });
-
-  await prisma.$transaction(updates);
-  await updateQuoteTotals(qId);
-
-  const refreshedItems = await prisma.quoteItem.findMany({
-    where: { quoteId: qId },
-    orderBy: { sortOrder: "asc" },
-  });
-
-  return NextResponse.json({
-    success: true,
-    message: "Az ajánlat minden tétele újraszámolva.",
-    items: refreshedItems,
-  });
-}
+    
 
     const quantity = Number(data.quantity || 0);
     const costNet = Number(data.costNet || data.basePrice || 0);
@@ -146,6 +99,55 @@ export async function PATCH(
   try {
     const data = await req.json();
     const qId = Number(params.quoteId);
+
+    // Az ajánlat összes tételének újraszámítása
+if (data.recalculateAll === true) {
+  const items = await prisma.quoteItem.findMany({
+    where: { quoteId: qId },
+  });
+
+  const updates = items.map((item) => {
+    const quantity = Number(item.quantity || 0);
+    const costNet = Number(item.costNet || 0);
+    const unitPriceNet = Number(item.unitPriceNet || 0);
+
+    const lineNet = unitPriceNet * quantity;
+    const lineVat = lineNet * 0.27;
+    const lineGross = lineNet + lineVat;
+
+    const profitAbs = (unitPriceNet - costNet) * quantity;
+
+    const profitPct =
+      costNet > 0
+        ? ((unitPriceNet - costNet) / costNet) * 100
+        : 0;
+
+    return prisma.quoteItem.update({
+      where: { id: item.id },
+      data: {
+        lineNet: Math.round(lineNet),
+        lineVat: Math.round(lineVat),
+        lineGross: Math.round(lineGross),
+        profitAbs: Math.round(profitAbs * 100) / 100,
+        profitPct: Math.round(profitPct * 100) / 100,
+      },
+    });
+  });
+
+  await prisma.$transaction(updates);
+  await updateQuoteTotals(qId);
+
+  const refreshedItems = await prisma.quoteItem.findMany({
+    where: { quoteId: qId },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: "Az ajánlat minden tétele újraszámolva.",
+    items: refreshedItems,
+  });
+}
 
     // Sorrendezés
     if (data.items && Array.isArray(data.items)) {
