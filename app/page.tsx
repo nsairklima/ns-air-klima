@@ -361,20 +361,20 @@ export default function MainDashboard() {
         <div style={backgroundGlowTwo} />
 
         <main style={dashboardContainer}>
-         <header
+<header
   style={{
     ...headerStyle,
 
     background: "#111827",
 
-    border: "1px solid #334155",
+    border: "1px solid #475569",
 
     borderRadius: "24px",
 
-    padding: "24px",
+    padding: "32px",
 
     boxShadow:
-      "0 10px 30px rgba(0,0,0,.35)",
+      "0 20px 40px rgba(0,0,0,.45)",
 
     flexDirection: isMobile ? "column" : "row",
 
@@ -858,8 +858,8 @@ const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
   overflow: "hidden",
 
- background:
-  "linear-gradient(180deg, #020617 0%, #070f1e 100%)",
+background:
+  "linear-gradient(180deg, #020617 0%, #0f172a 100%)",
 
   color: "#f8fafc",
 
@@ -945,9 +945,16 @@ const brandSubtitle: React.CSSProperties = {
 
 const welcomeTitle: React.CSSProperties = {
   margin: 0,
+
   color: "#f8fafc",
-  fontWeight: "760",
-  letterSpacing: "-0.04em",
+
+  fontWeight: "800",
+
+  fontSize: "52px",
+
+  letterSpacing: "-0.05em",
+
+  lineHeight: 1.05,
 };
 
 const welcomeText: React.CSSProperties = {
@@ -1000,17 +1007,17 @@ const kpiGrid: React.CSSProperties = {
 const kpiCard: React.CSSProperties = {
   appearance: "none",
 
-  background: "#111827",
+  background: "#172033",
 
-  border: "1px solid #334155",
+  border: "1px solid #475569",
 
   borderRadius: "20px",
 
-  padding: "18px",
+  padding: "24px",
 
   display: "flex",
   alignItems: "center",
-  gap: "13px",
+  gap: "16px",
 
   cursor: "pointer",
 
@@ -1019,7 +1026,7 @@ const kpiCard: React.CSSProperties = {
   transition: "all .2s ease",
 
   boxShadow:
-    "0 10px 25px rgba(0,0,0,.35)",
+    "0 12px 30px rgba(0,0,0,.45)",
 };
 
 const kpiIcon: React.CSSProperties = {
@@ -1047,11 +1054,15 @@ const kpiLabel: React.CSSProperties = {
 };
 
 const kpiValue: React.CSSProperties = {
-  color: "#f8fafc",
-  fontSize: "24px",
-  lineHeight: 1.1,
+  color: "#fff",
+
+  fontSize: "34px",
+
+  lineHeight: 1,
+
   fontWeight: "800",
-  marginTop: "5px",
+
+  marginTop: "6px",
 };
 
 const sectionStyle: React.CSSProperties = {
@@ -1085,16 +1096,31 @@ const quickActionsGrid: React.CSSProperties = {
 
 const quickActionButton: React.CSSProperties = {
   appearance: "none",
-  border: "1px solid rgba(148,163,184,0.14)",
-  borderRadius: "15px",
-  background: "rgba(15,23,42,0.7)",
-  padding: "14px",
+
+  border: "1px solid #475569",
+
+  borderRadius: "16px",
+
+  background: "#172033",
+
+  padding: "18px",
+
   display: "flex",
+
   alignItems: "center",
-  gap: "11px",
+
+  gap: "14px",
+
   color: "#fff",
+
   cursor: "pointer",
+
   textAlign: "left",
+
+  transition: "all .2s ease",
+
+  boxShadow:
+    "0 10px 25px rgba(0,0,0,.35)",
 };
 
 const quickActionIcon: React.CSSProperties = {
@@ -1142,13 +1168,16 @@ const overviewGrid: React.CSSProperties = {
 };
 
 const panelStyle: React.CSSProperties = {
-  
- background: "#111827",
-border: "1px solid #334155",
-borderRadius: "18px",
+  background: "#172033",
 
-boxShadow:
-  "0 10px 30px rgba(0,0,0,.35)",
+  border: "1px solid #475569",
+
+  borderRadius: "18px",
+
+  padding: "24px",
+
+  boxShadow:
+    "0 12px 30px rgba(0,0,0,.45)",
 };
 
 const panelHeader: React.CSSProperties = {
@@ -1299,17 +1328,19 @@ const moduleGrid: React.CSSProperties = {
 const moduleCard: React.CSSProperties = {
   appearance: "none",
 
-  background: "#111827",
+  background: "#172033",
 
-  border: "1px solid #334155",
+  border: "1px solid #475569",
 
-  borderRadius: "15px",
+  borderRadius: "16px",
 
-  padding: "15px",
+  padding: "18px",
 
   display: "flex",
+
   alignItems: "center",
-  gap: "13px",
+
+  gap: "14px",
 
   color: "#fff",
 
@@ -1367,18 +1398,28 @@ const systemGrid: React.CSSProperties = {
 
 const systemCard: React.CSSProperties = {
   boxSizing: "border-box",
-  border: "1px solid rgba(52,211,153,0.18)",
-  borderRadius: "15px",
-  background:
-    "linear-gradient(135deg, rgba(6,78,59,0.16), rgba(15,23,42,0.82))",
-  padding: "16px",
-  display: "flex",
-  alignItems: "center",
-  gap: "13px",
-  color: "#fff",
-  textAlign: "left",
-};
 
+  border: "1px solid #475569",
+
+  borderRadius: "16px",
+
+  background: "#172033",
+
+  padding: "18px",
+
+  display: "flex",
+
+  alignItems: "center",
+
+  gap: "14px",
+
+  color: "#fff",
+
+  textAlign: "left",
+
+  boxShadow:
+    "0 10px 25px rgba(0,0,0,.35)",
+};
 const backupIcon: React.CSSProperties = {
   width: "43px",
   height: "43px",
