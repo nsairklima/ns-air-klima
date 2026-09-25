@@ -1289,36 +1289,31 @@ const moduleGrid: React.CSSProperties = {
 };
 
 const moduleCard: React.CSSProperties = {
- background: "#111827",
+  appearance: "none",
 
-border: "1px solid #334155",
+  background: "#111827",
 
-boxShadow:
-  "0 10px 25px rgba(0,0,0,.35)",
+  border: "1px solid #334155",
 
-transition: "all .2s ease",
+  borderRadius: "15px",
 
-  onMouseEnter={(e) => {
-  e.currentTarget.style.transform =
-    "translateY(-3px)";
+  padding: "15px",
 
-  e.currentTarget.style.borderColor =
-    "#3b82f6";
+  display: "flex",
+  alignItems: "center",
+  gap: "13px",
 
-  e.currentTarget.style.boxShadow =
-    "0 20px 40px rgba(59,130,246,.20)";
-}}
+  color: "#fff",
 
-onMouseLeave={(e) => {
-  e.currentTarget.style.transform =
-    "translateY(0px)";
+  cursor: "pointer",
 
-  e.currentTarget.style.borderColor =
-    "#334155";
+  textAlign: "left",
 
-  e.currentTarget.style.boxShadow =
-    "0 10px 25px rgba(0,0,0,.35)";
-}}
+  transition: "all .2s ease",
+
+  boxShadow:
+    "0 10px 25px rgba(0,0,0,.35)",
+};
 };
 
 const moduleIcon: React.CSSProperties = {
