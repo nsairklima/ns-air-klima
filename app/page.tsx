@@ -422,8 +422,19 @@ export default function MainDashboard() {
           >
             {kpis.map((kpi) => (
               <button
-                key={kpi.label}
-                type="button"
+               onMouseEnter={(e) => {
+  e.currentTarget.style.transform =
+    "translateY(-4px)";
+  e.currentTarget.style.boxShadow =
+    "0 20px 40px rgba(0,0,0,0.35)";
+}}
+
+onMouseLeave={(e) => {
+  e.currentTarget.style.transform =
+    "translateY(0)";
+  e.currentTarget.style.boxShadow =
+    "0 0 0 rgba(0,0,0,0)";
+}}
                 onClick={() => navigate(kpi.destination)}
                 style={kpiCard}
               >
@@ -650,10 +661,25 @@ export default function MainDashboard() {
               }}
             >
               {modules.map((module) => (
-                <button
-                  key={module.title}
-                  type="button"
-                  onClick={() => {
+               <button
+  key={module.title}
+  type="button"
+
+  onMouseEnter={(e) => {
+    e.currentTarget.style.transform =
+      "translateY(-4px)";
+    e.currentTarget.style.boxShadow =
+      "0 20px 40px rgba(0,0,0,0.35)";
+  }}
+
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform =
+      "translateY(0)";
+    e.currentTarget.style.boxShadow =
+      "0 0 0 rgba(0,0,0,0)";
+  }}
+
+  onClick={() => {
                     if (module.onClick) {
                       module.onClick();
                       return;
@@ -791,12 +817,9 @@ export default function MainDashboard() {
   );
 }
 
-const pageStyle: React.CSSProperties = {
-  position: "relative",
-  minHeight: "100vh",
-  overflow: "hidden",
-  background:
-    "linear-gradient(180deg, #070b14 0%, #090e19 42%, #05070d 100%)",
+background:
+  "radial-gradient(circle at top left, #1a2942 0%, transparent 40%), radial-gradient(circle at top right, #1c3b33 0%, transparent 35%), linear-gradient(180deg, #05070c 0%, #0a1018 100%)",
+
   color: "#f8fafc",
   fontFamily:
     "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -933,17 +956,28 @@ const kpiGrid: React.CSSProperties = {
 
 const kpiCard: React.CSSProperties = {
   appearance: "none",
-  border: "1px solid rgba(148,163,184,0.14)",
-  borderRadius: "16px",
-  background: "rgba(15,23,42,0.72)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "20px",
+  transition: "all .25s ease",
+
+background:
+  "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
+
+backdropFilter: "blur(22px)",
+WebkitBackdropFilter: "blur(22px)",
+
+border: "1px solid rgba(255,255,255,0.08)",
+
   padding: "18px",
   display: "flex",
   alignItems: "center",
   gap: "13px",
+
   color: "#fff",
-  textAlign: "left",
   cursor: "pointer",
-  boxShadow: "0 12px 32px rgba(0,0,0,0.16)",
+
+  boxShadow:
+    "0 8px 30px rgba(0,0,0,0.35)",
 };
 
 const kpiIcon: React.CSSProperties = {
@@ -1068,7 +1102,11 @@ const overviewGrid: React.CSSProperties = {
 const panelStyle: React.CSSProperties = {
   border: "1px solid rgba(148,163,184,0.14)",
   borderRadius: "18px",
-  background: "rgba(15,23,42,0.75)",
+ background:
+  "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
+backdropFilter: "blur(20px)",
+WebkitBackdropFilter: "blur(20px)",
+border: "1px solid rgba(255,255,255,0.07)",
   padding: "20px",
   boxShadow: "0 14px 36px rgba(0,0,0,0.17)",
 };
@@ -1231,6 +1269,7 @@ const moduleCard: React.CSSProperties = {
   color: "#fff",
   cursor: "pointer",
   textAlign: "left",
+  transition: "all .25s ease",
 };
 
 const moduleIcon: React.CSSProperties = {
