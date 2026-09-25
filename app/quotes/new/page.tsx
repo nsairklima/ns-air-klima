@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Client = { id: number; name: string; email?: string; phone?: string; address?: string };
 type DBItem = { 
@@ -16,6 +16,8 @@ type DBItem = {
 
 export default function NewQuotePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+const clientIdFromUrl = searchParams.get("clientId");
   const [clients, setClients] = useState<Client[]>([]);
   const [dbItems, setDbItems] = useState<DBItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,11 +38,21 @@ export default function NewQuotePage() {
   const [clientSearchQuery, setClientSearchQuery] = useState("");
 
   useEffect(() => {
-    // Ügyfelek betöltése
-    fetch("/api/clients").then(res => res.ok && res.json().then(setClients));
-    // Mentett termékek betöltése
-    fetch("/api/items").then(res => res.ok && res.json().then(setDbItems));
-  }, []);
+  fetch("/api/clients")
+    .then(res => res.ok && res.json())
+    .then(data => {
+      setClients(data || []);
+
+      if (clientIdFromUrl) {
+        setSelectedClientId(clientIdFromUrl);
+      }
+    });
+
+  fetch("/api/items")
+    .then(res => res.ok && res.json())
+    .then(setDbItems);
+
+}, [clientIdFromUrl]);
 
   // Kiválasztott ügyfél lekérése megjelenítéshez
   const selectedClient = clients.find(c => String(c.id) === String(selectedClientId));
