@@ -435,23 +435,36 @@ export default function MainDashboard() {
             }}
           >
             {kpis.map((kpi) => (
-              <button
-               onMouseEnter={(e) => {
-  e.currentTarget.style.transform =
-    "translateY(-4px)";
-  e.currentTarget.style.boxShadow =
-    "0 20px 40px rgba(0,0,0,0.35)";
-}}
+             <button
+  key={kpi.label}
+  type="button"
 
-onMouseLeave={(e) => {
-  e.currentTarget.style.transform =
-    "translateY(0)";
-  e.currentTarget.style.boxShadow =
-    "0 0 0 rgba(0,0,0,0)";
-}}
-                onClick={() => navigate(kpi.destination)}
-                style={kpiCard}
-              >
+  onMouseEnter={(e) => {
+    e.currentTarget.style.transform =
+      "translateY(-3px)";
+
+    e.currentTarget.style.borderColor =
+      "#3b82f6";
+
+    e.currentTarget.style.boxShadow =
+      "0 20px 40px rgba(59,130,246,.20)";
+  }}
+
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform =
+      "translateY(0px)";
+
+    e.currentTarget.style.borderColor =
+      "#334155";
+
+    e.currentTarget.style.boxShadow =
+      "0 10px 25px rgba(0,0,0,.35)";
+  }}
+
+  onClick={() => navigate(kpi.destination)}
+
+  style={kpiCard}
+>
                 <div
                   style={{
                     ...kpiIcon,
@@ -675,35 +688,36 @@ onMouseLeave={(e) => {
               }}
             >
               {modules.map((module) => (
-               <button
-  key={module.title}
+    <button
+  key={kpi.label}
   type="button"
 
   onMouseEnter={(e) => {
     e.currentTarget.style.transform =
-      "translateY(-4px)";
+      "translateY(-3px)";
+
+    e.currentTarget.style.borderColor =
+      "#3b82f6";
+
     e.currentTarget.style.boxShadow =
-      "0 20px 40px rgba(0,0,0,0.35)";
+      "0 20px 40px rgba(59,130,246,.20)";
   }}
 
   onMouseLeave={(e) => {
     e.currentTarget.style.transform =
-      "translateY(0)";
+      "translateY(0px)";
+
+    e.currentTarget.style.borderColor =
+      "#334155";
+
     e.currentTarget.style.boxShadow =
-      "0 0 0 rgba(0,0,0,0)";
+      "0 10px 25px rgba(0,0,0,.35)";
   }}
 
-  onClick={() => {
-                    if (module.onClick) {
-                      module.onClick();
-                      return;
-                    }
+  onClick={() => navigate(kpi.destination)}
 
-                    if (module.path) {
-                      navigate(module.path);
-                    }
-                  }}
-                  style={moduleCard}
+  style={kpiCard}
+>
                 >
                   <span
                     style={{
@@ -976,32 +990,28 @@ const kpiGrid: React.CSSProperties = {
 };
 
 const kpiCard: React.CSSProperties = {
- background: "#111827",
-border: "1px solid #334155",
+  appearance: "none",
 
-boxShadow:
-  "0 10px 25px rgba(0,0,0,.35)",
-  onMouseEnter={(e) => {
-  e.currentTarget.style.transform =
-    "translateY(-3px)";
+  background: "#111827",
 
-  e.currentTarget.style.borderColor =
-    "#3b82f6";
+  border: "1px solid #334155",
 
-  e.currentTarget.style.boxShadow =
-    "0 20px 40px rgba(59,130,246,.20)";
-}}
+  borderRadius: "20px",
 
-onMouseLeave={(e) => {
-  e.currentTarget.style.transform =
-    "translateY(0px)";
+  padding: "18px",
 
-  e.currentTarget.style.borderColor =
-    "#334155";
+  display: "flex",
+  alignItems: "center",
+  gap: "13px",
 
-  e.currentTarget.style.boxShadow =
-    "0 10px 25px rgba(0,0,0,.35)";
-}}
+  cursor: "pointer",
+
+  color: "#fff",
+
+  transition: "all .2s ease",
+
+  boxShadow:
+    "0 10px 25px rgba(0,0,0,.35)",
 };
 
 const kpiIcon: React.CSSProperties = {
