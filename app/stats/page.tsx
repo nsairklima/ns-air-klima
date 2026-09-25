@@ -1,14 +1,16 @@
 "use client";
 
+
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+
 
 export default function StatsPage() {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
 
-
-  const currentYear = new Date().getFullYear();
+  
+const currentYear = new Date().getFullYear();
 
 const [selectedYears, setSelectedYears] = useState<number[]>([
   currentYear,
@@ -18,34 +20,11 @@ const [availableYears, setAvailableYears] = useState<number[]>([
   currentYear,
 ]);
 
-const [loading, setLoading] = useState(true);
-
- useEffect(() => {
-  if (selectedYears.length === 0) {
-    setStats(null);
-    return;
-  }
-
-  setLoading(true);
-
+  useEffect(() => {
   const yearsParam = selectedYears.join(",");
 
-  fetch(`/api/stats?years=${yearsParam}`, {
-    cache: "no-store",
-  })
-    .then(async (res) => {
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(
-          data.details ||
-            data.error ||
-            "Nem sikerült betölteni a statisztikát."
-        );
-      }
-
-      return data;
-    })
+  fetch(`/api/stats?years=${yearsParam}`)
+    .then((res) => res.json())
     .then((data) => {
       setStats(data);
 
@@ -53,49 +32,35 @@ const [loading, setLoading] = useState(true);
         Array.isArray(data.availableYears) &&
         data.availableYears.length > 0
       ) {
-        setAvailableYears(
-          data.availableYears
-        );
+        setAvailableYears(data.availableYears);
       }
     })
-    .catch((err) => {
+    .catch((err) =>
       console.error(
         "Hiba a statisztikák lekérésekor:",
         err
-      );
-
-      alert(
-        "Hiba a statisztikák betöltésekor: " +
-          err.message
-      );
-    })
-    .finally(() => {
-      setLoading(false);
-    });
+      )
+    );
 }, [selectedYears]);
 
-const toggleYear = (year: number) => {
-  setSelectedYears((previousYears) => {
-    if (previousYears.includes(year)) {
-      /*
-       * Legalább egy év mindig maradjon kijelölve.
-       */
-      if (previousYears.length =*= 1) {
-        return previousYear*;
+
+  const toggleYear = (year: number) => {
+  setSelectedYears((prev) => {
+    if (prev.includes(year)) {
+
+      if (prev.length === 1) {
+        return prev;
       }
 
-      return previousYe*rs.filter(
-        (selectedYear) *>
-          selectedYear !== year
-*     );
+      return prev.filter((y) => y !== year);
     }
 
-    return [...previousYears, year].sort(
-      (a, b)*=> a - b
+    return [...prev, year].sort(
+      (a, b) => a - b
     );
   });
 };
-  
+
 
   const containerStyle: React.CSSProperties = {
     minHeight: "100vh",
@@ -105,10 +70,12 @@ const toggleYear = (year: number) => {
     fontFamily: "'Segoe UI', sans-serif",
   };
 
+
   const mainWrapper = {
     maxWidth: "800px",
     margin: "0 auto",
   };
+
 
   const cardStyle = {
     background: "#111",
@@ -118,12 +85,14 @@ const toggleYear = (year: number) => {
     marginBottom: "20px",
   };
 
+
   const rowStyle = {
     display: "flex",
     justifyContent: "space-between",
     padding: "12px 0",
     borderBottom: "1px solid #222",
   };
+
 
   const sectionHeader = (color: string) => ({
     color: color,
@@ -135,6 +104,7 @@ const toggleYear = (year: number) => {
     textTransform: "uppercase" as const,
     letterSpacing: "1px",
   });
+
 
   return (
     <div style={containerStyle}>
@@ -154,96 +124,79 @@ const toggleYear = (year: number) => {
           ⬅ Vissza a főoldalra
         </button>
 
-       <h1
-  st*le={{
-    marginBottom: "20px",
-  * fontWeight: "lighter",
-  }}
->
-  Ü*leti jelentés
+
+       <h1 style={{ marginBottom: "20px", fontWeight: "lighter" }}>
+  Üzleti Jelentés
 </h1>
 
 <div
-  style=*{
+  style={{
     background: "#111",
-    padd*ng: "20px",
-    borderRadius: "8px*,
+    padding: "20px",
+    borderRadius: "8px",
     border: "1px solid #333",
-  * marginBottom: "20px",
+    marginBottom: "20px",
   }}
 >
-  <d*v
+  <div
     style={{
-      display: "fle*",
-      justifyContent: "space-be*ween",
-      alignItems: "center",*      gap: "10px",
-      flexWrap:*"wrap",
-      marginBottom: "14px"*
+      marginBottom: "12px",
+      fontWeight: "bold",
     }}
   >
-    <strong>📅 Vizsgál* évek</strong>
-
-    <span
-      st*le={{
-        color: "#94a3b8",
-  *     fontSize: "13px",
-      }}
-  * >
-      Több év is kiválasztható
-*   </span>
+    📅 Vizsgált évek
   </div>
 
   <div
-    st*le={{
+    style={{
       display: "flex",
-     *gap: "10px",
-      flexWrap: "wrap*,
+      gap: "10px",
+      flexWrap: "wrap",
     }}
   >
-    {availableYears.m*p((year) => {
-      const isSelect*d =
-        selectedYears.includes*year);
+    {availableYears.map((year) => {
+      const selected =
+        selectedYears.includes(year);
 
       return (
-        <bu*ton
+        <button
           key={year}
-         *type="button"
-          onClick={(* => toggleYear(year)}
-          st*le={{
-            minWidth: "82px"*
-            padding: "11px 16px",*            borderRadius: "8px",
- *          border: isSelected
-     *        ? "1px solid #2ecc71"
-    *         : "1px solid #555",
-     *      background: isSelected
-     *        ? "#2ecc71"
-              * "#222",
-            color: isSele*ted
+          onClick={() => toggleYear(year)}
+          style={{
+            padding: "10px 14px",
+            borderRadius: "8px",
+            border: selected
+              ? "1px solid #2ecc71"
+              : "1px solid #555",
+            background: selected
+              ? "#2ecc71"
+              : "#222",
+            color: selected
               ? "#000"
-       *      : "#fff",
-            cursor* "pointer",
-            fontWeight* "bold",
+              : "#fff",
+            cursor: "pointer",
+            fontWeight: "bold",
           }}
         >
-  *       {isSelected ? "✓ " : ""}
-  *       {year}
+          {selected ? "✓ " : ""}
+          {year}
         </button>
-  *   );
+      );
     })}
   </div>
 
   <div
-   *style={{
-      marginTop: "14px",
-*     color: "#94a3b8",
-      fontS*ze: "13px",
+    style={{
+      marginTop: "10px",
+      color: "#94a3b8",
     }}
   >
-    Kiválas*tva:{" "}
-    <strong style={{ col*r: "#fff" }}>
-      {selectedYears*join(", ")}
-    </strong>
-  </div>*</div>
+    Kiválasztva:
+    {" "}
+    {selectedYears.join(", ")}
+  </div>
+</div>
+
 
         {stats ? (
           <div>
@@ -258,113 +211,20 @@ const toggleYear = (year: number) => {
                 <div style={rowStyle}><span>Kiadott ajánlatok:</span><strong>{stats.monthly?.count || 0} db</strong></div>
               </div>
 
+
               {/* ÉVES KIMUTATÁS */}
               <div style={cardStyle}>
-               <h2 st*le={sectionHeader("#00bcf2")}>
-  �* Kiválasztott évek összesen
-</h2>
-                
+                <h2 style={sectionHeader("#00bcf2")}>📈 📈 Kiválasztott évek összesen</h2>
                 <div style={rowStyle}><span>Bruttó forgalom:</span><strong>{stats.yearly?.gross?.toLocaleString() || 0} Ft</strong></div>
                 <div style={rowStyle}><span>Tiszta haszon:</span><strong style={{ color: "#2ecc71" }}>{stats.yearly?.profit?.toLocaleString() || 0} Ft</strong></div>
                 <div style={rowStyle}><span>Átlagos árrés:</span><strong>{stats.yearly?.margin || 0}%</strong></div>
                 <div style={rowStyle}><span>Összes ajánlat:</span><strong>{stats.yearly?.count || 0} db</strong></div>
               </div>
 
+
             </div>
 
-{stats.yearlyBr*akdown?.length > 0 && (
-  <div
-    style={{
-      ...cardStyle,
-      borderLeft: "4px solid #8b5cf6",
-    }}
-  >
-    <h2 style={sectionHeader("#8b5cf6")}>
-      📊 Évenkénti bontás
-    </h2>
 
-    <div
-      style={{
-        display: "grid",
-        gap: "12px",
-      }}
-    >
-      {stats.yearlyBreakdown.map(
-        (yearData: any) => (
-          <div
-            key={yearData.year}
-            style={{
-              background: "#18181b",
-              border: "1px solid #333",
-              borderRadius: "8px",
-              padding: "15px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "18px",
-                fontWeight: "bold",
-                color: "#c4b5fd",
-                marginBottom: "10px",
-              }}
-            >
-              {yearData.year}
-            </div>
-
-            <div style={rowStyle}>
-              <span>Bruttó forgalom:</span>
-
-              <strong>
-                {Number(
-                  yearData.gross || 0
-                ).toLocaleString("hu-HU")}{" "}
-                Ft
-              </strong>
-            </div>
-
-            <div style={rowStyle}>
-              <span>Tiszta haszon:</span>
-
-              <strong
-                style={{ color: "#2ecc71" }}
-              >
-                {Number(
-                  yearData.profit || 0
-                ).toLocaleString("hu-HU")}{" "}
-                Ft
-              </strong>
-            </div>
-
-            <div style={rowStyle}>
-              <span>Átlagos árrés:</span>
-
-              <strong>
-                {yearData.margin || 0}%
-              </strong>
-            </div>
-
-            <div
-              style={{
-                ...rowStyle,
-                borderBottom: "none",
-              }}
-            >
-              <span>
-                Elfogadott ajánlatok:
-              </span>
-
-              <strong>
-                {yearData.count || 0} db
-              </strong>
-            </div>
-          </div>
-        )
-      )}
-    </div>
-  </div>
-)}
-
-          
             {/* RAKTÁRKÉSZLET ÖSSZESÍTŐ */}
             <div style={{ ...cardStyle, borderLeft: "4px solid #2ecc71" }}>
               <h2 style={sectionHeader("#2ecc71")}>📦 Raktárkészlet Értéke</h2>
@@ -385,6 +245,7 @@ const toggleYear = (year: number) => {
                 </div>
               </div>
             </div>
+
 
             {/* ÜGYFÉL ÉS SZERVIZ INFÓK */}
             <div style={{ ...cardStyle, borderLeft: "4px solid #d83b01" }}>
