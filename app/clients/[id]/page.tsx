@@ -573,9 +573,49 @@ export default function ClientDetailsPage() {
         )}
       </div>
 
-      {/* ÁRAJÁNLATOK SZEKCIÓ */}
-      <div>
-        <h2 style={{ borderBottom: "1px solid #333", paddingBottom: "10px", marginBottom: "20px", color: "#fff", fontSize: isMobile ? "20px" : "24px" }}>📄 Árajánlatok</h2>
+    {/* ÁRAJÁNLATOK SZEKCIÓ */}
+<div>
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: "12px",
+      marginBottom: "20px",
+      flexWrap: "wrap",
+    }}
+  >
+    <h2
+      style={{
+        borderBottom: "1px solid #333",
+        paddingBottom: "10px",
+        margin: 0,
+        color: "#fff",
+        fontSize: isMobile ? "20px" : "24px",
+        flex: 1,
+      }}
+    >
+      📄 Árajánlatok
+    </h2>
+
+    <button
+      onClick={() =>
+        router.push(`/quotes/new?clientId=${client.id}`)
+      }
+      style={{
+        background: "#2ecc71",
+        color: "#000",
+        border: "none",
+        padding: "12px 18px",
+        borderRadius: "10px",
+        cursor: "pointer",
+        fontWeight: "bold",
+        fontSize: "14px",
+      }}
+    >
+      ➕ Új ajánlat
+    </button>
+  </div>
         <div style={{ display: "grid", gap: "10px" }}>
           {client.quotes?.length > 0 ? (
             client.quotes.map((quote: any) => (
