@@ -148,14 +148,8 @@ export default function MainDashboard() {
             <div style={tileLabelStyle}>Ügyfelek</div>
           </div>
 
-          {/* BIZTONSÁGI MENTÉS */}
-          <div onClick={handleBackup} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#2ecc71" }}>
-            <span style={iconStyle}>🛡️</span>
-            <div style={tileLabelStyle}>Mentés</div>
-            <span style={smallLabelStyle}>Küldés emailben</span>
-          </div>
 
-          {/* EMAILEK KEZELÉSE CSEMPE (ÚJ) */}
+              {/* EMAILEK KEZELÉSE CSEMPE (ÚJ) */}
           <div onClick={() => setIsEmailModalOpen(true)} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#6f42c1" }}>
             <span style={iconStyle}>✉️</span>
             <div>
@@ -163,6 +157,15 @@ export default function MainDashboard() {
               <span style={smallLabelStyle}>Címek szerkesztése</span>
             </div>
           </div>
+
+          {/* BIZTONSÁGI MENTÉS */}
+          <div onClick={handleBackup} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ ...tileStyle, background: "#2ecc71" }}>
+            <span style={iconStyle}>🛡️</span>
+            <div style={tileLabelStyle}>Mentés</div>
+            <span style={smallLabelStyle}>Küldés emailben</span>
+          </div>
+
+      
 
           {/* VISSZAÁLLÍTÁS CSEMPE */}
           <label 
