@@ -361,14 +361,28 @@ export default function MainDashboard() {
         <div style={backgroundGlowTwo} />
 
         <main style={dashboardContainer}>
-          <header
-            style={{
-              ...headerStyle,
-              flexDirection: isMobile ? "column" : "row",
-              alignItems: isMobile ? "flex-start" : "center",
-              gap: isMobile ? 16 : 20,
-            }}
-          >
+         <header
+  style={{
+    ...headerStyle,
+
+    background: "#111827",
+
+    border: "1px solid #334155",
+
+    borderRadius: "24px",
+
+    padding: "24px",
+
+    boxShadow:
+      "0 10px 30px rgba(0,0,0,.35)",
+
+    flexDirection: isMobile ? "column" : "row",
+
+    alignItems: isMobile ? "flex-start" : "center",
+
+    gap: isMobile ? 16 : 20,
+  }}
+>
             <div>
               <div style={brandRow}>
                 <div style={brandIcon}>N</div>
@@ -822,8 +836,8 @@ const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
   overflow: "hidden",
 
-  background:
-    "radial-gradient(circle at top left, #1a2942 0%, transparent 40%), radial-gradient(circle at top right, #1c3b33 0%, transparent 35%), linear-gradient(180deg, #05070c 0%, #0a1018 100%)",
+ background:
+  "linear-gradient(180deg, #020617 0%, #070f1e 100%)",
 
   color: "#f8fafc",
 
@@ -962,29 +976,32 @@ const kpiGrid: React.CSSProperties = {
 };
 
 const kpiCard: React.CSSProperties = {
-  appearance: "none",
-  
-  borderRadius: "20px",
-  transition: "all .25s ease",
+ background: "#111827",
+border: "1px solid #334155",
 
-background:
-  "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
+boxShadow:
+  "0 10px 25px rgba(0,0,0,.35)",
+  onMouseEnter={(e) => {
+  e.currentTarget.style.transform =
+    "translateY(-3px)";
 
-backdropFilter: "blur(22px)",
-WebkitBackdropFilter: "blur(22px)",
+  e.currentTarget.style.borderColor =
+    "#3b82f6";
 
-border: "1px solid rgba(255,255,255,0.08)",
+  e.currentTarget.style.boxShadow =
+    "0 20px 40px rgba(59,130,246,.20)";
+}}
 
-  padding: "18px",
-  display: "flex",
-  alignItems: "center",
-  gap: "13px",
+onMouseLeave={(e) => {
+  e.currentTarget.style.transform =
+    "translateY(0px)";
 
-  color: "#fff",
-  cursor: "pointer",
+  e.currentTarget.style.borderColor =
+    "#334155";
 
-  boxShadow:
-    "0 8px 30px rgba(0,0,0,0.35)",
+  e.currentTarget.style.boxShadow =
+    "0 10px 25px rgba(0,0,0,.35)";
+}}
 };
 
 const kpiIcon: React.CSSProperties = {
@@ -1108,14 +1125,12 @@ const overviewGrid: React.CSSProperties = {
 
 const panelStyle: React.CSSProperties = {
   
-  borderRadius: "18px",
- background:
-  "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
-backdropFilter: "blur(20px)",
-WebkitBackdropFilter: "blur(20px)",
-border: "1px solid rgba(255,255,255,0.07)",
-  padding: "20px",
-  boxShadow: "0 14px 36px rgba(0,0,0,0.17)",
+ background: "#111827",
+border: "1px solid #334155",
+borderRadius: "18px",
+
+boxShadow:
+  "0 10px 30px rgba(0,0,0,.35)",
 };
 
 const panelHeader: React.CSSProperties = {
@@ -1264,19 +1279,36 @@ const moduleGrid: React.CSSProperties = {
 };
 
 const moduleCard: React.CSSProperties = {
-  appearance: "none",
-  minWidth: 0,
-  border: "1px solid rgba(148,163,184,0.13)",
-  borderRadius: "15px",
-  background: "rgba(15,23,42,0.68)",
-  padding: "15px",
-  display: "flex",
-  alignItems: "center",
-  gap: "13px",
-  color: "#fff",
-  cursor: "pointer",
-  textAlign: "left",
-  transition: "all .25s ease",
+ background: "#111827",
+
+border: "1px solid #334155",
+
+boxShadow:
+  "0 10px 25px rgba(0,0,0,.35)",
+
+transition: "all .2s ease",
+
+  onMouseEnter={(e) => {
+  e.currentTarget.style.transform =
+    "translateY(-3px)";
+
+  e.currentTarget.style.borderColor =
+    "#3b82f6";
+
+  e.currentTarget.style.boxShadow =
+    "0 20px 40px rgba(59,130,246,.20)";
+}}
+
+onMouseLeave={(e) => {
+  e.currentTarget.style.transform =
+    "translateY(0px)";
+
+  e.currentTarget.style.borderColor =
+    "#334155";
+
+  e.currentTarget.style.boxShadow =
+    "0 10px 25px rgba(0,0,0,.35)";
+}}
 };
 
 const moduleIcon: React.CSSProperties = {
