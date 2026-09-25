@@ -1107,7 +1107,7 @@ const overviewGrid: React.CSSProperties = {
 };
 
 const panelStyle: React.CSSProperties = {
-  border: "1px solid rgba(148,163,184,0.14)",
+  
   borderRadius: "18px",
  background:
   "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
