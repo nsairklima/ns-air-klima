@@ -963,7 +963,7 @@ const kpiGrid: React.CSSProperties = {
 
 const kpiCard: React.CSSProperties = {
   appearance: "none",
-  border: "1px solid rgba(255,255,255,0.08)",
+  
   borderRadius: "20px",
   transition: "all .25s ease",
 
