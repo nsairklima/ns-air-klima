@@ -688,56 +688,64 @@ export default function MainDashboard() {
               }}
             >
               {modules.map((module) => (
-    <button
-  key={kpi.label}
-  type="button"
+  <button
+    key={module.title}
+    type="button"
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform =
+        "translateY(-3px)";
 
-  onMouseEnter={(e) => {
-    e.currentTarget.style.transform =
-      "translateY(-3px)";
+      e.currentTarget.style.borderColor =
+        "#3b82f6";
 
-    e.currentTarget.style.borderColor =
-      "#3b82f6";
+      e.currentTarget.style.boxShadow =
+        "0 20px 40px rgba(59,130,246,.20)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform =
+        "translateY(0px)";
 
-    e.currentTarget.style.boxShadow =
-      "0 20px 40px rgba(59,130,246,.20)";
-  }}
+      e.currentTarget.style.borderColor =
+        "#334155";
 
-  onMouseLeave={(e) => {
-    e.currentTarget.style.transform =
-      "translateY(0px)";
+      e.currentTarget.style.boxShadow =
+        "0 10px 25px rgba(0,0,0,.35)";
+    }}
+    onClick={() => {
+      if (module.onClick) {
+        module.onClick();
+        return;
+      }
 
-    e.currentTarget.style.borderColor =
-      "#334155";
+      if (module.path) {
+        navigate(module.path);
+      }
+    }}
+    style={moduleCard}
+  >
+    <span
+      style={{
+        ...moduleIcon,
+        background: `${module.accent}18`,
+        borderColor: `${module.accent}45`,
+      }}
+    >
+      {module.icon}
+    </span>
 
-    e.currentTarget.style.boxShadow =
-      "0 10px 25px rgba(0,0,0,.35)";
-  }}
+    <span style={moduleContent}>
+      <strong style={moduleTitle}>
+        {module.title}
+      </strong>
 
-  onClick={() => navigate(kpi.destination)}
+      <span style={moduleDescription}>
+        {module.description}
+      </span>
+    </span>
 
-  style={kpiCard}
->
-                >
-                  <span
-                    style={{
-                      ...moduleIcon,
-                      background: `${module.accent}18`,
-                      borderColor: `${module.accent}45`,
-                    }}
-                  >
-                    {module.icon}
-                  </span>
-
-                  <span style={moduleContent}>
-                    <strong style={moduleTitle}>{module.title}</strong>
-                    <span style={moduleDescription}>
-                      {module.description}
-                    </span>
-                  </span>
-
-                  <span style={moduleArrow}>→</span>
-                </button>
+    <span style={moduleArrow}>→</span>
+  </button>
+))}
               ))}
             </div>
           </section>
