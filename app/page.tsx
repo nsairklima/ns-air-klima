@@ -1314,7 +1314,6 @@ const moduleCard: React.CSSProperties = {
   boxShadow:
     "0 10px 25px rgba(0,0,0,.35)",
 };
-};
 
 const moduleIcon: React.CSSProperties = {
   width: "43px",
