@@ -817,13 +817,20 @@ onMouseLeave={(e) => {
   );
 }
 
-background:
-  "radial-gradient(circle at top left, #1a2942 0%, transparent 40%), radial-gradient(circle at top right, #1c3b33 0%, transparent 35%), linear-gradient(180deg, #05070c 0%, #0a1018 100%)",
+const pageStyle: React.CSSProperties = {
+  position: "relative",
+  minHeight: "100vh",
+  overflow: "hidden",
+
+  background:
+    "radial-gradient(circle at top left, #1a2942 0%, transparent 40%), radial-gradient(circle at top right, #1c3b33 0%, transparent 35%), linear-gradient(180deg, #05070c 0%, #0a1018 100%)",
 
   color: "#f8fafc",
+
   fontFamily:
     "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 };
+
 
 const backgroundGlowOne: React.CSSProperties = {
   position: "fixed",
