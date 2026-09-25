@@ -535,7 +535,92 @@ export default function MainDashboard() {
             </div>
           </section>
 
-          {/* PÉNZÜGYI ÉS OPERATÍV ÖSSZEFOGLALÓ */}
+         
+
+          {/* MODULOK */}
+          <section style={sectionStyle}>
+            <div style={sectionTitleRow}>
+              <div>
+                <h2 style={sectionTitle}>Modulok</h2>
+                <p style={sectionSubtitle}>
+                  A rendszer összes funkciója egy helyen
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                ...moduleGrid,
+                gridTemplateColumns: isMobile
+                  ? "1fr"
+                  : "repeat(2, minmax(0, 1fr))",
+              }}
+            >
+              {modules.map((module) => (
+  <button
+    key={module.title}
+    type="button"
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform =
+        "translateY(-3px)";
+
+      e.currentTarget.style.borderColor =
+        "#3b82f6";
+
+      e.currentTarget.style.boxShadow =
+        "0 20px 40px rgba(59,130,246,.20)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform =
+        "translateY(0px)";
+
+      e.currentTarget.style.borderColor =
+        "#334155";
+
+      e.currentTarget.style.boxShadow =
+        "0 10px 25px rgba(0,0,0,.35)";
+    }}
+    onClick={() => {
+      if (module.onClick) {
+        module.onClick();
+        return;
+      }
+
+      if (module.path) {
+        navigate(module.path);
+      }
+    }}
+    style={moduleCard}
+  >
+    <span
+      style={{
+        ...moduleIcon,
+        background: `${module.accent}18`,
+        borderColor: `${module.accent}45`,
+      }}
+    >
+      {module.icon}
+    </span>
+
+    <span style={moduleContent}>
+      <strong style={moduleTitle}>
+        {module.title}
+      </strong>
+
+      <span style={moduleDescription}>
+        {module.description}
+      </span>
+    </span>
+
+    <span style={moduleArrow}>→</span>
+  </button>
+))}
+      
+            </div>
+          </section>
+
+
+ {/* PÉNZÜGYI ÉS OPERATÍV ÖSSZEFOGLALÓ */}
           <section
             style={{
               ...overviewGrid,
@@ -668,87 +753,7 @@ export default function MainDashboard() {
             </div>
           </section>
 
-          {/* MODULOK */}
-          <section style={sectionStyle}>
-            <div style={sectionTitleRow}>
-              <div>
-                <h2 style={sectionTitle}>Modulok</h2>
-                <p style={sectionSubtitle}>
-                  A rendszer összes funkciója egy helyen
-                </p>
-              </div>
-            </div>
-
-            <div
-              style={{
-                ...moduleGrid,
-                gridTemplateColumns: isMobile
-                  ? "1fr"
-                  : "repeat(2, minmax(0, 1fr))",
-              }}
-            >
-              {modules.map((module) => (
-  <button
-    key={module.title}
-    type="button"
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform =
-        "translateY(-3px)";
-
-      e.currentTarget.style.borderColor =
-        "#3b82f6";
-
-      e.currentTarget.style.boxShadow =
-        "0 20px 40px rgba(59,130,246,.20)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform =
-        "translateY(0px)";
-
-      e.currentTarget.style.borderColor =
-        "#334155";
-
-      e.currentTarget.style.boxShadow =
-        "0 10px 25px rgba(0,0,0,.35)";
-    }}
-    onClick={() => {
-      if (module.onClick) {
-        module.onClick();
-        return;
-      }
-
-      if (module.path) {
-        navigate(module.path);
-      }
-    }}
-    style={moduleCard}
-  >
-    <span
-      style={{
-        ...moduleIcon,
-        background: `${module.accent}18`,
-        borderColor: `${module.accent}45`,
-      }}
-    >
-      {module.icon}
-    </span>
-
-    <span style={moduleContent}>
-      <strong style={moduleTitle}>
-        {module.title}
-      </strong>
-
-      <span style={moduleDescription}>
-        {module.description}
-      </span>
-    </span>
-
-    <span style={moduleArrow}>→</span>
-  </button>
-))}
-      
-            </div>
-          </section>
+          
 
           {/* RENDSZERKEZELÉS */}
           <section style={sectionStyle}>
