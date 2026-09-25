@@ -746,7 +746,7 @@ export default function MainDashboard() {
     <span style={moduleArrow}>→</span>
   </button>
 ))}
-              ))}
+      
             </div>
           </section>
 
