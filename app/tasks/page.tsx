@@ -2249,6 +2249,26 @@ if (filterStatus === "kesz" && !task.completed_at) {
 
                   <div><strong>Név:</strong> {task.name || "-"}</div>
                   <div><strong>Cím:</strong> {task.address || "-"}</div>
+
+{task.note && (
+  <div>
+    <strong>Megjegyzés:</strong>
+    <div
+      style={{
+        marginTop: "4px",
+        color: "#555",
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+      }}
+    >
+      {task.note}
+    </div>
+  </div>
+)}
+
+                  
                   <div style={{ textTransform: "capitalize" }}>
                     <strong>Tervezett időpont:</strong> {formatDateWithDay(task.scheduled_at)}
                   </div>
