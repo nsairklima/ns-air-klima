@@ -1772,9 +1772,9 @@ return (
         border: "1px solid #ccc",
       }}
     >
-      {imgUrl}
-        📷 Mentett kép #{index + 1}
-      </a>
+    <a
+  href={imgUrltett kép #{index + 1}
+</a>
 
       <button
         type="button"
@@ -1811,19 +1811,20 @@ return (
           border: "1px solid #ccc",
         }}
       >
-        {previewUrl} =>
-            URL.revokeObjectURL(previewUrl)
-          }
-          style={{
-            display: "block",
-            width: "100%",
-            maxHeight: "220px",
-            objectFit: "contain",
-            borderRadius: "6px",
-            background: "#f3f4f6",
-            marginBottom: "8px",
-          }}
-        />
+        <img
+  src={previewUrl}
+  alt={`FeltURL(previewUrl)
+  }
+  style={{
+    display: "block",
+    width: "100%",
+    maxHeight: "220px",
+    objectFit: "contain",
+    borderRadius: "6px",
+    background: "#f3f4f6",
+    marginBottom: "8px",
+  }}
+/>
 
         <div
           style={{
@@ -1958,7 +1959,16 @@ return (
     képen.
   </div>
 </div>
-              <button type="submit" disabled={loading} style={{ flex: 1, background: loading ? "#ccc" : "#27ae60", color: "white", padding: "12px", fontSize: "15px", fontWeight: "bold", border: "none", borderRadius: "8px", cursor: "pointer" }}>
+
+<div
+  style={{
+    display: "flex",
+    gap: "10px",
+  }}
+>
+  <button
+    type="submit"
+    disabled={loading} style={{ flex: 1, background: loading ? "#ccc" : "#27ae60", color: "white", padding: "12px", fontSize: "15px", fontWeight: "bold", border: "none", borderRadius: "8px", cursor: "pointer" }}>
                 {loading ? "Mentés..." : editingTaskId ? "Módosítás Mentése" : "Munka Kiadása"}
               </button>
               <button type="button" onClick={resetForm} style={{ background: "#95a5a6", color: "white", padding: "12px 16px", fontSize: "15px", fontWeight: "bold", border: "none", borderRadius: "8px", cursor: "pointer" }}>
