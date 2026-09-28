@@ -1833,15 +1833,18 @@ return (
 <img
   src={previewUrl}
   alt={`Feltöltött kép ${index + 1}`}
-  on
+  onLoad={() => {
+    URL.revokeObjectURL(previewUrl);
+  }}
+  style={{
     display: "block",
     width: "100%",
     maxHeight: "220px",
-    objectFit: "contain",
-    borderRadius: "6px",
-    background: "#f3f4f6",
+    f3f4f6",
     marginBottom: "8px",
   }}
+/>
+
 />
 
         <div
