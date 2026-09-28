@@ -1450,9 +1450,8 @@ const filteredTasks = tasks.filter((task) => {
 });
 
 return (
-  <>
-      return (
   <div style={{ display: "contents" }}>
+
     {editingPhotoIndex !== null &&
       photos[editingPhotoIndex] ? (
         <ImageEditor
