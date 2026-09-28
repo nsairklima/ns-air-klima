@@ -1451,17 +1451,28 @@ const filteredTasks = tasks.filter((task) => {
 
 return (
   <>
-        {editingPhotoIndex !== null &&
-      photos[editingPhotoIndex] && (
+      return (
+  <div style={{ display: "contents" }}>
+    {editingPhotoIndex !== null &&
+      photos[editingPhotoIndex] ? (
         <ImageEditor
           file={photos[editingPhotoIndex]}
           onSave={handleSaveEditedPhoto}
-          onCancel={() =>
-            setEditingPhotoIndex(null)
-          }
+          onCancel={() => {
+            setEditingPhotoIndex(null);
+          }}
         />
-      )}
-  <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
+      ) : null}
+
+    <main
+      style={{
+        maxWidth: "1050px",
+        margin: "20px auto",
+        padding: "16px",
+        fontFamily: "Arial, sans-serif",
+        boxSizing: "border-box",
+      }}
+    >
       <style jsx>{`
         .form-grid {
           display: grid;
@@ -1772,8 +1783,17 @@ return (
         border: "1px solid #ccc",
       }}
     >
-    <a
-  href={imgUrltett kép #{index + 1}
+   <a
+  href={imgUrl}
+  target="_blank"
+  rel="noopener noreferrer"
+  style={{
+    color: "#2563eb",
+    textDecoration: "underline",
+    fontSize: "13px",
+  }}
+>
+  📷 Mentett kép #{index + 1}
 </a>
 
       <button
@@ -1811,11 +1831,10 @@ return (
           border: "1px solid #ccc",
         }}
       >
-        <img
+<img
   src={previewUrl}
-  alt={`FeltURL(previewUrl)
-  }
-  style={{
+  alt={`Feltöltött kép ${index + 1}`}
+  on
     display: "block",
     width: "100%",
     maxHeight: "220px",
@@ -2583,8 +2602,8 @@ return (
             );
           })
         )}
-      </div>
-      </main>
-  </>
+          </div>
+    </main>
+  </div>
 );
 }
