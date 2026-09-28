@@ -1879,9 +1879,9 @@ if (filterStatus === "kesz" && !task.completed_at) {
              <div
   style={{
     position: "relative",
-    flex: "0 0 200px",
+    flex: "0 0 230px",
     minWidth: "140px",
-    maxWidth: "200px",
+    maxWidth: "280px",
   }}
 >
                 {!scheduledDateFilter && (
