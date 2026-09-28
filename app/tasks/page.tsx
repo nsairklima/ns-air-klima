@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TasksMap from "../components/TasksMap";
 
 type Task = {
@@ -467,6 +467,439 @@ function CustomDateTimePicker({ value, onChange, label }: { value: string; onCha
   );
 }
 
+
+type ImageEditorProps = {
+  file: File;
+  onSave: (editedFile: File) => void;
+  onCancel: () => void;
+};
+
+function ImageEditor({
+  file,
+  onSave,
+  onCancel,
+}: ImageEditorProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const drawingRef = useRef(false);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+
+  const [brushColor, setBrushColor] = useState("#ff0000");
+  const [brushSize, setBrushSize] = useState(8);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const drawOriginalImage = () => {
+    const canvas = canvasRef.current;
+    const image = imageRef.current;
+
+    if (!canvas || !image) return;
+
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+      image,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+  };
+
+  useEffect(() => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      const canvas = canvasRef.current;
+
+      if (!canvas) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+
+      const maxCanvasSize = 1600;
+
+      let width = image.naturalWidth;
+      let height = image.naturalHeight;
+
+      if (width > height && width > maxCanvasSize) {
+        height = Math.round(
+          (height * maxCanvasSize) / width
+        );
+        width = maxCanvasSize;
+      } else if (
+        height >= width &&
+        height > maxCanvasSize
+      ) {
+        width = Math.round(
+          (width * maxCanvasSize) / height
+        );
+        height = maxCanvasSize;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      imageRef.current = image;
+      drawOriginalImage();
+      setImageLoaded(true);
+
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    image.src = objectUrl;
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
+
+  const getCanvasPoint = (
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) => {
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      return { x: 0, y: 0 };
+    }
+
+    const rect = canvas.getBoundingClientRect();
+
+    return {
+      x:
+        (event.clientX - rect.left) *
+        (canvas.width / rect.width),
+      y:
+        (event.clientY - rect.top) *
+        (canvas.height / rect.height),
+    };
+  };
+
+  const startDrawing = (
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) => {
+    const canvas = canvasRef.current;
+
+    if (!canvas || !imageLoaded) return;
+
+    event.preventDefault();
+
+    canvas.setPointerCapture(event.pointerId);
+
+    drawingRef.current = true;
+    lastPointRef.current = getCanvasPoint(event);
+  };
+
+  const draw = (
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) => {
+    if (!drawingRef.current) return;
+
+    event.preventDefault();
+
+    const canvas = canvasRef.current;
+    const previousPoint = lastPointRef.current;
+
+    if (!canvas || !previousPoint) return;
+
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    const currentPoint = getCanvasPoint(event);
+
+    ctx.beginPath();
+    ctx.moveTo(previousPoint.x, previousPoint.y);
+    ctx.lineTo(currentPoint.x, currentPoint.y);
+    ctx.strokeStyle = brushColor;
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+
+    lastPointRef.current = currentPoint;
+  };
+
+  const stopDrawing = (
+    event?: React.PointerEvent<HTMLCanvasElement>
+  ) => {
+    if (
+      event &&
+      canvasRef.current?.hasPointerCapture(
+        event.pointerId
+      )
+    ) {
+      canvasRef.current.releasePointerCapture(
+        event.pointerId
+      );
+    }
+
+    drawingRef.current = false;
+    lastPointRef.current = null;
+  };
+
+  const handleSave = () => {
+    const canvas = canvasRef.current;
+
+    if (!canvas) return;
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          alert(
+            "A szerkesztett képet nem sikerült elkészíteni."
+          );
+          return;
+        }
+
+        const originalName =
+          file.name.replace(/\.[^/.]+$/, "") ||
+          "szerkesztett-kep";
+
+        const editedFile = new File(
+          [blob],
+          `${originalName}-jelolt.jpg`,
+          {
+            type: "image/jpeg",
+            lastModified: Date.now(),
+          }
+        );
+
+        onSave(editedFile);
+      },
+      "image/jpeg",
+      0.85
+    );
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0, 0, 0, 0.85)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "10px",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "900px",
+          maxHeight: "96vh",
+          overflowY: "auto",
+          background: "#111827",
+          borderRadius: "14px",
+          padding: "12px",
+          boxSizing: "border-box",
+          color: "white",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "12px",
+          }}
+        >
+          <strong>✏️ Rajzolás a képre</strong>
+
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              background: "#dc2626",
+              color: "white",
+              border: "none",
+              borderRadius: "7px",
+              padding: "8px 12px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            ✕ Bezárás
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "12px",
+            padding: "10px",
+            background: "#1f2937",
+            borderRadius: "10px",
+          }}
+        >
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "13px",
+              fontWeight: "bold",
+            }}
+          >
+            Szín:
+            <input
+              type="color"
+              value={brushColor}
+              onChange={(event) =>
+                setBrushColor(event.target.value)
+              }
+              style={{
+                width: "42px",
+                height: "34px",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+              }}
+            />
+          </label>
+
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "13px",
+              fontWeight: "bold",
+            }}
+          >
+            Vastagság:
+            <input
+              type="range"
+              min="2"
+              max="40"
+              value={brushSize}
+              onChange={(event) =>
+                setBrushSize(
+                  Number(event.target.value)
+                )
+              }
+            />
+            <span>{brushSize}px</span>
+          </label>
+
+          <button
+            type="button"
+            onClick={drawOriginalImage}
+            disabled={!imageLoaded}
+            style={{
+              background: "#f59e0b",
+              color: "white",
+              border: "none",
+              borderRadius: "7px",
+              padding: "8px 12px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            ↩ Rajz törlése
+          </button>
+        </div>
+
+        <div
+          style={{
+            width: "100%",
+            overflow: "auto",
+            background: "#000",
+            borderRadius: "10px",
+            textAlign: "center",
+            touchAction: "none",
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            onPointerDown={startDrawing}
+            onPointerMove={draw}
+            onPointerUp={stopDrawing}
+            onPointerCancel={stopDrawing}
+            onPointerLeave={(event) => {
+              if (
+                event.pointerType === "mouse"
+              ) {
+                stopDrawing(event);
+              }
+            }}
+            style={{
+              display: "block",
+              width: "100%",
+              height: "auto",
+              maxHeight: "70vh",
+              objectFit: "contain",
+              cursor: "crosshair",
+              touchAction: "none",
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            marginTop: "12px",
+          }}
+        >
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!imageLoaded}
+            style={{
+              flex: 1,
+              background: imageLoaded
+                ? "#22c55e"
+                : "#6b7280",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "12px",
+              cursor: imageLoaded
+                ? "pointer"
+                : "not-allowed",
+              fontWeight: "bold",
+            }}
+          >
+            ✅ Rajz mentése
+          </button>
+
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              background: "#6b7280",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "12px 16px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            Mégse
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function TasksPage() {
   const [type, setType] = useState<"telepites" | "karbantartas">("telepites");
   const [name, setName] = useState("");
@@ -479,6 +912,12 @@ export default function TasksPage() {
   
   const [photos, setPhotos] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+
+
+const [editingPhotoIndex, setEditingPhotoIndex] =
+  useState<number | null>(null);
+
+  
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -536,7 +975,8 @@ const [statusType, setStatusType] =
     setScheduledAt("");
     setCompletedAt("");
     setPhotos([]);
-    setExistingImages([]);
+setExistingImages([]);
+setEditingPhotoIndex(null);
     setEditingTaskId(null);
     setIsFormOpen(false);
     setCustomEmailInput("");
@@ -671,6 +1111,24 @@ const handleAddPhoto = async (
     setPhotos((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
+
+const handleSaveEditedPhoto = (
+  editedFile: File
+) => {
+  if (editingPhotoIndex === null) return;
+
+  setPhotos((previousPhotos) =>
+    previousPhotos.map((photo, index) =>
+      index === editingPhotoIndex
+        ? editedFile
+        : photo
+    )
+  );
+
+  setEditingPhotoIndex(null);
+};
+
+  
   const handleRemoveExistingImage = (indexToRemove: number) => {
     setExistingImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
@@ -992,6 +1450,17 @@ const filteredTasks = tasks.filter((task) => {
 });
 
 return (
+  <>
+        {editingPhotoIndex !== null &&
+      photos[editingPhotoIndex] && (
+        <ImageEditor
+          file={photos[editingPhotoIndex]}
+          onSave={handleSaveEditedPhoto}
+          onCancel={() =>
+            setEditingPhotoIndex(null)
+          }
+        />
+      )}
   <main style={{ maxWidth: "1050px", margin: "20px auto", padding: "16px", fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
       <style jsx>{`
         .form-grid {
@@ -1276,33 +1745,219 @@ return (
               </div>
             </div>
 
-            {/* Képek kezelése */}
-            <div>
-              <label style={{ fontWeight: "bold", display: "block", marginBottom: "6px" }}>Képek:</label>
-              {existingImages.map((imgUrl, index) => (
-                <div key={index} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "6px", borderRadius: "6px", marginBottom: "4px", border: "1px solid #ccc" }}>
-                  <span style={{ fontSize: "13px" }}>📷 Mentett kép #{index + 1}</span>
-                  <button type="button" onClick={() => handleRemoveExistingImage(index)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "2px 6px", borderRadius: "4px", fontSize: "11px" }}>Törlés</button>
-                </div>
-              ))}
-              {photos.map((photo, index) => (
-                <div key={index} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "6px", borderRadius: "6px", marginBottom: "4px", border: "1px solid #ccc" }}>
-                  <span style={{ fontSize: "13px" }}>📷 {photo.name}</span>
-                  <button type="button" onClick={() => handleRemoveNewPhoto(index)} style={{ background: "#e74c3c", color: "white", border: "none", padding: "2px 6px", borderRadius: "4px", fontSize: "11px" }}>Törlés</button>
-                </div>
-              ))}
-              <label style={{ display: "inline-block", background: "#34495e", color: "white", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "13px", marginTop: "4px" }}>
-                ➕ Kép hozzáadása
-                <input
-  type="file"
-  accept="image/*"
-  multiple
-  onChange={handleAddPhoto}
-/>
-              </label>
-            </div>
+           {/* Képek kezelése */}
+<div>
+  <label
+    style={{
+      fontWeight: "bold",
+      display: "block",
+      marginBottom: "8px",
+    }}
+  >
+    Képek:
+  </label>
 
-            <div style={{ display: "flex", gap: "10px" }}>
+  {existingImages.map((imgUrl, index) => (
+    <div
+      key={`existing-${index}`}
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "8px",
+        background: "white",
+        padding: "8px",
+        borderRadius: "6px",
+        marginBottom: "6px",
+        border: "1px solid #ccc",
+      }}
+    >
+      {imgUrl}
+        📷 Mentett kép #{index + 1}
+      </a>
+
+      <button
+        type="button"
+        onClick={() =>
+          handleRemoveExistingImage(index)
+        }
+        style={{
+          background: "#e74c3c",
+          color: "white",
+          border: "none",
+          padding: "5px 8px",
+          borderRadius: "4px",
+          fontSize: "11px",
+          cursor: "pointer",
+        }}
+      >
+        Törlés
+      </button>
+    </div>
+  ))}
+
+  {photos.map((photo, index) => {
+    const previewUrl =
+      URL.createObjectURL(photo);
+
+    return (
+      <div
+        key={`${photo.name}-${photo.lastModified}-${index}`}
+        style={{
+          background: "white",
+          padding: "8px",
+          borderRadius: "8px",
+          marginBottom: "8px",
+          border: "1px solid #ccc",
+        }}
+      >
+        {previewUrl} =>
+            URL.revokeObjectURL(previewUrl)
+          }
+          style={{
+            display: "block",
+            width: "100%",
+            maxHeight: "220px",
+            objectFit: "contain",
+            borderRadius: "6px",
+            background: "#f3f4f6",
+            marginBottom: "8px",
+          }}
+        />
+
+        <div
+          style={{
+            fontSize: "12px",
+            marginBottom: "8px",
+            wordBreak: "break-all",
+          }}
+        >
+          📷 {photo.name}
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "8px",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setEditingPhotoIndex(index)
+            }
+            style={{
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              padding: "8px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "12px",
+            }}
+          >
+            ✏️ Rajzolás
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              handleRemoveNewPhoto(index)
+            }
+            style={{
+              background: "#e74c3c",
+              color: "white",
+              border: "none",
+              padding: "8px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "12px",
+            }}
+          >
+            🗑️ Törlés
+          </button>
+        </div>
+      </div>
+    );
+  })}
+
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "8px",
+      marginTop: "10px",
+    }}
+  >
+    <label
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#16a34a",
+        color: "white",
+        padding: "11px 8px",
+        borderRadius: "7px",
+        cursor: "pointer",
+        fontWeight: "bold",
+        fontSize: "13px",
+        textAlign: "center",
+      }}
+    >
+      📷 Fényképezés
+
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleAddPhoto}
+        style={{ display: "none" }}
+      />
+    </label>
+
+    <label
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#34495e",
+        color: "white",
+        padding: "11px 8px",
+        borderRadius: "7px",
+        cursor: "pointer",
+        fontWeight: "bold",
+        fontSize: "13px",
+        textAlign: "center",
+      }}
+    >
+      🖼️ Galéria
+
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleAddPhoto}
+        style={{ display: "none" }}
+      />
+    </label>
+  </div>
+
+  <div
+    style={{
+      marginTop: "7px",
+      color: "#6b7280",
+      fontSize: "11px",
+    }}
+  >
+    A fényképezővel egy új kép készíthető. A
+    galériából egyszerre több kép is kiválasztható.
+    Feltöltés után a Rajzolás gombbal jelölhetsz a
+    képen.
+  </div>
+</div>
               <button type="submit" disabled={loading} style={{ flex: 1, background: loading ? "#ccc" : "#27ae60", color: "white", padding: "12px", fontSize: "15px", fontWeight: "bold", border: "none", borderRadius: "8px", cursor: "pointer" }}>
                 {loading ? "Mentés..." : editingTaskId ? "Módosítás Mentése" : "Munka Kiadása"}
               </button>
@@ -1919,6 +2574,7 @@ return (
           })
         )}
       </div>
-    </main>
-  );
+      </main>
+  </>
+);
 }
