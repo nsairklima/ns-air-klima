@@ -909,7 +909,9 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
-  const [filterStatus, setFilterStatus] = useState<"all" | "folyamatban" | "kesz">("all");
+ const [filterStatus, setFilterStatus] = useState<
+  "all" | "folyamatban" | "kesz" | "nincsIdopont"
+>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [scheduledDateFilter, setScheduledDateFilter] = useState("");
   const [showMap, setShowMap] = useState(false);
@@ -1244,9 +1246,12 @@ export default function TasksPage() {
       return false;
     }
 
-    if (filterStatus === "kesz" && !task.completed_at) {
-      return false;
-    }
+   if (
+  filterStatus === "nincsIdopont" &&
+  task.scheduled_at
+) {
+  return false;
+}
 
     if (scheduledDateFilter) {
       const taskScheduledDate = task.scheduled_at
@@ -2069,13 +2074,14 @@ export default function TasksPage() {
               Státusz
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "6px",
-              }}
-            >
+           <div
+  style={{
+    display: "grid",
+   gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "6px",
+  }}
+>
+
               <button
                 onClick={() => setFilterStatus("all")}
                 style={{
@@ -2124,6 +2130,32 @@ export default function TasksPage() {
                   {tasks.filter((t) => t.completed_at).length}
                 </div>
               </button>
+
+<button
+  onClick={() => setFilterStatus("nincsIdopont")}
+  style={{
+    padding: "8px",
+    borderRadius: "8px",
+    border:
+      filterStatus === "nincsIdopont"
+        ? "2px solid #8b5cf6"
+        : "1px solid #4b5563",
+    cursor: "pointer",
+    background:
+      filterStatus === "nincsIdopont"
+        ? "#8b5cf6"
+        : "#34495e",
+    color: "white",
+  }}
+>
+  <div style={{ fontSize: "11px", fontWeight: "600" }}>
+    🚫 Nincs időpont
+  </div>
+  <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>
+    {tasks.filter((t) => !t.scheduled_at).length}
+  </div>
+</button>
+             
             </div>
           </div>
         </div>
