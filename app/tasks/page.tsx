@@ -1881,7 +1881,7 @@ if (filterStatus === "kesz" && !task.completed_at) {
     position: "relative",
     flex: "0 0 140px",
     minWidth: "140px",
-    maxWidth: "140px",
+    maxWidth: "200px",
   }}
 >
                 {!scheduledDateFilter && (
