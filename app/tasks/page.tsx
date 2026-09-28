@@ -1874,7 +1874,14 @@ export default function TasksPage() {
                 boxSizing: "border-box",
               }}
             >
-              <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+             <div
+  style={{
+    position: "relative",
+    flex: "0 0 140px",
+    minWidth: "140px",
+    maxWidth: "140px",
+  }}
+>
                 {!scheduledDateFilter && (
                   <span
                     className="mobile-date-placeholder"
