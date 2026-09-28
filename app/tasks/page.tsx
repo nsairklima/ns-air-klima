@@ -1245,7 +1245,9 @@ export default function TasksPage() {
     if (filterStatus === "folyamatban" && task.completed_at) {
       return false;
     }
-
+if (filterStatus === "kesz" && !task.completed_at) {
+  return false;
+}
    if (
   filterStatus === "nincsIdopont" &&
   task.scheduled_at
