@@ -484,48 +484,33 @@ function ImageEditor({
     if (!canvas || !image) return;
 
     const ctx = canvas.getContext("2d");
-
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(
-      image,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
   };
 
   useEffect(() => {
     const image = new Image();
+    image.crossOrigin = "anonymous";
     const objectUrl = URL.createObjectURL(file);
 
     image.onload = () => {
       const canvas = canvasRef.current;
-
       if (!canvas) {
         URL.revokeObjectURL(objectUrl);
         return;
       }
 
       const maxCanvasSize = 1600;
-
       let width = image.naturalWidth;
       let height = image.naturalHeight;
 
       if (width > height && width > maxCanvasSize) {
-        height = Math.round(
-          (height * maxCanvasSize) / width
-        );
+        height = Math.round((height * maxCanvasSize) / width);
         width = maxCanvasSize;
-      } else if (
-        height >= width &&
-        height > maxCanvasSize
-      ) {
-        width = Math.round(
-          (width * maxCanvasSize) / height
-        );
+      } else if (height >= width && height > maxCanvasSize) {
+        width = Math.round((width * maxCanvasSize) / height);
         height = maxCanvasSize;
       }
 
@@ -550,56 +535,36 @@ function ImageEditor({
     };
   }, [file]);
 
-  const getCanvasPoint = (
-    event: React.PointerEvent<HTMLCanvasElement>
-  ) => {
+  const getCanvasPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-
-    if (!canvas) {
-      return { x: 0, y: 0 };
-    }
+    if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
-
     return {
-      x:
-        (event.clientX - rect.left) *
-        (canvas.width / rect.width),
-      y:
-        (event.clientY - rect.top) *
-        (canvas.height / rect.height),
+      x: (event.clientX - rect.left) * (canvas.width / rect.width),
+      y: (event.clientY - rect.top) * (canvas.height / rect.height),
     };
   };
 
-  const startDrawing = (
-    event: React.PointerEvent<HTMLCanvasElement>
-  ) => {
+  const startDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-
     if (!canvas || !imageLoaded) return;
 
     event.preventDefault();
-
     canvas.setPointerCapture(event.pointerId);
-
     drawingRef.current = true;
     lastPointRef.current = getCanvasPoint(event);
   };
 
-  const draw = (
-    event: React.PointerEvent<HTMLCanvasElement>
-  ) => {
+  const draw = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!drawingRef.current) return;
-
     event.preventDefault();
 
     const canvas = canvasRef.current;
     const previousPoint = lastPointRef.current;
-
     if (!canvas || !previousPoint) return;
 
     const ctx = canvas.getContext("2d");
-
     if (!ctx) return;
 
     const currentPoint = getCanvasPoint(event);
@@ -616,50 +581,30 @@ function ImageEditor({
     lastPointRef.current = currentPoint;
   };
 
-  const stopDrawing = (
-    event?: React.PointerEvent<HTMLCanvasElement>
-  ) => {
-    if (
-      event &&
-      canvasRef.current?.hasPointerCapture(
-        event.pointerId
-      )
-    ) {
-      canvasRef.current.releasePointerCapture(
-        event.pointerId
-      );
+  const stopDrawing = (event?: React.PointerEvent<HTMLCanvasElement>) => {
+    if (event && canvasRef.current?.hasPointerCapture(event.pointerId)) {
+      canvasRef.current.releasePointerCapture(event.pointerId);
     }
-
     drawingRef.current = false;
     lastPointRef.current = null;
   };
 
   const handleSave = () => {
     const canvas = canvasRef.current;
-
     if (!canvas) return;
 
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          alert(
-            "A szerkesztett képet nem sikerült elkészíteni."
-          );
+          alert("A szerkesztett képet nem sikerült elkészíteni.");
           return;
         }
 
-        const originalName =
-          file.name.replace(/\.[^/.]+$/, "") ||
-          "szerkesztett-kep";
-
-        const editedFile = new File(
-          [blob],
-          `${originalName}-jelolt.jpg`,
-          {
-            type: "image/jpeg",
-            lastModified: Date.now(),
-          }
-        );
+        const originalName = file.name.replace(/\.[^/.]+$/, "") || "szerkesztett-kep";
+        const editedFile = new File([blob], `${originalName}-jelolt.jpg`, {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        });
 
         onSave(editedFile);
       },
@@ -674,7 +619,7 @@ function ImageEditor({
         position: "fixed",
         inset: 0,
         zIndex: 3000,
-        background: "rgba(0, 0, 0, 0.85)",
+        background: "rgba(0, 0, 0, 0.9)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -686,8 +631,9 @@ function ImageEditor({
         style={{
           width: "100%",
           maxWidth: "900px",
-          maxHeight: "96vh",
-          overflowY: "auto",
+          height: "92vh",
+          display: "flex",
+          flexDirection: "column",
           background: "#111827",
           borderRadius: "14px",
           padding: "12px",
@@ -695,17 +641,18 @@ function ImageEditor({
           color: "white",
         }}
       >
+        {/* FEJLÉC */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             gap: "10px",
-            marginBottom: "12px",
+            marginBottom: "8px",
+            flexShrink: 0,
           }}
         >
           <strong>✏️ Rajzolás a képre</strong>
-
           <button
             type="button"
             onClick={onCancel}
@@ -714,7 +661,7 @@ function ImageEditor({
               color: "white",
               border: "none",
               borderRadius: "7px",
-              padding: "8px 12px",
+              padding: "6px 12px",
               cursor: "pointer",
               fontWeight: "bold",
             }}
@@ -723,16 +670,18 @@ function ImageEditor({
           </button>
         </div>
 
+        {/* ESZKÖZTÁR */}
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
             alignItems: "center",
             gap: "10px",
-            marginBottom: "12px",
-            padding: "10px",
+            marginBottom: "8px",
+            padding: "8px 10px",
             background: "#1f2937",
             borderRadius: "10px",
+            flexShrink: 0,
           }}
         >
           <label
@@ -748,12 +697,10 @@ function ImageEditor({
             <input
               type="color"
               value={brushColor}
-              onChange={(event) =>
-                setBrushColor(event.target.value)
-              }
+              onChange={(e) => setBrushColor(e.target.value)}
               style={{
-                width: "42px",
-                height: "34px",
+                width: "36px",
+                height: "30px",
                 border: "none",
                 padding: 0,
                 cursor: "pointer",
@@ -770,17 +717,13 @@ function ImageEditor({
               fontWeight: "bold",
             }}
           >
-            Vastagság:
+            Méret:
             <input
               type="range"
               min="2"
               max="40"
               value={brushSize}
-              onChange={(event) =>
-                setBrushSize(
-                  Number(event.target.value)
-                )
-              }
+              onChange={(e) => setBrushSize(Number(e.target.value))}
             />
             <span>{brushSize}px</span>
           </label>
@@ -794,23 +737,28 @@ function ImageEditor({
               color: "white",
               border: "none",
               borderRadius: "7px",
-              padding: "8px 12px",
+              padding: "6px 12px",
               cursor: "pointer",
               fontWeight: "bold",
+              marginLeft: "auto",
             }}
           >
-            ↩ Rajz törlése
+            ↩ Újra
           </button>
         </div>
 
+        {/* GÖRGETHETŐ CANVASTERÜLET */}
         <div
           style={{
-            width: "100%",
+            flex: 1,
             overflow: "auto",
             background: "#000",
             borderRadius: "10px",
-            textAlign: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             touchAction: "none",
+            minHeight: 0,
           }}
         >
           <canvas
@@ -819,18 +767,13 @@ function ImageEditor({
             onPointerMove={draw}
             onPointerUp={stopDrawing}
             onPointerCancel={stopDrawing}
-            onPointerLeave={(event) => {
-              if (
-                event.pointerType === "mouse"
-              ) {
-                stopDrawing(event);
-              }
+            onPointerLeave={(e) => {
+              if (e.pointerType === "mouse") stopDrawing(e);
             }}
             style={{
               display: "block",
-              width: "100%",
-              height: "auto",
-              maxHeight: "70vh",
+              maxWidth: "100%",
+              maxHeight: "100%",
               objectFit: "contain",
               cursor: "crosshair",
               touchAction: "none",
@@ -838,11 +781,13 @@ function ImageEditor({
           />
         </div>
 
+        {/* FIX ALSÓ MENTÉS GOMBSOR */}
         <div
           style={{
             display: "flex",
             gap: "10px",
-            marginTop: "12px",
+            marginTop: "10px",
+            flexShrink: 0,
           }}
         >
           <button
@@ -851,17 +796,14 @@ function ImageEditor({
             disabled={!imageLoaded}
             style={{
               flex: 1,
-              background: imageLoaded
-                ? "#22c55e"
-                : "#6b7280",
+              background: imageLoaded ? "#22c55e" : "#6b7280",
               color: "white",
               border: "none",
               borderRadius: "8px",
               padding: "12px",
-              cursor: imageLoaded
-                ? "pointer"
-                : "not-allowed",
+              cursor: imageLoaded ? "pointer" : "not-allowed",
               fontWeight: "bold",
+              fontSize: "15px",
             }}
           >
             ✅ Rajz mentése
