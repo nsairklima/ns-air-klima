@@ -897,6 +897,8 @@ export default function TasksPage() {
   const [note, setNote] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [completedAt, setCompletedAt] = useState("");
+
+  const [machines, setMachines] = useState<string[]>([""]);
   
   const [photos, setPhotos] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -959,6 +961,7 @@ export default function TasksPage() {
     setNote("");
     setScheduledAt("");
     setCompletedAt("");
+    setMachines([""]);
     setPhotos([]);
     setExistingImages([]);
     setEditingPhotoIndex(null);
@@ -1582,6 +1585,85 @@ if (filterStatus === "kesz" && !task.completed_at) {
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés:</label>
                 <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
               </div>
+
+              <div>
+  <label
+    style={{
+      fontWeight: "bold",
+      display: "block",
+      marginBottom: "8px",
+    }}
+  >
+    Klíma típusok:
+  </label>
+
+  {machines.map((machine, index) => (
+    <div
+      key={index}
+      style={{
+        display: "flex",
+        gap: "8px",
+        marginBottom: "8px",
+      }}
+    >
+      <input
+        type="text"
+        value={machine}
+        placeholder={`Klíma típusa #${index + 1}`}
+        onChange={(e) => {
+          const updated = [...machines];
+          updated[index] = e.target.value;
+          setMachines(updated);
+        }}
+        style={{
+          flex: 1,
+          padding: "10px",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+        }}
+      />
+
+      {machines.length > 1 && (
+        <button
+          type="button"
+          onClick={() =>
+            setMachines(
+              machines.filter((_, i) => i !== index)
+            )
+          }
+          style={{
+            background: "#e74c3c",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            padding: "0 12px",
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  ))}
+
+  <button
+    type="button"
+    onClick={() =>
+      setMachines([...machines, ""])
+    }
+    style={{
+      background: "#2563eb",
+      color: "white",
+      border: "none",
+      borderRadius: "8px",
+      padding: "10px 14px",
+      cursor: "pointer",
+      fontWeight: "bold",
+    }}
+  >
+    ➕ Új gép hozzáadása
+  </button>
+</div>
 
               {/* Email értesítők */}
               <div style={{ background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #ccc" }}>
