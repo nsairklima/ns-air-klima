@@ -288,6 +288,32 @@ export async function POST(
 
     const note =
       cleanText(formData.get("note"));
+    
+const machinesRaw =
+  cleanText(formData.get("machines"));
+
+let machines: string[] = [];
+
+if (machinesRaw) {
+  try {
+    const parsedMachines =
+      JSON.parse(machinesRaw);
+
+    if (Array.isArray(parsedMachines)) {
+      machines = parsedMachines
+        .map((machine) =>
+          cleanText(machine)
+        )
+        .filter(Boolean);
+    }
+  } catch (error) {
+    console.error(
+      "A géptípusok feldolgozása sikertelen:",
+      error
+    );
+  }
+}
+    
 
     const latitude =
       parseCoordinate(
@@ -473,38 +499,42 @@ export async function POST(
 
     const insertedTasks =
       await sql`
-        INSERT INTO "Task" (
-          "type",
-          "title",
-          "clientName",
-          "address",
-          "phone",
-          "date",
-          "description",
-          "images",
-          "scheduled_at",
-          "completed_at",
-          "latitude",
-          "longitude",
-          "updatedAt"
-        )
-        VALUES (
-          ${type},
-          ${name || "Új munka"},
-          ${name},
-          ${address},
-          ${phone},
-          ${currentDate},
-          ${description},
-          ${JSON.stringify(
-            imageUrls
-          )},
-          ${scheduledAt},
-          ${completedAt},
-          ${latitude},
-          ${longitude},
-          NOW()
-        )
+    INSERT INTO "Task" (
+  "type",
+  "title",
+  "clientName",
+  "address",
+  "phone",
+  "date",
+  "description",
+  "images",
+  "machines",
+  "scheduled_at",
+  "completed_at",
+  "latitude",
+  "longitude",
+  "updatedAt"
+)
+     VALUES (
+  ${type},
+  ${name || "Új munka"},
+  ${name},
+  ${address},
+  ${phone},
+  ${currentDate},
+  ${description},
+  ${JSON.stringify(
+    imageUrls
+  )},
+  ${JSON.stringify(
+    machines
+  )},
+  ${scheduledAt},
+  ${completedAt},
+  ${latitude},
+  ${longitude},
+  NOW()
+)
         RETURNING
           "id",
           "clientName",
@@ -678,6 +708,18 @@ export async function POST(
                   ${completedAt || "-"}
                 </p>
 
+<p>
+  <strong>
+    Géptípusok:
+  </strong>
+  ${
+    machines.length > 0
+      ? machines.join(", ")
+      : "-"
+  }
+</p>
+
+
                 <p>
                   <strong>
                     Megjegyzés:
@@ -741,6 +783,7 @@ export async function POST(
     return NextResponse.json({
       message,
       taskId: newTaskId,
+      machines,
       clientCreated:
         clientSyncResult.created,
       clientId:
