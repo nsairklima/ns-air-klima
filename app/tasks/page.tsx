@@ -11,6 +11,7 @@ type Task = {
   phone?: string;
   email?: string;
   note?: string;
+  machines?: string[];
   scheduled_at?: string;
   completed_at?: string;
   images?: string[];
