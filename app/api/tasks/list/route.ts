@@ -23,6 +23,30 @@ export async function GET() {
       (task: any) => {
         let imagesArray: string[] = [];
 
+        let machinesArray: string[] = [];
+
+if (Array.isArray(task.machines)) {
+  machinesArray = task.machines;
+} else if (
+  typeof task.machines === "string" &&
+  task.machines.startsWith("[")
+) {
+  try {
+    const parsedMachines = JSON.parse(
+      task.machines
+    );
+
+    machinesArray = Array.isArray(
+      parsedMachines
+    )
+      ? parsedMachines
+      : [];
+  } catch {
+    machinesArray = [];
+  }
+}
+``
+
         if (Array.isArray(task.images)) {
           imagesArray = task.images;
         } else if (
@@ -137,7 +161,12 @@ export async function GET() {
             task.completedAt ||
             "",
 
+
+
+          
           images: imagesArray,
+
+          machines: machinesArray,
 
           created_at:
             task.createdAt ||
