@@ -862,6 +862,7 @@ console.log("PUT completedAt:", completedAt);
     machines.length > 0
       ? machines.join(", ")
       : "-"
+  }
 </p>
 
 
