@@ -2012,9 +2012,21 @@ if (filterStatus === "kesz" && !task.completed_at) {
                   </span>
                 )}
 
-                <input
-                  type="date"
-                  value={scheduledDateFilter}
+               <input
+  type={scheduledDateFilter ? "date" : "text"}
+  value={scheduledDateFilter}
+  placeholder="📅 Dátum választása"
+  onFocus={(e) => {
+    e.target.type = "date";
+  }}
+  onBlur={(e) => {
+    if (!e.target.value) {
+      e.target.type = "text";
+    }
+  }}
+  onChange={(event) =>
+    setScheduledDateFilter(event.target.value)
+  }
                   onChange={(event) => setScheduledDateFilter(event.target.value)}
                   title="Keresés a tervezett időpontok között"
                   aria-label="Tervezett időpont szűrése"
