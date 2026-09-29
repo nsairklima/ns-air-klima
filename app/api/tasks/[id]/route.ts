@@ -380,9 +380,35 @@ export async function PUT(
     const email =
       cleanText(formData.get("email"));
 
-    const note =
-      cleanText(formData.get("note"));
-    const latitudeRaw =
+ const note =
+  cleanText(formData.get("note"));
+
+const machinesRaw =
+  cleanText(formData.get("machines"));
+
+let machines: string[] = [];
+
+if (machinesRaw) {
+  try {
+    const parsedMachines =
+      JSON.parse(machinesRaw);
+
+    if (Array.isArray(parsedMachines)) {
+      machines = parsedMachines
+        .map((machine) =>
+          cleanText(machine)
+        )
+        .filter(Boolean);
+    }
+  } catch (error) {
+    console.error(
+      "A géptípusok feldolgozása sikertelen:",
+      error
+    );
+  }
+}
+
+const latitudeRaw =
   cleanText(
     formData.get("latitude")
   );
@@ -659,11 +685,14 @@ console.log("PUT completedAt:", completedAt);
     "clientName" = ${name},
     "address" = ${address},
     "phone" = ${phone},
-    "description" = ${description},
-    "images" = ${JSON.stringify(
-      finalImages
-    )},
-    "scheduled_at" = ${scheduledAt},
+  "description" = ${description},
+"images" = ${JSON.stringify(
+  finalImages
+)},
+"machines" = ${JSON.stringify(
+  machines
+)},
+"scheduled_at" = ${scheduledAt},
     "completed_at" = ${completedAt},
     "latitude" = ${latitude},
     "longitude" = ${longitude},
@@ -827,6 +856,15 @@ console.log("PUT completedAt:", completedAt);
                                     ${completedAt || "-"}
                 </p>
 
+<p>
+  <strong>Géptípusok:</strong>
+  ${
+    machines.length > 0
+      ? machines.join(", ")
+      : "-"
+
+
+
                 <p>
                   <strong>Megjegyzés:</strong>
                   ${note || "-"}
@@ -883,6 +921,7 @@ console.log("PUT completedAt:", completedAt);
       message,
       taskId,
       images: finalImages,
+      machines,
       clientCreated:
         clientSyncResult?.created || false,
       clientId:
