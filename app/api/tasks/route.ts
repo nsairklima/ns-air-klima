@@ -568,6 +568,40 @@ if (machinesRaw) {
           email,
           note,
         });
+
+if (
+  clientSyncResult.clientId &&
+  machines.length > 0
+) {
+  for (const machine of machines) {
+    if (!machine.trim()) continue;
+
+    const existingUnit =
+      await prisma.clientUnit.findFirst({
+        where: {
+          clientId:
+            clientSyncResult.clientId,
+          model: machine.trim(),
+        },
+      });
+
+    if (!existingUnit) {
+      await prisma.clientUnit.create({
+        data: {
+          clientId:
+            clientSyncResult.clientId,
+
+          brand: "Munkalapról",
+
+          model: machine.trim(),
+
+          status: "SERVICE_ONLY",
+        },
+      });
+    }
+  }
+}
+      
     } catch (clientError: any) {
       console.error(
         "Automatikus ügyféllétrehozási hiba:",
