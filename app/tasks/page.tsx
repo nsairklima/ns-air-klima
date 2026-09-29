@@ -1432,11 +1432,22 @@ if (filterStatus === "kesz" && !task.completed_at) {
                     </a>
                   ) : "-"}
                 </div>
-                {viewingTask.email && <div><strong>Email:</strong> ✉️ {viewingTask.email}</div>}
-                {viewingTask.scheduled_at && <div><strong>Tervezett időpont:</strong> 📅 {formatDateWithDay(viewingTask.scheduled_at)}</div>}
-                {viewingTask.completed_at && <div><strong>Megvalósult időpont:</strong> ✅ {formatDateWithDay(viewingTask.completed_at)}</div>}
-                <div><strong>Létrehozva:</strong> {formatDateSimple(viewingTask.created_at)}</div>
-                {viewingTask.note && <div><strong>Megjegyzés:</strong> {viewingTask.note}</div>}
+              {viewingTask.email && <div><strong>Email:</strong> ✉️ {viewingTask.email}</div>}
+{viewingTask.scheduled_at && <div><strong>Tervezett időpont:</strong> 📅 {formatDateWithDay(viewingTask.scheduled_at)}</div>}
+{viewingTask.completed_at && <div><strong>Megvalósult időpont:</strong> ✅ {formatDateWithDay(viewingTask.completed_at)}</div>}
+<div><strong>Létrehozva:</strong> {formatDateSimple(viewingTask.created_at)}</div>
+
+{viewingTask.machines && viewingTask.machines.length > 0 && (
+  <div>
+    <strong>📦 Klíma típusok:</strong> {viewingTask.machines.join(", ")}
+  </div>
+)}
+
+{viewingTask.note && (
+  <div>
+    <strong>Megjegyzés:</strong> {viewingTask.note}
+  </div>
+)}
 
                 <div>
                   <strong>Képek:</strong>
