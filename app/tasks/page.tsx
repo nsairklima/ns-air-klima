@@ -1113,8 +1113,18 @@ export default function TasksPage() {
       formData.append("address", address);
       formData.append("phone", phone);
       formData.append("email", email);
-      formData.append("note", note);
-      formData.append("scheduledAt", scheduledAt);
+    formData.append("note", note);
+
+formData.append(
+  "machines",
+  JSON.stringify(
+    machines
+      .map((machine) => machine.trim())
+      .filter(Boolean)
+  )
+);
+
+formData.append("scheduledAt", scheduledAt);
       formData.append("completedAt", completedAt);
       formData.append("latitude", latitude);
       formData.append("longitude", longitude);
@@ -1214,6 +1224,12 @@ export default function TasksPage() {
 
     setEmail(taskEmail);
     setNote(taskNote);
+    setMachines(
+  Array.isArray(task.machines) &&
+    task.machines.length > 0
+    ? task.machines
+    : [""]
+);
     setScheduledAt(task.scheduled_at ? task.scheduled_at.replace(" ", "T").slice(0, 16) : "");
     setCompletedAt(task.completed_at ? task.completed_at.replace(" ", "T").slice(0, 16) : "");
     setPhotos([]);
