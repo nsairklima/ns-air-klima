@@ -1592,13 +1592,7 @@ if (filterStatus === "kesz" && !task.completed_at) {
                   onChange={setCompletedAt}
                 />
               </div>
-
-              <div>
-                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés:</label>
-                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-              </div>
-
-              <div>
+ <div>
   <label
     style={{
       fontWeight: "bold",
@@ -1676,6 +1670,12 @@ if (filterStatus === "kesz" && !task.completed_at) {
     ➕ Új gép hozzáadása
   </button>
 </div>
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés:</label>
+                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+              </div>
+
+             
 
               {/* Email értesítők */}
               <div style={{ background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #ccc" }}>
