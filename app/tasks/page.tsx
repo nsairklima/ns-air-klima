@@ -2027,7 +2027,7 @@ if (filterStatus === "kesz" && !task.completed_at) {
   onChange={(event) =>
     setScheduledDateFilter(event.target.value)
   }
-                  onChange={(event) => setScheduledDateFilter(event.target.value)}
+                 
                   title="Keresés a tervezett időpontok között"
                   aria-label="Tervezett időpont szűrése"
                   style={{
