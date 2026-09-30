@@ -641,71 +641,37 @@ if (machinesRaw) {
     );
 
     let clientSyncResult:
-      ClientSyncResult;
+  ClientSyncResult;
 
-    try {
-      clientSyncResult =
-        await createClientIfMissing({
-          name,
-          address,
-          phone,
-          email,
-          note,
-        });
+try {
+  clientSyncResult =
+    await createClientIfMissing({
+      name,
+      address,
+      phone,
+      email,
+      note,
+    });
+} catch (clientError: any) {
+  console.error(
+    "Automatikus ügyféllétrehozási hiba:",
+    clientError
+  );
 
-if (
-  clientSyncResult.clientId &&
-  machines.length > 0
-) {
-  for (const machine of machines) {
-    if (!machine.trim()) continue;
-
-    const existingUnit =
-      await prisma.clientUnit.findFirst({
-        where: {
-          clientId:
-            clientSyncResult.clientId,
-          model: machine.trim(),
-        },
-      });
-
-    if (!existingUnit) {
-      await prisma.clientUnit.create({
-        data: {
-          clientId:
-            clientSyncResult.clientId,
-
-          brand: "Munkalapról",
-
-          model: machine.trim(),
-
-          status: "SERVICE_ONLY",
-        },
-      });
+  return NextResponse.json(
+    {
+      error:
+        "A munka létrejött, de az ügyfél mentése nem sikerült: " +
+        (clientError?.message ||
+          String(clientError)),
+      taskId: newTaskId,
+      clientCreated: false,
+    },
+    {
+      status: 500,
     }
-  }
+  );
 }
-      
-    } catch (clientError: any) {
-      console.error(
-        "Automatikus ügyféllétrehozási hiba:",
-        clientError
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "A munka létrejött, de az ügyfél mentése nem sikerült: " +
-            (clientError?.message ||
-              String(clientError)),
-          taskId: newTaskId,
-          clientCreated: false,
-        },
-        {
-          status: 500,
-        }
-      );
-    }
 
 let machineSyncResult = {
   createdMachines: [] as string[],
@@ -755,8 +721,8 @@ if (
   }
 }
 
-    
-    let emailSent = false;
+let emailSent = false;
+
 
     if (
       notificationEmails.length > 0
