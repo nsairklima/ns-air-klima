@@ -955,7 +955,7 @@ if (
     machineSyncResult.createdMachines,
   machinesAlreadyExisted:
     machineSyncResult.existingMachines,
-      machines,
+    
       clientCreated:
         clientSyncResult.created,
       clientId:
