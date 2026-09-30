@@ -380,8 +380,14 @@ async function syncMachinesToClient({
   };
 }
 
+async function createClientIfMissing(...) {
+}
 
-export async function DELETE(
+async function syncMachinesToClient(...) {
+}
+
+export async function DELETE(...) {
+}
   request: Request,
   props: {
     params:
