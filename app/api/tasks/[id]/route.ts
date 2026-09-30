@@ -379,12 +379,36 @@ async function syncMachinesToClient({
     existingMachines,
   };
 }
+async function createClientIfMissing({
+  name,
+  address,
+  phone,
+  email,
+  note,
+}: {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  note: string;
+}): Promise<ClientSyncResult> {
 
-async function createClientIfMissing(...) {
-}
+  async function syncMachinesToClient({
+  clientId,
+  machines,
+  scheduledAt,
+  completedAt,
+}: {
+  clientId: number;
+  machines: string[];
+  scheduledAt: string | null;
+  completedAt: string | null;
+}) {
 
-async function syncMachinesToClient(...) {
-}
+
+
+
+
 
 export async function DELETE(...) {
 }
