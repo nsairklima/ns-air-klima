@@ -1087,7 +1087,9 @@ let emailSent = false;
     return NextResponse.json({
   message,
   taskId,
+
   images: finalImages,
+
   machines,
 
   machinesAddedToClient:
