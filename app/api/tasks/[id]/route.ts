@@ -1,8 +1,3 @@
-
-
-
-
-
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
@@ -32,9 +27,7 @@ type ClientSyncResult = {
 };
 
 function cleanText(value: unknown): string {
-  return typeof value === "string"
-    ? value.trim()
-    : "";
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function normalizeEmail(value: string): string {
@@ -52,24 +45,16 @@ function normalizeText(value: string): string {
     .replace(/\s+/g, " ");
 }
 
-function getPublicIdFromUrl(
-  url: string
-): string | null {
+function getPublicIdFromUrl(url: string): string | null {
   try {
     const parts = url.split("/");
     const uploadIndex = parts.indexOf("upload");
 
-    if (uploadIndex === -1) {
-      return null;
-    }
+    if (uploadIndex === -1) return null;
 
-    const pathSegments = parts.slice(
-      uploadIndex + 2
-    );
-
+    const pathSegments = parts.slice(uploadIndex + 2);
     const fullPath = pathSegments.join("/");
-    const lastDotIndex =
-      fullPath.lastIndexOf(".");
+    const lastDotIndex = fullPath.lastIndexOf(".");
 
     return lastDotIndex !== -1
       ? fullPath.substring(0, lastDotIndex)
@@ -77,6 +62,29 @@ function getPublicIdFromUrl(
   } catch {
     return null;
   }
+}
+
+function parseMachines(value: FormDataEntryValue | null): string[] {
+  const raw = cleanText(value);
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.map((item) => cleanText(item)).filter(Boolean)
+      : [];
+  } catch (error) {
+    console.error("A géptípusok feldolgozása sikertelen:", error);
+    return [];
+  }
+}
+
+function parseOptionalNumber(value: FormDataEntryValue | null): number | null {
+  const raw = cleanText(value);
+  if (!raw) return null;
+
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 async function createClientIfMissing({
@@ -95,34 +103,23 @@ async function createClientIfMissing({
   const cleanName = cleanText(name);
   const cleanAddress = cleanText(address);
   const cleanPhone = cleanText(phone);
-  const cleanEmail = normalizeEmail(
-    cleanText(email)
-  );
+  const cleanEmail = normalizeEmail(cleanText(email));
   const cleanNote = cleanText(note);
 
   if (!cleanName) {
-    return {
-      created: false,
-      reason: "missing-name",
-    };
+    return { created: false, reason: "missing-name" };
   }
 
-  /*
-   * 1. Ellenőrzés email alapján.
-   */
   if (cleanEmail) {
-    const emailClient =
-      await prisma.client.findFirst({
-        where: {
-          email: {
-            equals: cleanEmail,
-            mode: "insensitive",
-          },
+    const emailClient = await prisma.client.findFirst({
+      where: {
+        email: {
+          equals: cleanEmail,
+          mode: "insensitive",
         },
-        select: {
-          id: true,
-        },
-      });
+      },
+      select: { id: true },
+    });
 
     if (emailClient) {
       return {
@@ -133,49 +130,28 @@ async function createClientIfMissing({
     }
   }
 
-  /*
-    *2. Ellenőrzés telefonszám alapján.
-   *
-    *Először lekérjük a telefonszámmal
-    *rendelkező ügyfeleket, majd egységes
-    *formátumban hasonlítjuk össze.
-   */
-const normalizedPhone =
-  normalizePhone(cleanPhone);
+  const normalizedPhone = normalizePhone(cleanPhone);
 
-if (normalizedPhone) {
-  const clientsWithPhone =
-    await prisma.client.findMany({
-      where: {
-        phone: {
-          not: null,
-        },
-      },
-      select: {
-        id: true,
-        phone: true,
-      },
+  if (normalizedPhone) {
+    const clientsWithPhone = await prisma.client.findMany({
+      where: { phone: { not: null } },
+      select: { id: true, phone: true },
     });
 
-  const phoneClient =
-    clientsWithPhone.find((client) => {
-      return (
-        normalizePhone(client.phone || "") ===
-        normalizedPhone
-      );
-    });
+    const phoneClient = clientsWithPhone.find(
+      (client) => normalizePhone(client.phone || "") === normalizedPhone
+    );
 
-  if (phoneClient) {
-    return {
-      created: false,
-      reason: "existing-phone",
-      clientId: phoneClient.id,
-    };
+    if (phoneClient) {
+      return {
+        created: false,
+        reason: "existing-phone",
+        clientId: phoneClient.id,
+      };
+    }
   }
-}
 
-const clientsWithSameName =
-  await prisma.client.findMany({
+  const clientsWithSameName = await prisma.client.findMany({
     where: {
       name: {
         equals: cleanName,
@@ -189,23 +165,14 @@ const clientsWithSameName =
     },
   });
 
-const normalizedAddress =
-  normalizeText(cleanAddress);
+  const normalizedAddress = normalizeText(cleanAddress);
 
-  /*
-   * Ha cím is van, név és cím alapján
-   * keressük a pontos egyezést.
-   */
   if (normalizedAddress) {
-    const nameAddressClient =
-      clientsWithSameName.find((client) => {
-        return (
-          normalizeText(client.name) ===
-            normalizeText(cleanName) &&
-          normalizeText(client.address || "") ===
-            normalizedAddress
-        );
-      });
+    const nameAddressClient = clientsWithSameName.find(
+      (client) =>
+        normalizeText(client.name) === normalizeText(cleanName) &&
+        normalizeText(client.address || "") === normalizedAddress
+    );
 
     if (nameAddressClient) {
       return {
@@ -216,10 +183,6 @@ const normalizedAddress =
     }
   }
 
-  /*
-   * Ha nincs email, telefonszám és cím,
-   * a pontos névegyezést használjuk.
-   */
   if (
     !cleanEmail &&
     !normalizedPhone &&
@@ -233,32 +196,20 @@ const normalizedAddress =
     };
   }
 
-  /*
-    * Nem találtunk meglévő ügyfelet,
-   * ezért létrehozzuk.
-   */
-  const newClient =
-    await prisma.client.create({
-      data: {
-        name: cleanName,
-        address: cleanAddress || null,
-        phone: cleanPhone || null,
-        email: cleanEmail || null,
-        notes: cleanNote
-          ? cleanNote +
-            "\n\nAutomatikusan létrehozva munka szerkesztésekor."
-          : "Automatikusan létrehozva munka szerkesztésekor.",
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
+  const newClient = await prisma.client.create({
+    data: {
+      name: cleanName,
+      address: cleanAddress || null,
+      phone: cleanPhone || null,
+      email: cleanEmail || null,
+      notes: cleanNote
+        ? `${cleanNote}\n\nAutomatikusan létrehozva munka szerkesztésekor.`
+        : "Automatikusan létrehozva munka szerkesztésekor.",
+    },
+    select: { id: true, name: true },
+  });
 
-  console.log(
-    "Új ügyfél létrehozva szerkesztéskor:",
-    newClient
-  );
+  console.log("Új ügyfél létrehozva szerkesztéskor:", newClient);
 
   return {
     created: true,
@@ -285,51 +236,30 @@ async function syncMachinesToClient({
   const createdMachines: string[] = [];
   const existingMachines: string[] = [];
 
-  const clientUnits =
-    await prisma.clientUnit.findMany({
-      where: {
-        clientId,
-      },
-      select: {
-        id: true,
-        brand: true,
-        model: true,
-      },
-    });
+  const clientUnits = await prisma.clientUnit.findMany({
+    where: { clientId },
+    select: {
+      id: true,
+      brand: true,
+      model: true,
+    },
+  });
 
   for (const machineName of cleanMachines) {
     const parts = machineName.split(/\s+/);
+    const brand = parts.length > 1 ? parts[0] : "Ismeretlen";
+    const model = parts.length > 1 ? parts.slice(1).join(" ") : machineName;
+    const normalizedMachineName = normalizeText(machineName);
 
-    const brand =
-      parts.length > 1
-        ? parts[0]
-        : "Ismeretlen";
+    const existingUnit = clientUnits.find((unit) => {
+      const fullUnitName = normalizeText(`${unit.brand} ${unit.model}`);
+      const modelOnly = normalizeText(unit.model);
 
-    const model =
-      parts.length > 1
-        ? parts.slice(1).join(" ")
-        : machineName;
-
-    const normalizedMachineName =
-      normalizeText(machineName);
-
-    const existingUnit =
-      clientUnits.find((unit) => {
-        const fullUnitName =
-          normalizeText(
-            `${unit.brand} ${unit.model}`
-          );
-
-        const modelOnly =
-          normalizeText(unit.model);
-
-        return (
-          fullUnitName ===
-            normalizedMachineName ||
-          modelOnly ===
-            normalizedMachineName
-        );
-      });
+      return (
+        fullUnitName === normalizedMachineName ||
+        modelOnly === normalizedMachineName
+      );
+    });
 
     if (existingUnit) {
       existingMachines.push(machineName);
@@ -341,82 +271,29 @@ async function syncMachinesToClient({
         clientId,
         brand,
         model,
-
-        status: completedAt
-          ? "INSTALLED"
-          : "PENDING",
-
+        status: completedAt ? "INSTALLED" : "PENDING",
         installation: scheduledAt
-          ? new Date(
-              scheduledAt.replace(" ", "T")
-            )
+          ? new Date(scheduledAt.replace(" ", "T"))
           : null,
-
         installedAt: completedAt
-          ? new Date(
-              completedAt.replace(" ", "T")
-            )
+          ? new Date(completedAt.replace(" ", "T"))
           : null,
-
         periodMonths: 12,
-
-        notes:
-          "Automatikusan létrehozva a munkabejegyzés szerkesztésekor.",
+        notes: "Automatikusan létrehozva a munkabejegyzés szerkesztésekor.",
       },
     });
 
     createdMachines.push(machineName);
-
-    clientUnits.push({
-      id: -1,
-      brand,
-      model,
-    });
+    clientUnits.push({ id: -1, brand, model });
   }
 
-  return {
-    createdMachines,
-    existingMachines,
-  };
+  return { createdMachines, existingMachines };
 }
-async function createClientIfMissing({
-  name,
-  address,
-  phone,
-  email,
-  note,
-}: {
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  note: string;
-}): Promise<ClientSyncResult> {
 
-  async function syncMachinesToClient({
-  clientId,
-  machines,
-  scheduledAt,
-  completedAt,
-}: {
-  clientId: number;
-  machines: string[];
-  scheduledAt: string | null;
-  completedAt: string | null;
-}) {
-
-
-
-
-
-
-export async function DELETE(...) {
-}
+export async function DELETE(
   request: Request,
   props: {
-    params:
-      | Promise<{ id: string }>
-      | { id: string };
+    params: Promise<{ id: string }> | { id: string };
   }
 ) {
   try {
@@ -429,41 +306,26 @@ export async function DELETE(...) {
       WHERE "id" = ${taskId}
     `;
 
-    if (
-      existingTask.length > 0 &&
-      existingTask[0].images
-    ) {
+    if (existingTask.length > 0 && existingTask[0].images) {
       let images: string[] = [];
 
       try {
         images =
-          typeof existingTask[0].images ===
-          "string"
-            ? JSON.parse(
-                existingTask[0].images
-              )
+          typeof existingTask[0].images === "string"
+            ? JSON.parse(existingTask[0].images)
             : existingTask[0].images;
       } catch {
         images = [];
       }
 
       for (const imageUrl of images) {
-        const publicId =
-          getPublicIdFromUrl(imageUrl);
-
-        if (!publicId) {
-          continue;
-        }
+        const publicId = getPublicIdFromUrl(imageUrl);
+        if (!publicId) continue;
 
         try {
-          await cloudinary.uploader.destroy(
-            publicId
-          );
+          await cloudinary.uploader.destroy(publicId);
         } catch (error) {
-          console.error(
-            "Hiba a kép Cloudinary törlésekor:",
-            error
-          );
+          console.error("Hiba a kép Cloudinary törlésekor:", error);
         }
       }
     }
@@ -474,21 +336,14 @@ export async function DELETE(...) {
     `;
 
     return NextResponse.json({
-      message:
-        "Sikeres törlés és fájlok eltávolítása",
+      message: "Sikeres törlés és fájlok eltávolítása",
     });
   } catch (error: any) {
     console.error("Törlési hiba:", error);
 
     return NextResponse.json(
-      {
-        error:
-          error?.message ||
-          "Törlési hiba",
-      },
-      {
-        status: 500,
-      }
+      { error: error?.message || "Törlési hiba" },
+      { status: 500 }
     );
   }
 }
@@ -496,168 +351,65 @@ export async function DELETE(...) {
 export async function PUT(
   request: Request,
   props: {
-    params:
-      | Promise<{ id: string }>
-      | { id: string };
+    params: Promise<{ id: string }> | { id: string };
   }
 ) {
   try {
     const params = await props.params;
     const taskId = params.id;
+    const formData = await request.formData();
 
-    const formData =
-      await request.formData();
+    const type = cleanText(formData.get("type")) || "telepites";
+    const name = cleanText(formData.get("name"));
+    const address = cleanText(formData.get("address"));
+    const phone = cleanText(formData.get("phone"));
+    const email = cleanText(formData.get("email"));
+    const note = cleanText(formData.get("note"));
+    const machines = parseMachines(formData.get("machines"));
+    const latitude = parseOptionalNumber(formData.get("latitude"));
+    const longitude = parseOptionalNumber(formData.get("longitude"));
 
-    const type =
-      cleanText(formData.get("type")) ||
-      "telepites";
-
-    const name =
-      cleanText(formData.get("name"));
-
-    const address =
-      cleanText(formData.get("address"));
-
-    const phone =
-      cleanText(formData.get("phone"));
-
-    const email =
-      cleanText(formData.get("email"));
-
- const note =
-  cleanText(formData.get("note"));
-
-const machinesRaw =
-  cleanText(formData.get("machines"));
-
-let machines: string[] = [];
-
-if (machinesRaw) {
-  try {
-    const parsedMachines =
-      JSON.parse(machinesRaw);
-
-    if (Array.isArray(parsedMachines)) {
-      machines = parsedMachines
-        .map((machine) =>
-          cleanText(machine)
-        )
-        .filter(Boolean);
-    }
-  } catch (error) {
-    console.error(
-      "A géptípusok feldolgozása sikertelen:",
-      error
-    );
-  }
-}
-
-const latitudeRaw =
-  cleanText(
-    formData.get("latitude")
-  );
-
-const longitudeRaw =
-  cleanText(
-    formData.get("longitude")
-  );
-
-const parsedLatitude =
-  latitudeRaw !== ""
-    ? Number(latitudeRaw)
-    : null;
-
-const parsedLongitude =
-  longitudeRaw !== ""
-    ? Number(longitudeRaw)
-    : null;
-
-const latitude =
-  parsedLatitude !== null &&
-  Number.isFinite(parsedLatitude)
-    ? parsedLatitude
-    : null;
-
-const longitude =
-  parsedLongitude !== null &&
-  Number.isFinite(parsedLongitude)
-    ? parsedLongitude
-    : null;
-
-    /*
-    *  Email-címzettek feldolgozása.
-     */
-    const recipientsRaw =
-      cleanText(
-        formData.get("recipients")
-      );
-
+    const recipientsRaw = cleanText(formData.get("recipients"));
     let notificationEmails: string[] = [];
 
     if (recipientsRaw) {
       try {
-        const parsedRecipients =
-          JSON.parse(recipientsRaw);
-
+        const parsedRecipients = JSON.parse(recipientsRaw);
         if (Array.isArray(parsedRecipients)) {
-          notificationEmails =
-            parsedRecipients
-              .map((item) =>
-                cleanText(item)
-              )
-              .filter(Boolean);
+          notificationEmails = parsedRecipients
+            .map((item) => cleanText(item))
+            .filter(Boolean);
         }
       } catch {
-        notificationEmails =
-          recipientsRaw
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean);
+        notificationEmails = recipientsRaw
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
       }
     }
 
     if (notificationEmails.length === 0) {
       const environmentEmails =
-        process.env.NOTIFICATION_EMAILS ||
-        process.env.EMAIL_USER ||
-        "";
+        process.env.NOTIFICATION_EMAILS || process.env.EMAIL_USER || "";
 
-      notificationEmails =
-        environmentEmails
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
+      notificationEmails = environmentEmails
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
     }
 
-    /*
-    *  Időpontok feldolgozása.
-     */
-    const scheduledAtRaw =
-      cleanText(
-        formData.get("scheduledAt")
-      );
+    const scheduledAtRaw = cleanText(formData.get("scheduledAt"));
+    const completedAtRaw = cleanText(formData.get("completedAt"));
 
-    const completedAtRaw =
-      cleanText(
-        formData.get("completedAt")
-      );
+    const scheduledAt = scheduledAtRaw
+      ? scheduledAtRaw.slice(0, 19).replace("T", " ")
+      : null;
 
-   const scheduledAt = scheduledAtRaw
-  ? scheduledAtRaw.slice(0, 19).replace("T", " ")
-  : null;
+    const completedAt = completedAtRaw
+      ? completedAtRaw.slice(0, 19).replace("T", " ")
+      : null;
 
-const completedAt = completedAtRaw
-  ? completedAtRaw.slice(0, 19).replace("T", " ")
-  : null;
-
-console.log("PUT scheduledAtRaw:", scheduledAtRaw);
-console.log("PUT scheduledAt:", scheduledAt);
-console.log("PUT completedAtRaw:", completedAtRaw);
-console.log("PUT completedAt:", completedAt);
-
-    const taskTitle =
-      name || "Módosított munka";
-
+    const taskTitle = name || "Módosított munka";
     const description = note
       ? email
         ? `${note} | Email: ${email}`
@@ -666,9 +418,6 @@ console.log("PUT completedAt:", completedAt);
         ? `Email: ${email}`
         : "";
 
-    /*
-     * Jelenlegi képek lekérése.
-     */
     const currentTasks = await sql`
       SELECT "images"
       FROM "Task"
@@ -677,13 +426,8 @@ console.log("PUT completedAt:", completedAt);
 
     if (currentTasks.length === 0) {
       return NextResponse.json(
-        {
-          error:
-            "A szerkesztendő munka nem található.",
-        },
-        {
-          status: 404,
-        }
+        { error: "A szerkesztendő munka nem található." },
+        { status: 404 }
       );
     }
 
@@ -692,391 +436,219 @@ console.log("PUT completedAt:", completedAt);
     if (currentTasks[0].images) {
       try {
         oldImagesInDb =
-          typeof currentTasks[0].images ===
-          "string"
-            ? JSON.parse(
-                currentTasks[0].images
-              )
+          typeof currentTasks[0].images === "string"
+            ? JSON.parse(currentTasks[0].images)
             : currentTasks[0].images;
       } catch {
         oldImagesInDb = [];
       }
     }
 
-    /*
-     * Megtartandó képek feldolgozása.
-     */
     let keptImages: string[] = [];
-
-    const existingImagesRaw =
-      cleanText(
-        formData.get("existingImages")
-      );
+    const existingImagesRaw = cleanText(formData.get("existingImages"));
 
     if (existingImagesRaw) {
       try {
-        const parsedImages =
-          JSON.parse(existingImagesRaw);
-
-        if (Array.isArray(parsedImages)) {
-          keptImages = parsedImages;
-        }
+        const parsedImages = JSON.parse(existingImagesRaw);
+        if (Array.isArray(parsedImages)) keptImages = parsedImages;
       } catch {
         keptImages = [];
       }
     }
 
-    /*
-     * Eltávolított képek törlése.
-     */
-    const imagesToDelete =
-      oldImagesInDb.filter((imageUrl) => {
-        return !keptImages.includes(
-          imageUrl
-        );
-      });
+    const imagesToDelete = oldImagesInDb.filter(
+      (imageUrl) => !keptImages.includes(imageUrl)
+    );
 
     for (const imageUrl of imagesToDelete) {
-      const publicId =
-        getPublicIdFromUrl(imageUrl);
-
-      if (!publicId) {
-        continue;
-      }
+      const publicId = getPublicIdFromUrl(imageUrl);
+      if (!publicId) continue;
 
       try {
-        await cloudinary.uploader.destroy(
-          publicId
-        );
+        await cloudinary.uploader.destroy(publicId);
       } catch (error) {
-        console.error(
-          "Hiba a régi kép törlésekor:",
-          error
-        );
+        console.error("Hiba a régi kép törlésekor:", error);
       }
     }
 
-    /*
-     * Új képek feltöltése.
-     */
-    const photos =
-      formData.getAll("photos") as File[];
-
+    const photos = formData.getAll("photos") as File[];
     const newImageUrls: string[] = [];
 
     for (const photo of photos) {
-      if (!photo || photo.size <= 0) {
-        continue;
-      }
+      if (!photo || photo.size <= 0) continue;
 
       try {
-        const arrayBuffer =
-          await photo.arrayBuffer();
+        const arrayBuffer = await photo.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-        const buffer =
-          Buffer.from(arrayBuffer);
-
-        const uploadResult =
-          await new Promise<any>(
-            (resolve, reject) => {
-              const uploadStream =
-                cloudinary.uploader.upload_stream(
-                  {
-                    folder: "tasks",
-                    resource_type: "auto",
-                  },
-                  (uploadError, result) => {
-                    if (uploadError) {
-                      reject(uploadError);
-                      return;
-                    }
-
-                    resolve(result);
-                  }
-                );
-
-              uploadStream.end(buffer);
+        const uploadResult = await new Promise<any>((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: "tasks",
+              resource_type: "auto",
+            },
+            (uploadError, result) => {
+              if (uploadError) {
+                reject(uploadError);
+                return;
+              }
+              resolve(result);
             }
           );
 
+          uploadStream.end(buffer);
+        });
+
         if (uploadResult?.secure_url) {
-          newImageUrls.push(
-            uploadResult.secure_url
-          );
+          newImageUrls.push(uploadResult.secure_url);
         }
       } catch (uploadError: any) {
         console.error(
           "Képfeltöltési hiba szerkesztéskor:",
-          uploadError?.message ||
-            uploadError
+          uploadError?.message || uploadError
         );
       }
     }
 
-    const finalImages = [
-      ...keptImages,
-      ...newImageUrls,
-    ];
+    const finalImages = [...keptImages, ...newImageUrls];
 
-    /*
-     * Munka frissítése.
-     */
-   const updatedTasks = await sql`
-  UPDATE "Task"
-  SET
-    "type" = ${type},
-    "title" = ${taskTitle},
-    "clientName" = ${name},
-    "address" = ${address},
-    "phone" = ${phone},
-  "description" = ${description},
-"images" = ${JSON.stringify(
-  finalImages
-)},
-"machines" = ${JSON.stringify(
-  machines
-)},
-"scheduled_at" = ${scheduledAt},
-    "completed_at" = ${completedAt},
-    "latitude" = ${latitude},
-    "longitude" = ${longitude},
-    "updatedAt" = NOW()
-  WHERE "id" = ${taskId}
-  RETURNING
-    "id",
-    "latitude",
-    "longitude"
-`;
+    const updatedTasks = await sql`
+      UPDATE "Task"
+      SET
+        "type" = ${type},
+        "title" = ${taskTitle},
+        "clientName" = ${name},
+        "address" = ${address},
+        "phone" = ${phone},
+        "description" = ${description},
+        "images" = ${JSON.stringify(finalImages)},
+        "machines" = ${JSON.stringify(machines)},
+        "scheduled_at" = ${scheduledAt},
+        "completed_at" = ${completedAt},
+        "latitude" = ${latitude},
+        "longitude" = ${longitude},
+        "updatedAt" = NOW()
+      WHERE "id" = ${taskId}
+      RETURNING "id", "latitude", "longitude"
+    `;
 
     if (updatedTasks.length === 0) {
       return NextResponse.json(
-        {
-          error:
-            "A munka frissítése nem sikerült.",
-        },
-        {
-          status: 404,
-        }
+        { error: "A munka frissítése nem sikerült." },
+        { status: 404 }
       );
     }
 
-    /*
-     * Ügyfél ellenőrzése és szükség esetén
-     * automatikus létrehozása.
-     */
-  let clientSyncResult:
-  | ClientSyncResult
-  | null = null;
+    let clientSyncResult: ClientSyncResult | null = null;
 
-try {
-  clientSyncResult =
-    await createClientIfMissing({
-      name,
-      address,
-      phone,
-      email,
-      note,
-    });
-} catch (clientError: any) {
-  console.error(
-    "Ügyfélszinkronizálási hiba szerkesztéskor:",
-    clientError
-  );
-
-  return NextResponse.json(
-    {
-      error:
-        "A munka frissült, de az ügyfél mentése nem sikerült: " +
-        (clientError?.message ||
-          String(clientError)),
-      taskId,
-      images: finalImages,
-    },
-    {
-      status: 500,
-    }
-  );
-}
-
-/*
- * A szerkesztéskor megadott gépek
- * átvitele az ügyfél gépei közé.
- */
-let machineSyncResult = {
-  createdMachines: [] as string[],
-  existingMachines: [] as string[],
-};
-
-if (
-  clientSyncResult?.clientId &&
-  machines.length > 0
-) {
-  try {
-    machineSyncResult =
-      await syncMachinesToClient({
-        clientId:
-          clientSyncResult.clientId,
-        machines,
-        scheduledAt,
-        completedAt,
+    try {
+      clientSyncResult = await createClientIfMissing({
+        name,
+        address,
+        phone,
+        email,
+        note,
       });
+    } catch (clientError: any) {
+      console.error(
+        "Ügyfélszinkronizálási hiba szerkesztéskor:",
+        clientError
+      );
 
-    console.log(
-      "Szerkesztéskor ügyfélhez rendelt gépek:",
-      machineSyncResult
-    );
-  } catch (machineError) {
-    console.error(
-      "Szerkesztéskor a gépek ügyfélhez rendelése sikertelen:",
-      machineError
-    );
+      return NextResponse.json(
+        {
+          error:
+            "A munka frissült, de az ügyfél mentése nem sikerült: " +
+            (clientError?.message || String(clientError)),
+          taskId,
+          images: finalImages,
+        },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json(
-      {
-        error:
-          "A munka frissült, de a gépeket nem sikerült az ügyfélhez rendelni.",
-        taskId,
-        clientId:
-          clientSyncResult.clientId,
-        details:
-          machineError instanceof Error
-            ? machineError.message
-            : String(machineError),
-      },
-      {
-        status: 500,
+    let machineSyncResult = {
+      createdMachines: [] as string[],
+      existingMachines: [] as string[],
+    };
+
+    if (clientSyncResult?.clientId && machines.length > 0) {
+      try {
+        machineSyncResult = await syncMachinesToClient({
+          clientId: clientSyncResult.clientId,
+          machines,
+          scheduledAt,
+          completedAt,
+        });
+
+        console.log(
+          "Szerkesztéskor ügyfélhez rendelt gépek:",
+          machineSyncResult
+        );
+      } catch (machineError) {
+        console.error(
+          "Szerkesztéskor a gépek ügyfélhez rendelése sikertelen:",
+          machineError
+        );
+
+        return NextResponse.json(
+          {
+            error:
+              "A munka frissült, de a gépeket nem sikerült az ügyfélhez rendelni.",
+            taskId,
+            clientId: clientSyncResult.clientId,
+            details:
+              machineError instanceof Error
+                ? machineError.message
+                : String(machineError),
+          },
+          { status: 500 }
+        );
       }
-    );
-  }
-}
+    }
 
-/*
- * Email-küldés.
- */
-let emailSent = false;
+    let emailSent = false;
 
     if (notificationEmails.length > 0) {
       try {
-        const transporter =
-          nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: Number(
-              process.env.EMAIL_PORT
-            ),
-            secure: true,
-            auth: {
-              user: process.env.EMAIL_USER,
-              pass: process.env.EMAIL_PASS,
-            },
-            tls: {
-              rejectUnauthorized: false,
-            },
-          });
+        const transporter = nodemailer.createTransport({
+          host: process.env.EMAIL_HOST,
+          port: Number(process.env.EMAIL_PORT),
+          secure: true,
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+          tls: { rejectUnauthorized: false },
+        });
 
         const typeLabel =
-          type === "telepites"
-            ? "🛠️ Telepítés"
-            : "🧹 Karbantartás";
+          type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
 
         await transporter.sendMail({
-          from:
-            `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
-
+          from: `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
           to: notificationEmails,
-
-          subject:
-            `✏️ Munka módosítva: ${typeLabel} ` +
-            `(${name || "Névtelen"})`,
-
+          subject: `✏️ Munka módosítva: ${typeLabel} (${name || "Névtelen"})`,
           html: `
-            <div
-              style="
-                font-family: Arial, sans-serif;
-                max-width: 600px;
-                margin: 0 auto;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                overflow: hidden;
-              "
-            >
-              <div
-                style="
-                  background-color: #f39c12;
-                  color: white;
-                  padding: 20px;
-                  text-align: center;
-                "
-              >
-                <h2 style="margin: 0;">
-                  Egy munka adatai frissültek
-                </h2>
-
-                <p style="margin: 6px 0 0;">
-                  ${typeLabel}
-                </p>
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
+              <div style="background-color:#f39c12;color:white;padding:20px;text-align:center;">
+                <h2 style="margin:0;">Egy munka adatai frissültek</h2>
+                <p style="margin:6px 0 0;">${typeLabel}</p>
               </div>
-
-              <div style="padding: 20px;">
-                <p>
-                  <strong>Munkaazonosító:</strong>
-                  #${taskId}
-                </p>
-
-                <p>
-                  <strong>Név:</strong>
-                  ${name || "-"}
-                </p>
-
-                <p>
-                  <strong>Cím:</strong>
-                  ${address || "-"}
-                </p>
-
-                <p>
-                  <strong>Telefon:</strong>
-                  ${phone || "-"}
-                </p>
-
-                <p>
-                  <strong>Email:</strong>
-                  ${email || "-"}
-                </p>
-
-                <p>
-                  <strong>Tervezett időpont:</strong>
-                  ${scheduledAt || "-"}
-                </p>
-
-                <p>
-                  <strong>Megvalósult időpont:</strong>
-                                    ${completedAt || "-"}
-                </p>
-
-<p>
-  <strong>Géptípusok:</strong>
-  ${
-    machines.length > 0
-      ? machines.join(", ")
-      : "-"
-  }
-</p>
-
-
-                <p>
-                  <strong>Megjegyzés:</strong>
-                  ${note || "-"}
-                </p>
+              <div style="padding:20px;color:#333;">
+                <p><strong>Munkaazonosító:</strong> #${taskId}</p>
+                <p><strong>Név:</strong> ${name || "-"}</p>
+                <p><strong>Cím:</strong> ${address || "-"}</p>
+                <p><strong>Telefon:</strong> ${phone || "-"}</p>
+                <p><strong>Email:</strong> ${email || "-"}</p>
+                <p><strong>Tervezett időpont:</strong> ${scheduledAt || "-"}</p>
+                <p><strong>Megvalósult időpont:</strong> ${completedAt || "-"}</p>
+                <p><strong>Géptípusok:</strong> ${
+                  machines.length > 0 ? machines.join(", ") : "-"
+                }</p>
+                <p><strong>Megjegyzés:</strong> ${note || "-"}</p>
               </div>
-
-              <div
-                style="
-                  background-color: #f8f9fa;
-                  padding: 15px;
-                  text-align: center;
-                  font-size: 12px;
-                  color: #7f8c8d;
-                "
-              >
+              <div style="background-color:#f8f9fa;padding:15px;text-align:center;font-size:12px;color:#7f8c8d;">
                 Automata üzenet az NS-AIR Rendszerből.
               </div>
             </div>
@@ -1085,78 +657,46 @@ let emailSent = false;
 
         emailSent = true;
       } catch (mailError) {
-        console.error(
-          "Email küldési hiba módosításkor:",
-          mailError
-        );
+        console.error("Email küldési hiba módosításkor:", mailError);
       }
     }
 
-    let message =
-      "Munka sikeresen módosítva.";
+    let message = "Munka sikeresen módosítva.";
 
     if (clientSyncResult?.created) {
-      message +=
-        " Az ügyfél automatikusan bekerült az ügyfelek közé.";
-    } else if (
-      clientSyncResult?.reason ===
-      "missing-name"
-    ) {
-      message +=
-        " Ügyfél nem készült, mert nincs megadva név.";
+      message += " Az ügyfél automatikusan bekerült az ügyfelek közé.";
+    } else if (clientSyncResult?.reason === "missing-name") {
+      message += " Ügyfél nem készült, mert nincs megadva név.";
     } else {
-      message +=
-        " Az ügyfél már szerepel az ügyfelek között.";
+      message += " Az ügyfél már szerepel az ügyfelek között.";
+    }
+
+    if (machineSyncResult.createdMachines.length > 0) {
+      message += ` ${machineSyncResult.createdMachines.length} gép hozzáadva az ügyfélhez.`;
     }
 
     if (emailSent) {
-      message +=
-        " Az értesítő email elküldve.";
+      message += " Az értesítő email elküldve.";
     }
 
     return NextResponse.json({
-  message,
-  taskId,
-
-  images: finalImages,
-
-  machines,
-
-  machinesAddedToClient:
-    machineSyncResult.createdMachines,
-
-  machinesAlreadyExisted:
-    machineSyncResult.existingMachines,
-
-  clientCreated:
-    clientSyncResult?.created || false,
-
-  clientId:
-    clientSyncResult?.clientId || null,
-
-  clientMatchReason:
-    clientSyncResult?.reason || null,
-
-  emailSent,
-});
-  
-   
+      message,
+      taskId,
+      images: finalImages,
+      machines,
+      machinesAddedToClient: machineSyncResult.createdMachines,
+      machinesAlreadyExisted: machineSyncResult.existingMachines,
+      clientCreated: clientSyncResult?.created || false,
+      clientId: clientSyncResult?.clientId || null,
+      clientMatchReason: clientSyncResult?.reason || null,
+      emailSent,
+    });
   } catch (error: any) {
-    console.error(
-      "Szerkesztési hiba részletei:",
-      error
-    );
+    console.error("Szerkesztési hiba részletei:", error);
 
     return NextResponse.json(
-      {
-        error:
-          error?.message ||
-          "Szerkesztési hiba",
-      },
-      {
-        status: 500,
-      }
+      { error: error?.message || "Szerkesztési hiba" },
+      { status: 500 }
     );
   }
 }
-    
