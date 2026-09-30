@@ -267,6 +267,120 @@ const normalizedAddress =
   };
 }
 
+async function syncMachinesToClient({
+  clientId,
+  machines,
+  scheduledAt,
+  completedAt,
+}: {
+  clientId: number;
+  machines: string[];
+  scheduledAt: string | null;
+  completedAt: string | null;
+}) {
+  const cleanMachines = machines
+    .map((machine) => cleanText(machine))
+    .filter(Boolean);
+
+  const createdMachines: string[] = [];
+  const existingMachines: string[] = [];
+
+  const clientUnits =
+    await prisma.clientUnit.findMany({
+      where: {
+        clientId,
+      },
+      select: {
+        id: true,
+        brand: true,
+        model: true,
+      },
+    });
+
+  for (const machineName of cleanMachines) {
+    const parts = machineName.split(/\s+/);
+
+    const brand =
+      parts.length > 1
+        ? parts[0]
+        : "Ismeretlen";
+
+    const model =
+      parts.length > 1
+        ? parts.slice(1).join(" ")
+        : machineName;
+
+    const normalizedMachineName =
+      normalizeText(machineName);
+
+    const existingUnit =
+      clientUnits.find((unit) => {
+        const fullUnitName =
+          normalizeText(
+            `${unit.brand} ${unit.model}`
+          );
+
+        const modelOnly =
+          normalizeText(unit.model);
+
+        return (
+          fullUnitName ===
+            normalizedMachineName ||
+          modelOnly ===
+            normalizedMachineName
+        );
+      });
+
+    if (existingUnit) {
+      existingMachines.push(machineName);
+      continue;
+    }
+
+    await prisma.clientUnit.create({
+      data: {
+        clientId,
+        brand,
+        model,
+
+        status: completedAt
+          ? "INSTALLED"
+          : "PENDING",
+
+        installation: scheduledAt
+          ? new Date(
+              scheduledAt.replace(" ", "T")
+            )
+          : null,
+
+        installedAt: completedAt
+          ? new Date(
+              completedAt.replace(" ", "T")
+            )
+          : null,
+
+        periodMonths: 12,
+
+        notes:
+          "Automatikusan létrehozva a munkabejegyzés szerkesztésekor.",
+      },
+    });
+
+    createdMachines.push(machineName);
+
+    clientUnits.push({
+      id: -1,
+      brand,
+      model,
+    });
+  }
+
+  return {
+    createdMachines,
+    existingMachines,
+  };
+}
+
+
 export async function DELETE(
   request: Request,
   props: {
@@ -720,44 +834,96 @@ console.log("PUT completedAt:", completedAt);
      * Ügyfél ellenőrzése és szükség esetén
      * automatikus létrehozása.
      */
-    let clientSyncResult:
-      | ClientSyncResult
-      | null = null;
+  let clientSyncResult:
+  | ClientSyncResult
+  | null = null;
 
-    try {
-      clientSyncResult =
-        await createClientIfMissing({
-          name,
-          address,
-          phone,
-          email,
-          note,
-        });
-    } catch (clientError: any) {
-      console.error(
-        "Ügyfélszinkronizálási hiba szerkesztéskor:",
-        clientError
-      );
+try {
+  clientSyncResult =
+    await createClientIfMissing({
+      name,
+      address,
+      phone,
+      email,
+      note,
+    });
+} catch (clientError: any) {
+  console.error(
+    "Ügyfélszinkronizálási hiba szerkesztéskor:",
+    clientError
+  );
 
-      return NextResponse.json(
-        {
-          error:
-            "A munka frissült, de az ügyfél mentése nem sikerült: " +
-            (clientError?.message ||
-              String(clientError)),
-          taskId,
-          images: finalImages,
-        },
-        {
-          status: 500,
-        }
-      );
+  return NextResponse.json(
+    {
+      error:
+        "A munka frissült, de az ügyfél mentése nem sikerült: " +
+        (clientError?.message ||
+          String(clientError)),
+      taskId,
+      images: finalImages,
+    },
+    {
+      status: 500,
     }
+  );
+}
 
-    /*
-     * Email-küldés.
-     */
-    let emailSent = false;
+/*
+ * A szerkesztéskor megadott gépek
+ * átvitele az ügyfél gépei közé.
+ */
+let machineSyncResult = {
+  createdMachines: [] as string[],
+  existingMachines: [] as string[],
+};
+
+if (
+  clientSyncResult?.clientId &&
+  machines.length > 0
+) {
+  try {
+    machineSyncResult =
+      await syncMachinesToClient({
+        clientId:
+          clientSyncResult.clientId,
+        machines,
+        scheduledAt,
+        completedAt,
+      });
+
+    console.log(
+      "Szerkesztéskor ügyfélhez rendelt gépek:",
+      machineSyncResult
+    );
+  } catch (machineError) {
+    console.error(
+      "Szerkesztéskor a gépek ügyfélhez rendelése sikertelen:",
+      machineError
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "A munka frissült, de a gépeket nem sikerült az ügyfélhez rendelni.",
+        taskId,
+        clientId:
+          clientSyncResult.clientId,
+        details:
+          machineError instanceof Error
+            ? machineError.message
+            : String(machineError),
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+/*
+ * Email-küldés.
+ */
+let emailSent = false;
 
     if (notificationEmails.length > 0) {
       try {
@@ -919,12 +1085,28 @@ console.log("PUT completedAt:", completedAt);
     }
 
     return NextResponse.json({
-      message,
-      taskId,
-      images: finalImages,
-      machines,
-      clientCreated:
-        clientSyncResult?.created || false,
+  message,
+  taskId,
+  images: finalImages,
+  machines,
+
+  machinesAddedToClient:
+    machineSyncResult.createdMachines,
+
+  machinesAlreadyExisted:
+    machineSyncResult.existingMachines,
+
+  clientCreated:
+    clientSyncResult?.created || false,
+
+  clientId:
+    clientSyncResult?.clientId || null,
+
+  clientMatchReason:
+    clientSyncResult?.reason || null,
+
+  emailSent,
+});
       clientId:
         clientSyncResult?.clientId || null,
       clientMatchReason:
