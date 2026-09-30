@@ -1109,12 +1109,8 @@ let emailSent = false;
 
   emailSent,
 });
-      clientId:
-        clientSyncResult?.clientId || null,
-      clientMatchReason:
-        clientSyncResult?.reason || null,
-      emailSent,
-    });
+  
+   
   } catch (error: any) {
     console.error(
       "Szerkesztési hiba részletei:",
