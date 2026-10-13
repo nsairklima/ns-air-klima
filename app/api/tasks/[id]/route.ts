@@ -103,113 +103,275 @@ async function createClientIfMissing({
   const cleanName = cleanText(name);
   const cleanAddress = cleanText(address);
   const cleanPhone = cleanText(phone);
-  const cleanEmail = normalizeEmail(cleanText(email));
+  const cleanEmail = normalizeEmail(
+    cleanText(email)
+  );
   const cleanNote = cleanText(note);
 
   if (!cleanName) {
-    return { created: false, reason: "missing-name" };
-  }
-
-  if (cleanEmail) {
-    const emailClient = await prisma.client.findFirst({
-      where: {
-        email: {
-          equals: cleanEmail,
-          mode: "insensitive",
-        },
-      },
-      select: { id: true },
-    });
-
-    if (emailClient) {
-      return {
-        created: false,
-        reason: "existing-email",
-        clientId: emailClient.id,
-      };
-    }
-  }
-
-  const normalizedPhone = normalizePhone(cleanPhone);
-
-  if (normalizedPhone) {
-    const clientsWithPhone = await prisma.client.findMany({
-      where: { phone: { not: null } },
-      select: { id: true, phone: true },
-    });
-
-    const phoneClient = clientsWithPhone.find(
-      (client) => normalizePhone(client.phone || "") === normalizedPhone
-    );
-
-    if (phoneClient) {
-      return {
-        created: false,
-        reason: "existing-phone",
-        clientId: phoneClient.id,
-      };
-    }
-  }
-
-  const clientsWithSameName = await prisma.client.findMany({
-    where: {
-      name: {
-        equals: cleanName,
-        mode: "insensitive",
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      address: true,
-    },
-  });
-
-  const normalizedAddress = normalizeText(cleanAddress);
-
-  if (normalizedAddress) {
-    const nameAddressClient = clientsWithSameName.find(
-      (client) =>
-        normalizeText(client.name) === normalizeText(cleanName) &&
-        normalizeText(client.address || "") === normalizedAddress
-    );
-
-    if (nameAddressClient) {
-      return {
-        created: false,
-        reason: "existing-name-address",
-        clientId: nameAddressClient.id,
-      };
-    }
-  }
-
-  if (
-    !cleanEmail &&
-    !normalizedPhone &&
-    !normalizedAddress &&
-    clientsWithSameName.length > 0
-  ) {
     return {
       created: false,
-      reason: "existing-name",
-      clientId: clientsWithSameName[0].id,
+      reason: "missing-name",
     };
   }
 
-  const newClient = await prisma.client.create({
-    data: {
-      name: cleanName,
-      address: cleanAddress || null,
-      phone: cleanPhone || null,
-      email: cleanEmail || null,
-      notes: cleanNote
-        ? `${cleanNote}\n\nAutomatikusan létrehozva munka szerkesztésekor.`
-        : "Automatikusan létrehozva munka szerkesztésekor.",
-    },
-    select: { id: true, name: true },
-  });
+  const normalizedName =
+    normalizeText(cleanName);
 
-  console.log("Új ügyfél létrehozva szerkesztéskor:", newClient);
+  const normalizedAddress =
+    normalizeText(cleanAddress);
+
+  const normalizedPhone =
+    normalizePhone(cleanPhone);
+
+  /*
+   * Lekérjük az összes szóba jöhető ügyfelet.
+   *
+   * Fontos, hogy név alapján akkor is bekerüljön
+   * a találatok közé, ha a munkához most lett
+   * először email vagy telefonszám megadva.
+   */
+  const possibleClients =
+    await prisma.client.findMany({
+      where: {
+        OR: [
+          {
+            name: {
+              equals: cleanName,
+              mode: "insensitive",
+            },
+          },
+
+          ...(cleanEmail
+            ? [
+                {
+                  email: {
+                    equals: cleanEmail,
+                    mode: "insensitive" as const,
+                  },
+                },
+              ]
+            : []),
+
+          ...(cleanPhone
+            ? [
+                {
+                  phone: {
+                    not: null,
+                  },
+                },
+              ]
+            : []),
+        ],
+      },
+
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        phone: true,
+        email: true,
+        notes: true,
+      },
+    });
+
+  let matchedClient:
+    | (typeof possibleClients)[number]
+    | undefined;
+
+  let matchReason:
+    | "existing-email"
+    | "existing-phone"
+    | "existing-name-address"
+    | "existing-name"
+    | undefined;
+
+  /*
+   * 1. Email alapján keresünk.
+   */
+  if (cleanEmail) {
+    matchedClient =
+      possibleClients.find((client) => {
+        return (
+          normalizeEmail(
+            client.email || ""
+          ) === cleanEmail
+        );
+      });
+
+    if (matchedClient) {
+      matchReason = "existing-email";
+    }
+  }
+
+  /*
+   * 2. Ha email alapján nincs találat,
+   * telefon alapján keresünk.
+   */
+  if (
+    !matchedClient &&
+    normalizedPhone
+  ) {
+    matchedClient =
+      possibleClients.find((client) => {
+        return (
+          normalizePhone(
+            client.phone || ""
+          ) === normalizedPhone
+        );
+      });
+
+    if (matchedClient) {
+      matchReason = "existing-phone";
+    }
+  }
+
+  /*
+   * 3. Ha még nincs találat,
+   * név és cím alapján keresünk.
+   */
+  if (
+    !matchedClient &&
+    normalizedAddress
+  ) {
+    matchedClient =
+      possibleClients.find((client) => {
+        const clientName =
+          normalizeText(client.name);
+
+        const clientAddress =
+          normalizeText(
+            client.address || ""
+          );
+
+        return (
+          clientName === normalizedName &&
+          clientAddress ===
+            normalizedAddress
+        );
+      });
+
+    if (matchedClient) {
+      matchReason =
+        "existing-name-address";
+    }
+  }
+
+  /*
+   * 4. Ha az ügyfél korábban csak névvel,
+   * telefonnal vagy címmel szerepelt,
+   * név alapján is megkeressük.
+   *
+   * Csak akkor használjuk a név szerinti
+   * találatot, ha pontosan egy ilyen nevű
+   * ügyfél van.
+   */
+  if (!matchedClient) {
+    const nameMatches =
+      possibleClients.filter((client) => {
+        return (
+          normalizeText(client.name) ===
+          normalizedName
+        );
+      });
+
+    if (nameMatches.length === 1) {
+      matchedClient = nameMatches[0];
+      matchReason = "existing-name";
+    }
+  }
+
+  /*
+   * Ha megtaláltuk a meglévő ügyfelet,
+   * a szerkesztett munka kitöltött adatait
+   * átvisszük az ügyfélhez.
+   *
+   * Üres munkamezővel nem töröljük ki
+   * a meglévő ügyféladatot.
+   */
+  if (matchedClient && matchReason) {
+    const updateData: {
+      name?: string;
+      address?: string;
+      phone?: string;
+      email?: string;
+    } = {};
+
+    if (cleanName) {
+      updateData.name = cleanName;
+    }
+
+    if (cleanAddress) {
+      updateData.address = cleanAddress;
+    }
+
+    if (cleanPhone) {
+      updateData.phone = cleanPhone;
+    }
+
+    if (cleanEmail) {
+      updateData.email = cleanEmail;
+    }
+
+    await prisma.client.update({
+      where: {
+        id: matchedClient.id,
+      },
+      data: updateData,
+    });
+
+    console.log(
+      "Meglévő ügyfél adatai frissítve szerkesztéskor:",
+      {
+        clientId: matchedClient.id,
+        matchReason,
+        name: cleanName || null,
+        address: cleanAddress || null,
+        phone: cleanPhone || null,
+        email: cleanEmail || null,
+      }
+    );
+
+    return {
+      created: false,
+      reason: matchReason,
+      clientId: matchedClient.id,
+    };
+  }
+
+  /*
+   * Ha nem találtunk meglévő ügyfelet,
+   * új ügyfelet hozunk létre.
+   */
+  const newClient =
+    await prisma.client.create({
+      data: {
+        name: cleanName,
+
+        address:
+          cleanAddress || null,
+
+        phone:
+          cleanPhone || null,
+
+        email:
+          cleanEmail || null,
+
+        notes: cleanNote
+          ? `${cleanNote}\n\nAutomatikusan létrehozva munka szerkesztésekor.`
+          : "Automatikusan létrehozva munka szerkesztésekor.",
+      },
+
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+  console.log(
+    "Új ügyfél létrehozva szerkesztéskor:",
+    newClient
+  );
 
   return {
     created: true,
