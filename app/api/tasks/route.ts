@@ -196,11 +196,13 @@ async function createClientIfMissing({
     },
     data: {
       address:
-        address || phoneMatch.address,
+        cleanAddress || phoneMatch.address,
+
       phone:
         phoneMatch.phone || cleanPhone,
+
       email:
-        emailMatch?.email || cleanEmail || null,
+        phoneMatch.email || cleanEmail || null,
     },
   });
 
