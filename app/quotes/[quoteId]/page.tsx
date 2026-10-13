@@ -266,6 +266,7 @@ export default function QuoteEditPage() {
     setBasePriceNet(String(item.price || ""));
     setProfitValue("");
     setUnit(item.unit || "db");
+    setItemSearchQuery("");
     setIsModalOpen(false);
   };
 
@@ -1451,18 +1452,71 @@ export default function QuoteEditPage() {
                 </button>
               </div>
 
-              <input
-                type="text"
-                placeholder="🔍 Keresés név vagy cikkszám alapján..."
-                value={itemSearchQuery}
-                onChange={(e) =>
-                  setItemSearchQuery(
-                    e.target.value
-                  )
-                }
-                style={inputS}
-                autoFocus
-              />
+             <div
+  style={{
+    position: "relative",
+    width: "100%",
+  }}
+>
+  <input
+    type="text"
+    placeholder="🔍 Keresés név vagy cikkszám alapján..."
+    value={itemSearchQuery}
+    onChange={(e) =>
+      setItemSearchQuery(e.target.value)
+    }
+    style={{
+      ...inputS,
+      paddingRight: "55px",
+    }}
+    autoFocus
+  />
+
+  {itemSearchQuery !== "" && (
+    <button
+      type="button"
+      onClick={() => {
+        setItemSearchQuery("");
+      }}
+      aria-label="Keresés törlése"
+      title="Keresés törlése"
+      style={{
+        position: "absolute",
+        top: "50%",
+        right: "8px",
+        transform: "translateY(-50%)",
+        width: "36px",
+        height: "36px",
+        padding: 0,
+        margin: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#334155",
+        color: "#ffffff",
+        border: "1px solid #64748b",
+        borderRadius: "50%",
+        cursor: "pointer",
+        zIndex: 100,
+      }}
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M6 6L18 18M18 6L6 18"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    </button>
+  )}
+</div>
             </div>
 
             <div
@@ -1642,9 +1696,10 @@ export default function QuoteEditPage() {
             >
               <button
                 type="button"
-                onClick={() =>
-                  setIsModalOpen(false)
-                }
+               onClick={() => {
+  setItemSearchQuery("");
+  setIsModalOpen(false);
+}}
                 style={{
                   ...navBtn,
                   width: "100%",
