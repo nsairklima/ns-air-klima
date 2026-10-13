@@ -2326,11 +2326,11 @@ task.scheduled_at,
                     background: selectedTaskId === task.id ? "#fff8d6" : "#fff",
                     border: selectedTaskId === task.id ? "2px solid #f39c12" : "1px solid #ddd",
                     borderLeft: `6px solid ${borderColor}`,
-                    borderRadius: "10px",
-                    padding: "16px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
+                   borderRadius: "10px",
+padding: "10px 12px",
+display: "flex",
+flexDirection: "column",
+gap: "4px",
                     boxShadow: selectedTaskId === task.id ? "0 0 15px rgba(243,156,18,0.65)" : "0 2px 5px rgba(0,0,0,0.05)",
                     transition: "all 0.3s ease",
                     scrollMarginTop: "30px",
@@ -2361,8 +2361,8 @@ task.scheduled_at,
         style={{
           display: "flex",
           flexWrap: "wrap",
-          gap: "6px",
-          marginTop: "5px",
+         gap: "4px",
+marginTop: "2px",
         }}
       >
         {task.machines
@@ -2380,8 +2380,8 @@ task.scheduled_at,
                 color: "#0369a1",
                 border: "1px solid #7dd3fc",
                 borderRadius: "6px",
-                padding: "4px 8px",
-                fontSize: "12px",
+                padding: "2px 6px",
+fontSize: "11px",
                 fontWeight: "bold",
               }}
             >
@@ -2411,14 +2411,36 @@ task.scheduled_at,
 )}
 
                   
-                  <div style={{ textTransform: "capitalize" }}>
-                    <strong>Tervezett időpont:</strong> {formatDateWithDay(task.scheduled_at)}
-                  </div>
+                 <div style={{ textTransform: "capitalize" }}>
+  <strong>Tervezett időpont:</strong>{" "}
+  {formatDateWithDay(task.scheduled_at)}
+</div>
 
-                  <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
-                    <button onClick={() => setViewingTask(task)} style={{ padding: "6px 12px", background: "#2980b9", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>🔍 Részletek</button>
-                    <button onClick={() => startEditing(task)} style={{ padding: "6px 12px", background: "#f39c12", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>✏️ Szerkesztés</button>
-                    <button onClick={() => handleDelete(task.id)} style={{ padding: "6px 12px", background: "#e74c3c", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>🗑️ Törlés</button>
+{task.completed_at && (
+  <div style={{ textTransform: "capitalize" }}>
+    <strong>Megvalósult időpont:</strong>{" "}
+    <span
+      style={{
+        color: "#16a34a",
+        fontWeight: "bold",
+      }}
+    >
+      ✅ {formatDateWithDay(task.completed_at)}
+    </span>
+  </div>
+)}
+
+                 <div
+  style={{
+    display: "flex",
+    gap: "5px",
+    marginTop: "4px",
+    flexWrap: "wrap",
+  }}
+>
+                    <button onClick={() => setViewingTask(task)} style={{ padding: "5px 9px", background: "#2980b9", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>🔍 Részletek</button>
+                    <button onClick={() => startEditing(task)} style={{ padding: "5px 9px", background: "#f39c12", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>✏️ Szerkesztés</button>
+                    <button onClick={() => handleDelete(task.id)} style={{ padding: "5px 9px", background: "#e74c3c", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>🗑️ Törlés</button>
                   </div>
                 </div>
               );
