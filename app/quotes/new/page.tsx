@@ -307,14 +307,57 @@ const clientIdFromUrl = searchParams.get("clientId");
                   ✖
                 </button>
               </div>
-              <input
-                type="text"
-                placeholder="🔍 Keresés név, email vagy telefon alapján..."
-                value={clientSearchQuery}
-                onChange={(e) => setClientSearchQuery(e.target.value)}
-                style={input}
-                autoFocus
-              />
+             <div
+  style={{
+    position: "relative",
+    width: "100%",
+  }}
+>
+  <input
+    type="text"
+    placeholder="🔍 Keresés név, email vagy telefon alapján..."
+    value={clientSearchQuery}
+    onChange={(e) => setClientSearchQuery(e.target.value)}
+    style={{
+      ...input,
+      paddingRight: "52px",
+    }}
+    autoFocus
+  />
+
+  {clientSearchQuery.length > 0 && (
+    <button
+      type="button"
+      onClick={() => setClientSearchQuery("")}
+      aria-label="Keresés törlése"
+      title="Keresés törlése"
+      style={{
+        position: "absolute",
+        right: "7px",
+        top: "50%",
+        transform: "translateY(-50%)",
+        width: "36px",
+        height: "36px",
+        padding: 0,
+        margin: 0,
+        border: "none",
+        borderRadius: "50%",
+        background: "#334155",
+        color: "#ffffff",
+        fontSize: "24px",
+        fontWeight: "bold",
+        lineHeight: 1,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 20,
+      }}
+    >
+      ×
+    </button>
+  )}
+</div>
             </div>
 
             {/* Ügyfelek listája */}
@@ -419,14 +462,57 @@ const clientIdFromUrl = searchParams.get("clientId");
                   ✖
                 </button>
               </div>
-              <input
-                type="text"
-                placeholder="🔍 Keresés név vagy cikkszám alapján..."
-                value={itemSearchQuery}
-                onChange={(e) => setItemSearchQuery(e.target.value)}
-                style={input}
-                autoFocus
-              />
+              <div
+  style={{
+    position: "relative",
+    width: "100%",
+  }}
+>
+  <input
+    type="text"
+    placeholder="🔍 Keresés név vagy cikkszám alapján..."
+    value={itemSearchQuery}
+    onChange={(e) => setItemSearchQuery(e.target.value)}
+    style={{
+      ...input,
+      paddingRight: "52px",
+    }}
+    autoFocus
+  />
+
+  {itemSearchQuery.length > 0 && (
+    <button
+      type="button"
+      onClick={() => setItemSearchQuery("")}
+      aria-label="Keresés törlése"
+      title="Keresés törlése"
+      style={{
+        position: "absolute",
+        right: "7px",
+        top: "50%",
+        transform: "translateY(-50%)",
+        width: "36px",
+        height: "36px",
+        padding: 0,
+        margin: 0,
+        border: "none",
+        borderRadius: "50%",
+        background: "#334155",
+        color: "#ffffff",
+        fontSize: "24px",
+        fontWeight: "bold",
+        lineHeight: 1,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 20,
+      }}
+    >
+      ×
+    </button>
+  )}
+</div>
             </div>
 
             {/* Szellős kártyás lista cikkszámmal */}
