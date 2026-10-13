@@ -23,6 +23,8 @@ try {
 
 type ClientSyncResult = {
   created: boolean;
+  updated: boolean;
+  updatedFields: string[];
   reason:
     | "created"
     | "existing-email"
@@ -151,13 +153,28 @@ async function createClientIfMissing({
         );
       });
 
-    if (emailMatch) {
-      return {
-        created: false,
-        reason: "existing-email",
-        clientId: emailMatch.id,
-      };
-    }
+  if (emailMatch) {
+
+  await prisma.client.update({
+    where: {
+      id: emailMatch.id,
+    },
+    data: {
+      address:
+        address || emailMatch.address,
+      phone:
+        phone || emailMatch.phone,
+      email:
+        emailMatch.email || cleanEmail,
+    },
+  });
+
+  return {
+    created: false,
+    reason: "existing-email",
+    clientId: emailMatch.id,
+  };
+}
   }
 
   const normalizedPhone =
@@ -173,13 +190,28 @@ async function createClientIfMissing({
         );
       });
 
-    if (phoneMatch) {
-      return {
-        created: false,
-        reason: "existing-phone",
-        clientId: phoneMatch.id,
-      };
-    }
+   if (phoneMatch) {
+
+  await prisma.client.update({
+    where: {
+      id: phoneMatch.id,
+    },
+    data: {
+      address:
+        address || phoneMatch.address,
+      phone:
+        phoneMatch.phone || cleanPhone,
+      email:
+        emailMatch?.email || cleanEmail || null,
+    },
+  });
+
+  return {
+    created: false,
+    reason: "existing-phone",
+    clientId: phoneMatch.id,
+  };
+}
   }
 
   const normalizedName =
@@ -201,13 +233,27 @@ async function createClientIfMissing({
         );
       });
 
-    if (nameAddressMatch) {
-      return {
-        created: false,
-        reason: "existing-name-address",
-        clientId: nameAddressMatch.id,
-      };
-    }
+if (nameAddressMatch) {
+
+  await prisma.client.update({
+    where: {
+      id: nameAddressMatch.id,
+    },
+    data: {
+      phone:
+        phone || nameAddressMatch.phone,
+      email:
+        cleanEmail ||
+        nameAddressMatch.email,
+    },
+  });
+
+  return {
+    created: false,
+    reason: "existing-name-address",
+    clientId: nameAddressMatch.id,
+  };
+}
   }
 
   if (
@@ -224,13 +270,34 @@ async function createClientIfMissing({
         );
       });
 
-    if (nameMatch) {
-      return {
-        created: false,
-        reason: "existing-name",
-        clientId: nameMatch.id,
-      };
-    }
+   if (nameMatch) {
+
+  await prisma.client.update({
+    where: {
+      id: nameMatch.id,
+    },
+    data: {
+      address:
+        cleanAddress ||
+        nameMatch.address,
+
+      phone:
+        cleanPhone ||
+        nameMatch.phone,
+
+      email:
+        cleanEmail ||
+        nameMatch.email,
+    },
+  });
+
+  return {
+    created: false,
+    reason: "existing-name",
+    clientId: nameMatch.id,
+  };
+}
+
   }
 
   const newClient =
