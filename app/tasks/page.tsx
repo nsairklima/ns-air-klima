@@ -1295,8 +1295,9 @@ if (filterStatus === "kesz" && !task.completed_at) {
         task.address,
         task.phone,
         task.email,
-        task.note,
-        task.scheduled_at,
+       task.note,
+...(task.machines || []),
+task.scheduled_at,
         task.completed_at,
         task.created_at,
         task.completed_at ? "kész" : "folyamatban",
@@ -2346,6 +2347,50 @@ if (filterStatus === "kesz" && !task.completed_at) {
 
                   <div><strong>Név:</strong> {task.name || "-"}</div>
                   <div><strong>Cím:</strong> {task.address || "-"}</div>
+
+               {Array.isArray(task.machines) &&
+  task.machines.filter(
+    (machine) =>
+      typeof machine === "string" &&
+      machine.trim() !== ""
+  ).length > 0 && (
+    <div>
+      <strong>❄️ Klíma típusok:</strong>
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "6px",
+          marginTop: "5px",
+        }}
+      >
+        {task.machines
+          .filter(
+            (machine) =>
+              typeof machine === "string" &&
+              machine.trim() !== ""
+          )
+          .map((machine, index) => (
+            <span
+              key={`${task.id}-machine-${index}`}
+              style={{
+                display: "inline-block",
+                background: "#e0f2fe",
+                color: "#0369a1",
+                border: "1px solid #7dd3fc",
+                borderRadius: "6px",
+                padding: "4px 8px",
+                fontSize: "12px",
+                fontWeight: "bold",
+              }}
+            >
+              {machine}
+            </span>
+          ))}
+      </div>
+    </div>
+  )}   
 
 {task.note && (
   <div>
