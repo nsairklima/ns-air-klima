@@ -23,8 +23,6 @@ try {
 
 type ClientSyncResult = {
   created: boolean;
-  updated: boolean;
-  updatedFields: string[];
   reason:
     | "created"
     | "existing-email"
