@@ -292,81 +292,74 @@ export default function QuotesPage() {
       </div>
 
       {/* KERESŐ */}
-      <div
-        style={{
-          marginBottom: 20,
-          position: "relative",
-          width: "100%",
-        }}
-      >
-        <input
-          type="text"
-          placeholder="🔍 Keresés ügyfélnév, cím, azonosító (#), megnevezés vagy cikkszám alapján..."
-          value={searchQuery}
-          onChange={(e) =>
-            setSearchQuery(e.target.value)
-          }
-          style={{
-            width: "100%",
-            height: "46px",
-            padding: "12px 52px 12px 14px",
-            borderRadius: "10px",
-            border: "1px solid #444",
-            backgroundColor: "#222",
-            color: "#fff",
-            fontSize: "14px",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-        />
+     <div
+  style={{
+    marginBottom: 20,
+    position: "relative",
+    width: "100%",
+  }}
+>
+  <input
+    type="text"
+    placeholder="🔍 Keresés ügyfélnév, cím, azonosító (#), megnevezés vagy cikkszám alapján..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    style={{
+      width: "100%",
+      height: "46px",
+      padding: "12px 52px 12px 14px",
+      borderRadius: "10px",
+      border: "1px solid #444",
+      backgroundColor: "#222",
+      color: "#fff",
+      fontSize: "14px",
+      outline: "none",
+      boxSizing: "border-box",
+    }}
+  />
 
-        {/* KERESÉS TÖRLÉSE */}
-        {searchQuery.length > 0 && (
-          <button
-            type="button"
-            onClick={() =>
-              setSearchQuery("")
-            }
-            aria-label="Keresés törlése"
-            title="Keresés törlése"
-            style={{
-              position: "absolute",
-              right: "7px",
-              top: "50%",
-              transform:
-                "translateY(-50%)",
+  {searchQuery.length > 0 && (
+    <button
+      type="button"
+      onClick={() => setSearchQuery("")}
+      aria-label="Keresés törlése"
+      title="Keresés törlése"
+      style={{
+        position: "absolute",
+        right: "7px",
+        top: "50%",
+        transform: "translateY(-50%)",
 
-              width: "34px",
-              height: "34px",
+        width: "34px",
+        height: "34px",
 
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
 
-              padding: 0,
-              margin: 0,
+        margin: 0,
+        padding: 0,
 
-              border:
-                "1px solid #666",
-              borderRadius: "50%",
+        border: "1px solid #666",
+        borderRadius: "50%",
 
-              backgroundColor: "#3a3a3a",
-              color: "#ffffff",
+        backgroundColor: "#444",
+        color: "#ffffff",
 
-              fontFamily:
-                "Arial, sans-serif",
-              fontSize: "25px",
-              fontWeight: "400",
-              lineHeight: "30px",
+        fontFamily: "Arial, sans-serif",
+        fontSize: "24px",
+        fontWeight: "bold",
+        lineHeight: "1",
 
-              cursor: "pointer",
-              zIndex: 20,
-            }}
-          >
-            ×
-          </button>
-        )}
-      </div>
+        cursor: "pointer",
+        zIndex: 100,
+      }}
+    >
+      ×
+    </button>
+  )}
+</div>
+
 
       <div
         style={{
