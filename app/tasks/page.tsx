@@ -3,6 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import TasksMap from "../components/TasksMap";
 
+type MachineDetail = {
+  maintenanceType:
+    | "mosas"
+    | "fertotlenites"
+    | "";
+  warranty: boolean | null;
+};
+
 type Task = {
   id: number;
   type: string;
@@ -12,7 +20,12 @@ type Task = {
   email?: string;
   note?: string;
   machines?: string[];
-  scheduled_at?: string;
+machineDetails?: MachineDetail[];
+paymentMethod?:
+  | "keszpenz"
+  | "atutalas"
+  | null;
+scheduled_at?: string;
   completed_at?: string;
   images?: string[];
   created_at: string;
@@ -900,6 +913,23 @@ export default function TasksPage() {
   const [completedAt, setCompletedAt] = useState("");
 
   const [machines, setMachines] = useState<string[]>([""]);
+
+  const [
+  machineDetails,
+  setMachineDetails,
+] = useState<MachineDetail[]>([
+  {
+    maintenanceType: "",
+    warranty: null,
+  },
+]);
+
+const [
+  paymentMethod,
+  setPaymentMethod,
+] = useState<
+  "keszpenz" | "atutalas" | null
+>(null);
   
   const [photos, setPhotos] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -966,8 +996,18 @@ const galleryTouchEndX = useRef<number | null>(null);
     setNote("");
     setScheduledAt("");
     setCompletedAt("");
-    setMachines([""]);
-    setPhotos([]);
+setMachines([""]);
+
+setMachineDetails([
+  {
+    maintenanceType: "",
+    warranty: null,
+  },
+]);
+
+setPaymentMethod(null);
+
+setPhotos([]);
     setExistingImages([]);
     setEditingPhotoIndex(null);
     setEditingTaskId(null);
@@ -1229,16 +1269,73 @@ useEffect(() => {
       formData.append("email", email);
     formData.append("note", note);
 
+/*
+ * A gép nevét és a hozzá tartozó adatokat
+ * együtt kezeljük, hogy a sorrend biztosan
+ * ne csússzon el.
+ */
+const cleanedMachineRows =
+  machines
+    .map((machine, index) => {
+      const cleanMachine =
+        machine.trim();
+
+      const detail =
+        machineDetails[index] || {
+          maintenanceType: "",
+          warranty: null,
+        };
+
+      return {
+        machine: cleanMachine,
+
+        detail: {
+          maintenanceType:
+            type === "karbantartas"
+              ? detail.maintenanceType
+              : "",
+
+          warranty:
+            detail.warranty,
+        } as MachineDetail,
+      };
+    })
+    .filter(
+      (row) =>
+        row.machine !== ""
+    );
+
+const cleanedMachines =
+  cleanedMachineRows.map(
+    (row) => row.machine
+  );
+
+const cleanedMachineDetails =
+  cleanedMachineRows.map(
+    (row) => row.detail
+  );
+
 formData.append(
   "machines",
+  JSON.stringify(cleanedMachines)
+);
+
+formData.append(
+  "machineDetails",
   JSON.stringify(
-    machines
-      .map((machine) => machine.trim())
-      .filter(Boolean)
+    cleanedMachineDetails
   )
 );
 
-formData.append("scheduledAt", scheduledAt);
+formData.append(
+  "paymentMethod",
+  paymentMethod || ""
+);
+
+formData.append(
+  "scheduledAt",
+  scheduledAt
+);
       formData.append("completedAt", completedAt);
       formData.append("latitude", latitude);
       formData.append("longitude", longitude);
@@ -1339,10 +1436,66 @@ formData.append("scheduledAt", scheduledAt);
     setEmail(taskEmail);
     setNote(taskNote);
     setMachines(
+const taskMachines =
   Array.isArray(task.machines) &&
-    task.machines.length > 0
+  task.machines.length > 0
     ? task.machines
-    : [""]
+    : [""];
+
+setMachines(taskMachines);
+
+const loadedMachineDetails =
+  taskMachines.map(
+    (_, index): MachineDetail => {
+      const savedDetail =
+        Array.isArray(
+          task.machineDetails
+        )
+          ? task.machineDetails[
+              index
+            ]
+          : undefined;
+
+      return {
+        maintenanceType:
+          task.type ===
+            "karbantartas" &&
+          (
+            savedDetail
+              ?.maintenanceType ===
+              "mosas" ||
+            savedDetail
+              ?.maintenanceType ===
+              "fertotlenites"
+          )
+            ? savedDetail
+                .maintenanceType
+            : "",
+
+        warranty:
+          savedDetail?.warranty ===
+            true
+            ? true
+            : savedDetail
+                  ?.warranty ===
+                false
+              ? false
+              : null,
+      };
+    }
+  );
+
+setMachineDetails(
+  loadedMachineDetails
+);
+
+setPaymentMethod(
+  task.paymentMethod ===
+    "keszpenz" ||
+  task.paymentMethod ===
+    "atutalas"
+    ? task.paymentMethod
+    : null
 );
     setScheduledAt(task.scheduled_at ? task.scheduled_at.replace(" ", "T").slice(0, 16) : "");
     setCompletedAt(task.completed_at ? task.completed_at.replace(" ", "T").slice(0, 16) : "");
@@ -1676,48 +1829,136 @@ task.scheduled_at,
           {formatDateSimple(viewingTask.created_at)}
         </div>
 
-        {Array.isArray(viewingTask.machines) &&
-          viewingTask.machines.filter(
-            (machine) =>
-              typeof machine === "string" && machine.trim() !== ""
-          ).length > 0 && (
-            <div>
-              <strong>❄️ Klíma típusok:</strong>
+      {Array.isArray(
+  viewingTask.machines
+) &&
+  viewingTask.machines.filter(
+    (machine) =>
+      typeof machine ===
+        "string" &&
+      machine.trim() !== ""
+  ).length > 0 && (
+    <div>
+      <strong>
+        ❄️ Klíma típusok:
+      </strong>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "5px",
-                  marginTop: "5px",
-                }}
-              >
-                {viewingTask.machines
-                  .filter(
-                    (machine) =>
-                      typeof machine === "string" &&
-                      machine.trim() !== ""
-                  )
-                  .map((machine, index) => (
-                    <span
-                      key={`${viewingTask.id}-detail-machine-${index}`}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          marginTop: "7px",
+        }}
+      >
+        {viewingTask.machines
+          .filter(
+            (machine) =>
+              typeof machine ===
+                "string" &&
+              machine.trim() !== ""
+          )
+          .map(
+            (
+              machine,
+              index
+            ) => {
+              const detail =
+                viewingTask
+                  .machineDetails?.[
+                  index
+                ];
+
+              return (
+                <div
+                  key={`${viewingTask.id}-detail-machine-${index}`}
+                  style={{
+                    padding: "10px",
+                    border:
+                      "1px solid #bae6fd",
+                    borderRadius: "8px",
+                    background:
+                      "#f0f9ff",
+                  }}
+                >
+                  <div
+                    style={{
+                      color: "#0369a1",
+                      fontWeight:
+                        "bold",
+                    }}
+                  >
+                    #{index + 1}{" "}
+                    {machine}
+                  </div>
+
+                  {viewingTask.type ===
+                    "karbantartas" && (
+                    <div
                       style={{
-                        display: "inline-block",
-                        padding: "3px 7px",
-                        border: "1px solid #7dd3fc",
-                        borderRadius: "6px",
-                        background: "#e0f2fe",
-                        color: "#0369a1",
-                        fontSize: "12px",
-                        fontWeight: "bold",
+                        marginTop:
+                          "5px",
+                        fontSize:
+                          "13px",
                       }}
                     >
-                      {machine}
-                    </span>
-                  ))}
-              </div>
-            </div>
+                      <strong>
+                        Karbantartás:
+                      </strong>{" "}
+                      {detail
+                        ?.maintenanceType ===
+                      "mosas"
+                        ? "Mosás"
+                        : detail
+                              ?.maintenanceType ===
+                            "fertotlenites"
+                          ? "Fertőtlenítés"
+                          : "Nincs megadva"}
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      marginTop:
+                        "5px",
+                      fontSize:
+                        "13px",
+                    }}
+                  >
+                    <strong>
+                      Garanciális:
+                    </strong>{" "}
+                    {detail
+                      ?.warranty ===
+                    true
+                      ? "Igen"
+                      : detail
+                            ?.warranty ===
+                          false
+                        ? "Nem"
+                        : "Nincs megadva"}
+                  </div>
+                </div>
+              );
+            }
           )}
+      </div>
+    </div>
+  )}
+
+       <div>
+  <strong>
+    💳 Fizetési mód:
+  </strong>{" "}
+
+  {viewingTask.paymentMethod ===
+  "keszpenz"
+    ? "Készpénz"
+    : viewingTask.paymentMethod ===
+        "atutalas"
+      ? "Átutalás"
+      : "Nincs megadva"}
+</div> 
 
         {viewingTask.note && (
           <div>
@@ -2132,75 +2373,304 @@ task.scheduled_at,
       marginBottom: "8px",
     }}
   >
-    Klíma típusok:
-  </label>
-
-  {machines.map((machine, index) => (
-    <div
-      key={index}
-      style={{
-        display: "flex",
-        gap: "8px",
-        marginBottom: "8px",
-      }}
-    >
-      <input
-        type="text"
-        value={machine}
-        placeholder={`Klíma típusa #${index + 1}`}
-        onChange={(e) => {
-          const updated = [...machines];
-          updated[index] = e.target.value;
-          setMachines(updated);
-        }}
-        style={{
-          flex: 1,
-          padding: "10px",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-        }}
-      />
-
-      {machines.length > 1 && (
-        <button
-          type="button"
-          onClick={() =>
-            setMachines(
-              machines.filter((_, i) => i !== index)
-            )
-          }
-          style={{
-            background: "#e74c3c",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            padding: "0 12px",
-            cursor: "pointer",
-          }}
-        >
-          ✕
-        </button>
-      )}
-    </div>
-  ))}
-
-  <button
-    type="button"
-    onClick={() =>
-      setMachines([...machines, ""])
-    }
+  <div>
+  <label
     style={{
-      background: "#2563eb",
-      color: "white",
-      border: "none",
-      borderRadius: "8px",
-      padding: "10px 14px",
-      cursor: "pointer",
+      display: "block",
+      marginBottom: "8px",
       fontWeight: "bold",
     }}
   >
-    ➕ Új gép hozzáadása
-  </button>
+    Klíma típusok:
+  </label>
+
+  {machines.map(
+    (machine, index) => {
+      const detail =
+        machineDetails[index] || {
+          maintenanceType: "",
+          warranty: null,
+        };
+
+      return (
+        <div
+          key={index}
+          style={{
+            marginBottom: "12px",
+            padding: "12px",
+            border: "1px solid #d1d5db",
+            borderRadius: "10px",
+            background: "white",
+          }}
+        >
+          {/* GÉP NEVE ÉS TÖRLÉSE */}
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+            }}
+          >
+            <input
+              type="text"
+              value={machine}
+              placeholder={`Klíma típusa #${
+                index + 1
+              }`}
+              onChange={(event) => {
+                const updatedMachines =
+                  [...machines];
+
+                updatedMachines[index] =
+                  event.target.value;
+
+                setMachines(
+                  updatedMachines
+                );
+              }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: "10px",
+                border: "1px solid #ccc",
+                borderRadius: "8px",
+                boxSizing: "border-box",
+              }}
+            />
+
+            {machines.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMachines(
+                    machines.filter(
+                      (_, machineIndex) =>
+                        machineIndex !==
+                        index
+                    )
+                  );
+
+                  setMachineDetails(
+                    machineDetails.filter(
+                      (_, detailIndex) =>
+                        detailIndex !==
+                        index
+                    )
+                  );
+                }}
+                style={{
+                  flexShrink: 0,
+                  padding: "0 12px",
+                  border: "none",
+                  borderRadius: "8px",
+                  background: "#e74c3c",
+                  color: "white",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* KARBANTARTÁS TÍPUSA */}
+          {type ===
+            "karbantartas" && (
+            <div
+              style={{
+                marginTop: "12px",
+                paddingTop: "10px",
+                borderTop:
+                  "1px solid #e5e7eb",
+              }}
+            >
+              <div
+                style={{
+                  marginBottom: "7px",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                }}
+              >
+                🧼 Karbantartás
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "8px",
+                }}
+              >
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 10px",
+                    border:
+                      detail
+                        .maintenanceType ===
+                      "mosas"
+                        ? "2px solid #2563eb"
+                        : "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    background:
+                      detail
+                        .maintenanceType ===
+                      "mosas"
+                        ? "#eff6ff"
+                        : "white",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name={`maintenance-${index}`}
+                    checked={
+                      detail
+                        .maintenanceType ===
+                      "mosas"
+                    }
+                    onChange={() => {
+                      const updatedDetails =
+                        [
+                          ...machineDetails,
+                        ];
+
+                      updatedDetails[index] =
+                        {
+                          ...detail,
+                          maintenanceType:
+                            "mosas",
+                        };
+
+                      setMachineDetails(
+                        updatedDetails
+                      );
+                    }}
+                  />
+
+                  Mosás
+                </label>
+
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 10px",
+                    border:
+                      detail
+                        .maintenanceType ===
+                      "fertotlenites"
+                        ? "2px 
+
+
+                      {/* FIZETÉSI MÓD */}
+<div
+  style={{
+    padding: "12px",
+    border: "1px solid #d1d5db",
+    borderRadius: "10px",
+    background: "white",
+  }}
+>
+  <div
+    style={{
+      marginBottom: "8px",
+      fontWeight: "bold",
+    }}
+  >
+    💳 Fizetési mód:
+  </div>
+
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "8px",
+    }}
+  >
+    <label
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        padding: "9px 11px",
+        border:
+          paymentMethod ===
+          "keszpenz"
+            ? "2px solid #16a34a"
+            : "1px solid #d1d5db",
+        borderRadius: "8px",
+        background:
+          paymentMethod ===
+          "keszpenz"
+            ? "#f0fdf4"
+            : "white",
+        cursor: "pointer",
+        fontSize: "13px",
+        fontWeight: "bold",
+      }}
+    >
+      <input
+        type="radio"
+        name="paymentMethod"
+        checked={
+          paymentMethod ===
+          "keszpenz"
+        }
+        onChange={() =>
+          setPaymentMethod(
+            "keszpenz"
+          )
+        }
+      />
+
+      Készpénz
+    </label>
+
+    <label
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        padding: "9px 11px",
+        border:
+          paymentMethod ===
+          "atutalas"
+            ? "2px solid #2563eb"
+            : "1px solid #d1d5db",
+        borderRadius: "8px",
+        background:
+          paymentMethod ===
+          "atutalas"
+            ? "#eff6ff"
+            : "white",
+        cursor: "pointer",
+        fontSize: "13px",
+        fontWeight: "bold",
+      }}
+    >
+      <input
+        type="radio"
+        name="paymentMethod"
+        checked={
+          paymentMethod ===
+          "atutalas"
+        }
+        onChange={() =>
+          setPaymentMethod(
+            "atutalas"
+          )
+        }
+      />
+
+      Átutalás
+    </label>
+  </div>
 </div>
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés:</label>
