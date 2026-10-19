@@ -1,7 +1,3 @@
-
-
-
-
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 
@@ -10,6 +6,14 @@ export const dynamic = "force-dynamic";
 const sql = neon(
   process.env.POSTGRES_URL || ""
 );
+
+type MachineDetail = {
+  maintenanceType:
+    | "mosas"
+    | "fertotlenites"
+    | "";
+  warranty: boolean | null;
+};
 
 export async function GET() {
   try {
@@ -21,54 +25,250 @@ export async function GET() {
 
     const tasks = rawTasks.map(
       (task: any) => {
-        let imagesArray: string[] = [];
+        let imagesArray:
+          string[] = [];
 
-        let machinesArray: string[] = [];
+        let machinesArray:
+          string[] = [];
 
-if (Array.isArray(task.machines)) {
-  machinesArray = task.machines;
-} else if (
-  typeof task.machines === "string" &&
-  task.machines.startsWith("[")
-) {
-  try {
-    const parsedMachines = JSON.parse(
-      task.machines
-    );
-
-    machinesArray = Array.isArray(
-      parsedMachines
-    )
-      ? parsedMachines
-      : [];
-  } catch {
-    machinesArray = [];
-  }
-}
-``
-
-        if (Array.isArray(task.images)) {
-          imagesArray = task.images;
+        if (
+          Array.isArray(
+            task.machines
+          )
+        ) {
+          machinesArray =
+            task.machines
+              .map(
+                (
+                  machine: unknown
+                ) =>
+                  typeof machine ===
+                  "string"
+                    ? machine.trim()
+                    : ""
+              )
+              .filter(Boolean);
         } else if (
-          typeof task.images === "string" &&
-          task.images.startsWith("[")
+          typeof task.machines ===
+            "string" &&
+          task.machines.trim() !== ""
+        ) {
+          try {
+            const parsedMachines =
+              JSON.parse(
+                task.machines
+              );
+
+            machinesArray =
+              Array.isArray(
+                parsedMachines
+              )
+                ? parsedMachines
+                    .map(
+                      (
+                        machine: unknown
+                      ) =>
+                        typeof machine ===
+                        "string"
+                          ? machine.trim()
+                          : ""
+                    )
+                    .filter(Boolean)
+                : [];
+          } catch (error) {
+            console.error(
+              `A(z) ${task.id}. munka géplistája nem dolgozható fel:`,
+              error
+            );
+
+            machinesArray = [];
+          }
+        }
+
+        let machineDetailsArray:
+          MachineDetail[] = [];
+
+        if (
+          Array.isArray(
+            task.machineDetails
+          )
+        ) {
+          machineDetailsArray =
+            task.machineDetails.map(
+              (
+                detail: any
+              ): MachineDetail => {
+                const maintenanceType:
+                  MachineDetail["maintenanceType"] =
+                    detail
+                      ?.maintenanceType ===
+                      "mosas" ||
+                    detail
+                      ?.maintenanceType ===
+                      "fertotlenites"
+                      ? detail
+                          .maintenanceType
+                      : "";
+
+                const warranty:
+                  boolean | null =
+                    detail?.warranty ===
+                    true
+                      ? true
+                      : detail
+                            ?.warranty ===
+                          false
+                        ? false
+                        : null;
+
+                return {
+                  maintenanceType,
+                  warranty,
+                };
+              }
+            );
+        } else if (
+          typeof task.machineDetails ===
+            "string" &&
+          task.machineDetails
+            .trim() !== ""
+        ) {
+          try {
+            const parsedMachineDetails =
+              JSON.parse(
+                task.machineDetails
+              );
+
+            if (
+              Array.isArray(
+                parsedMachineDetails
+              )
+            ) {
+              machineDetailsArray =
+                parsedMachineDetails.map(
+                  (
+                    detail: any
+                  ): MachineDetail => {
+                    const maintenanceType:
+                      MachineDetail["maintenanceType"] =
+                        detail
+                          ?.maintenanceType ===
+                          "mosas" ||
+                        detail
+                          ?.maintenanceType ===
+                          "fertotlenites"
+                          ? detail
+                              .maintenanceType
+                          : "";
+
+                    const warranty:
+                      boolean | null =
+                        detail
+                          ?.warranty ===
+                        true
+                          ? true
+                          : detail
+                                ?.warranty ===
+                              false
+                            ? false
+                            : null;
+
+                    return {
+                      maintenanceType,
+                      warranty,
+                    };
+                  }
+                );
+            }
+          } catch (error) {
+            console.error(
+              `A(z) ${task.id}. munka gépadatai nem dolgozhatók fel:`,
+              error
+            );
+
+            machineDetailsArray = [];
+          }
+        }
+
+        machineDetailsArray =
+          machinesArray.map(
+            (
+              _,
+              index
+            ): MachineDetail => {
+              const detail =
+                machineDetailsArray[
+                  index
+                ];
+
+              if (!detail) {
+                return {
+                  maintenanceType:
+                    "",
+                  warranty: null,
+                };
+              }
+
+              return {
+                maintenanceType:
+                  task.type ===
+                  "karbantartas"
+                    ? detail
+                        .maintenanceType
+                    : "",
+
+                warranty:
+                  detail.warranty,
+              };
+            }
+          );
+
+        const paymentMethod:
+          | "keszpenz"
+          | "atutalas"
+          | null =
+            task.paymentMethod ===
+              "keszpenz" ||
+            task.paymentMethod ===
+              "atutalas"
+              ? task.paymentMethod
+              : null;
+
+        if (
+          Array.isArray(task.images)
+        ) {
+          imagesArray =
+            task.images;
+        } else if (
+          typeof task.images ===
+            "string" &&
+          task.images
+            .trim()
+            .startsWith("[")
         ) {
           try {
             const parsedImages =
-              JSON.parse(task.images);
+              JSON.parse(
+                task.images
+              );
 
             imagesArray =
-              Array.isArray(parsedImages)
+              Array.isArray(
+                parsedImages
+              )
                 ? parsedImages
                 : [];
           } catch {
             imagesArray = [];
           }
         } else if (
-          typeof task.images === "string" &&
+          typeof task.images ===
+            "string" &&
           task.images.trim() !== ""
         ) {
-          imagesArray = [task.images];
+          imagesArray = [
+            task.images,
+          ];
         }
 
         let description =
@@ -77,10 +277,14 @@ if (Array.isArray(task.machines)) {
         let extractedEmail = "";
 
         if (
-          description.includes("| Email:")
+          description.includes(
+            "| Email:"
+          )
         ) {
           const parts =
-            description.split("| Email:");
+            description.split(
+              "| Email:"
+            );
 
           description =
             parts[0]?.trim() || "";
@@ -91,11 +295,16 @@ if (Array.isArray(task.machines)) {
               .join("| Email:")
               .trim();
         } else if (
-          description.startsWith("Email:")
+          description.startsWith(
+            "Email:"
+          )
         ) {
           extractedEmail =
             description
-              .replace("Email:", "")
+              .replace(
+                "Email:",
+                ""
+              )
               .trim();
 
           description = "";
@@ -103,27 +312,37 @@ if (Array.isArray(task.machines)) {
 
         const latitudeValue =
           task.latitude === null ||
-          task.latitude === undefined ||
+          task.latitude ===
+            undefined ||
           task.latitude === ""
             ? null
-            : Number(task.latitude);
+            : Number(
+                task.latitude
+              );
 
         const longitudeValue =
           task.longitude === null ||
-          task.longitude === undefined ||
+          task.longitude ===
+            undefined ||
           task.longitude === ""
             ? null
-            : Number(task.longitude);
+            : Number(
+                task.longitude
+              );
 
         const latitude =
           latitudeValue !== null &&
-          Number.isFinite(latitudeValue)
+          Number.isFinite(
+            latitudeValue
+          )
             ? latitudeValue
             : null;
 
         const longitude =
           longitudeValue !== null &&
-          Number.isFinite(longitudeValue)
+          Number.isFinite(
+            longitudeValue
+          )
             ? longitudeValue
             : null;
 
@@ -131,7 +350,8 @@ if (Array.isArray(task.machines)) {
           id: Number(task.id),
 
           type:
-            task.type || "telepites",
+            task.type ||
+            "telepites",
 
           name:
             task.clientName ||
@@ -161,12 +381,16 @@ if (Array.isArray(task.machines)) {
             task.completedAt ||
             "",
 
+          images:
+            imagesArray,
 
+          machines:
+            machinesArray,
 
-          
-          images: imagesArray,
+          machineDetails:
+            machineDetailsArray,
 
-          machines: machinesArray,
+          paymentMethod,
 
           created_at:
             task.createdAt ||
@@ -176,7 +400,8 @@ if (Array.isArray(task.machines)) {
             "",
 
           recipient_emails:
-            task.recipient_emails || "",
+            task.recipient_emails ||
+            "",
 
           latitude,
 
