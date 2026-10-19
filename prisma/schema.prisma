@@ -237,17 +237,8 @@ model MaintenanceSettlementItem {
   priceId            Int
   createdAt          DateTime               @default(now())
 
-  period MaintenanceSettlementPeriod @relation(
-    fields: [periodId],
-    references: [id],
-    onDelete: Restrict
-  )
-
-  price MaintenancePrice @relation(
-    fields: [priceId],
-    references: [id],
-    onDelete: Restrict
-  )
+  period MaintenanceSettlementPeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  price  MaintenancePrice            @relation(fields: [priceId], references: [id], onDelete: Restrict)
 
   @@unique([taskId, machineIndex])
   @@index([periodId])
