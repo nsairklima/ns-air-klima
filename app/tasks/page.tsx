@@ -1497,6 +1497,351 @@ task.scheduled_at,
           }
         `}</style>
 
+{/* MUNKA RÉSZLETEI MODÁLIS */}
+{viewingTask && (
+  <div
+    onClick={() => {
+      closeImageGallery();
+      setViewingTask(null);
+    }}
+    style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 2000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "16px",
+      boxSizing: "border-box",
+      background: "rgba(0, 0, 0, 0.55)",
+    }}
+  >
+    <div
+      onClick={(event) => event.stopPropagation()}
+      style={{
+        width: "100%",
+        maxWidth: "560px",
+        maxHeight: "90vh",
+        overflowY: "auto",
+        padding: "20px",
+        boxSizing: "border-box",
+        borderRadius: "12px",
+        background: "white",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+      }}
+    >
+      {/* FEJLÉC */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
+          paddingBottom: "10px",
+          marginBottom: "14px",
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
+        <h2
+          style={{
+            margin: 0,
+            fontSize: "18px",
+          }}
+        >
+          {viewingTask.type === "telepites"
+            ? "🛠️ Telepítés részletei"
+            : "🧹 Karbantartás részletei"}
+        </h2>
+
+        <button
+          type="button"
+          onClick={() => {
+            closeImageGallery();
+            setViewingTask(null);
+          }}
+          aria-label="Részletek bezárása"
+          style={{
+            flexShrink: 0,
+            width: "38px",
+            height: "38px",
+            border: "none",
+            borderRadius: "50%",
+            background: "#dc2626",
+            color: "white",
+            fontSize: "18px",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* MUNKA ADATAI */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          fontSize: "14px",
+          lineHeight: 1.45,
+        }}
+      >
+        <div>
+          <strong>Státusz:</strong>{" "}
+          {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}
+        </div>
+
+        <div>
+          <strong>Név:</strong> {viewingTask.name || "-"}
+        </div>
+
+        <div>
+          <strong>Cím:</strong>{" "}
+          {viewingTask.address ? (
+            <a
+              href={
+                "https://www.google.com/maps/search/?api=1&query=" +
+                encodeURIComponent(viewingTask.address)
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "#1d4ed8",
+                textDecoration: "underline",
+                fontWeight: "bold",
+              }}
+            >
+              📍 {viewingTask.address}
+            </a>
+          ) : (
+            "-"
+          )}
+        </div>
+
+        <div>
+          <strong>Telefon:</strong>{" "}
+          {viewingTask.phone ? (
+            <a
+              href={`tel:${viewingTask.phone}`}
+              style={{
+                color: "#16a34a",
+                textDecoration: "underline",
+                fontWeight: "bold",
+              }}
+            >
+              📞 {viewingTask.phone}
+            </a>
+          ) : (
+            "-"
+          )}
+        </div>
+
+        {viewingTask.email && (
+          <div>
+            <strong>Email:</strong>{" "}
+            <a
+              href={`mailto:${viewingTask.email}`}
+              style={{
+                color: "#2563eb",
+                textDecoration: "underline",
+              }}
+            >
+              ✉️ {viewingTask.email}
+            </a>
+          </div>
+        )}
+
+        <div style={{ textTransform: "capitalize" }}>
+          <strong>Tervezett időpont:</strong>{" "}
+          📅 {formatDateWithDay(viewingTask.scheduled_at)}
+        </div>
+
+        {viewingTask.completed_at && (
+          <div style={{ textTransform: "capitalize" }}>
+            <strong>Megvalósult időpont:</strong>{" "}
+            <span
+              style={{
+                color: "#16a34a",
+                fontWeight: "bold",
+              }}
+            >
+              ✅ {formatDateWithDay(viewingTask.completed_at)}
+            </span>
+          </div>
+        )}
+
+        <div>
+          <strong>Létrehozva:</strong>{" "}
+          {formatDateSimple(viewingTask.created_at)}
+        </div>
+
+        {Array.isArray(viewingTask.machines) &&
+          viewingTask.machines.filter(
+            (machine) =>
+              typeof machine === "string" && machine.trim() !== ""
+          ).length > 0 && (
+            <div>
+              <strong>❄️ Klíma típusok:</strong>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "5px",
+                  marginTop: "5px",
+                }}
+              >
+                {viewingTask.machines
+                  .filter(
+                    (machine) =>
+                      typeof machine === "string" &&
+                      machine.trim() !== ""
+                  )
+                  .map((machine, index) => (
+                    <span
+                      key={`${viewingTask.id}-detail-machine-${index}`}
+                      style={{
+                        display: "inline-block",
+                        padding: "3px 7px",
+                        border: "1px solid #7dd3fc",
+                        borderRadius: "6px",
+                        background: "#e0f2fe",
+                        color: "#0369a1",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {machine}
+                    </span>
+                  ))}
+              </div>
+            </div>
+          )}
+
+        {viewingTask.note && (
+          <div>
+            <strong>Megjegyzés:</strong>
+
+            <div
+              style={{
+                marginTop: "4px",
+                padding: "9px",
+                borderRadius: "7px",
+                background: "#f3f4f6",
+                whiteSpace: "pre-wrap",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {viewingTask.note}
+            </div>
+          </div>
+        )}
+
+        {/* CSAK A MEGNYITOTT MUNKA KÉPEI */}
+        <div>
+          <strong>Képek:</strong>
+
+          {Array.isArray(viewingTask.images) &&
+          viewingTask.images.length > 0 ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: "8px",
+                marginTop: "8px",
+              }}
+            >
+              {viewingTask.images.map((imgUrl, imageIndex) => (
+                <button
+                  key={`${viewingTask.id}-image-${imageIndex}`}
+                  type="button"
+                  onClick={() => setGalleryImageIndex(imageIndex)}
+                  aria-label={`${imageIndex + 1}. kép megnyitása`}
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    aspectRatio: "1 / 1",
+                    padding: 0,
+                    overflow: "hidden",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    background: "#f3f4f6",
+                    cursor: "pointer",
+                  }}
+                >
+                  <img
+                    src={imgUrl}
+                    alt={`${viewingTask.name || "Munka"} ${
+                      imageIndex + 1
+                    }. képe`}
+                    loading="lazy"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+
+                  <span
+                    style={{
+                      position: "absolute",
+                      right: "5px",
+                      bottom: "5px",
+                      padding: "2px 6px",
+                      borderRadius: "10px",
+                      background: "rgba(0, 0, 0, 0.75)",
+                      color: "white",
+                      fontSize: "10px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {imageIndex + 1}/{viewingTask.images.length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span
+              style={{
+                display: "block",
+                marginTop: "5px",
+                color: "#9ca3af",
+                fontSize: "13px",
+              }}
+            >
+              Nincs csatolt kép
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ALSÓ BEZÁRÁS */}
+      <button
+        type="button"
+        onClick={() => {
+          closeImageGallery();
+          setViewingTask(null);
+        }}
+        style={{
+          width: "100%",
+          marginTop: "18px",
+          padding: "11px",
+          border: "none",
+          borderRadius: "7px",
+          background: "#6b7280",
+          color: "white",
+          fontWeight: "bold",
+          cursor: "pointer",
+        }}
+      >
+        Bezárás
+      </button>
+    </div>
+  </div>
+)}
+        
       {/* LAPOZHATÓ KÉPGALÉRIA */}
 {viewingTask &&
   galleryImageIndex !== null &&
@@ -2616,7 +2961,25 @@ fontSize: "11px",
     flexWrap: "wrap",
   }}
 >
-                    <button onClick={() => setViewingTask(task)} style={{ padding: "5px 9px", background: "#2980b9", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>🔍 Részletek</button>
+                   <button
+  type="button"
+  onClick={() => {
+    closeImageGallery();
+    setViewingTask(task);
+  }}
+  style={{
+    padding: "5px 9px",
+    background: "#2980b9",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "12px",
+    fontWeight: "bold",
+  }}
+>
+  🔍 Részletek
+</button>
                     <button onClick={() => startEditing(task)} style={{ padding: "5px 9px", background: "#f39c12", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>✏️ Szerkesztés</button>
                     <button onClick={() => handleDelete(task.id)} style={{ padding: "5px 9px", background: "#e74c3c", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>🗑️ Törlés</button>
                   </div>
