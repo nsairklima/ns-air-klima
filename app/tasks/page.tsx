@@ -19,17 +19,12 @@ type Task = {
   phone?: string;
   email?: string;
   note?: string;
-
   machines?: string[];
-
   machineDetails?: MachineDetail[];
-
   paymentMethod?:
     | "keszpenz"
     | "atutalas"
     | null;
-
-  
   scheduled_at?: string;
   completed_at?: string;
   images?: string[];
@@ -43,7 +38,8 @@ type FormCoordinates = {
   lat: number;
   lng: number;
 };
-// Segédfüggvény a nap nevével történő formázáshoz (pl.: 2026. 06. 12., csütörtök 14:30)
+
+// Segédfüggvény a nap nevével történő formázáshoz
 const formatDateWithDay = (dateString?: string) => {
   if (!dateString) return "Nincs megadva";
 
@@ -145,25 +141,28 @@ async function findCoordinatesForTask(
   const cacheKey =
     "tasks-map-coordinate-" + cleanAddress;
 
-  const cachedValue =
-    window.localStorage.getItem(cacheKey);
-
-  if (cachedValue) {
+  // 🛠️ Vercel / SSR védelem: Ellenőrizzük, hogy létezik-e a window / localStorage
+  if (typeof window !== "undefined") {
     try {
-      const cachedCoordinates =
-        JSON.parse(
-          cachedValue
-        ) as FormCoordinates;
+      const cachedValue =
+        window.localStorage.getItem(cacheKey);
 
-      if (
-        Number.isFinite(
-          cachedCoordinates.lat
-        ) &&
-        Number.isFinite(
-          cachedCoordinates.lng
-        )
-      ) {
-        return cachedCoordinates;
+      if (cachedValue) {
+        const cachedCoordinates =
+          JSON.parse(
+            cachedValue
+          ) as FormCoordinates;
+
+        if (
+          Number.isFinite(
+            cachedCoordinates.lat
+          ) &&
+          Number.isFinite(
+            cachedCoordinates.lng
+          )
+        ) {
+          return cachedCoordinates;
+        }
       }
     } catch {
       window.localStorage.removeItem(
@@ -247,10 +246,12 @@ async function findCoordinatesForTask(
       lng,
     };
 
-    window.localStorage.setItem(
-      cacheKey,
-      JSON.stringify(coordinates)
-    );
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        cacheKey,
+        JSON.stringify(coordinates)
+      );
+    }
 
     return coordinates;
   } catch (error) {
@@ -919,21 +920,21 @@ export default function TasksPage() {
   const [machines, setMachines] = useState<string[]>([""]);
 
   const [
-  machineDetails,
-  setMachineDetails,
-] = useState<MachineDetail[]>([
-  {
-    maintenanceType: "",
-    warranty: null,
-  },
-]);
+    machineDetails,
+    setMachineDetails,
+  ] = useState<MachineDetail[]>([
+    {
+      maintenanceType: "",
+      warranty: null,
+    },
+  ]);
 
-const [
-  paymentMethod,
-  setPaymentMethod,
-] = useState<
-  "keszpenz" | "atutalas" | null
->(null);
+  const [
+    paymentMethod,
+    setPaymentMethod,
+  ] = useState<
+    "keszpenz" | "atutalas" | null
+  >(null);
   
   const [photos, setPhotos] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -946,9 +947,9 @@ const [
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
- const [filterStatus, setFilterStatus] = useState<
-  "all" | "folyamatban" | "kesz" | "nincsIdopont"
->("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "folyamatban" | "kesz" | "nincsIdopont"
+  >("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [scheduledDateFilter, setScheduledDateFilter] = useState("");
   const [showMap, setShowMap] = useState(false);
@@ -960,8 +961,8 @@ const [
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const [galleryImageIndex, setGalleryImageIndex] = useState<number | null>(null);
-const galleryTouchStartX = useRef<number | null>(null);
-const galleryTouchEndX = useRef<number | null>(null);
+  const galleryTouchStartX = useRef<number | null>(null);
+  const galleryTouchEndX = useRef<number | null>(null);
 
   const [envEmails, setEnvEmails] = useState<string[]>([]);
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
@@ -1000,18 +1001,17 @@ const galleryTouchEndX = useRef<number | null>(null);
     setNote("");
     setScheduledAt("");
     setCompletedAt("");
-setMachines([""]);
+    setMachines([""]);
 
-setMachineDetails([
-  {
-    maintenanceType: "",
-    warranty: null,
-  },
-]);
+    setMachineDetails([
+      {
+        maintenanceType: "",
+        warranty: null,
+      },
+    ]);
 
-setPaymentMethod(null);
-
-setPhotos([]);
+    setPaymentMethod(null);
+    setPhotos([]);
     setExistingImages([]);
     setEditingPhotoIndex(null);
     setEditingTaskId(null);
@@ -1136,115 +1136,76 @@ setPhotos([]);
   };
 
   const closeImageGallery = () => {
-  setGalleryImageIndex(null);
-  galleryTouchStartX.current = null;
-  galleryTouchEndX.current = null;
-};
-
-const showPreviousGalleryImage = () => {
-  if (
-    galleryImageIndex === null ||
-    !viewingTask?.images ||
-    viewingTask.images.length === 0
-  ) {
-    return;
-  }
-
-  setGalleryImageIndex((currentIndex) => {
-    if (currentIndex === null) return null;
-
-    return currentIndex === 0
-      ? viewingTask.images!.length - 1
-      : currentIndex - 1;
-  });
-};
-
-
-  
-
-const showNextGalleryImage = () => {
-  if (
-    galleryImageIndex === null ||
-    !viewingTask?.images ||
-    viewingTask.images.length === 0
-  ) {
-    return;
-  }
-
-  setGalleryImageIndex((currentIndex) => {
-    if (currentIndex === null) return null;
-
-    return currentIndex === viewingTask.images!.length - 1
-      ? 0
-      : currentIndex + 1;
-  });
-};
-
-const handleGalleryTouchStart = (
-  event: React.TouchEvent<HTMLDivElement>
-) => {
-  galleryTouchStartX.current = event.targetTouches[0].clientX;
-  galleryTouchEndX.current = null;
-};
-
-const handleGalleryTouchMove = (
-  event: React.TouchEvent<HTMLDivElement>
-) => {
-  galleryTouchEndX.current = event.targetTouches[0].clientX;
-};
-
-const handleGalleryTouchEnd = () => {
-  const startX = galleryTouchStartX.current;
-  const endX = galleryTouchEndX.current;
-
-  if (startX === null || endX === null) {
-    return;
-  }
-
-  const swipeDistance = startX - endX;
-  const minimumSwipeDistance = 50;
-
-  if (swipeDistance > minimumSwipeDistance) {
-    showNextGalleryImage();
-  } else if (swipeDistance < -minimumSwipeDistance) {
-    showPreviousGalleryImage();
-  }
-
-  galleryTouchStartX.current = null;
-  galleryTouchEndX.current = null;
-};
-  
-useEffect(() => {
-  if (galleryImageIndex === null) {
-    return;
-  }
-
-  const handleGalleryKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      showPreviousGalleryImage();
-    }
-
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      showNextGalleryImage();
-    }
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeImageGallery();
-    }
+    setGalleryImageIndex(null);
+    galleryTouchStartX.current = null;
+    galleryTouchEndX.current = null;
   };
 
-  window.addEventListener("keydown", handleGalleryKeyDown);
+  const showPreviousGalleryImage = () => {
+    if (
+      galleryImageIndex === null ||
+      !viewingTask?.images ||
+      viewingTask.images.length === 0
+    ) {
+      return;
+    }
 
-  return () => {
-    window.removeEventListener("keydown", handleGalleryKeyDown);
+    setGalleryImageIndex((currentIndex) => {
+      if (currentIndex === null) return null;
+
+      return currentIndex === 0
+        ? viewingTask.images!.length - 1
+        : currentIndex - 1;
+    });
   };
-}, [galleryImageIndex, viewingTask]);
 
+  const showNextGalleryImage = () => {
+    if (
+      galleryImageIndex === null ||
+      !viewingTask?.images ||
+      viewingTask.images.length === 0
+    ) {
+      return;
+    }
 
-  
+    setGalleryImageIndex((currentIndex) => {
+      if (currentIndex === null) return null;
+
+      return currentIndex === viewingTask.images!.length - 1
+        ? 0
+        : currentIndex + 1;
+    });
+  };
+
+  useEffect(() => {
+    if (galleryImageIndex === null) {
+      return;
+    }
+
+    const handleGalleryKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        showPreviousGalleryImage();
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        showNextGalleryImage();
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeImageGallery();
+      }
+    };
+
+    window.addEventListener("keydown", handleGalleryKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleGalleryKeyDown);
+    };
+  }, [galleryImageIndex, viewingTask]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -1271,75 +1232,68 @@ useEffect(() => {
       formData.append("address", address);
       formData.append("phone", phone);
       formData.append("email", email);
-    formData.append("note", note);
+      formData.append("note", note);
 
-/*
- * A gép nevét és a hozzá tartozó adatokat
- * együtt kezeljük, hogy a sorrend biztosan
- * ne csússzon el.
- */
-const cleanedMachineRows =
-  machines
-    .map((machine, index) => {
-      const cleanMachine =
-        machine.trim();
+      const cleanedMachineRows =
+        machines
+          .map((machine, index) => {
+            const cleanMachine =
+              machine.trim();
 
-      const detail =
-        machineDetails[index] || {
-          maintenanceType: "",
-          warranty: null,
-        };
+            const detail =
+              machineDetails[index] || {
+                maintenanceType: "",
+                warranty: null,
+              };
 
-      return {
-        machine: cleanMachine,
+            return {
+              machine: cleanMachine,
+              detail: {
+                maintenanceType:
+                  type === "karbantartas"
+                    ? detail.maintenanceType
+                    : "",
+                warranty:
+                  detail.warranty,
+              } as MachineDetail,
+            };
+          })
+          .filter(
+            (row) =>
+              row.machine !== ""
+          );
 
-        detail: {
-          maintenanceType:
-            type === "karbantartas"
-              ? detail.maintenanceType
-              : "",
+      const cleanedMachines =
+        cleanedMachineRows.map(
+          (row) => row.machine
+        );
 
-          warranty:
-            detail.warranty,
-        } as MachineDetail,
-      };
-    })
-    .filter(
-      (row) =>
-        row.machine !== ""
-    );
+      const cleanedMachineDetails =
+        cleanedMachineRows.map(
+          (row) => row.detail
+        );
 
-const cleanedMachines =
-  cleanedMachineRows.map(
-    (row) => row.machine
-  );
+      formData.append(
+        "machines",
+        JSON.stringify(cleanedMachines)
+      );
 
-const cleanedMachineDetails =
-  cleanedMachineRows.map(
-    (row) => row.detail
-  );
+      formData.append(
+        "machineDetails",
+        JSON.stringify(
+          cleanedMachineDetails
+        )
+      );
 
-formData.append(
-  "machines",
-  JSON.stringify(cleanedMachines)
-);
+      formData.append(
+        "paymentMethod",
+        paymentMethod || ""
+      );
 
-formData.append(
-  "machineDetails",
-  JSON.stringify(
-    cleanedMachineDetails
-  )
-);
-
-formData.append(
-  "paymentMethod",
-  paymentMethod || ""
-);
-
-formData.append(
-  "scheduledAt",
-  scheduledAt
-);
+      formData.append(
+        "scheduledAt",
+        scheduledAt
+      );
       formData.append("completedAt", completedAt);
       formData.append("latitude", latitude);
       formData.append("longitude", longitude);
@@ -1421,205 +1375,205 @@ formData.append(
     }
   };
 
-const startEditing = (task: Task) => {
-  setEditingTaskId(task.id);
+  const startEditing = (task: Task) => {
+    setEditingTaskId(task.id);
 
-  const taskType:
-    | "telepites"
-    | "karbantartas" =
-    task.type === "karbantartas"
-      ? "karbantartas"
-      : "telepites";
+    const taskType:
+      | "telepites"
+      | "karbantartas" =
+      task.type === "karbantartas"
+        ? "karbantartas"
+        : "telepites";
 
-  setType(taskType);
-  setName(task.name || "");
-  setAddress(task.address || "");
-  setPhone(task.phone || "");
+    setType(taskType);
+    setName(task.name || "");
+    setAddress(task.address || "");
+    setPhone(task.phone || "");
 
-  let taskEmail =
-    task.email || "";
+    let taskEmail =
+      task.email || "";
 
-  let taskNote =
-    task.note || "";
+    let taskNote =
+      task.note || "";
 
-  if (
-    !taskEmail &&
-    taskNote.includes("| Email:")
-  ) {
-    const parts =
-      taskNote.split("| Email:");
+    if (
+      !taskEmail &&
+      taskNote.includes("| Email:")
+    ) {
+      const parts =
+        taskNote.split("| Email:");
 
-    taskNote =
-      parts[0]?.trim() || "";
+      taskNote =
+        parts[0]?.trim() || "";
 
-    taskEmail =
-      parts
-        .slice(1)
-        .join("| Email:")
-        .trim();
-  }
+      taskEmail =
+        parts
+          .slice(1)
+          .join("| Email:")
+          .trim();
+    }
 
-  setEmail(taskEmail);
-  setNote(taskNote);
+    setEmail(taskEmail);
+    setNote(taskNote);
 
-  const taskMachines =
-    Array.isArray(task.machines) &&
-    task.machines.length > 0
-      ? task.machines
-      : [""];
+    const taskMachines =
+      Array.isArray(task.machines) &&
+      task.machines.length > 0
+        ? task.machines
+        : [""];
 
-  setMachines(taskMachines);
+    setMachines(taskMachines);
 
-  const loadedMachineDetails:
-    MachineDetail[] =
-      taskMachines.map(
-        (_, index) => {
-          const savedDetail =
-            Array.isArray(
-              task.machineDetails
-            )
-              ? task.machineDetails[
-                  index
-                ]
-              : undefined;
+    const loadedMachineDetails:
+      MachineDetail[] =
+        taskMachines.map(
+          (_, index) => {
+            const savedDetail =
+              Array.isArray(
+                task.machineDetails
+              )
+                ? task.machineDetails[
+                    index
+                  ]
+                : undefined;
 
-          let maintenanceType:
-            MachineDetail["maintenanceType"] =
-              "";
+            let maintenanceType:
+              MachineDetail["maintenanceType"] =
+                "";
 
-          if (
-            taskType ===
-              "karbantartas" &&
-            (
-              savedDetail
-                ?.maintenanceType ===
-                "mosas" ||
-              savedDetail
-                ?.maintenanceType ===
-                "fertotlenites"
-            )
-          ) {
-            maintenanceType =
-              savedDetail.maintenanceType;
-          }
-
-          let warranty:
-            boolean | null = null;
-
-          if (
-            savedDetail?.warranty ===
-            true
-          ) {
-            warranty = true;
-          } else if (
-            savedDetail?.warranty ===
-            false
-          ) {
-            warranty = false;
-          }
-
-          return {
-            maintenanceType,
-            warranty,
-          };
-        }
-      );
-
-  setMachineDetails(
-    loadedMachineDetails
-  );
-
-  if (
-    task.paymentMethod ===
-      "keszpenz" ||
-    task.paymentMethod ===
-      "atutalas"
-  ) {
-    setPaymentMethod(
-      task.paymentMethod
-    );
-  } else {
-    setPaymentMethod(null);
-  }
-
-  setScheduledAt(
-    task.scheduled_at
-      ? task.scheduled_at
-          .replace(" ", "T")
-          .slice(0, 16)
-      : ""
-  );
-
-  setCompletedAt(
-    task.completed_at
-      ? task.completed_at
-          .replace(" ", "T")
-          .slice(0, 16)
-      : ""
-  );
-
-  setPhotos([]);
-
-  setExistingImages(
-    Array.isArray(task.images)
-      ? task.images
-      : []
-  );
-
-  if (task.recipient_emails) {
-    const savedRecipients =
-      task.recipient_emails
-        .split(",")
-        .map((savedEmail) =>
-          savedEmail.trim()
-        )
-        .filter(Boolean);
-
-    setSelectedRecipients(
-      savedRecipients
-    );
-
-    setEnvEmails(
-      (previousEmails) => {
-        const mergedEmails = [
-          ...previousEmails,
-        ];
-
-        savedRecipients.forEach(
-          (savedEmail) => {
             if (
-              !mergedEmails.includes(
-                savedEmail
+              taskType ===
+                "karbantartas" &&
+              (
+                savedDetail
+                  ?.maintenanceType ===
+                  "mosas" ||
+                savedDetail
+                  ?.maintenanceType ===
+                  "fertotlenites"
               )
             ) {
-              mergedEmails.push(
-                savedEmail
-              );
+              maintenanceType =
+                savedDetail.maintenanceType;
             }
+
+            let warranty:
+              boolean | null = null;
+
+            if (
+              savedDetail?.warranty ===
+              true
+            ) {
+              warranty = true;
+            } else if (
+              savedDetail?.warranty ===
+              false
+            ) {
+              warranty = false;
+            }
+
+            return {
+              maintenanceType,
+              warranty,
+            };
           }
         );
 
-        return mergedEmails;
-      }
+    setMachineDetails(
+      loadedMachineDetails
     );
-  } else if (
-    envEmails.length > 0
-  ) {
-    setSelectedRecipients([
-      envEmails[0],
-    ]);
-  } else {
-    setSelectedRecipients([]);
-  }
 
-  setStatusMessage("");
-  setIsFormOpen(true);
+    if (
+      task.paymentMethod ===
+        "keszpenz" ||
+      task.paymentMethod ===
+        "atutalas"
+    ) {
+      setPaymentMethod(
+        task.paymentMethod
+      );
+    } else {
+      setPaymentMethod(null);
+    }
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth",
-  });
-};
+    setScheduledAt(
+      task.scheduled_at
+        ? task.scheduled_at
+            .replace(" ", "T")
+            .slice(0, 16)
+        : ""
+    );
+
+    setCompletedAt(
+      task.completed_at
+        ? task.completed_at
+            .replace(" ", "T")
+            .slice(0, 16)
+        : ""
+    );
+
+    setPhotos([]);
+
+    setExistingImages(
+      Array.isArray(task.images)
+        ? task.images
+        : []
+    );
+
+    if (task.recipient_emails) {
+      const savedRecipients =
+        task.recipient_emails
+          .split(",")
+          .map((savedEmail) =>
+            savedEmail.trim()
+          )
+          .filter(Boolean);
+
+      setSelectedRecipients(
+        savedRecipients
+      );
+
+      setEnvEmails(
+        (previousEmails) => {
+          const mergedEmails = [
+            ...previousEmails,
+          ];
+
+          savedRecipients.forEach(
+            (savedEmail) => {
+              if (
+                !mergedEmails.includes(
+                  savedEmail
+                )
+              ) {
+                mergedEmails.push(
+                  savedEmail
+                );
+              }
+            }
+          );
+
+          return mergedEmails;
+        }
+      );
+    } else if (
+      envEmails.length > 0
+    ) {
+      setSelectedRecipients([
+        envEmails[0],
+      ]);
+    } else {
+      setSelectedRecipients([]);
+    }
+
+    setStatusMessage("");
+    setIsFormOpen(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   const filteredTasks = tasks.filter((task) => {
     if (filterType !== "all" && task.type !== filterType) {
@@ -1629,15 +1583,15 @@ const startEditing = (task: Task) => {
     if (filterStatus === "folyamatban" && task.completed_at) {
       return false;
     }
-if (filterStatus === "kesz" && !task.completed_at) {
-  return false;
-}
-   if (
-  filterStatus === "nincsIdopont" &&
-  task.scheduled_at
-) {
-  return false;
-}
+    if (filterStatus === "kesz" && !task.completed_at) {
+      return false;
+    }
+    if (
+      filterStatus === "nincsIdopont" &&
+      task.scheduled_at
+    ) {
+      return false;
+    }
 
     if (scheduledDateFilter) {
       const taskScheduledDate = task.scheduled_at
@@ -1659,9 +1613,9 @@ if (filterStatus === "kesz" && !task.completed_at) {
         task.address,
         task.phone,
         task.email,
-       task.note,
-...(task.machines || []),
-task.scheduled_at,
+        task.note,
+        ...(task.machines || []),
+        task.scheduled_at,
         task.completed_at,
         task.created_at,
         task.completed_at ? "kész" : "folyamatban",
@@ -1747,304 +1701,592 @@ task.scheduled_at,
           }
         `}</style>
 
-{/* MUNKA RÉSZLETEI MODÁLIS */}
-{viewingTask && (
-  <div
-    onClick={() => {
-      closeImageGallery();
-      setViewingTask(null);
-    }}
-    style={{
-      position: "fixed",
-      inset: 0,
-      zIndex: 2000,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "16px",
-      boxSizing: "border-box",
-      background: "rgba(0, 0, 0, 0.55)",
-    }}
-  >
-    <div
-      onClick={(event) => event.stopPropagation()}
-      style={{
-        width: "100%",
-        maxWidth: "560px",
-        maxHeight: "90vh",
-        overflowY: "auto",
-        padding: "20px",
-        boxSizing: "border-box",
-        borderRadius: "12px",
-        background: "white",
-        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
-      }}
-    >
-      {/* FEJLÉC */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "12px",
-          paddingBottom: "10px",
-          marginBottom: "14px",
-          borderBottom: "1px solid #e5e7eb",
-        }}
-      >
-        <h2
-          style={{
-            margin: 0,
-            fontSize: "18px",
-          }}
-        >
-          {viewingTask.type === "telepites"
-            ? "🛠️ Telepítés részletei"
-            : "🧹 Karbantartás részletei"}
-        </h2>
-
-        <button
-          type="button"
-          onClick={() => {
-            closeImageGallery();
-            setViewingTask(null);
-          }}
-          aria-label="Részletek bezárása"
-          style={{
-            flexShrink: 0,
-            width: "38px",
-            height: "38px",
-            border: "none",
-            borderRadius: "50%",
-            background: "#dc2626",
-            color: "white",
-            fontSize: "18px",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* MUNKA ADATAI */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          fontSize: "14px",
-          lineHeight: 1.45,
-        }}
-      >
-        <div>
-          <strong>Státusz:</strong>{" "}
-          {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}
-        </div>
-
-        <div>
-          <strong>Név:</strong> {viewingTask.name || "-"}
-        </div>
-
-        <div>
-          <strong>Cím:</strong>{" "}
-          {viewingTask.address ? (
-            <a
-              href={
-                "https://www.google.com/maps/search/?api=1&query=" +
-                encodeURIComponent(viewingTask.address)
-              }
-              target="_blank"
-              rel="noopener noreferrer"
+        {/* MUNKA RÉSZLETEI MODÁLIS */}
+        {viewingTask && (
+          <div
+            onClick={() => {
+              closeImageGallery();
+              setViewingTask(null);
+            }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 2000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+              boxSizing: "border-box",
+              background: "rgba(0, 0, 0, 0.55)",
+            }}
+          >
+            <div
+              onClick={(event) => event.stopPropagation()}
               style={{
-                color: "#1d4ed8",
-                textDecoration: "underline",
-                fontWeight: "bold",
+                width: "100%",
+                maxWidth: "560px",
+                maxHeight: "90vh",
+                overflowY: "auto",
+                padding: "20px",
+                boxSizing: "border-box",
+                borderRadius: "12px",
+                background: "white",
+                boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
               }}
             >
-              📍 {viewingTask.address}
-            </a>
-          ) : (
-            "-"
-          )}
-        </div>
-
-        <div>
-          <strong>Telefon:</strong>{" "}
-          {viewingTask.phone ? (
-            <a
-              href={`tel:${viewingTask.phone}`}
-              style={{
-                color: "#16a34a",
-                textDecoration: "underline",
-                fontWeight: "bold",
-              }}
-            >
-              📞 {viewingTask.phone}
-            </a>
-          ) : (
-            "-"
-          )}
-        </div>
-
-        {viewingTask.email && (
-          <div>
-            <strong>Email:</strong>{" "}
-            <a
-              href={`mailto:${viewingTask.email}`}
-              style={{
-                color: "#2563eb",
-                textDecoration: "underline",
-              }}
-            >
-              ✉️ {viewingTask.email}
-            </a>
-          </div>
-        )}
-
-        <div style={{ textTransform: "capitalize" }}>
-          <strong>Tervezett időpont:</strong>{" "}
-          📅 {formatDateWithDay(viewingTask.scheduled_at)}
-        </div>
-
-        {viewingTask.completed_at && (
-          <div style={{ textTransform: "capitalize" }}>
-            <strong>Megvalósult időpont:</strong>{" "}
-            <span
-              style={{
-                color: "#16a34a",
-                fontWeight: "bold",
-              }}
-            >
-              ✅ {formatDateWithDay(viewingTask.completed_at)}
-            </span>
-          </div>
-        )}
-
-        <div>
-          <strong>Létrehozva:</strong>{" "}
-          {formatDateSimple(viewingTask.created_at)}
-        </div>
-
-     {Array.isArray(viewingTask.machines) &&
-  viewingTask.machines.filter(
-    (machine) =>
-      typeof machine === "string" &&
-      machine.trim() !== ""
-  ).length > 0 && (
-    <div>
-      <strong>
-        ❄️ Klíma típusok:
-      </strong>
-
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          marginTop: "7px",
-        }}
-      >
-        {viewingTask.machines
-          .filter(
-            (machine) =>
-              typeof machine === "string" &&
-              machine.trim() !== ""
-          )
-          .map((machine, index) => {
-            const detail =
-              viewingTask.machineDetails?.[
-                index
-              ];
-
-            return (
+              {/* FEJLÉC */}
               <div
-                key={`${viewingTask.id}-detail-machine-${index}`}
                 style={{
-                  padding: "10px",
-                  border:
-                    "1px solid #bae6fd",
-                  borderRadius: "8px",
-                  background: "#f0f9ff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  paddingBottom: "10px",
+                  marginBottom: "14px",
+                  borderBottom: "1px solid #e5e7eb",
                 }}
               >
-                <div
+                <h2
                   style={{
-                    color: "#0369a1",
-                    fontWeight: "bold",
+                    margin: 0,
+                    fontSize: "18px",
                   }}
                 >
-                  #{index + 1}{" "}
-                  {machine}
+                  {viewingTask.type === "telepites"
+                    ? "🛠️ Telepítés részletei"
+                    : "🧹 Karbantartás részletei"}
+                </h2>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeImageGallery();
+                    setViewingTask(null);
+                  }}
+                  aria-label="Részletek bezárása"
+                  style={{
+                    flexShrink: 0,
+                    width: "38px",
+                    height: "38px",
+                    border: "none",
+                    borderRadius: "50%",
+                    background: "#dc2626",
+                    color: "white",
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* MUNKA ADATAI */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  fontSize: "14px",
+                  lineHeight: 1.45,
+                }}
+              >
+                <div>
+                  <strong>Státusz:</strong>{" "}
+                  {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}
                 </div>
 
-                {viewingTask.type ===
-                  "karbantartas" && (
-                  <div
-                    style={{
-                      marginTop: "5px",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <strong>
-                      Karbantartás:
-                    </strong>{" "}
+                <div>
+                  <strong>Név:</strong> {viewingTask.name || "-"}
+                </div>
 
-                    {detail?.maintenanceType ===
-                    "mosas"
-                      ? "Mosás"
-                      : detail?.maintenanceType ===
-                          "fertotlenites"
-                        ? "Fertőtlenítés"
-                        : "Nincs megadva"}
+                <div>
+                  <strong>Cím:</strong>{" "}
+                  {viewingTask.address ? (
+                    <a
+                      href={
+                        "https://www.google.com/maps/search/?api=1&query=" +
+                        encodeURIComponent(viewingTask.address)
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: "#1d4ed8",
+                        textDecoration: "underline",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      📍 {viewingTask.address}
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </div>
+
+                <div>
+                  <strong>Telefon:</strong>{" "}
+                  {viewingTask.phone ? (
+                    <a
+                      href={`tel:${viewingTask.phone}`}
+                      style={{
+                        color: "#16a34a",
+                        textDecoration: "underline",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      📞 {viewingTask.phone}
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </div>
+
+                {viewingTask.email && (
+                  <div>
+                    <strong>Email:</strong>{" "}
+                    <a
+                      href={`mailto:${viewingTask.email}`}
+                      style={{
+                        color: "#2563eb",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      ✉️ {viewingTask.email}
+                    </a>
                   </div>
                 )}
 
+                <div style={{ textTransform: "capitalize" }}>
+                  <strong>Tervezett időpont:</strong>{" "}
+                  📅 {formatDateWithDay(viewingTask.scheduled_at)}
+                </div>
+
+                {viewingTask.completed_at && (
+                  <div style={{ textTransform: "capitalize" }}>
+                    <strong>Megvalósult időpont:</strong>{" "}
+                    <span
+                      style={{
+                        color: "#16a34a",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      ✅ {formatDateWithDay(viewingTask.completed_at)}
+                    </span>
+                  </div>
+                )}
+
+                <div>
+                  <strong>Létrehozva:</strong>{" "}
+                  {formatDateSimple(viewingTask.created_at)}
+                </div>
+
+                {Array.isArray(viewingTask.machines) &&
+                  viewingTask.machines.filter(
+                    (machine) =>
+                      typeof machine === "string" &&
+                      machine.trim() !== ""
+                  ).length > 0 && (
+                    <div>
+                      <strong>❄️ Klíma típusok:</strong>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "4px",
+                          marginTop: "4px",
+                        }}
+                      >
+                        {viewingTask.machines
+                          .filter(
+                            (machine) =>
+                              typeof machine === "string" &&
+                              machine.trim() !== ""
+                          )
+                          .map((machine, index) => (
+                            <span
+                              key={`view-machine-${index}`}
+                              style={{
+                                display: "inline-block",
+                                background: "#e0f2fe",
+                                color: "#0369a1",
+                                border: "1px solid #7dd3fc",
+                                borderRadius: "6px",
+                                padding: "2px 6px",
+                                fontSize: "11px",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {machine}
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                {viewingTask.note && (
+                  <div>
+                    <strong>Megjegyzés:</strong>
+                    <div
+                      style={{
+                        marginTop: "4px",
+                        color: "#333",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {viewingTask.note}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ÚJ MUNKA / SZERKESZTÉS ŰRLAP */}
+        <div
+          style={{
+            background: "#f8fafc",
+            padding: "16px",
+            borderRadius: "12px",
+            border: "1px solid #cbd5e1",
+            marginBottom: "20px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "12px",
+            }}
+          >
+            <h2 style={{ margin: 0, fontSize: "18px" }}>
+              {editingTaskId ? "✏️ Munka Szerkesztése" : "➕ Új Munka Kiadása"}
+            </h2>
+
+            {isFormOpen && (
+              <button
+                type="button"
+                onClick={resetForm}
+                style={{
+                  background: "#64748b",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 12px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "13px",
+                }}
+              >
+                Űrlap Bezárása
+              </button>
+            )}
+          </div>
+
+          {!isFormOpen ? (
+            <button
+              type="button"
+              onClick={() => setIsFormOpen(true)}
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: "#2563eb",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                fontWeight: "bold",
+                fontSize: "15px",
+                cursor: "pointer",
+              }}
+            >
+              ➕ Új Munka Létrehozása Űrlap Megnyitása
+            </button>
+          ) : (
+            <form onSubmit={handleSubmit} className="form-grid">
+              {statusMessage && (
                 <div
                   style={{
-                    marginTop: "5px",
-                    fontSize: "13px",
+                    gridColumn: "1 / -1",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    background:
+                      statusType === "success" ? "#dcfce7" : "#fef9c3",
+                    color:
+                      statusType === "success" ? "#166534" : "#854d0e",
+                    fontWeight: "bold",
+                    fontSize: "14px",
                   }}
                 >
-                  <strong>
-                    Garanciális:
-                  </strong>{" "}
+                  {statusMessage}
+                </div>
+              )}
 
-                  {detail?.warranty === true
-                    ? "Igen"
-                    : detail?.warranty === false
-                      ? "Nem"
-                      : "Nincs megadva"}
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Típus:</label>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value as "telepites" | "karbantartas")}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                >
+                  <option value="telepites">🛠️ Telepítés</option>
+                  <option value="karbantartas">🧹 Karbantartás</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Név:</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ügyfél neve..."
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Cím:</label>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Irányítószám, város, utca, házszám..."
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Telefon:</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+36..."
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Email:</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ugyfel@email.com..."
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <CustomDateTimePicker
+                  label="Tervezett időpont:"
+                  value={scheduledAt}
+                  onChange={setScheduledAt}
+                />
+              </div>
+
+              <div>
+                <CustomDateTimePicker
+                  label="Megvalósult időpont (ha kész):"
+                  value={completedAt}
+                  onChange={setCompletedAt}
+                />
+              </div>
+
+              {/* KLÍMAGÉPEK ÉS RÉSZLETEIK */}
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>Klíma gépek adatai:</label>
+                {machines.map((machine, index) => {
+                  const detail = machineDetails[index] || {
+                    maintenanceType: "",
+                    warranty: null,
+                  };
+
+                  return (
+                    <div
+                      key={`form-machine-${index}`}
+                      style={{
+                        marginBottom: "12px",
+                        padding: "12px",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "10px",
+                        background: "white",
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <input
+                          type="text"
+                          value={machine}
+                          placeholder={`Klíma típusa #${index + 1}`}
+                          onChange={(event) => {
+                            const updatedMachines = [...machines];
+                            updatedMachines[index] = event.target.value;
+                            setMachines(updatedMachines);
+                          }}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            padding: "10px",
+                            border: "1px solid #ccc",
+                            borderRadius: "8px",
+                            boxSizing: "border-box",
+                          }}
+                        />
+
+                        {machines.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMachines(machines.filter((_, i) => i !== index));
+                              setMachineDetails(machineDetails.filter((_, i) => i !== index));
+                            }}
+                            style={{
+                              flexShrink: 0,
+                              padding: "0 12px",
+                              border: "none",
+                              borderRadius: "8px",
+                              background: "#e74c3c",
+                              color: "white",
+                              fontWeight: "bold",
+                              cursor: "pointer",
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      {type === "karbantartas" && (
+                        <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #e5e7eb" }}>
+                          <div style={{ marginBottom: "7px", fontSize: "13px", fontWeight: "bold" }}>🧼 Karbantartás típusa:</div>
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 10px", border: detail.maintenanceType === "mosas" ? "2px solid #2563eb" : "1px solid #d1d5db", borderRadius: "8px", background: detail.maintenanceType === "mosas" ? "#eff6ff" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>
+                              <input
+                                type="radio"
+                                name={`form-maintenance-${index}`}
+                                checked={detail.maintenanceType === "mosas"}
+                                onChange={() => {
+                                  const updated = [...machineDetails];
+                                  updated[index] = { ...detail, maintenanceType: "mosas" };
+                                  setMachineDetails(updated);
+                                }}
+                              />
+                              Mosás
+                            </label>
+
+                            <label style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 10px", border: detail.maintenanceType === "fertotlenites" ? "2px solid #7c3aed" : "1px solid #d1d5db", borderRadius: "8px", background: detail.maintenanceType === "fertotlenites" ? "#f5f3ff" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>
+                              <input
+                                type="radio"
+                                name={`form-maintenance-${index}`}
+                                checked={detail.maintenanceType === "fertotlenites"}
+                                onChange={() => {
+                                  const updated = [...machineDetails];
+                                  updated[index] = { ...detail, maintenanceType: "fertotlenites" };
+                                  setMachineDetails(updated);
+                                }}
+                              />
+                              Fertőtlenítés
+                            </label>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #e5e7eb" }}>
+                        <div style={{ marginBottom: "7px", fontSize: "13px", fontWeight: "bold" }}>🛡️ Garanciális a gép?</div>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 10px", border: detail.warranty === true ? "2px solid #16a34a" : "1px solid #d1d5db", borderRadius: "8px", background: detail.warranty === true ? "#f0fdf4" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>
+                            <input
+                              type="radio"
+                              name={`form-warranty-${index}`}
+                              checked={detail.warranty === true}
+                              onChange={() => {
+                                const updated = [...machineDetails];
+                                updated[index] = { ...detail, warranty: true };
+                                setMachineDetails(updated);
+                              }}
+                            />
+                            Igen
+                          </label>
+
+                          <label style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 10px", border: detail.warranty === false ? "2px solid #dc2626" : "1px solid #d1d5db", borderRadius: "8px", background: detail.warranty === false ? "#fef2f2" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>
+                            <input
+                              type="radio"
+                              name={`form-warranty-${index}`}
+                              checked={detail.warranty === false}
+                              onChange={() => {
+                                const updated = [...machineDetails];
+                                updated[index] = { ...detail, warranty: false };
+                                setMachineDetails(updated);
+                              }}
+                            />
+                            Nem
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMachines([...machines, ""]);
+                    setMachineDetails([...machineDetails, { maintenanceType: "", warranty: null }]);
+                  }}
+                  style={{
+                    padding: "10px 14px",
+                    border: "none",
+                    borderRadius: "8px",
+                    background: "#2563eb",
+                    color: "white",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                  }}
+                >
+                  ➕ Új gép hozzáadása
+                </button>
+              </div>
+
+              {/* FIZETÉSI MÓD */}
+              <div style={{ gridColumn: "1 / -1", padding: "12px", border: "1px solid #d1d5db", borderRadius: "10px", background: "white" }}>
+                <div style={{ marginBottom: "8px", fontWeight: "bold" }}>💳 Fizetési mód:</div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 11px", border: paymentMethod === "keszpenz" ? "2px solid #16a34a" : "1px solid #d1d5db", borderRadius: "8px", background: paymentMethod === "keszpenz" ? "#f0fdf4" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === "keszpenz"}
+                      onChange={() => setPaymentMethod("keszpenz")}
+                    />
+                    Készpénz
+                  </label>
+
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 11px", border: paymentMethod === "atutalas" ? "2px solid #2563eb" : "1px solid #d1d5db", borderRadius: "8px", background: paymentMethod === "atutalas" ? "#eff6ff" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === "atutalas"}
+                      onChange={() => setPaymentMethod("atutalas")}
+                    />
+                    Átutalás
+                  </label>
                 </div>
               </div>
-            );
-          })}
-      </div>
-    </div>
-  )}
 
-<div>
-  <strong>
-    💳 Fizetési mód:
-  </strong>{" "}
-
-  {viewingTask.paymentMethod ===
-  "keszpenz"
-    ? "Készpénz"
-    : viewingTask.paymentMethod ===
-        "atutalas"
-      ? "Átutalás"
-      : "Nincs megadva"}
-</div>
-              <div>
+              <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés:</label>
-                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Egyéb részletek..." rows={3} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Egyéb részletek..."
+                  rows={3}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                />
               </div>
 
-             
-
               {/* Email értesítők */}
-              <div style={{ background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #ccc" }}>
+              <div style={{ gridColumn: "1 / -1", background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #ccc" }}>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>Értesítés küldése ezekre a címekre:</label>
                 {envEmails.map((emailAddr, index) => (
                   <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f9f9f9", padding: "6px 10px", borderRadius: "6px", marginBottom: "6px", border: "1px solid #eee" }}>
@@ -2061,225 +2303,7 @@ task.scheduled_at,
                 </div>
               </div>
 
-              {/* Képek kezelése */}
-              <div>
-                <label
-                  style={{
-                    fontWeight: "bold",
-                    display: "block",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Képek:
-                </label>
-
-                {existingImages.map((imgUrl, index) => (
-                  <div
-                    key={`existing-${index}`}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "8px",
-                      background: "white",
-                      padding: "8px",
-                      borderRadius: "6px",
-                      marginBottom: "6px",
-                      border: "1px solid #ccc",
-                    }}
-                  >
-                    <a
-                      href={imgUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: "#2563eb",
-                        textDecoration: "underline",
-                        fontSize: "13px",
-                      }}
-                    >
-                      📷 Mentett kép #{index + 1}
-                    </a>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveExistingImage(index)}
-                      style={{
-                        background: "#e74c3c",
-                        color: "white",
-                        border: "none",
-                        padding: "5px 8px",
-                        borderRadius: "4px",
-                        fontSize: "11px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Törlés
-                    </button>
-                  </div>
-                ))}
-
-                {photos.map((photo, index) => {
-                  const previewUrl = URL.createObjectURL(photo);
-
-                  return (
-                    <div
-                      key={`${photo.name}-${photo.lastModified}-${index}`}
-                      style={{
-                        background: "white",
-                        padding: "8px",
-                        borderRadius: "8px",
-                        marginBottom: "8px",
-                        border: "1px solid #ccc",
-                      }}
-                    >
-                      <img
-                        src={previewUrl}
-                        alt={`Feltöltött kép ${index + 1}`}
-                        style={{
-                          display: "block",
-                          width: "100%",
-                          maxHeight: "220px",
-                          objectFit: "contain",
-                          borderRadius: "6px",
-                          background: "#f3f4f6",
-                          marginBottom: "8px",
-                        }}
-                      />
-
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          marginBottom: "8px",
-                          wordBreak: "break-all",
-                        }}
-                      >
-                        📷 {photo.name}
-                      </div>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: "8px",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setEditingPhotoIndex(index)}
-                          style={{
-                            background: "#2563eb",
-                            color: "white",
-                            border: "none",
-                            padding: "8px",
-                            borderRadius: "6px",
-                            cursor: "pointer",
-                            fontWeight: "bold",
-                            fontSize: "12px",
-                          }}
-                        >
-                          ✏️ Rajzolás
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveNewPhoto(index)}
-                          style={{
-                            background: "#e74c3c",
-                            color: "white",
-                            border: "none",
-                            padding: "8px",
-                            borderRadius: "6px",
-                            cursor: "pointer",
-                            fontWeight: "bold",
-                            fontSize: "12px",
-                          }}
-                        >
-                          🗑️ Törlés
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "8px",
-                    marginTop: "10px",
-                  }}
-                >
-                  <label
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      background: "#16a34a",
-                      color: "white",
-                      padding: "11px 8px",
-                      borderRadius: "7px",
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                      fontSize: "13px",
-                      textAlign: "center",
-                    }}
-                  >
-                    📷 Fényképezés
-
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleAddPhoto}
-                      style={{ display: "none" }}
-                    />
-                  </label>
-
-                  <label
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      background: "#34495e",
-                      color: "white",
-                      padding: "11px 8px",
-                      borderRadius: "7px",
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                      fontSize: "13px",
-                      textAlign: "center",
-                    }}
-                  >
-                    🖼️ Galéria
-
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleAddPhoto}
-                      style={{ display: "none" }}
-                    />
-                  </label>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "7px",
-                    color: "#6b7280",
-                    fontSize: "11px",
-                  }}
-                >
-                  A fényképezővel egy új kép készíthető. A galériából egyszerre több kép is kiválasztható. Feltöltés után a Rajzolás gombbal jelölhetsz a képen.
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                }}
-              >
+              <div style={{ gridColumn: "1 / -1", display: "flex", gap: "10px", marginTop: "10px" }}>
                 <button
                   type="submit"
                   disabled={loading}
@@ -2336,31 +2360,22 @@ task.scheduled_at,
                 boxSizing: "border-box",
               }}
             >
-             <div
-  style={{
-    position: "relative",
-    flex: "0 0 230px",
-    minWidth: "140px",
-    maxWidth: "280px",
-  }}
->
-                
-               <input
-  type={scheduledDateFilter ? "date" : "text"}
-  value={scheduledDateFilter}
-  placeholder="📅 Dátum választása"
-  onFocus={(e) => {
-    e.target.type = "date";
-  }}
-  onBlur={(e) => {
-    if (!e.target.value) {
-      e.target.type = "text";
-    }
-  }}
-  onChange={(event) =>
-    setScheduledDateFilter(event.target.value)
-  }
-                 
+              <div style={{ position: "relative", flex: "1" }}>
+                <input
+                  type={scheduledDateFilter ? "date" : "text"}
+                  value={scheduledDateFilter}
+                  placeholder="📅 Dátum választása"
+                  onFocus={(e) => {
+                    e.target.type = "date";
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.value) {
+                      e.target.type = "text";
+                    }
+                  }}
+                  onChange={(event) =>
+                    setScheduledDateFilter(event.target.value)
+                  }
                   title="Keresés a tervezett időpontok között"
                   aria-label="Tervezett időpont szűrése"
                   style={{
@@ -2538,14 +2553,13 @@ task.scheduled_at,
               Státusz
             </div>
 
-           <div
-  style={{
-    display: "grid",
-   gridTemplateColumns: "repeat(4, 1fr)",
-    gap: "6px",
-  }}
->
-
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "6px",
+              }}
+            >
               <button
                 onClick={() => setFilterStatus("all")}
                 style={{
@@ -2595,36 +2609,35 @@ task.scheduled_at,
                 </div>
               </button>
 
-<button
-  onClick={() => setFilterStatus("nincsIdopont")}
-  style={{
-    padding: "8px",
-    borderRadius: "8px",
-    border:
-      filterStatus === "nincsIdopont"
-        ? "2px solid #8b5cf6"
-        : "1px solid #4b5563",
-    cursor: "pointer",
-    background:
-      filterStatus === "nincsIdopont"
-        ? "#8b5cf6"
-        : "#34495e",
-    color: "white",
-  }}
->
-  <div style={{ fontSize: "11px", fontWeight: "600" }}>
-    🚫 Nincs időpont
-  </div>
-  <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>
-    {tasks.filter((t) => !t.scheduled_at).length}
-  </div>
-</button>
-             
+              <button
+                onClick={() => setFilterStatus("nincsIdopont")}
+                style={{
+                  padding: "8px",
+                  borderRadius: "8px",
+                  border:
+                    filterStatus === "nincsIdopont"
+                      ? "2px solid #8b5cf6"
+                      : "1px solid #4b5563",
+                  cursor: "pointer",
+                  background:
+                    filterStatus === "nincsIdopont"
+                      ? "#8b5cf6"
+                      : "#34495e",
+                  color: "white",
+                }}
+              >
+                <div style={{ fontSize: "11px", fontWeight: "600" }}>
+                  🚫 Nincs időpont
+                </div>
+                <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>
+                  {tasks.filter((t) => !t.scheduled_at).length}
+                </div>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* LISTA KÁRTYÁK */}
+        {/* TÉRKÉP NÉZET VÁLTÓ */}
         <div style={{ marginBottom: "20px" }}>
           <button
             onClick={() => setShowMap(!showMap)}
@@ -2637,7 +2650,7 @@ task.scheduled_at,
               color: "white",
               fontWeight: "bold",
               cursor: "pointer",
-              fontSize: "16px"
+              fontSize: "16px",
             }}
           >
             {showMap ? "📋 Lista nézet" : "🗺️ Térkép nézet"}
@@ -2665,6 +2678,7 @@ task.scheduled_at,
           />
         )}
 
+        {/* LISTA KÁRTYÁK */}
         <div className="cards-grid">
           {filteredTasks.length === 0 ? (
             <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "#666", background: "#f9f9f9", borderRadius: "10px" }}>
@@ -2683,11 +2697,11 @@ task.scheduled_at,
                     background: selectedTaskId === task.id ? "#fff8d6" : "#fff",
                     border: selectedTaskId === task.id ? "2px solid #f39c12" : "1px solid #ddd",
                     borderLeft: `6px solid ${borderColor}`,
-                   borderRadius: "10px",
-padding: "10px 12px",
-display: "flex",
-flexDirection: "column",
-gap: "4px",
+                    borderRadius: "10px",
+                    padding: "10px 12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px",
                     boxShadow: selectedTaskId === task.id ? "0 0 15px rgba(243,156,18,0.65)" : "0 2px 5px rgba(0,0,0,0.05)",
                     transition: "all 0.3s ease",
                     scrollMarginTop: "30px",
@@ -2705,115 +2719,113 @@ gap: "4px",
                   <div><strong>Név:</strong> {task.name || "-"}</div>
                   <div><strong>Cím:</strong> {task.address || "-"}</div>
 
-               {Array.isArray(task.machines) &&
-  task.machines.filter(
-    (machine) =>
-      typeof machine === "string" &&
-      machine.trim() !== ""
-  ).length > 0 && (
-    <div>
-      <strong>❄️ Klíma típusok:</strong>
+                  {Array.isArray(task.machines) &&
+                    task.machines.filter(
+                      (machine) =>
+                        typeof machine === "string" &&
+                        machine.trim() !== ""
+                    ).length > 0 && (
+                      <div>
+                        <strong>❄️ Klíma típusok:</strong>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "4px",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {task.machines
+                            .filter(
+                              (machine) =>
+                                typeof machine === "string" &&
+                                machine.trim() !== ""
+                            )
+                            .map((machine, index) => (
+                              <span
+                                key={`${task.id}-machine-${index}`}
+                                style={{
+                                  display: "inline-block",
+                                  background: "#e0f2fe",
+                                  color: "#0369a1",
+                                  border: "1px solid #7dd3fc",
+                                  borderRadius: "6px",
+                                  padding: "2px 6px",
+                                  fontSize: "11px",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                {machine}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-         gap: "4px",
-marginTop: "2px",
-        }}
-      >
-        {task.machines
-          .filter(
-            (machine) =>
-              typeof machine === "string" &&
-              machine.trim() !== ""
-          )
-          .map((machine, index) => (
-            <span
-              key={`${task.id}-machine-${index}`}
-              style={{
-                display: "inline-block",
-                background: "#e0f2fe",
-                color: "#0369a1",
-                border: "1px solid #7dd3fc",
-                borderRadius: "6px",
-                padding: "2px 6px",
-fontSize: "11px",
-                fontWeight: "bold",
-              }}
-            >
-              {machine}
-            </span>
-          ))}
-      </div>
-    </div>
-  )}   
+                  {task.note && (
+                    <div>
+                      <strong>Megjegyzés:</strong>
+                      <div
+                        style={{
+                          marginTop: "4px",
+                          color: "#555",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {task.note}
+                      </div>
+                    </div>
+                  )}
 
-{task.note && (
-  <div>
-    <strong>Megjegyzés:</strong>
-    <div
-      style={{
-        marginTop: "4px",
-        color: "#555",
-        display: "-webkit-box",
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: "vertical",
-        overflow: "hidden",
-      }}
-    >
-      {task.note}
-    </div>
-  </div>
-)}
+                  <div style={{ textTransform: "capitalize" }}>
+                    <strong>Tervezett időpont:</strong>{" "}
+                    {formatDateWithDay(task.scheduled_at)}
+                  </div>
 
-                  
-                 <div style={{ textTransform: "capitalize" }}>
-  <strong>Tervezett időpont:</strong>{" "}
-  {formatDateWithDay(task.scheduled_at)}
-</div>
+                  {task.completed_at && (
+                    <div style={{ textTransform: "capitalize" }}>
+                      <strong>Megvalósult időpont:</strong>{" "}
+                      <span
+                        style={{
+                          color: "#16a34a",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ✅ {formatDateWithDay(task.completed_at)}
+                      </span>
+                    </div>
+                  )}
 
-{task.completed_at && (
-  <div style={{ textTransform: "capitalize" }}>
-    <strong>Megvalósult időpont:</strong>{" "}
-    <span
-      style={{
-        color: "#16a34a",
-        fontWeight: "bold",
-      }}
-    >
-      ✅ {formatDateWithDay(task.completed_at)}
-    </span>
-  </div>
-)}
-
-                 <div
-  style={{
-    display: "flex",
-    gap: "5px",
-    marginTop: "4px",
-    flexWrap: "wrap",
-  }}
->
-                   <button
-  type="button"
-  onClick={() => {
-    closeImageGallery();
-    setViewingTask(task);
-  }}
-  style={{
-    padding: "5px 9px",
-    background: "#2980b9",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontSize: "12px",
-    fontWeight: "bold",
-  }}
->
-  🔍 Részletek
-</button>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "5px",
+                      marginTop: "4px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeImageGallery();
+                        setViewingTask(task);
+                      }}
+                      style={{
+                        padding: "5px 9px",
+                        background: "#2980b9",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      🔍 Részletek
+                    </button>
                     <button onClick={() => startEditing(task)} style={{ padding: "5px 9px", background: "#f39c12", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>✏️ Szerkesztés</button>
                     <button onClick={() => handleDelete(task.id)} style={{ padding: "5px 9px", background: "#e74c3c", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>🗑️ Törlés</button>
                   </div>
