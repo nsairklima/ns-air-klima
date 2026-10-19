@@ -1497,261 +1497,167 @@ task.scheduled_at,
           }
         `}</style>
 
-        {/* RÉSZLETEK MODÁLIS */}
-        {viewingTask && (
-          <div style={{
-            position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
-            background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "16px"
-          }}>
-            <div style={{
-              background: "white", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "500px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: "12px", maxHeight: "90vh", overflowY: "auto"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #eee", paddingBottom: "8px" }}>
-                <h2 style={{ margin: 0, fontSize: "18px" }}>
-                  {viewingTask.type === "telepites" ? "🛠️ Telepítés Részletei" : "🧹 Karbantartás Részletei"}
-                </h2>
-                <button onClick={() => {
-  closeImageGallery();
-  setViewingTask(null);
-}}
-                  style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
-                <div><strong>Státusz:</strong> {viewingTask.completed_at ? "✅ Kész" : "⏳ Folyamatban"}</div>
-                <div><strong>Név:</strong> {viewingTask.name || "-"}</div>
-            
-                <div>
-                  <strong>Cím:</strong>{" "}
-                  {viewingTask.address ? (
-                    <a
-                      href={
-                        "https://www.google.com/maps/search/?api=1&query=" +
-                        encodeURIComponent(viewingTask.address)
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: "#1a0dab",
-                        textDecoration: "underline",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      📍 {viewingTask.address}
-                    </a>
-                  ) : (
-                    "-"
-                  )}
-                </div>
-
-                <div>
-                  <strong>Telefon:</strong>{" "}
-                  {viewingTask.phone ? (
-                    <a
-                      href={`tel:${viewingTask.phone}`}
-                      style={{
-                        color: "#27ae60",
-                        textDecoration: "underline", 
-                        fontWeight: "bold" 
-                      }}
-                    >
-                      📞 {viewingTask.phone}
-                    </a>
-                  ) : "-"}
-                </div>
-              {viewingTask.email && <div><strong>Email:</strong> ✉️ {viewingTask.email}</div>}
-{viewingTask.scheduled_at && <div><strong>Tervezett időpont:</strong> 📅 {formatDateWithDay(viewingTask.scheduled_at)}</div>}
-{viewingTask.completed_at && <div><strong>Megvalósult időpont:</strong> ✅ {formatDateWithDay(viewingTask.completed_at)}</div>}
-<div><strong>Létrehozva:</strong> {formatDateSimple(viewingTask.created_at)}</div>
-
-{viewingTask.machines && viewingTask.machines.length > 0 && (
-  <div>
-    <strong>📦 Klíma típusok:</strong> {viewingTask.machines.join(", ")}
-  </div>
-)}
-
-{viewingTask.note && (
-  <div>
-    <strong>Megjegyzés:</strong> {viewingTask.note}
-  </div>
-)}
-
-               <div>
-  <strong>Képek:</strong>
-
-  {viewingTask.images && viewingTask.images.length > 0 ? (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: "8px",
-        marginTop: "8px",
-      }}
-    >
-      {viewingTask.images.map((imgUrl, imageIndex) => (
-        <button
-          key={`${viewingTask.id}-image-${imageIndex}`}
-          type="button"
-          onClick={() => setGalleryImageIndex(imageIndex)}
-          aria-label={`${imageIndex + 1}. kép megnyitása`}
-          style={{
-            position: "relative",
-            display: "block",
-            width: "100%",
-            aspectRatio: "1 / 1",
-            padding: 0,
-            overflow: "hidden",
-            border: "1px solid #d1d5db",
-            borderRadius: "8px",
-            background: "#f3f4f6",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src={imgUrl}
-            alt={`${viewingTask.name || "Munka"} – ${imageIndex + 1}. kép`}
-            loading="lazy"
-            style={{
-              display: "block",
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-
-          <span
-            style={{
-              position: "absolute",
-              right: "5px",
-              bottom: "5px",
-              padding: "2px 6px",
-              borderRadius: "10px",
-              background: "rgba(0, 0, 0, 0.7)",
-              color: "white",
-              fontSize: "10px",
-              fontWeight: "bold",
-            }}
-          >
-            {imageIndex + 1}/{viewingTask.images.length}
-          </span>
-        </button>
-      ))}
-    </div>
-  ) : (
-    <span
-      style={{
-        color: "#aaa",
-        fontSize: "13px",
-        display: "block",
-        marginTop: "4px",
-      }}
-    >
-      Nincs csatolt kép
-    </span>
-  )}
-</div>
-
-
-
-                
-              </div>
-
-              <button onClick={() => {
-  closeImageGallery();
-  setViewingTask(null);
-}}
-                style={{ marginTop: "12px", background: "#6c757d", color: "white", border: "none", padding: "10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
-                Bezárás
-              </button>
-            </div>
-          </div>
-        )}
-
-{/* LAPOZHATÓ KÉPGALÉRIA */}
+      {/* LAPOZHATÓ KÉPGALÉRIA */}
 {viewingTask &&
-  galleryImageI*dex !== null &&
-  viewingTask.imag*s &&
+  galleryImageIndex !== null &&
+  viewingTask.images &&
   viewingTask.images[galleryImageIndex] && (
     <div
-      onCl*ck={closeImageGallery}
-      onTou*hStart={handleGalleryTouchStart}
- *    onTouchMove={handleGalleryTouc*Move}
-      onTouchEnd={handleGall*ryTouchEnd}
+      onClick={closeImageGallery}
+      onTouchStart={handleGalleryTouchStart}
+      onTouchMove={handleGalleryTouchMove}
+      onTouchEnd={handleGalleryTouchEnd}
       style={{
-       *position: "fixed",
-        inset: *,
+        position: "fixed",
+        inset: 0,
         zIndex: 2500,
-        di*play: "flex",
-        alignItems: *center",
-        justifyContent: "*enter",
-        background: "rgba(*, 0, 0, 0.94)",
-        padding: "*2px",
-        boxSizing: "border-b*x",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0, 0, 0, 0.94)",
+        padding: "12px",
+        boxSizing: "border-box",
         touchAction: "pan-y",
-*       userSelect: "none",
-      }*
+        userSelect: "none",
+      }}
     >
+      {/* BEZÁRÁS */}
       <button
-        type=*button"
-        onClick={(event) =* {
-          event.stopPropagation*);
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
           closeImageGallery();
-*       }}
-        aria-label="Képg*léria bezárása"
-        style={{
- *        position: "fixed",
-       *  top: "14px",
-          right: "1*px",
-          zIndex: 2503,
-     *    width: "42px",
-          heigh*: "42px",
-          border: "none"*
-          borderRadius: "50%",
-  *       background: "rgba(220, 38, *8, 0.95)",
-          color: "white*,
-          fontSize: "22px",
-    *     fontWeight: "bold",
-         *cursor: "pointer",
         }}
-    * >
+        aria-label="Képgaléria bezárása"
+        style={{
+          position: "fixed",
+          top: "14px",
+          right: "14px",
+          zIndex: 2503,
+          width: "42px",
+          height: "42px",
+          border: "none",
+          borderRadius: "50%",
+          background: "rgba(220, 38, 38, 0.95)",
+          color: "white",
+          fontSize: "22px",
+          fontWeight: "bold",
+          cursor: "pointer",
+        }}
+      >
         ✕
       </button>
 
-    * {viewingTask.images.length > 1 &&*(
+      {/* BAL NYÍL */}
+      {viewingTask.images.length > 1 && (
         <button
-          type="*utton"
-          onClick={(event) *> {
-            event.stopPropagat*on();
-            showPreviousGall*ryImage();
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            showPreviousGalleryImage();
           }}
-          *ria-label="Előző kép"
-          st*le={{
-            position: "fixed*,
+          aria-label="Előző kép"
+          style={{
+            position: "fixed",
             left: "10px",
-      *     top: "50%",
-            zInde*: 2503,
-            transform: "tr*nslateY(-50%)",
-            width:*"46px",
-            height: "60px"*
+            top: "50%",
+            zIndex: 2503,
+            transform: "translateY(-50%)",
+            width: "46px",
+            height: "60px",
             border: "none",
-     *      borderRadius: "10px",
-      *     background: "rgba(255, 255, 2*5, 0.88)",
-            color: "#11*827",
-            fontSize: "30px"*
+            borderRadius: "10px",
+            background: "rgba(255, 255, 255, 0.88)",
+            color: "#111827",
+            fontSize: "30px",
             fontWeight: "bold",
- *          cursor: "pointer",
-     *    }}
+            cursor: "pointer",
+          }}
         >
           ‹
-     *  </button>
+        </button>
       )}
 
+      {/* AKTUÁLIS KÉP */}
       <div
- *      onClick={(event) => event.st*pPropagation()}
+        onClick={(event) => event.stopPropagation()}
         style={{
- *        width: "100%",
-          h*
+          width: "100%",
+          height: "100%",
+          maxWidth: "1200px",
+          maxHeight: "92vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "10px",
+        }}
+      >
+        <img
+          src={viewingTask.images[galleryImageIndex]}
+          alt={`${viewingTask.name || "Munka"} – ${
+            galleryImageIndex + 1
+          }. kép`}
+          draggable={false}
+          style={{
+            display: "block",
+            maxWidth: "100%",
+            maxHeight: "82vh",
+            width: "auto",
+            height: "auto",
+            objectFit: "contain",
+            borderRadius: "8px",
+            background: "#111",
+          }}
+        />
+
+        {/* KÉPSZÁMLÁLÓ */}
+        <div
+          style={{
+            padding: "6px 12px",
+            borderRadius: "16px",
+            background: "rgba(255, 255, 255, 0.15)",
+            color: "white",
+            fontSize: "13px",
+            fontWeight: "bold",
+          }}
+        >
+          {galleryImageIndex + 1} / {viewingTask.images.length}
+        </div>
+      </div>
+
+      {/* JOBB NYÍL */}
+      {viewingTask.images.length > 1 && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            showNextGalleryImage();
+          }}
+          aria-label="Következő kép"
+          style={{
+            position: "fixed",
+            right: "10px",
+            top: "50%",
+            zIndex: 2503,
+            transform: "translateY(-50%)",
+            width: "46px",
+            height: "60px",
+            border: "none",
+            borderRadius: "10px",
+            background: "rgba(255, 255, 255, 0.88)",
+            color: "#111827",
+            fontSize: "30px",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          ›
+        </button>
+      )}
+    </div>
+  )}
+
 
         
         {statusMessage && (
