@@ -147,24 +147,34 @@ model CalendarEvent {
 
 // 🛠️ MUNKÁK / TELEPÍTÉSEK MODEL
 model Task {
-  id           Int      @id @default(autoincrement())
-  type         String   @default("installation")
-  title        String?
-  clientName   String?
-  phone        String?
-  address      String?
-  assignedTo   String?
-  date         String?
-  description  String?
-  status       String   @default("pending")
-  scheduled_at DateTime?
-  completed_at DateTime?
-  images       String   @default("[]")
-  machines     String   @default("[]")
-  latitude     Float?
-  longitude    Float?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  type           String   @default("installation")
+  title          String?
+  clientName     String?
+  phone          String?
+  address        String?
+  assignedTo     String?
+  date           String?
+  description    String?
+  status         String   @default("pending")
+  scheduled_at   DateTime?
+  completed_at   DateTime?
+  images         String   @default("[]")
+  machines       String   @default("[]")
+
+  // Gépenkénti kiegészítő adatok JSON formátumban
+  // Karbantartás típusa: "mosas" vagy "fertotlenites"
+  // Garanciális állapot: true vagy false
+  machineDetails String   @default("[]")
+
+  // A teljes munka fizetési módja:
+  // "keszpenz" vagy "atutalas"
+  paymentMethod  String?
+
+  latitude       Float?
+  longitude      Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model EmailSetting {
