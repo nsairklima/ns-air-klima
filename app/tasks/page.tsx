@@ -925,6 +925,10 @@ export default function TasksPage() {
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
+  const [galleryImageIndex, setGalleryImageIndex] = useState<number | null>(null);
+const galleryTouchStartX = useRef<number | null>(null);
+const galleryTouchEndX = useRef<number | null>(null);
+
   const [envEmails, setEnvEmails] = useState<string[]>([]);
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [customEmailInput, setCustomEmailInput] = useState("");
@@ -1087,6 +1091,116 @@ export default function TasksPage() {
     setExistingImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
+  const closeImageGallery = () => {
+  setGalleryImageIndex(null);
+  galleryTouchStartX.current = null;
+  galleryTouchEndX.current = null;
+};
+
+const showPreviousGalleryImage = () => {
+  if (
+    galleryImageIndex === null ||
+    !viewingTask?.images ||
+    viewingTask.images.length === 0
+  ) {
+    return;
+  }
+
+  setGalleryImageIndex((currentIndex) => {
+    if (currentIndex === null) return null;
+
+    return currentIndex === 0
+      ? viewingTask.images!.length - 1
+      : currentIndex - 1;
+  });
+};
+
+
+  
+
+const showNextGalleryImage = () => {
+  if (
+    galleryImageIndex === null ||
+    !viewingTask?.images ||
+    viewingTask.images.length === 0
+  ) {
+    return;
+  }
+
+  setGalleryImageIndex((currentIndex) => {
+    if (currentIndex === null) return null;
+
+    return currentIndex === viewingTask.images!.length - 1
+      ? 0
+      : currentIndex + 1;
+  });
+};
+
+const handleGalleryTouchStart = (
+  event: React.TouchEvent<HTMLDivElement>
+) => {
+  galleryTouchStartX.current = event.targetTouches[0].clientX;
+  galleryTouchEndX.current = null;
+};
+
+const handleGalleryTouchMove = (
+  event: React.TouchEvent<HTMLDivElement>
+) => {
+  galleryTouchEndX.current = event.targetTouches[0].clientX;
+};
+
+const handleGalleryTouchEnd = () => {
+  const startX = galleryTouchStartX.current;
+  const endX = galleryTouchEndX.current;
+
+  if (startX === null || endX === null) {
+    return;
+  }
+
+  const swipeDistance = startX - endX;
+  const minimumSwipeDistance = 50;
+
+  if (swipeDistance > minimumSwipeDistance) {
+    showNextGalleryImage();
+  } else if (swipeDistance < -minimumSwipeDistance) {
+    showPreviousGalleryImage();
+  }
+
+  galleryTouchStartX.current = null;
+  galleryTouchEndX.current = null;
+};
+  
+useEffect(() => {
+  if (galleryImageIndex === null) {
+    return;
+  }
+
+  const handleGalleryKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      showPreviousGalleryImage();
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      showNextGalleryImage();
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeImageGallery();
+    }
+  };
+
+  window.addEventListener("keydown", handleGalleryKeyDown);
+
+  return () => {
+    window.removeEventListener("keydown", handleGalleryKeyDown);
+  };
+}, [galleryImageIndex, viewingTask]);
+
+
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -1397,7 +1511,11 @@ task.scheduled_at,
                 <h2 style={{ margin: 0, fontSize: "18px" }}>
                   {viewingTask.type === "telepites" ? "🛠️ Telepítés Részletei" : "🧹 Karbantartás Részletei"}
                 </h2>
-                <button onClick={() => setViewingTask(null)} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
+                <button onClick={() => {
+  closeImageGallery();
+  setViewingTask(null);
+}}
+                  style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
@@ -1459,29 +1577,183 @@ task.scheduled_at,
   </div>
 )}
 
-                <div>
-                  <strong>Képek:</strong>
-                  {viewingTask.images && viewingTask.images.length > 0 ? (
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
-                      {viewingTask.images.map((imgUrl, i) => (
-                        <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none", fontWeight: "bold", fontSize: "12px", background: "#f1f1f1", padding: "4px 8px", borderRadius: "4px" }}>
-                          🖼️ {i + 1}. kép megtekintése
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <span style={{ color: "#aaa", fontSize: "13px", display: "block" }}>Nincs csatolt kép</span>
-                  )}
-                </div>
+               <div>
+  <strong>Képek:</strong>
+
+  {viewingTask.images && viewingTask.images.length > 0 ? (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        gap: "8px",
+        marginTop: "8px",
+      }}
+    >
+      {viewingTask.images.map((imgUrl, imageIndex) => (
+        <button
+          key={`${viewingTask.id}-image-${imageIndex}`}
+          type="button"
+          onClick={() => setGalleryImageIndex(imageIndex)}
+          aria-label={`${imageIndex + 1}. kép megnyitása`}
+          style={{
+            position: "relative",
+            display: "block",
+            width: "100%",
+            aspectRatio: "1 / 1",
+            padding: 0,
+            overflow: "hidden",
+            border: "1px solid #d1d5db",
+            borderRadius: "8px",
+            background: "#f3f4f6",
+            cursor: "pointer",
+          }}
+        >
+          <img
+            src={imgUrl}
+            alt={`${viewingTask.name || "Munka"} – ${imageIndex + 1}. kép`}
+            loading="lazy"
+            style={{
+              display: "block",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+
+          <span
+            style={{
+              position: "absolute",
+              right: "5px",
+              bottom: "5px",
+              padding: "2px 6px",
+              borderRadius: "10px",
+              background: "rgba(0, 0, 0, 0.7)",
+              color: "white",
+              fontSize: "10px",
+              fontWeight: "bold",
+            }}
+          >
+            {imageIndex + 1}/{viewingTask.images.length}
+          </span>
+        </button>
+      ))}
+    </div>
+  ) : (
+    <span
+      style={{
+        color: "#aaa",
+        fontSize: "13px",
+        display: "block",
+        marginTop: "4px",
+      }}
+    >
+      Nincs csatolt kép
+    </span>
+  )}
+</div>
+
+
+
+                
               </div>
 
-              <button onClick={() => setViewingTask(null)} style={{ marginTop: "12px", background: "#6c757d", color: "white", border: "none", padding: "10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+              <button onClick={() => {
+  closeImageGallery();
+  setViewingTask(null);
+}}
+                style={{ marginTop: "12px", background: "#6c757d", color: "white", border: "none", padding: "10px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
                 Bezárás
               </button>
             </div>
           </div>
         )}
 
+{/* LAPOZHATÓ KÉPGALÉRIA */}
+{viewingTask &&
+  galleryImageI*dex !== null &&
+  viewingTask.imag*s &&
+  viewingTask.images[galleryImageIndex] && (
+    <div
+      onCl*ck={closeImageGallery}
+      onTou*hStart={handleGalleryTouchStart}
+ *    onTouchMove={handleGalleryTouc*Move}
+      onTouchEnd={handleGall*ryTouchEnd}
+      style={{
+       *position: "fixed",
+        inset: *,
+        zIndex: 2500,
+        di*play: "flex",
+        alignItems: *center",
+        justifyContent: "*enter",
+        background: "rgba(*, 0, 0, 0.94)",
+        padding: "*2px",
+        boxSizing: "border-b*x",
+        touchAction: "pan-y",
+*       userSelect: "none",
+      }*
+    >
+      <button
+        type=*button"
+        onClick={(event) =* {
+          event.stopPropagation*);
+          closeImageGallery();
+*       }}
+        aria-label="Képg*léria bezárása"
+        style={{
+ *        position: "fixed",
+       *  top: "14px",
+          right: "1*px",
+          zIndex: 2503,
+     *    width: "42px",
+          heigh*: "42px",
+          border: "none"*
+          borderRadius: "50%",
+  *       background: "rgba(220, 38, *8, 0.95)",
+          color: "white*,
+          fontSize: "22px",
+    *     fontWeight: "bold",
+         *cursor: "pointer",
+        }}
+    * >
+        ✕
+      </button>
+
+    * {viewingTask.images.length > 1 &&*(
+        <button
+          type="*utton"
+          onClick={(event) *> {
+            event.stopPropagat*on();
+            showPreviousGall*ryImage();
+          }}
+          *ria-label="Előző kép"
+          st*le={{
+            position: "fixed*,
+            left: "10px",
+      *     top: "50%",
+            zInde*: 2503,
+            transform: "tr*nslateY(-50%)",
+            width:*"46px",
+            height: "60px"*
+            border: "none",
+     *      borderRadius: "10px",
+      *     background: "rgba(255, 255, 2*5, 0.88)",
+            color: "#11*827",
+            fontSize: "30px"*
+            fontWeight: "bold",
+ *          cursor: "pointer",
+     *    }}
+        >
+          ‹
+     *  </button>
+      )}
+
+      <div
+ *      onClick={(event) => event.st*pPropagation()}
+        style={{
+ *        width: "100%",
+          h*
+
+        
         {statusMessage && (
           <div
             style={{
