@@ -1176,6 +1176,40 @@ export default function TasksPage() {
     });
   };
 
+  const handleGalleryTouchStart = (
+    event: React.TouchEvent<HTMLDivElement>
+  ) => {
+    galleryTouchStartX.current = event.targetTouches[0].clientX;
+    galleryTouchEndX.current = null;
+  };
+
+  const handleGalleryTouchMove = (
+    event: React.TouchEvent<HTMLDivElement>
+  ) => {
+    galleryTouchEndX.current = event.targetTouches[0].clientX;
+  };
+
+  const handleGalleryTouchEnd = () => {
+    const startX = galleryTouchStartX.current;
+    const endX = galleryTouchEndX.current;
+
+    if (startX === null || endX === null) {
+      return;
+    }
+
+    const swipeDistance = startX - endX;
+    const minimumSwipeDistance = 50;
+
+    if (swipeDistance > minimumSwipeDistance) {
+      showNextGalleryImage();
+    } else if (swipeDistance < -minimumSwipeDistance) {
+      showPreviousGalleryImage();
+    }
+
+    galleryTouchStartX.current = null;
+    galleryTouchEndX.current = null;
+  };
+
   useEffect(() => {
     if (galleryImageIndex === null) {
       return;
