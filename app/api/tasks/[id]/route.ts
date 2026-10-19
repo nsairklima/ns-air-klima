@@ -26,6 +26,14 @@ type ClientSyncResult = {
   clientId?: number;
 };
 
+type MachineDetail = {
+  maintenanceType:
+    | "mosas"
+    | "fertotlenites"
+    | "";
+  warranty: boolean | null;
+};
+
 function cleanText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -78,6 +86,81 @@ function parseMachines(value: FormDataEntryValue | null): string[] {
     return [];
   }
 }
+function parseMachineDetails(
+  value: FormDataEntryValue | null,
+  taskType: string
+): MachineDetail[] | null {
+  const raw = cleanText(value);
+
+  /*
+   * Ha a frontend még egyáltalán nem küldte el
+   * ezt a mezőt, null értéket adunk vissza.
+   *
+   * Így nem töröljük véletlenül a korábban
+   * elmentett gépadatokat.
+   */
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.map(
+      (detail): MachineDetail => {
+        let maintenanceType:
+          MachineDetail["maintenanceType"] =
+            "";
+
+        if (
+          detail?.maintenanceType ===
+            "mosas" ||
+          detail?.maintenanceType ===
+            "fertotlenites"
+        ) {
+          maintenanceType =
+            detail.maintenanceType;
+        }
+
+        let warranty:
+          boolean | null = null;
+
+        if (detail?.warranty === true) {
+          warranty = true;
+        } else if (
+          detail?.warranty === false
+        ) {
+          warranty = false;
+        }
+
+        return {
+          /*
+           * Mosás vagy fertőtlenítés csak
+           * karbantartási munkánál marad meg.
+           */
+          maintenanceType:
+            taskType === "karbantartas"
+              ? maintenanceType
+              : "",
+
+          warranty,
+        };
+      }
+    );
+  } catch (error) {
+    console.error(
+      "A gépek kiegészítő adatainak feldolgozása sikertelen:",
+      error
+    );
+
+    return null;
+  }
+}
+
 
 function parseOptionalNumber(value: FormDataEntryValue | null): number | null {
   const raw = cleanText(value);
@@ -452,6 +535,52 @@ async function syncMachinesToClient({
   return { createdMachines, existingMachines };
 }
 
+function getMaintenanceTypeLabel(
+  maintenanceType:
+    MachineDetail["maintenanceType"]
+): string {
+  if (maintenanceType === "mosas") {
+    return "Mosás";
+  }
+
+  if (
+    maintenanceType ===
+    "fertotlenites"
+  ) {
+    return "Fertőtlenítés";
+  }
+
+  return "Nincs megadva";
+}
+
+function getWarrantyLabel(
+  warranty: boolean | null
+): string {
+  if (warranty === true) {
+    return "Igen";
+  }
+
+  if (warranty === false) {
+    return "Nem";
+  }
+
+  return "Nincs megadva";
+}
+
+function getPaymentMethodLabel(
+  paymentMethod: string | null
+): string {
+  if (paymentMethod === "keszpenz") {
+    return "Készpénz";
+  }
+
+  if (paymentMethod === "atutalas") {
+    return "Átutalás";
+  }
+
+  return "Nincs megadva";
+}
+
 export async function DELETE(
   request: Request,
   props: {
@@ -526,10 +655,44 @@ export async function PUT(
     const address = cleanText(formData.get("address"));
     const phone = cleanText(formData.get("phone"));
     const email = cleanText(formData.get("email"));
-    const note = cleanText(formData.get("note"));
-    const machines = parseMachines(formData.get("machines"));
-    const latitude = parseOptionalNumber(formData.get("latitude"));
-    const longitude = parseOptionalNumber(formData.get("longitude"));
+    const note =
+  cleanText(formData.get("note"));
+
+const machines =
+  parseMachines(
+    formData.get("machines")
+  );
+
+const incomingMachineDetails =
+  parseMachineDetails(
+    formData.get("machineDetails"),
+    type
+  );
+
+const paymentMethodRaw =
+  cleanText(
+    formData.get("paymentMethod")
+  );
+
+const incomingPaymentMethod:
+  "keszpenz" |
+  "atutalas" |
+  null =
+    paymentMethodRaw === "keszpenz" ||
+    paymentMethodRaw === "atutalas"
+      ? paymentMethodRaw
+      : null;
+
+const latitude =
+  parseOptionalNumber(
+    formData.get("latitude")
+  );
+
+const longitude =
+  parseOptionalNumber(
+    formData.get("longitude")
+  );
+    
 
     const recipientsRaw = cleanText(formData.get("recipients"));
     let notificationEmails: string[] = [];
@@ -580,11 +743,14 @@ export async function PUT(
         ? `Email: ${email}`
         : "";
 
-    const currentTasks = await sql`
-      SELECT "images"
-      FROM "Task"
-      WHERE "id" = ${taskId}
-    `;
+   const currentTasks = await sql`
+  SELECT
+    "images",
+    "machineDetails",
+    "paymentMethod"
+  FROM "Task"
+  WHERE "id" = ${taskId}
+`;
 
     if (currentTasks.length === 0) {
       return NextResponse.json(
@@ -606,6 +772,71 @@ export async function PUT(
       }
     }
 
+let oldMachineDetails:
+  MachineDetail[] = [];
+
+if (currentTasks[0].machineDetails) {
+  try {
+    const parsedOldDetails =
+      typeof currentTasks[0]
+        .machineDetails === "string"
+        ? JSON.parse(
+            currentTasks[0]
+              .machineDetails
+          )
+        : currentTasks[0]
+            .machineDetails;
+
+    if (
+      Array.isArray(
+        parsedOldDetails
+      )
+    ) {
+      oldMachineDetails =
+        parsedOldDetails.map(
+          (detail): MachineDetail => {
+            const maintenanceType =
+              detail
+                ?.maintenanceType ===
+                "mosas" ||
+              detail
+                ?.maintenanceType ===
+                "fertotlenites"
+                ? detail.maintenanceType
+                : "";
+
+            const warranty =
+              detail?.warranty === true
+                ? true
+                : detail?.warranty === false
+                  ? false
+                  : null;
+
+            return {
+              maintenanceType,
+              warranty,
+            };
+          }
+        );
+    }
+  } catch (error) {
+    console.error(
+      "A korábbi gépadatok feldolgozása sikertelen:",
+      error
+    );
+
+    oldMachineDetails = [];
+  }
+}
+
+const storedPaymentMethod =
+  currentTasks[0].paymentMethod ===
+    "keszpenz" ||
+  currentTasks[0].paymentMethod ===
+    "atutalas"
+    ? currentTasks[0].paymentMethod
+    : null;
+    
     let keptImages: string[] = [];
     const existingImagesRaw = cleanText(formData.get("existingImages"));
 
@@ -674,6 +905,59 @@ export async function PUT(
 
     const finalImages = [...keptImages, ...newImageUrls];
 
+    /*
+ * Ha az űrlap elküldte az új gépadatokat,
+ * azokat használjuk.
+ *
+ * Ha nem küldte el, megtartjuk a korábbi
+ * adatbázisban lévő értékeket.
+ */
+const sourceMachineDetails =
+  incomingMachineDetails !== null
+    ? incomingMachineDetails
+    : oldMachineDetails;
+
+/*
+ * A kiegészítő lista hosszát hozzáigazítjuk
+ * a gépek számához.
+ */
+const finalMachineDetails:
+  MachineDetail[] =
+    machines.map((_, index) => {
+      const detail =
+        sourceMachineDetails[
+          index
+        ];
+
+      if (!detail) {
+        return {
+          maintenanceType: "",
+          warranty: null,
+        };
+      }
+
+      return {
+        maintenanceType:
+          type === "karbantartas"
+            ? detail.maintenanceType
+            : "",
+
+        warranty:
+          detail.warranty,
+      };
+    });
+
+/*
+ * Ha a frontend elküldte a fizetési módot,
+ * az új értéket használjuk.
+ *
+ * Ha még nem küldte el, megtartjuk a
+ * korábbi adatbázisértéket.
+ */
+const finalPaymentMethod =
+  incomingPaymentMethod ||
+  storedPaymentMethod;
+
     const updatedTasks = await sql`
       UPDATE "Task"
       SET
@@ -683,9 +967,17 @@ export async function PUT(
         "address" = ${address},
         "phone" = ${phone},
         "description" = ${description},
-        "images" = ${JSON.stringify(finalImages)},
-        "machines" = ${JSON.stringify(machines)},
-        "scheduled_at" = ${scheduledAt},
+       "images" = ${JSON.stringify(
+  finalImages
+)},
+"machines" = ${JSON.stringify(
+  machines
+)},
+"machineDetails" = ${JSON.stringify(
+  finalMachineDetails
+)},
+"paymentMethod" = ${finalPaymentMethod},
+"scheduled_at" = ${scheduledAt},
         "completed_at" = ${completedAt},
         "latitude" = ${latitude},
         "longitude" = ${longitude},
@@ -784,8 +1076,89 @@ export async function PUT(
           tls: { rejectUnauthorized: false },
         });
 
-        const typeLabel =
-          type === "telepites" ? "🛠️ Telepítés" : "🧹 Karbantartás";
+      const typeLabel =
+  type === "telepites"
+    ? "🛠️ Telepítés"
+    : "🧹 Karbantartás";
+
+const machinesEmailHtml =
+  machines.length > 0
+    ? machines
+        .map(
+          (
+            machine,
+            index
+          ) => {
+            const detail:
+              MachineDetail =
+                finalMachineDetails[
+                  index
+                ] || {
+                  maintenanceType:
+                    "",
+                  warranty: null,
+                };
+
+            const maintenanceRow =
+              type ===
+              "karbantartas"
+                ? `
+                  <div
+                    style="
+                      margin-top: 5px;
+                    "
+                  >
+                    <strong>
+                      Karbantartás:
+                    </strong>
+                    ${getMaintenanceTypeLabel(
+                      detail.maintenanceType
+                    )}
+                  </div>
+                `
+                : "";
+
+            return `
+              <div
+                style="
+                  margin-top: 8px;
+                  padding: 10px;
+                  background: #f3f4f6;
+                  border: 1px solid #e5e7eb;
+                  border-radius: 6px;
+                "
+              >
+                <div>
+                  <strong>
+                    Gép #${index + 1}:
+                  </strong>
+                  ${machine}
+                </div>
+
+                ${maintenanceRow}
+
+                <div
+                  style="
+                    margin-top: 5px;
+                  "
+                >
+                  <strong>
+                    Garanciális:
+                  </strong>
+                  ${getWarrantyLabel(
+                    detail.warranty
+                  )}
+                </div>
+              </div>
+            `;
+          }
+        )
+        .join("")
+    : `
+      <div>
+        Nincs megadott gép.
+      </div>
+    `;
 
         await transporter.sendMail({
           from: `"Klíma Rendszer" <${process.env.EMAIL_USER}>`,
@@ -805,9 +1178,32 @@ export async function PUT(
                 <p><strong>Email:</strong> ${email || "-"}</p>
                 <p><strong>Tervezett időpont:</strong> ${scheduledAt || "-"}</p>
                 <p><strong>Megvalósult időpont:</strong> ${completedAt || "-"}</p>
-                <p><strong>Géptípusok:</strong> ${
-                  machines.length > 0 ? machines.join(", ") : "-"
-                }</p>
+              <div
+  style="
+    margin-bottom: 14px;
+  "
+>
+  <strong>
+    Gépek:
+  </strong>
+
+  <div
+    style="
+      margin-top: 6px;
+    "
+  >
+    ${machinesEmailHtml}
+  </div>
+</div>
+
+<p>
+  <strong>
+    Fizetési mód:
+  </strong>
+  ${getPaymentMethodLabel(
+    finalPaymentMethod
+  )}
+</p>
                 <p><strong>Megjegyzés:</strong> ${note || "-"}</p>
               </div>
               <div style="background-color:#f8f9fa;padding:15px;text-align:center;font-size:12px;color:#7f8c8d;">
@@ -846,6 +1242,11 @@ export async function PUT(
       taskId,
       images: finalImages,
       machines,
+        machineDetails:
+    finalMachineDetails,
+
+  paymentMethod:
+    finalPaymentMethod,
       machinesAddedToClient: machineSyncResult.createdMachines,
       machinesAlreadyExisted: machineSyncResult.existingMachines,
       clientCreated: clientSyncResult?.created || false,
