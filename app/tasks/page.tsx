@@ -1433,9 +1433,9 @@ formData.append(
       taskEmail = parts[1].trim();
     }
 
-    setEmail(taskEmail);
-    setNote(taskNote);
-    
+setEmail(taskEmail);
+setNote(taskNote);
+
 const taskMachines =
   Array.isArray(task.machines) &&
   task.machines.length > 0
@@ -1451,36 +1451,45 @@ const loadedMachineDetails =
         Array.isArray(
           task.machineDetails
         )
-          ? task.machineDetails[
-              index
-            ]
+          ? task.machineDetails[index]
           : undefined;
 
-      return {
-        maintenanceType:
-          task.type ===
-            "karbantartas" &&
-          (
-            savedDetail
-              ?.maintenanceType ===
-              "mosas" ||
-            savedDetail
-              ?.maintenanceType ===
-              "fertotlenites"
-          )
-            ? savedDetail
-                .maintenanceType
-            : "",
+      let maintenanceType:
+        MachineDetail["maintenanceType"] =
+          "";
 
-        warranty:
-          savedDetail?.warranty ===
-            true
-            ? true
-            : savedDetail
-                  ?.warranty ===
-                false
-              ? false
-              : null,
+      if (
+        task.type ===
+          "karbantartas" &&
+        (
+          savedDetail
+            ?.maintenanceType ===
+            "mosas" ||
+          savedDetail
+            ?.maintenanceType ===
+            "fertotlenites"
+        )
+      ) {
+        maintenanceType =
+          savedDetail.maintenanceType;
+      }
+
+      let warranty:
+        boolean | null = null;
+
+      if (
+        savedDetail?.warranty === true
+      ) {
+        warranty = true;
+      } else if (
+        savedDetail?.warranty === false
+      ) {
+        warranty = false;
+      }
+
+      return {
+        maintenanceType,
+        warranty,
       };
     }
   );
@@ -1497,10 +1506,27 @@ setPaymentMethod(
     ? task.paymentMethod
     : null
 );
-    setScheduledAt(task.scheduled_at ? task.scheduled_at.replace(" ", "T").slice(0, 16) : "");
-    setCompletedAt(task.completed_at ? task.completed_at.replace(" ", "T").slice(0, 16) : "");
-    setPhotos([]);
-    setExistingImages(task.images || []);
+
+setScheduledAt(
+  task.scheduled_at
+    ? task.scheduled_at
+        .replace(" ", "T")
+        .slice(0, 16)
+    : ""
+);
+
+setCompletedAt(
+  task.completed_at
+    ? task.completed_at
+        .replace(" ", "T")
+        .slice(0, 16)
+    : ""
+);
+
+setPhotos([]);
+setExistingImages(
+  task.images || []
+);
 
     if (task.recipient_emails) {
       const savedRecipients = task.recipient_emails.split(",").map(e => e.trim()).filter(Boolean);
