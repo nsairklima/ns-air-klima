@@ -29,6 +29,7 @@ type Task = {
     | "atutalas"
     | null;
 
+  
   scheduled_at?: string;
   completed_at?: string;
   images?: string[];
@@ -1925,480 +1926,115 @@ task.scheduled_at,
           {formatDateSimple(viewingTask.created_at)}
         </div>
 
-      {Array.isArray(
-  viewingTask.machines
-) &&
+     {Array.isArray(viewingTask.machines) &&
   viewingTask.machines.filter(
     (machine) =>
-      typeof machine ===
-        "string" &&
+      typeof machine === "string" &&
       machine.trim() !== ""
-  ).length > 0 && ({/* KLÍMAGÉPEK */}
-<div>
-  <label
-    style={{
-      display: "block",
-      marginBottom: "8px",
-      fontWeight: "bold",
-    }}
-  >
-    Klíma típusok:
-  </label>
+  ).length > 0 && (
+    <div>
+      <strong>
+        ❄️ Klíma típusok:
+      </strong>
 
-  {machines.map((machine, index) => {
-    const detail =
-      machineDetails[index] || {
-        maintenanceType: "",
-        warranty: null,
-      };
-
-    return (
       <div
-        key={`machine-${index}`}
         style={{
-          marginBottom: "12px",
-          padding: "12px",
-          border: "1px solid #d1d5db",
-          borderRadius: "10px",
-          background: "white",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          marginTop: "7px",
         }}
       >
-        {/* GÉP NEVE */}
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-          }}
-        >
-          <input
-            type="text"
-            value={machine}
-            placeholder={`Klíma típusa #${index + 1}`}
-            onChange={(event) => {
-              const updatedMachines = [
-                ...machines,
+        {viewingTask.machines
+          .filter(
+            (machine) =>
+              typeof machine === "string" &&
+              machine.trim() !== ""
+          )
+          .map((machine, index) => {
+            const detail =
+              viewingTask.machineDetails?.[
+                index
               ];
 
-              updatedMachines[index] =
-                event.target.value;
-
-              setMachines(updatedMachines);
-            }}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              padding: "10px",
-              border: "1px solid #ccc",
-              borderRadius: "8px",
-              boxSizing: "border-box",
-            }}
-          />
-
-          {machines.length > 1 && (
-            <button
-              type="button"
-              onClick={() => {
-                setMachines(
-                  machines.filter(
-                    (_, machineIndex) =>
-                      machineIndex !== index
-                  )
-                );
-
-                setMachineDetails(
-                  machineDetails.filter(
-                    (_, detailIndex) =>
-                      detailIndex !== index
-                  )
-                );
-              }}
-              style={{
-                flexShrink: 0,
-                padding: "0 12px",
-                border: "none",
-                borderRadius: "8px",
-                background: "#e74c3c",
-                color: "white",
-                fontWeight: "bold",
-                cursor: "pointer",
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {/* MOSÁS VAGY FERTŐTLENÍTÉS */}
-        {type === "karbantartas" && (
-          <div
-            style={{
-              marginTop: "12px",
-              paddingTop: "10px",
-              borderTop:
-                "1px solid #e5e7eb",
-            }}
-          >
-            <div
-              style={{
-                marginBottom: "7px",
-                fontSize: "13px",
-                fontWeight: "bold",
-              }}
-            >
-              🧼 Karbantartás típusa:
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px",
-              }}
-            >
-              <label
+            return (
+              <div
+                key={`${viewingTask.id}-detail-machine-${index}`}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "8px 10px",
+                  padding: "10px",
                   border:
-                    detail.maintenanceType ===
-                    "mosas"
-                      ? "2px solid #2563eb"
-                      : "1px solid #d1d5db",
+                    "1px solid #bae6fd",
                   borderRadius: "8px",
-                  background:
-                    detail.maintenanceType ===
-                    "mosas"
-                      ? "#eff6ff"
-                      : "white",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                  fontWeight: "bold",
+                  background: "#f0f9ff",
                 }}
               >
-                <input
-                  type="radio"
-                  name={`maintenance-${index}`}
-                  checked={
-                    detail.maintenanceType ===
+                <div
+                  style={{
+                    color: "#0369a1",
+                    fontWeight: "bold",
+                  }}
+                >
+                  #{index + 1}{" "}
+                  {machine}
+                </div>
+
+                {viewingTask.type ===
+                  "karbantartas" && (
+                  <div
+                    style={{
+                      marginTop: "5px",
+                      fontSize: "13px",
+                    }}
+                  >
+                    <strong>
+                      Karbantartás:
+                    </strong>{" "}
+
+                    {detail?.maintenanceType ===
                     "mosas"
-                  }
-                  onChange={() => {
-                    const updatedDetails = [
-                      ...machineDetails,
-                    ];
+                      ? "Mosás"
+                      : detail?.maintenanceType ===
+                          "fertotlenites"
+                        ? "Fertőtlenítés"
+                        : "Nincs megadva"}
+                  </div>
+                )}
 
-                    updatedDetails[index] = {
-                      ...detail,
-                      maintenanceType: "mosas",
-                    };
-
-                    setMachineDetails(
-                      updatedDetails
-                    );
+                <div
+                  style={{
+                    marginTop: "5px",
+                    fontSize: "13px",
                   }}
-                />
+                >
+                  <strong>
+                    Garanciális:
+                  </strong>{" "}
 
-                Mosás
-              </label>
-
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "8px 10px",
-                  border:
-                    detail.maintenanceType ===
-                    "fertotlenites"
-                      ? "2px solid #7c3aed"
-                      : "1px solid #d1d5db",
-                  borderRadius: "8px",
-                  background:
-                    detail.maintenanceType ===
-                    "fertotlenites"
-                      ? "#f5f3ff"
-                      : "white",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                  fontWeight: "bold",
-                }}
-              >
-                <input
-                  type="radio"
-                  name={`maintenance-${index}`}
-                  checked={
-                    detail.maintenanceType ===
-                    "fertotlenites"
-                  }
-                  onChange={() => {
-                    const updatedDetails = [
-                      ...machineDetails,
-                    ];
-
-                    updatedDetails[index] = {
-                      ...detail,
-                      maintenanceType:
-                        "fertotlenites",
-                    };
-
-                    setMachineDetails(
-                      updatedDetails
-                    );
-                  }}
-                />
-
-                Fertőtlenítés
-              </label>
-            </div>
-          </div>
-        )}
-
-        {/* GARANCIA */}
-        <div
-          style={{
-            marginTop: "12px",
-            paddingTop: "10px",
-            borderTop:
-              "1px solid #e5e7eb",
-          }}
-        >
-          <div
-            style={{
-              marginBottom: "7px",
-              fontSize: "13px",
-              fontWeight: "bold",
-            }}
-          >
-            🛡️ Garanciális a gép?
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "8px",
-            }}
-          >
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 10px",
-                border:
-                  detail.warranty === true
-                    ? "2px solid #16a34a"
-                    : "1px solid #d1d5db",
-                borderRadius: "8px",
-                background:
-                  detail.warranty === true
-                    ? "#f0fdf4"
-                    : "white",
-                cursor: "pointer",
-                fontSize: "13px",
-                fontWeight: "bold",
-              }}
-            >
-              <input
-                type="radio"
-                name={`warranty-${index}`}
-                checked={
-                  detail.warranty === true
-                }
-                onChange={() => {
-                  const updatedDetails = [
-                    ...machineDetails,
-                  ];
-
-                  updatedDetails[index] = {
-                    ...detail,
-                    warranty: true,
-                  };
-
-                  setMachineDetails(
-                    updatedDetails
-                  );
-                }}
-              />
-
-              Igen
-            </label>
-
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 10px",
-                border:
-                  detail.warranty === false
-                    ? "2px solid #dc2626"
-                    : "1px solid #d1d5db",
-                borderRadius: "8px",
-                background:
-                  detail.warranty === false
-                    ? "#fef2f2"
-                    : "white",
-                cursor: "pointer",
-                fontSize: "13px",
-                fontWeight: "bold",
-              }}
-            >
-              <input
-                type="radio"
-                name={`warranty-${index}`}
-                checked={
-                  detail.warranty === false
-                }
-                onChange={() => {
-                  const updatedDetails = [
-                    ...machineDetails,
-                  ];
-
-                  updatedDetails[index] = {
-                    ...detail,
-                    warranty: false,
-                  };
-
-                  setMachineDetails(
-                    updatedDetails
-                  );
-                }}
-              />
-
-              Nem
-            </label>
-          </div>
-        </div>
+                  {detail?.warranty === true
+                    ? "Igen"
+                    : detail?.warranty === false
+                      ? "Nem"
+                      : "Nincs megadva"}
+                </div>
+              </div>
+            );
+          })}
       </div>
-    );
-  })}
+    </div>
+  )}
 
-  <button
-    type="button"
-    onClick={() => {
-      setMachines([
-        ...machines,
-        "",
-      ]);
-
-      setMachineDetails([
-        ...machineDetails,
-        {
-          maintenanceType: "",
-          warranty: null,
-        },
-      ]);
-    }}
-    style={{
-      padding: "10px 14px",
-      border: "none",
-      borderRadius: "8px",
-      background: "#2563eb",
-      color: "white",
-      fontWeight: "bold",
-      cursor: "pointer",
-    }}
-  >
-    ➕ Új gép hozzáadása
-  </button>
-</div>
-
-{/* FIZETÉSI MÓD */}
-<div
-  style={{
-    padding: "12px",
-    border: "1px solid #d1d5db",
-    borderRadius: "10px",
-    background: "white",
-  }}
->
-  <div
-    style={{
-      marginBottom: "8px",
-      fontWeight: "bold",
-    }}
-  >
+<div>
+  <strong>
     💳 Fizetési mód:
-  </div>
+  </strong>{" "}
 
-  <div
-    style={{
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "8px",
-    }}
-  >
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        padding: "9px 11px",
-        border:
-          paymentMethod === "keszpenz"
-            ? "2px solid #16a34a"
-            : "1px solid #d1d5db",
-        borderRadius: "8px",
-        background:
-          paymentMethod === "keszpenz"
-            ? "#f0fdf4"
-            : "white",
-        cursor: "pointer",
-        fontSize: "13px",
-        fontWeight: "bold",
-      }}
-    >
-      <input
-        type="radio"
-        name="paymentMethod"
-        checked={
-          paymentMethod === "keszpenz"
-        }
-        onChange={() =>
-          setPaymentMethod("keszpenz")
-        }
-      />
-
-      Készpénz
-    </label>
-
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        padding: "9px 11px",
-        border:
-          paymentMethod === "atutalas"
-            ? "2px solid #2563eb"
-            : "1px solid #d1d5db",
-        borderRadius: "8px",
-        background:
-          paymentMethod === "atutalas"
-            ? "#eff6ff"
-            : "white",
-        cursor: "pointer",
-        fontSize: "13px",
-        fontWeight: "bold",
-      }}
-    >
-      <input
-        type="radio"
-        name="paymentMethod"
-        checked={
-          paymentMethod === "atutalas"
-        }
-        onChange={() =>
-          setPaymentMethod("atutalas")
-        }
-      />
-
-      Átutalás
-    </label>
-  </div>
+  {viewingTask.paymentMethod ===
+  "keszpenz"
+    ? "Készpénz"
+    : viewingTask.paymentMethod ===
+        "atutalas"
+      ? "Átutalás"
+      : "Nincs megadva"}
 </div>
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Megjegyzés:</label>
