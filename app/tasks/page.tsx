@@ -1417,138 +1417,205 @@ formData.append(
     }
   };
 
-  const startEditing = (task: Task) => {
-    setEditingTaskId(task.id);
-    setType((task.type as "telepites" | "karbantartas") || "telepites");
-    setName(task.name || "");
-    setAddress(task.address || "");
-    setPhone(task.phone || "");
+const startEditing = (task: Task) => {
+  setEditingTaskId(task.id);
 
-    let taskEmail = task.email || "";
-    let taskNote = task.note || "";
+  const taskType:
+    | "telepites"
+    | "karbantartas" =
+    task.type === "karbantartas"
+      ? "karbantartas"
+      : "telepites";
 
-    if (!taskEmail && taskNote.includes("| Email:")) {
-      const parts = taskNote.split("| Email:");
-      taskNote = parts[0].trim();
-      taskEmail = parts[1].trim();
-    }
+  setType(taskType);
+  setName(task.name || "");
+  setAddress(task.address || "");
+  setPhone(task.phone || "");
 
-setEmail(taskEmail);
-setNote(taskNote);
+  let taskEmail =
+    task.email || "";
 
-const taskMachines =
-  Array.isArray(task.machines) &&
-  task.machines.length > 0
-    ? task.machines
-    : [""];
+  let taskNote =
+    task.note || "";
 
-setMachines(taskMachines);
+  if (
+    !taskEmail &&
+    taskNote.includes("| Email:")
+  ) {
+    const parts =
+      taskNote.split("| Email:");
 
-const loadedMachineDetails =
-  taskMachines.map(
-    (_, index): MachineDetail => {
-      const savedDetail =
-        Array.isArray(
-          task.machineDetails
-        )
-          ? task.machineDetails[index]
-          : undefined;
+    taskNote =
+      parts[0]?.trim() || "";
 
-      let maintenanceType:
-        MachineDetail["maintenanceType"] =
-          "";
+    taskEmail =
+      parts
+        .slice(1)
+        .join("| Email:")
+        .trim();
+  }
 
-      if (
-        task.type ===
-          "karbantartas" &&
-        (
-          savedDetail
-            ?.maintenanceType ===
-            "mosas" ||
-          savedDetail
-            ?.maintenanceType ===
-            "fertotlenites"
-        )
-      ) {
-        maintenanceType =
-          savedDetail.maintenanceType;
-      }
+  setEmail(taskEmail);
+  setNote(taskNote);
 
-      let warranty:
-        boolean | null = null;
+  const taskMachines =
+    Array.isArray(task.machines) &&
+    task.machines.length > 0
+      ? task.machines
+      : [""];
 
-      if (
-        savedDetail?.warranty === true
-      ) {
-        warranty = true;
-      } else if (
-        savedDetail?.warranty === false
-      ) {
-        warranty = false;
-      }
+  setMachines(taskMachines);
 
-      return {
-        maintenanceType,
-        warranty,
-      };
-    }
+  const loadedMachineDetails:
+    MachineDetail[] =
+      taskMachines.map(
+        (_, index) => {
+          const savedDetail =
+            Array.isArray(
+              task.machineDetails
+            )
+              ? task.machineDetails[
+                  index
+                ]
+              : undefined;
+
+          let maintenanceType:
+            MachineDetail["maintenanceType"] =
+              "";
+
+          if (
+            taskType ===
+              "karbantartas" &&
+            (
+              savedDetail
+                ?.maintenanceType ===
+                "mosas" ||
+              savedDetail
+                ?.maintenanceType ===
+                "fertotlenites"
+            )
+          ) {
+            maintenanceType =
+              savedDetail.maintenanceType;
+          }
+
+          let warranty:
+            boolean | null = null;
+
+          if (
+            savedDetail?.warranty ===
+            true
+          ) {
+            warranty = true;
+          } else if (
+            savedDetail?.warranty ===
+            false
+          ) {
+            warranty = false;
+          }
+
+          return {
+            maintenanceType,
+            warranty,
+          };
+        }
+      );
+
+  setMachineDetails(
+    loadedMachineDetails
   );
 
-setMachineDetails(
-  loadedMachineDetails
-);
+  if (
+    task.paymentMethod ===
+      "keszpenz" ||
+    task.paymentMethod ===
+      "atutalas"
+  ) {
+    setPaymentMethod(
+      task.paymentMethod
+    );
+  } else {
+    setPaymentMethod(null);
+  }
 
-setPaymentMethod(
-  task.paymentMethod ===
-    "keszpenz" ||
-  task.paymentMethod ===
-    "atutalas"
-    ? task.paymentMethod
-    : null
-);
+  setScheduledAt(
+    task.scheduled_at
+      ? task.scheduled_at
+          .replace(" ", "T")
+          .slice(0, 16)
+      : ""
+  );
 
-setScheduledAt(
-  task.scheduled_at
-    ? task.scheduled_at
-        .replace(" ", "T")
-        .slice(0, 16)
-    : ""
-);
+  setCompletedAt(
+    task.completed_at
+      ? task.completed_at
+          .replace(" ", "T")
+          .slice(0, 16)
+      : ""
+  );
 
-setCompletedAt(
-  task.completed_at
-    ? task.completed_at
-        .replace(" ", "T")
-        .slice(0, 16)
-    : ""
-);
+  setPhotos([]);
 
-setPhotos([]);
-setExistingImages(
-  task.images || []
-);
+  setExistingImages(
+    Array.isArray(task.images)
+      ? task.images
+      : []
+  );
 
-    if (task.recipient_emails) {
-      const savedRecipients = task.recipient_emails.split(",").map(e => e.trim()).filter(Boolean);
-      setSelectedRecipients(savedRecipients);
-      
-      savedRecipients.forEach(savedEmail => {
-        if (!envEmails.includes(savedEmail)) {
-          setEnvEmails(prev => [...prev, savedEmail]);
-        }
-      });
-    } else {
-      if (envEmails.length > 0) {
-        setSelectedRecipients([envEmails[0]]);
-      } else {
-        setSelectedRecipients([]);
+  if (task.recipient_emails) {
+    const savedRecipients =
+      task.recipient_emails
+        .split(",")
+        .map((savedEmail) =>
+          savedEmail.trim()
+        )
+        .filter(Boolean);
+
+    setSelectedRecipients(
+      savedRecipients
+    );
+
+    setEnvEmails(
+      (previousEmails) => {
+        const mergedEmails = [
+          ...previousEmails,
+        ];
+
+        savedRecipients.forEach(
+          (savedEmail) => {
+            if (
+              !mergedEmails.includes(
+                savedEmail
+              )
+            ) {
+              mergedEmails.push(
+                savedEmail
+              );
+            }
+          }
+        );
+
+        return mergedEmails;
       }
-    }
+    );
+  } else if (
+    envEmails.length > 0
+  ) {
+    setSelectedRecipients([
+      envEmails[0],
+    ]);
+  } else {
+    setSelectedRecipients([]);
+  }
 
-    setStatusMessage("");
-    setIsFormOpen(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  setStatusMessage("");
+  setIsFormOpen(true);
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+};
 
   const filteredTasks = tasks.filter((task) => {
     if (filterType !== "all" && task.type !== filterType) {
