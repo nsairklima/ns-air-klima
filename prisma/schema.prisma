@@ -181,3 +181,92 @@ model EmailSetting {
   id    Int    @id @default(autoincrement())
   email String @unique
 }
+
+enum MaintenanceServiceType {
+  WASH
+  DISINFECTION
+}
+
+enum MaintenanceAuditEventType {
+  PRICE_CREATED
+  SETTLEMENT_ITEM_CREATED
+  PERIOD_RESET
+  SETTLEMENT_ITEM_ADJUSTED
+  SETTLEMENT_ITEM_VOIDED
+}
+
+model MaintenancePrice {
+  id                 Int                    @id @default(autoincrement())
+  maintenanceType    MaintenanceServiceType
+  totalPrice         Int
+  firstPersonAmount  Int
+  secondPersonAmount Int
+  validFrom          DateTime               @default(now())
+  createdAt          DateTime               @default(now())
+
+  settlementItems MaintenanceSettlementItem[]
+
+  @@index([maintenanceType, validFrom])
+  @@index([createdAt])
+}
+
+model MaintenanceSettlementPeriod {
+  id        Int       @id @default(autoincrement())
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+
+  items MaintenanceSettlementItem[]
+
+  @@index([startedAt])
+  @@index([endedAt])
+}
+
+model MaintenanceSettlementItem {
+  id                 Int                    @id @default(autoincrement())
+  taskId             Int
+  machineIndex       Int
+  clientName         String?
+  machineName        String
+  maintenanceType    MaintenanceServiceType
+  appliedPrice       Int
+  firstPersonAmount  Int
+  secondPersonAmount Int
+  completedAt        DateTime
+  periodId           Int
+  priceId            Int
+  createdAt          DateTime               @default(now())
+
+  period MaintenanceSettlementPeriod @relation(
+    fields: [periodId],
+    references: [id],
+    onDelete: Restrict
+  )
+
+  price MaintenancePrice @relation(
+    fields: [priceId],
+    references: [id],
+    onDelete: Restrict
+  )
+
+  @@unique([taskId, machineIndex])
+  @@index([periodId])
+  @@index([priceId])
+  @@index([completedAt])
+  @@index([maintenanceType])
+  @@index([clientName])
+}
+
+model MaintenanceAuditLog {
+  id          Int                       @id @default(autoincrement())
+  eventType   MaintenanceAuditEventType
+  entityType  String
+  entityId    Int?
+  description String?
+  details     Json
+  createdAt   DateTime                  @default(now())
+
+  @@index([eventType])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
