@@ -1435,7 +1435,7 @@ formData.append(
 
     setEmail(taskEmail);
     setNote(taskNote);
-    setMachines(
+    
 const taskMachines =
   Array.isArray(task.machines) &&
   task.machines.length > 0
