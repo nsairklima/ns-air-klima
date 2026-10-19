@@ -19,13 +19,17 @@ type Task = {
   phone?: string;
   email?: string;
   note?: string;
+
   machines?: string[];
-machineDetails?: MachineDetail[];
-paymentMethod?:
-  | "keszpenz"
-  | "atutalas"
-  | null;
-scheduled_at?: string;
+
+  machineDetails?: MachineDetail[];
+
+  paymentMethod?:
+    | "keszpenz"
+    | "atutalas"
+    | null;
+
+  scheduled_at?: string;
   completed_at?: string;
   images?: string[];
   created_at: string;
@@ -38,7 +42,6 @@ type FormCoordinates = {
   lat: number;
   lng: number;
 };
-
 // Segédfüggvény a nap nevével történő formázáshoz (pl.: 2026. 06. 12., csütörtök 14:30)
 const formatDateWithDay = (dateString?: string) => {
   if (!dateString) return "Nincs megadva";
