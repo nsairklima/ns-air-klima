@@ -2406,7 +2406,17 @@ export default function TasksPage() {
                         </div>
                       )}
 
-                      <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #e5e7eb" }}>
+                     <div
+  style={{
+    display:
+      type === "karbantartas"
+        ? "block"
+        : "none",
+    marginTop: "12px",
+    paddingTop: "10px",
+    borderTop: "1px solid #e5e7eb",
+  }}
+>
                         <div style={{ marginBottom: "7px", fontSize: "13px", fontWeight: "bold" }}>🛡️ Garanciális a gép?</div>
                         <div style={{ display: "flex", gap: "8px" }}>
                           <label style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 10px", border: detail.warranty === true ? "2px solid #16a34a" : "1px solid #d1d5db", borderRadius: "8px", background: detail.warranty === true ? "#f0fdf4" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>
