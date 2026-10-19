@@ -141,7 +141,6 @@ async function findCoordinatesForTask(
   const cacheKey =
     "tasks-map-coordinate-" + cleanAddress;
 
-  // 🛠️ Vercel / SSR védelem: Ellenőrizzük, hogy létezik-e a window / localStorage
   if (typeof window !== "undefined") {
     try {
       const cachedValue =
@@ -1645,6 +1644,147 @@ export default function TasksPage() {
         />
       ) : null}
 
+      {/* TELJES KÉPERNYŐS KÉP GALÉRIA MODÁL */}
+      {galleryImageIndex !== null && viewingTask?.images && viewingTask.images[galleryImageIndex] && (
+        <div
+          onClick={closeImageGallery}
+          onTouchStart={handleGalleryTouchStart}
+          onTouchMove={handleGalleryTouchMove}
+          onTouchEnd={handleGalleryTouchEnd}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 4000,
+            background: "rgba(0, 0, 0, 0.92)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            boxSizing: "border-box",
+            userSelect: "none",
+          }}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              closeImageGallery();
+            }}
+            style={{
+              position: "absolute",
+              top: "16px",
+              right: "16px",
+              background: "#dc2626",
+              color: "white",
+              border: "none",
+              borderRadius: "50%",
+              width: "44px",
+              height: "44px",
+              fontSize: "20px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              zIndex: 4010,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            ✕
+          </button>
+
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              left: "20px",
+              color: "white",
+              fontSize: "15px",
+              fontWeight: "bold",
+              background: "rgba(0,0,0,0.5)",
+              padding: "6px 12px",
+              borderRadius: "8px",
+            }}
+          >
+            {galleryImageIndex + 1} / {viewingTask.images.length}
+          </div>
+
+          {viewingTask.images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                showPreviousGalleryImage();
+              }}
+              style={{
+                position: "absolute",
+                left: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "rgba(255,255,255,0.2)",
+                color: "white",
+                border: "none",
+                borderRadius: "50%",
+                width: "48px",
+                height: "48px",
+                fontSize: "22px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                zIndex: 4010,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              ❮
+            </button>
+          )}
+
+          <img
+            src={viewingTask.images[galleryImageIndex]}
+            alt={`Galéria kép ${galleryImageIndex + 1}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "100%",
+              maxHeight: "85vh",
+              objectFit: "contain",
+              borderRadius: "8px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+            }}
+          />
+
+          {viewingTask.images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                showNextGalleryImage();
+              }}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "rgba(255,255,255,0.2)",
+                color: "white",
+                border: "none",
+                borderRadius: "50%",
+                width: "48px",
+                height: "48px",
+                fontSize: "22px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                zIndex: 4010,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              ❯
+            </button>
+          )}
+        </div>
+      )}
+
       <main
         style={{
           maxWidth: "1050px",
@@ -1922,6 +2062,46 @@ export default function TasksPage() {
                       </div>
                     </div>
                   )}
+
+                {/* KÉPEK MEGJELENÍTÉSE RÉSZLETEKBEN */}
+                {Array.isArray(viewingTask.images) && viewingTask.images.length > 0 && (
+                  <div style={{ marginTop: "8px" }}>
+                    <strong>📷 Csatolt képek ({viewingTask.images.length}):</strong>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+                        gap: "8px",
+                        marginTop: "8px",
+                      }}
+                    >
+                      {viewingTask.images.map((imgUrl, imgIndex) => (
+                        <div
+                          key={`task-img-${imgIndex}`}
+                          onClick={() => setGalleryImageIndex(imgIndex)}
+                          style={{
+                            aspectRatio: "1 / 1",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                            border: "1px solid #d1d5db",
+                            cursor: "pointer",
+                            background: "#f3f4f6",
+                          }}
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Munkakép ${imgIndex + 1}`}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {viewingTask.note && (
                   <div>
@@ -2283,6 +2463,180 @@ export default function TasksPage() {
                   rows={3}
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
                 />
+              </div>
+
+              {/* KÉPEK SZERKESZTÉSE / HOZZÁADÁSA ŰRLAPBAN */}
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>Képek kezelése:</label>
+
+                {existingImages.map((imgUrl, index) => (
+                  <div
+                    key={`existing-${index}`}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "8px",
+                      background: "white",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      marginBottom: "6px",
+                      border: "1px solid #ccc",
+                    }}
+                  >
+                    <a
+                      href={imgUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: "#2563eb",
+                        textDecoration: "underline",
+                        fontSize: "13px",
+                      }}
+                    >
+                      📷 Mentett kép #{index + 1}
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExistingImage(index)}
+                      style={{
+                        background: "#e74c3c",
+                        color: "white",
+                        border: "none",
+                        padding: "5px 8px",
+                        borderRadius: "4px",
+                        fontSize: "11px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Törlés
+                    </button>
+                  </div>
+                ))}
+
+                {photos.map((photo, index) => {
+                  const previewUrl = URL.createObjectURL(photo);
+
+                  return (
+                    <div
+                      key={`${photo.name}-${photo.lastModified}-${index}`}
+                      style={{
+                        background: "white",
+                        padding: "8px",
+                        borderRadius: "8px",
+                        marginBottom: "8px",
+                        border: "1px solid #ccc",
+                      }}
+                    >
+                      <img
+                        src={previewUrl}
+                        alt={`Feltöltött kép ${index + 1}`}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          maxHeight: "220px",
+                          objectFit: "contain",
+                          borderRadius: "6px",
+                          background: "#f3f4f6",
+                          marginBottom: "8px",
+                        }}
+                      />
+
+                      <div style={{ fontSize: "12px", marginBottom: "8px", wordBreak: "break-all" }}>
+                        📷 {photo.name}
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                        <button
+                          type="button"
+                          onClick={() => setEditingPhotoIndex(index)}
+                          style={{
+                            background: "#2563eb",
+                            color: "white",
+                            border: "none",
+                            padding: "8px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontWeight: "bold",
+                            fontSize: "12px",
+                          }}
+                        >
+                          ✏️ Rajzolás
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveNewPhoto(index)}
+                          style={{
+                            background: "#e74c3c",
+                            color: "white",
+                            border: "none",
+                            padding: "8px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontWeight: "bold",
+                            fontSize: "12px",
+                          }}
+                        >
+                          🗑️ Törlés
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "10px" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      background: "#16a34a",
+                      color: "white",
+                      padding: "11px 8px",
+                      borderRadius: "7px",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                      fontSize: "13px",
+                      textAlign: "center",
+                    }}
+                  >
+                    📷 Fényképezés
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleAddPhoto}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+
+                  <label
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      background: "#34495e",
+                      color: "white",
+                      padding: "11px 8px",
+                      borderRadius: "7px",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                      fontSize: "13px",
+                      textAlign: "center",
+                    }}
+                  >
+                    🖼️ Galéria
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleAddPhoto}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+                </div>
               </div>
 
               {/* Email értesítők */}
