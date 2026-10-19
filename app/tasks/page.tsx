@@ -2160,10 +2160,10 @@ export default function TasksPage() {
         <div
           style={{
             background: "#f8fafc",
-            padding: "16px",
+           padding: "8px 10px",
             borderRadius: "12px",
             border: "1px solid #cbd5e1",
-            marginBottom: "20px",
+            marginBottom: "12px",
           }}
         >
           <div
@@ -2171,10 +2171,17 @@ export default function TasksPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "12px",
+              marginBottom: "6px",
             }}
           >
-            <h2 style={{ margin: 0, fontSize: "18px" }}>
+           <h2
+  style={{
+    margin: 0,
+    fontSize: "15px",
+    lineHeight: 1.2,
+  }}
+>
+
               {editingTaskId ? "✏️ Munka Szerkesztése" : "➕ Új Munka rögzítése"}
             </h2>
 
@@ -2210,7 +2217,7 @@ export default function TasksPage() {
                 border: "none",
                 borderRadius: "8px",
                 fontWeight: "bold",
-                fontSize: "15px",
+                fontSize: "13px",
                 cursor: "pointer",
               }}
             >
@@ -2222,7 +2229,7 @@ export default function TasksPage() {
                 <div
                   style={{
                     gridColumn: "1 / -1",
-                    padding: "10px 14px",
+                    padding: "8px 10px",
                     borderRadius: "8px",
                     background:
                       statusType === "success" ? "#dcfce7" : "#fef9c3",
