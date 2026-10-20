@@ -7,59 +7,113 @@ export const dynamic = "force-dynamic";
  * Az aktuális elszámolási időszak
  * adatainak lekérése.
  */
-export async function GET() {*  try {
+export async function GET() {
+  try {
     const activePeriod =
- *    await prisma.maintenanceSettle*entPeriod.findFirst({
-        wher*: {
+      await prisma.maintenanceSettlementPeriod.findFirst({
+        where: {
           endedAt: null,
-     *  },
-
-        orderBy: {
-         *startedAt: "desc",
         },
-
-   *    include: {
-          _count: {
-            select: {
-              items: true,
+        orderBy: {
+          startedAt: "desc",
+        },
+        include: {
+          items: {
+            orderBy: {
+              completedAt: "desc",
             },
           },
         },
       });
 
-    /*
-     * Ha még nincs aktív időszak,
-     * automatikusan létrehozzuk az elsőt.
-     */
     if (!activePeriod) {
-      c*nst newPeriod =
-        await pris*a.maintenanceSettlementPeriod.crea*e({
-          data: {},
-        })*
-
-      return NextResponse.json({*        activePeriod: {
-          *..newPeriod,
-          itemCount: *,
+      return NextResponse.json({
+        activePeriod: null,
+        summary: {
+          washCount: 0,
+          disinfectionCount: 0,
+          totalCount: 0,
+          totalRevenue: 0,
+          firstPersonTotal: 0,
+          secondPersonTotal: 0,
         },
-
-        created: tru*,
       });
     }
 
-    return Next*esponse.json({
-      activePeriod:*{
+    const washItems =
+      activePeriod.items.filter(
+        (item) =>
+          item.maintenanceType === "WASH"
+      );
+
+    const disinfectionItems =
+      activePeriod.items.filter(
+        (item) =>
+          item.maintenanceType ===
+          "DISINFECTION"
+      );
+
+    const washRevenue =
+      washItems.reduce(
+        (sum, item) =>
+          sum + item.appliedPrice,
+        0
+      );
+
+    const disinfectionRevenue =
+      disinfectionItems.reduce(
+        (sum, item) =>
+          sum + item.appliedPrice,
+        0
+      );
+
+    const firstPersonTotal =
+      activePeriod.items.reduce(
+        (sum, item) =>
+          sum + item.firstPersonAmount,
+        0
+      );
+
+    const secondPersonTotal =
+      activePeriod.items.reduce(
+        (sum, item) =>
+          sum + item.secondPersonAmount,
+        0
+      );
+
+    return NextResponse.json({
+      activePeriod: {
         id: activePeriod.id,
-   *    startedAt: activePeriod.starte*At,
-        endedAt: activePeriod.*ndedAt,
-        createdAt: activeP*riod.createdAt,
-        itemCount:*          activePeriod._count.item*,
+        startedAt: activePeriod.startedAt,
+        endedAt: activePeriod.endedAt,
+        createdAt: activePeriod.createdAt,
       },
 
-      created: false,
-*   });
+      summary: {
+        washCount: washItems.length,
+
+        disinfectionCount:
+          disinfectionItems.length,
+
+        totalCount:
+          activePeriod.items.length,
+
+        washRevenue,
+
+        disinfectionRevenue,
+
+        totalRevenue:
+          washRevenue +
+          disinfectionRevenue,
+
+        firstPersonTotal,
+
+        secondPersonTotal,
+      },
+    });
   } catch (error) {
-    con*ole.error(
-      "Aktuális elszámo*ási időszak lekérési hiba:",
+    console.error(
+      "Elszámolási időszak lekérési hiba:",
       error
     );
 
@@ -68,7 +122,7 @@ export async function GET() {*  try {
         error:
           error instanceof Error
             ? error.message
-            : "Az aktuális elszámolási időszak nem tölthető be.",
+            : "Az elszámolási időszak lekérése sikertelen.",
       },
       {
         status: 500,
@@ -78,82 +132,55 @@ export async function GET() {*  try {
 }
 
 /*
- * Aktuális számláló lezárása és
- * új elszámolási időszak indítása.
+ * Az aktuális elszámolási időszak
+ * lezárása és új időszak indítása.
+ *
+ * A reset nem töröl:
+ * - munkát,
+ * - ügyfelet,
+ * - gépet,
+ * - árat,
+ * - elszámolási tételt,
+ * - korábbi naplóbejegyzést.
  */
-export async function POST(
-  request: Request
-) {
+export async function POST() {
   try {
-    /*
-     * A reset csak kifejezett megerősítéssel
-     * hajtható végre.
-     */
-    let requestBody: {
-      confirm?: boolean;
-    } = {};
+    const now = new Date();
 
-    try {
-      requestBody =
-        await request.json();
-    } catch {
-      requestBody = {};
-    }
-
-    if (requestBody.confirm !== true) {
-      return NextResponse.json(
-        {
-          error:
-            "A reset végrehajtásához megerősítés szükséges.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const resetTime = new Date();
-
-    /*
-     * A lezárás, az új időszak létrehozása
-     * és a naplózás egy tranzakcióban történik.
-     *
-     * Ha bármelyik művelet hibát ad,
-     * egyik változás sem kerül mentésre.
-     */
-    const resetResult =
+    const result =
       await prisma.$transaction(
         async (transaction) => {
           const activePeriod =
-            await transaction
-              .maintenanceSettlementPeriod
-              .findFirst({
+            await transaction.maintenanceSettlementPeriod.findFirst(
+              {
                 where: {
                   endedAt: null,
                 },
-
                 orderBy: {
                   startedAt: "desc",
                 },
-              });
+                include: {
+                  items: true,
+                },
+              }
+            );
 
           /*
-           * Ha még nincs aktív időszak,
-           * létrehozzuk az első időszakot.
+           * Ha még egyetlen időszak sem létezik,
+           * létrehozzuk az első aktív időszakot.
            */
           if (!activePeriod) {
             const firstPeriod =
-              await transaction
-                .maintenanceSettlementPeriod
-                .create({
+              await transaction.maintenanceSettlementPeriod.create(
+                {
                   data: {
-                    startedAt: resetTime,
+                    startedAt: now,
                   },
-                });
+                }
+              );
 
-            await transaction
-              .maintenanceAuditLog
-              .create({
+            await transaction.maintenanceAuditLog.create(
+              {
                 data: {
                   eventType:
                     "PERIOD_RESET",
@@ -165,14 +192,14 @@ export async function POST(
                     firstPeriod.id,
 
                   description:
-                    "Az első karbantartási elszámolási időszak létrehozva.",
+                    "Az első elszámolási időszak létrehozva.",
 
                   details: {
                     previousPeriodId: null,
                     newPeriodId:
                       firstPeriod.id,
                     resetAt:
-                      resetTime.toISOString(),
+                      now.toISOString(),
                     washCount: 0,
                     disinfectionCount: 0,
                     totalCount: 0,
@@ -181,13 +208,12 @@ export async function POST(
                     secondPersonTotal: 0,
                   },
                 },
-              });
+              }
+            );
 
             return {
               previousPeriod: null,
-
               newPeriod: firstPeriod,
-
               summary: {
                 washCount: 0,
                 disinfectionCount: 0,
@@ -196,122 +222,82 @@ export async function POST(
                 firstPersonTotal: 0,
                 secondPersonTotal: 0,
               },
-
-              initialized: true,
             };
           }
 
           /*
-           * Lekérjük a lezárandó időszak
-           * minden elszámolási tételét.
+           * A lezárandó időszak értékeinek
+           * összesítése a naplóhoz.
            */
-          const settlementItems =
-            await transaction
-              .maintenanceSettlementItem
-              .findMany({
-                where: {
-                  periodId:
-                    activePeriod.id,
-                },
-
-                select: {
-                  maintenanceType: true,
-                  appliedPrice: true,
-                  firstPersonAmount: true,
-                  secondPersonAmount: true,
-                },
-              });
-
-          let washCount = 0;
-          let disinfectionCount = 0;
-          let totalRevenue = 0;
-          let firstPersonTotal = 0;
-          let secondPersonTotal = 0;
-
-          for (
-            const item of settlementItems
-          ) {
-            if (
-              item.maintenanceType ===
-              "WASH"
-            ) {
-              washCount += 1;
-            }
-
-            if (
-              item.maintenanceType ===
-              "DISINFECTION"
-            ) {
-              disinfectionCount += 1;
-            }
-
-            totalRevenue +=
-              item.appliedPrice;
-
-            firstPersonTotal +=
-              item.firstPersonAmount;
-
-            secondPersonTotal +=
-              item.secondPersonAmount;
-          }
-
-          const totalCount =
-            settlementItems.length;
-
-          /*
-           * Ellenőrzés:
-           * a személyenkénti összegeknek
-           * egyezniük kell a teljes bevétellel.
-           */
-          const distributedTotal =
-            firstPersonTotal +
-            secondPersonTotal;
-
-          if (
-            distributedTotal !==
-            totalRevenue
-          ) {
-            throw new Error(
-              "A lezárandó időszak személyenkénti összegei nem egyeznek meg a teljes bevétellel."
+          const washItems =
+            activePeriod.items.filter(
+              (item) =>
+                item.maintenanceType ===
+                "WASH"
             );
-          }
+
+          const disinfectionItems =
+            activePeriod.items.filter(
+              (item) =>
+                item.maintenanceType ===
+                "DISINFECTION"
+            );
+
+          const totalRevenue =
+            activePeriod.items.reduce(
+              (sum, item) =>
+                sum + item.appliedPrice,
+              0
+            );
+
+          const firstPersonTotal =
+            activePeriod.items.reduce(
+              (sum, item) =>
+                sum +
+                item.firstPersonAmount,
+              0
+            );
+
+          const secondPersonTotal =
+            activePeriod.items.reduce(
+              (sum, item) =>
+                sum +
+                item.secondPersonAmount,
+              0
+            );
 
           /*
-           * Lezárjuk az aktuális időszakot.
+           * A jelenlegi időszak lezárása.
            */
           const closedPeriod =
-            await transaction
-              .maintenanceSettlementPeriod
-              .update({
+            await transaction.maintenanceSettlementPeriod.update(
+              {
                 where: {
                   id: activePeriod.id,
                 },
-
                 data: {
-                  endedAt: resetTime,
+                  endedAt: now,
                 },
-              });
+              }
+            );
 
           /*
-           * Létrehozzuk az új, nulláról
-           * induló elszámolási időszakot.
+           * Új, üres elszámolási időszak.
            */
           const newPeriod =
-            await transaction
-              .maintenanceSettlementPeriod
-              .create({
+            await transaction.maintenanceSettlementPeriod.create(
+              {
                 data: {
-                  startedAt: resetTime,
+                  startedAt: now,
                 },
-              });
+              }
+            );
 
           /*
-           * A reset minden fontos adatát
-           * hozzáfűzzük a naplóhoz.
+           * A reset teljes naplózása.
            */
-          await transaction
-            .maintenanceAuditLog
-            .create({
+          await transaction.maintenanceAuditLog.create(
+            {
               data: {
                 eventType:
                   "PERIOD_RESET",
@@ -320,36 +306,40 @@ export async function POST(
                   "MaintenanceSettlementPeriod",
 
                 entityId:
-                  closedPeriod.id,
+                  newPeriod.id,
 
                 description:
-                  `A(z) #${closedPeriod.id} elszámolási időszak lezárva. ` +
-                  `Az új időszak azonosítója: #${newPeriod.id}.`,
+                  "Az elszámolási számláló nullázva, új időszak indítva.",
 
                 details: {
                   previousPeriodId:
                     closedPeriod.id,
 
-                  newPeriodId:
-                    newPeriod.id,
-
                   previousPeriodStartedAt:
                     closedPeriod.startedAt.toISOString(),
 
                   previousPeriodEndedAt:
-                    resetTime.toISOString(),
+                    closedPeriod.endedAt
+                      ? closedPeriod.endedAt.toISOString()
+                      : now.toISOString(),
+
+                  newPeriodId:
+                    newPeriod.id,
 
                   newPeriodStartedAt:
                     newPeriod.startedAt.toISOString(),
 
                   resetAt:
-                    resetTime.toISOString(),
+                    now.toISOString(),
 
-                  washCount,
+                  washCount:
+                    washItems.length,
 
-                  disinfectionCount,
+                  disinfectionCount:
+                    disinfectionItems.length,
 
-                  totalCount,
+                  totalCount:
+                    activePeriod.items.length,
 
                   totalRevenue,
 
@@ -358,7 +348,8 @@ export async function POST(
                   secondPersonTotal,
                 },
               },
-            });
+            }
+          );
 
           return {
             previousPeriod:
@@ -367,15 +358,21 @@ export async function POST(
             newPeriod,
 
             summary: {
-              washCount,
-              disinfectionCount,
-              totalCount,
+              washCount:
+                washItems.length,
+
+              disinfectionCount:
+                disinfectionItems.length,
+
+              totalCount:
+                activePeriod.items.length,
+
               totalRevenue,
+
               firstPersonTotal,
+
               secondPersonTotal,
             },
-
-            initialized: false,
           };
         }
       );
@@ -384,18 +381,40 @@ export async function POST(
       success: true,
 
       message:
-        resetResult.initialized
-          ? "Az első elszámolási időszak létrejött."
-          : "Az előző elszámolási időszak lezárult. Az új számláló nulláról indul.",
+        result.previousPeriod
+          ? "A korábbi időszak lezárult, az új elszámolási időszak nulláról elindult."
+          : "Az első elszámolási időszak létrejött.",
 
       previousPeriod:
-        resetResult.previousPeriod,
+        result.previousPeriod
+          ? {
+              id:
+                result.previousPeriod.id,
 
-      newPeriod:
-        resetResult.newPeriod,
+              startedAt:
+                result.previousPeriod
+                  .startedAt,
 
-      previousPeriodSummary:
-        resetResult.summary,
+              endedAt:
+                result.previousPeriod
+                  .endedAt,
+            }
+          : null,
+
+      newPeriod: {
+        id: result.newPeriod.id,
+
+        startedAt:
+          result.newPeriod
+            .startedAt,
+
+        endedAt:
+          result.newPeriod
+            .endedAt,
+      },
+
+      closedPeriodSummary:
+        result.summary,
     });
   } catch (error) {
     console.error(
@@ -410,7 +429,7 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "Az elszámolási időszak resetelése sikertelen.",
+            : "Az új elszámolási időszak indítása sikertelen.",
       },
       {
         status: 500,
