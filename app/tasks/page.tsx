@@ -1194,102 +1194,62 @@ const galleryHadMultipleTouches =
     });
   };
 
- const handleGalleryTouchStart = (
+const resetGalleryTouchState = () => {
+  galleryTouchStartX.current = null;
+  galleryTouchStartY.current = null;
+  galleryTouchEndX.current = null;
+  galleryTouchEndY.current = null;
+  galleryHadMultipleTouches.current = false;
+};
+
+const handleGalleryTouchStart = (
   event: React.TouchEvent<HTMLDivElement>
 ) => {
-  /*
-   * Két vagy több ujj esetén nagyítás
-   * történhet. Ilyenkor letiltjuk a
-   * képek közötti lapozást.
-   */
   if (event.touches.length !== 1) {
-    galleryHadMultipleTouches.current =
-      true;
-
+    galleryHadMultipleTouches.current = true;
     galleryTouchStartX.current = null;
     galleryTouchStartY.current = null;
     galleryTouchEndX.current = null;
     galleryTouchEndY.current = null;
-
     return;
   }
 
-  galleryHadMultipleTouches.current =
-    false;
+  galleryHadMultipleTouches.current = false;
 
   const touch = event.touches[0];
 
-  galleryTouchStartX.current =
-    touch.clientX;
-
-  galleryTouchStartY.current =
-    touch.clientY;
-
-  galleryTouchEndX.current =
-    touch.clientX;
-
-  galleryTouchEndY.current =
-    touch.clientY;
+  galleryTouchStartX.current = touch.clientX;
+  galleryTouchStartY.current = touch.clientY;
+  galleryTouchEndX.current = touch.clientX;
+  galleryTouchEndY.current = touch.clientY;
 };
 
 const handleGalleryTouchMove = (
   event: React.TouchEvent<HTMLDivElement>
 ) => {
-  /*
-   * Ha nagyítás közben megjelenik a
-   * második ujj, az egész mozdulatot
-   * kizárjuk a lapozásból.
-   */
   if (event.touches.length !== 1) {
-    galleryHadMultipleTouches.current =
-      true;
-
+    galleryHadMultipleTouches.current = true;
     return;
   }
 
-  if (
-    galleryHadMultipleTouches.current
-  ) {
+  if (galleryHadMultipleTouches.current) {
     return;
   }
 
   const touch = event.touches[0];
 
-  galleryTouchEndX.current =
-    touch.clientX;
-
-  galleryTouchEndY.current =
-    touch.clientY;
+  galleryTouchEndX.current = touch.clientX;
+  galleryTouchEndY.current = touch.clientY;
 };
 
 const handleGalleryTouchEnd = () => {
-  const startX =
-    galleryTouchStartX.current;
+  const startX = galleryTouchStartX.current;
+  const startY = galleryTouchStartY.current;
+  const endX = galleryTouchEndX.current;
+  const endY = galleryTouchEndY.current;
 
-  const startY =
-    galleryTouchStartY.current;
-
-  const endX =
-    galleryTouchEndX.current;
-
-  const endY =
-    galleryTouchEndY.current;
-
-  /*
-   * Kétujjas nagyítás után nem szabad
-   * képet váltani.
-   */
-  if (
-    galleryHadMultipleTouches.current
-  ) {
-    galleryTouchStartX.current = null;
-    galleryTouchStartY.current = null;
-    galleryTouchEndX.current = null;
-    galleryTouchEndY.current = null;
-
-    galleryHadMultipleTouches.current =
-      false;
-
+  if (galleryHadMultipleTouches.current) {
+    resetGalleryTouchState();
     return;
   }
 
@@ -1299,14 +1259,12 @@ const handleGalleryTouchEnd = () => {
     endX === null ||
     endY === null
   ) {
+    resetGalleryTouchState();
     return;
   }
 
-  const horizontalDistance =
-    startX - endX;
-
-  const verticalDistance =
-    startY - endY;
+  const horizontalDistance = startX - endX;
+  const verticalDistance = startY - endY;
 
   const absoluteHorizontalDistance =
     Math.abs(horizontalDistance);
@@ -1314,10 +1272,6 @@ const handleGalleryTouchEnd = () => {
   const absoluteVerticalDistance =
     Math.abs(verticalDistance);
 
-  /*
-   * Legalább 100 pixeles, egyértelműen
-   * vízszintes mozdulat szükséges.
-   */
   const minimumSwipeDistance = 100;
 
   const isHorizontalSwipe =
@@ -1334,27 +1288,8 @@ const handleGalleryTouchEnd = () => {
     }
   }
 
-  galleryTouchStartX.current = null;
-  galleryTouchStartY.current = null;
-  galleryTouchEndX.current = null;
-  galleryTouchEndY.current = null;
-
-  galleryHadMultipleTouches.current =
-    false;
+  resetGalleryTouchState();
 };
-
-    const swipeDistance = startX - endX;
-    const minimumSwipeDistance = 50;
-
-    if (swipeDistance > minimumSwipeDistance) {
-      showNextGalleryImage();
-    } else if (swipeDistance < -minimumSwipeDistance) {
-      showPreviousGalleryImage();
-    }
-
-    galleryTouchStartX.current = null;
-    galleryTouchEndX.current = null;
-  };
 
   useEffect(() => {
     if (galleryImageIndex === null) {
