@@ -58,10 +58,6 @@ function calculateSummary(
   let missingPaymentMethodAmount = 0;
 
   for (const item of items) {
-    /*
-     * Mosás vagy Fertőtlenítés
-     * összesítésének kiválasztása.
-     */
     const target =
       item.maintenanceType ===
       MaintenanceServiceType.WASH
@@ -80,11 +76,12 @@ function calculateSummary(
       item.secondPersonAmount;
 
     /*
-     * Készpénz esetén a teljes összeg
+     * Készpénznél a teljes összeg
      * az 1. főhöz érkezett.
      */
     if (
-      item.paymentMethod === "CASH" &&
+      item.paymentMethod ===
+        "CASH" &&
       item.receivedBy ===
         "FIRST_PERSON"
     ) {
@@ -93,7 +90,7 @@ function calculateSummary(
     }
 
     /*
-     * Átutalás esetén a teljes összeg
+     * Átutalásnál a teljes összeg
      * a 2. főhöz érkezett.
      */
     if (
@@ -107,9 +104,8 @@ function calculateSummary(
     }
 
     /*
-     * A régi tételeknél még hiányozhat
-     * a fizetési mód vagy a pénz fogadója.
-     * Ezeket nem osztjuk be találomra.
+     * A régebbi, még fizetési mód
+     * nélküli tételeket külön számoljuk.
      */
     if (
       !item.paymentMethod ||
@@ -122,10 +118,6 @@ function calculateSummary(
     }
   }
 
-  /*
-   * Az időszak teljes darabszáma
-   * és teljes bevétele.
-   */
   const total = {
     count:
       wash.count +
@@ -144,20 +136,10 @@ function calculateSummary(
       disinfection.secondPersonTotal,
   };
 
-  /*
-   * Mennyinek kellene az 1. főnél lennie
-   * a járandósága alapján, és ténylegesen
-   * mennyi érkezett hozzá készpénzben.
-   */
   const firstPersonBalance =
     cashReceivedByFirstPerson -
     total.firstPersonTotal;
 
-  /*
-   * Mennyinek kellene a 2. főnél lennie
-   * a járandósága alapján, és ténylegesen
-   * mennyi érkezett hozzá utalással.
-   */
   const secondPersonBalance =
     transferReceivedBySecondPerson -
     total.secondPersonTotal;
@@ -171,11 +153,6 @@ function calculateSummary(
 
   let settlementAmount = 0;
 
-  /*
-   * Ha van olyan régi tétel, amelynél
-   * nincs fizetési mód, nem állapítunk
-   * meg végleges tartozást.
-   */
   if (
     missingPaymentMethodCount > 0
   ) {
@@ -184,10 +161,6 @@ function calculateSummary(
   } else if (
     firstPersonBalance > 0
   ) {
-    /*
-     * Az 1. főnél több pénz van,
-     * mint amennyi neki jár.
-     */
     settlementDirection =
       "FIRST_PAYS_SECOND";
 
@@ -196,10 +169,6 @@ function calculateSummary(
   } else if (
     firstPersonBalance < 0
   ) {
-    /*
-     * Az 1. főnél kevesebb pénz van,
-     * mint amennyi neki jár.
-     */
     settlementDirection =
       "SECOND_PAYS_FIRST";
 
@@ -209,48 +178,25 @@ function calculateSummary(
       );
   }
 
- return {
-  wash,
-  disinfection,
-  total,
+  return {
+    wash,
 
-  received: {
-    firstPerson:
-      cashReceivedByFirstPerson,
+    disinfection,
 
-    secondPerson:
-      transferReceivedBySecondPerson,
+    total,
 
-    total:
-      cashReceivedByFirstPerson +
-      transferReceivedBySecondPerson,
-  },
+    received: {
+      firstPerson:
+        cashReceivedByFirstPerson,
 
-  balances: {
-    firstPerson:
-      firstPersonBalance,
+      secondPerson:
+        transferReceivedBySecondPerson,
 
-    secondPerson:
-      secondPersonBalance,
-  },
+      total:
+        cashReceivedByFirstPerson +
+        transferReceivedBySecondPerson,
+    },
 
-  settlement: {
-    direction:
-      settlementDirection,
-
-    amount:
-      settlementAmount,
-  },
-};
-
-    /*
-     * Pozitív érték:
-     * az adott személynél több van,
-     * mint amennyi neki jár.
-     *
-     * Negatív érték:
-     * az adott személynek még kapnia kell.
-     */
     balances: {
       firstPerson:
         firstPersonBalance,
@@ -259,9 +205,6 @@ function calculateSummary(
         secondPersonBalance,
     },
 
-    /*
-     * Ki fizet kinek, és mennyit.
-     */
     settlement: {
       direction:
         settlementDirection,
@@ -270,10 +213,6 @@ function calculateSummary(
         settlementAmount,
     },
 
-    /*
-     * Régi, fizetési mód nélküli
-     * elszámolási tételek.
-     */
     paymentValidation: {
       missingPaymentMethodCount,
 
