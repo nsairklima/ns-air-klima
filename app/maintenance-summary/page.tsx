@@ -1170,12 +1170,12 @@ export default function MaintenanceSummaryPage() {
 </h1>
 
 
-          <div
-            style={{
-              color: "#64748b",
-              fontSize: "13px",
-            }}
-          >
+        <div
+  style={{
+    color: "#cbd5e1",
+    fontSize: "13px",
+  }}
+>
             Aktuális időszak
             kezdete:{" "}
             {formatDate(
