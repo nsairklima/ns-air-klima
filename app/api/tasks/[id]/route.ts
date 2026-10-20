@@ -3,6 +3,7 @@ import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
+import { syncMaintenanceSettlement } from "@/lib/maintenanceSettlement";
 
 export const dynamic = "force-dynamic";
 
@@ -1061,6 +1062,44 @@ const finalPaymentMethod =
       }
     }
 
+let settlementSyncResult:
+  Awaited<
+    ReturnType<
+      typeof syncMaintenanceSettlement
+    >
+  > | null = null;
+
+let settlementSyncError:
+  string | null = null;
+
+try {
+  settlementSyncResult =
+    await syncMaintenanceSettlement({
+      taskId: Number(taskId),
+      taskType: type,
+      clientName: name,
+      machines,
+      machineDetails:
+        finalMachineDetails,
+      completedAt,
+    });
+
+  console.log(
+    "Szerkesztett munka karbantartási elszámolása:",
+    settlementSyncResult
+  );
+} catch (settlementError) {
+  settlementSyncError =
+    settlementError instanceof Error
+      ? settlementError.message
+      : String(settlementError);
+
+  console.error(
+    "A szerkesztett munka elszámolása nem sikerült:",
+    settlementError
+  );
+}
+    
     let emailSent = false;
 
     if (notificationEmails.length > 0) {
@@ -1229,31 +1268,118 @@ const machinesEmailHtml =
       message += " Az ügyfél már szerepel az ügyfelek között.";
     }
 
-    if (machineSyncResult.createdMachines.length > 0) {
-      message += ` ${machineSyncResult.createdMachines.length} gép hozzáadva az ügyfélhez.`;
-    }
+if (
+  machineSyncResult
+    .createdMachines.length > 0
+) {
+  message +=
+    ` ${machineSyncResult.createdMachines.length} gép hozzáadva az ügyfélhez.`;
+}
 
-    if (emailSent) {
-      message += " Az értesítő email elküldve.";
-    }
+if (
+  settlementSyncResult
+    ?.createdItems.length
+) {
+  message +=
+    ` ${settlementSyncResult.createdItems.length} karbantartási tétel bekerült az elszámolásba.`;
+}
 
-    return NextResponse.json({
-      message,
-      taskId,
-      images: finalImages,
-      machines,
-        machineDetails:
+if (
+  settlementSyncResult
+    ?.alreadyExistingItems.length
+) {
+  message +=
+    ` ${settlementSyncResult.alreadyExistingItems.length} karbantartási tétel már korábban szerepelt az elszámolásban.`;
+}
+
+if (
+  settlementSyncResult
+    ?.skippedItems.length
+) {
+  message +=
+    ` ${settlementSyncResult.skippedItems.length} gép elszámolása kimaradt.`;
+}
+
+if (
+  settlementSyncResult?.skipped &&
+  settlementSyncResult.skipReason
+) {
+  message +=
+    ` Elszámolás nem készült: ${settlementSyncResult.skipReason}`;
+}
+
+if (settlementSyncError) {
+  message +=
+    ` A munka módosult, de az elszámolás nem sikerült: ${settlementSyncError}`;
+}
+
+if (emailSent) {
+  message +=
+    " Az értesítő email elküldve.";
+}
+
+return NextResponse.json({
+  message,
+
+  taskId,
+
+  images: finalImages,
+
+  machines,
+
+  machineDetails:
     finalMachineDetails,
 
   paymentMethod:
     finalPaymentMethod,
-      machinesAddedToClient: machineSyncResult.createdMachines,
-      machinesAlreadyExisted: machineSyncResult.existingMachines,
-      clientCreated: clientSyncResult?.created || false,
-      clientId: clientSyncResult?.clientId || null,
-      clientMatchReason: clientSyncResult?.reason || null,
-      emailSent,
-    });
+
+  machinesAddedToClient:
+    machineSyncResult
+      .createdMachines,
+
+  machinesAlreadyExisted:
+    machineSyncResult
+      .existingMachines,
+
+  clientCreated:
+    clientSyncResult?.created ||
+    false,
+
+  clientId:
+    clientSyncResult?.clientId ||
+    null,
+
+  clientMatchReason:
+    clientSyncResult?.reason ||
+    null,
+
+  settlement: {
+    createdItems:
+      settlementSyncResult
+        ?.createdItems || [],
+
+    alreadyExistingItems:
+      settlementSyncResult
+        ?.alreadyExistingItems || [],
+
+    skippedItems:
+      settlementSyncResult
+        ?.skippedItems || [],
+
+    skipped:
+      settlementSyncResult
+        ?.skipped || false,
+
+    skipReason:
+      settlementSyncResult
+        ?.skipReason || null,
+
+    error:
+      settlementSyncError,
+  },
+
+  emailSent,
+});
   } catch (error: any) {
     console.error("Szerkesztési hiba részletei:", error);
 
