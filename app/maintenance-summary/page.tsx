@@ -1158,16 +1158,17 @@ export default function MaintenanceSummaryPage() {
         }}
       >
         <div>
-          <h1
-            style={{
-              margin:
-                "0 0 5px",
-              fontSize: "25px",
-            }}
-          >
-            💰 Karbantartási
-            elszámolás
-          </h1>
+         <h1
+  style={{
+    margin: "0 0 5px",
+    fontSize: "25px",
+    color: "#ffffff",
+    lineHeight: 1.2,
+  }}
+>
+  💰 Karbantartási elszámolás
+</h1>
+
 
           <div
             style={{
