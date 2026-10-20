@@ -2156,6 +2156,37 @@ export default function TasksPage() {
           </div>
         )}
 
+{/* KARBANTARTÁSI ELSZÁMOLÁS MODUL */}
+<div
+  style={{
+    marginBottom: "12px",
+  }}
+>
+  <a
+    href="/maintenance-summary"
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "100%",
+      padding: "10px 12px",
+      boxSizing: "border-box",
+      border: "1px solid #15803d",
+      borderRadius: "9px",
+      background:
+        "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+      color: "white",
+      textDecoration: "none",
+      fontSize: "14px",
+      fontWeight: "bold",
+      boxShadow:
+        "0 3px 8px rgba(21, 128, 61, 0.22)",
+    }}
+  >
+    💰 Karbantartási elszámolás
+  </a>
+</div>
+        
         {/* ÚJ MUNKA / SZERKESZTÉS ŰRLAP */}
         <div
           style={{
