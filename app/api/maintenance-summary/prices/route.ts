@@ -14,7 +14,7 @@ type PriceRequestBody = {
   secondPersonAmount?: unknown;
 };
 
-function parseNonNegativeInteger(
+function parseWholeNumber(
   value: unknown
 ): number | null {
   if (
@@ -24,28 +24,18 @@ function parseNonNegativeInteger(
     return null;
   }
 
-  const normalizedValue =
-    typeof value === "string"
-      ? value
-          .replace(/\s/g, "")
-          .replace(/Ft/gi, "")
-          .trim()
-      : value;
-
   if (
-    normalizedValue === "" ||
-    normalizedValue === null
+    typeof value === "string" &&
+    value.trim() === ""
   ) {
     return null;
   }
 
-  const parsedValue = Number(
-    normalizedValue
-  );
+  const parsedValue = Number(value);
 
   if (
-    !Number.isSafeInteger(parsedValue) ||
-    parsedValue < 0
+    !Number.isFinite(parsedValue) ||
+    !Number.isInteger(parsedValue)
   ) {
     return null;
   }
@@ -59,8 +49,7 @@ function parseMaintenanceType(
   if (
     value ===
       MaintenanceServiceType.WASH ||
-    value === "WASH" ||
-    value === "mosas"
+    value === "WASH"
   ) {
     return MaintenanceServiceType.WASH;
   }
@@ -68,8 +57,7 @@ function parseMaintenanceType(
   if (
     value ===
       MaintenanceServiceType.DISINFECTION ||
-    value === "DISINFECTION" ||
-    value === "fertotlenites"
+    value === "DISINFECTION"
   ) {
     return MaintenanceServiceType.DISINFECTION;
   }
@@ -94,17 +82,14 @@ function getMaintenanceTypeLabel(
 /*
  * GET
  *
- * Lekéri:
- * - a Mosás legújabb árbeállítását;
- * - a Fertőtlenítés legújabb árbeállítását;
- * - a teljes ártörténetet.
+ * Visszaadja mindkét karbantartástípus
+ * legutolsó árbeállítását.
  */
 export async function GET() {
   try {
     const [
       currentWashPrice,
       currentDisinfectionPrice,
-      priceHistory,
     ] = await Promise.all([
       prisma.maintenancePrice.findFirst({
         where: {
@@ -135,26 +120,14 @@ export async function GET() {
           },
         ],
       }),
-
-      prisma.maintenancePrice.findMany({
-        orderBy: [
-          {
-            validFrom: "desc",
-          },
-          {
-            id: "desc",
-          },
-        ],
-      }),
     ]);
 
     return NextResponse.json({
-      currentPrices: {
+      prices: {
         wash: currentWashPrice,
         disinfection:
           currentDisinfectionPrice,
       },
-      history: priceHistory,
     });
   } catch (error) {
     console.error(
@@ -165,11 +138,9 @@ export async function GET() {
     return NextResponse.json(
       {
         error:
-          "A karbantartási árak lekérése nem sikerült.",
-        details:
           error instanceof Error
             ? error.message
-            : String(error),
+            : "Az árak lekérése sikertelen.",
       },
       {
         status: 500,
@@ -192,7 +163,8 @@ export async function POST(
 
     try {
       body =
-        (await request.json()) as PriceRequestBody;
+        (await request.json()) as
+          PriceRequestBody;
     } catch {
       return NextResponse.json(
         {
@@ -211,17 +183,17 @@ export async function POST(
       );
 
     const totalPrice =
-      parseNonNegativeInteger(
+      parseWholeNumber(
         body.totalPrice
       );
 
     const firstPersonAmount =
-      parseNonNegativeInteger(
+      parseWholeNumber(
         body.firstPersonAmount
       );
 
     const secondPersonAmount =
-      parseNonNegativeInteger(
+      parseWholeNumber(
         body.secondPersonAmount
       );
 
@@ -229,7 +201,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Érvénytelen karbantartástípus. Engedélyezett érték: WASH vagy DISINFECTION.",
+            "Érvénytelen karbantartástípus.",
         },
         {
           status: 400,
@@ -241,7 +213,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "A teljes árnak nullánál nagyobb, egész forintösszegnek kell lennie.",
+            "A teljes ár csak egész szám lehet.",
         },
         {
           status: 400,
@@ -249,11 +221,23 @@ export async function POST(
       );
     }
 
-    if (totalPrice <= 0) {
+    if (firstPersonAmount === null) {
       return NextResponse.json(
         {
           error:
-            "A teljes árnak nullánál nagyobbnak kell lennie.",
+            "Az első személy része csak egész szám lehet.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (secondPersonAmount === null) {
+      return NextResponse.json(
+        {
+          error:
+            "A második személy része csak egész szám lehet.",
         },
         {
           status: 400,
@@ -262,13 +246,26 @@ export async function POST(
     }
 
     if (
-      firstPersonAmount === null ||
-      secondPersonAmount === null
+      totalPrice < 0 ||
+      firstPersonAmount < 0 ||
+      secondPersonAmount < 0
     ) {
       return NextResponse.json(
         {
           error:
-            "Mindkét személy részét egész forintban meg kell adni.",
+            "Az összegek nem lehetnek negatívak.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (totalPrice === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "A teljes árnak nullánál nagyobbnak kell lennie.",
         },
         {
           status: 400,
@@ -284,31 +281,29 @@ export async function POST(
       distributedTotal !== totalPrice
     ) {
       const difference =
-        totalPrice -
-        distributedTotal;
+        totalPrice - distributedTotal;
 
       const differenceMessage =
         difference > 0
-          ? `Az elosztott összeg ${difference.toLocaleString(
+          ? `Az elosztott összegek ${difference.toLocaleString(
               "hu-HU"
-            )} Ft-tal kevesebb a teljes árnál.`
-          : `Az elosztott összeg ${Math.abs(
+            )} Ft-tal kevesebbek a teljes árnál.`
+          : `Az elosztott összegek ${Math.abs(
               difference
             ).toLocaleString(
               "hu-HU"
-            )} Ft-tal meghaladja a teljes árat.`;
+            )} Ft-tal meghaladják a teljes árat.`;
 
       return NextResponse.json(
         {
-          error:
-            "A két személy része nem egyezik meg a teljes árral.",
-          difference,
-          differenceMessage,
-          received: {
+          error: differenceMessage,
+          validation: {
             totalPrice,
             firstPersonAmount,
             secondPersonAmount,
             distributedTotal,
+            difference,
+            isValid: false,
           },
         },
         {
@@ -317,6 +312,11 @@ export async function POST(
       );
     }
 
+    /*
+     * Lekérjük az eddigi legutolsó árat,
+     * hogy a naplóban megmaradjon,
+     * milyen értékekről változott.
+     */
     const previousPrice =
       await prisma.maintenancePrice.findFirst(
         {
@@ -335,130 +335,119 @@ export async function POST(
       );
 
     /*
-     * Ha minden érték változatlan,
-     * nem készítünk fölösleges árverziót.
-     */
-    if (
-      previousPrice &&
-      previousPrice.totalPrice ===
-        totalPrice &&
-      previousPrice.firstPersonAmount ===
-        firstPersonAmount &&
-      previousPrice.secondPersonAmount ===
-        secondPersonAmount
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Ez az ár és elosztás már jelenleg is érvényes.",
-          currentPrice: previousPrice,
-        },
-        {
-          status: 409,
-        }
-      );
-    }
-
-    /*
-     * Az ár és a naplóbejegyzés
-     * egy tranzakcióban készül el.
+     * Az új ár és a naplóbejegyzés
+     * egyetlen tranzakcióban készül el.
      *
-     * Ha a napló mentése hibás,
-     * az ár sem kerül mentésre.
+     * Így nem fordulhat elő olyan állapot,
+     * hogy az ár elmentődik, de a napló nem.
      */
     const result =
       await prisma.$transaction(
         async (transaction) => {
           const newPrice =
-            await transaction.maintenancePrice.create(
-              {
+            await transaction
+              .maintenancePrice
+              .create({
                 data: {
                   maintenanceType,
                   totalPrice,
                   firstPersonAmount,
                   secondPersonAmount,
-                  validFrom:
-                    new Date(),
                 },
-              }
+              });
+
+          const typeLabel =
+            getMaintenanceTypeLabel(
+              maintenanceType
             );
 
-          await transaction.maintenanceAuditLog.create(
-            {
-              data: {
-                eventType:
-                  MaintenanceAuditEventType.PRICE_CREATED,
+          const auditLog =
+            await transaction
+              .maintenanceAuditLog
+              .create({
+                data: {
+                  eventType:
+                    MaintenanceAuditEventType.PRICE_CREATED,
 
-                entityType:
-                  "MaintenancePrice",
+                  entityType:
+                    "MaintenancePrice",
 
-                entityId: newPrice.id,
+                  entityId:
+                    newPrice.id,
 
-                description:
-                  `${getMaintenanceTypeLabel(
-                    maintenanceType
-                  )} új árbeállítása`,
+                  description:
+                    `${typeLabel} új árverziója létrehozva.`,
 
-                details: {
-                  maintenanceType,
+                  details: {
+                    maintenanceType,
+                    maintenanceTypeLabel:
+                      typeLabel,
 
-                  previousPrice:
-                    previousPrice
-                      ? {
-                          id:
-                            previousPrice.id,
-                          totalPrice:
-                            previousPrice.totalPrice,
-                          firstPersonAmount:
-                            previousPrice.firstPersonAmount,
-                          secondPersonAmount:
-                            previousPrice.secondPersonAmount,
-                          validFrom:
-                            previousPrice.validFrom,
-                        }
-                      : null,
+                    previousPrice:
+                      previousPrice
+                        ? {
+                            id:
+                              previousPrice.id,
 
-                  newPrice: {
-                    id: newPrice.id,
-                    totalPrice:
-                      newPrice.totalPrice,
-                    firstPersonAmount:
-                      newPrice.firstPersonAmount,
-                    secondPersonAmount:
-                      newPrice.secondPersonAmount,
-                    validFrom:
-                      newPrice.validFrom,
+                            totalPrice:
+                              previousPrice.totalPrice,
+
+                            firstPersonAmount:
+                              previousPrice.firstPersonAmount,
+
+                            secondPersonAmount:
+                              previousPrice.secondPersonAmount,
+
+                            validFrom:
+                              previousPrice.validFrom,
+                          }
+                        : null,
+
+                    newPrice: {
+                      id: newPrice.id,
+                      totalPrice:
+                        newPrice.totalPrice,
+
+                      firstPersonAmount:
+                        newPrice.firstPersonAmount,
+
+                      secondPersonAmount:
+                        newPrice.secondPersonAmount,
+
+                      validFrom:
+                        newPrice.validFrom,
+                    },
                   },
                 },
-              },
-            }
-          );
+              });
 
-          return newPrice;
+          return {
+            newPrice,
+            auditLog,
+          };
         }
       );
 
     return NextResponse.json(
       {
         message:
-          `${getMaintenanceTypeLabel(
-            maintenanceType
-          )} új ára sikeresen elmentve.`,
+          "Az új árverzió sikeresen elmentve.",
 
-        price: result,
+        price: result.newPrice,
 
         validation: {
-          totalPrice:
-            result.totalPrice,
-          firstPersonAmount:
-            result.firstPersonAmount,
-          secondPersonAmount:
-            result.secondPersonAmount,
-          distributedTotal:
-            result.firstPersonAmount +
-            result.secondPersonAmount,
-          isBalanced: true,
+          totalPrice,
+          firstPersonAmount,
+          secondPersonAmount,
+          distributedTotal,
+          difference: 0,
+          isValid: true,
         },
+
+        previousPrice,
+
+        auditLogId:
+          result.auditLog.id,
       },
       {
         status: 201,
@@ -473,11 +462,9 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Az új karbantartási ár mentése nem sikerült.",
-        details:
           error instanceof Error
             ? error.message
-            : String(error),
+            : "Az ár mentése sikertelen.",
       },
       {
         status: 500,
