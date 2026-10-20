@@ -630,6 +630,68 @@ export default function MaintenanceSummaryPage() {
       }
     };
 
+  const backfillExistingTasks =
+  async () => {
+    if (
+      !window.confirm(
+        "Biztosan feldolgozod a meglévő teljesített karbantartásokat? A már teljes elszámolási tételeket a rendszer nem írja felül."
+      )
+    ) {
+      return;
+    }
+
+    setSaving(true);
+    setStatusMessage("");
+
+    try {
+      const response =
+        await fetch(
+          "/api/maintenance-summary/backfill",
+          {
+            method: "POST",
+          }
+        );
+
+      const responseData =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          responseData.details ||
+            responseData.error ||
+            "A visszatöltés nem sikerült."
+        );
+      }
+
+      const result =
+        responseData.result;
+
+      setStatusType("success");
+
+      setStatusMessage(
+        `Visszatöltés kész. Új tételek: ${
+          result.createdItemCount
+        } db. Kiegészített meglévő tételek: ${
+          result.completedExistingItemCount
+        } db. Hibák: ${
+          result.errorCount
+        } db.`
+      );
+
+      await loadSummary();
+    } catch (error) {
+      setStatusType("error");
+
+      setStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "A visszatöltés nem sikerült."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openCorrection = (
     item: SettlementItem
   ) => {
@@ -1784,6 +1846,66 @@ export default function MaintenanceSummaryPage() {
               lezárása
             </button>
           </div>
+
+{/* MEGLÉVŐ KARBANTARTÁSOK VISSZATÖLTÉSE */}
+<div
+  style={{
+    marginTop: "14px",
+    padding: "16px",
+    background: "#eff6ff",
+    border: "1px solid #60a5fa",
+    borderRadius: "12px",
+  }}
+>
+  <h3
+    style={{
+      margin: "0 0 8px",
+      color: "#1e3a8a",
+    }}
+  >
+    🔄 Meglévő munkák visszatöltése
+  </h3>
+
+  <p
+    style={{
+      margin: "0 0 12px",
+      fontSize: "13px",
+      color: "#334155",
+      lineHeight: 1.5,
+    }}
+  >
+    Feldolgozza a meglévő, teljesített
+    karbantartásokat. A hiányzó elszámolási
+    tételeket létrehozza, a fizetési mód
+    nélküli tételeket pedig naplózva
+    kiegészíti.
+  </p>
+
+  <button
+    type="button"
+    disabled={saving}
+    onClick={backfillExistingTasks}
+    style={{
+      padding: "10px 14px",
+      border: "none",
+      borderRadius: "8px",
+      background: saving
+        ? "#94a3b8"
+        : "#2563eb",
+      color: "white",
+      fontWeight: "bold",
+      cursor: saving
+        ? "not-allowed"
+        : "pointer",
+    }}
+  >
+    {saving
+      ? "Feldolgozás..."
+      : "Meglévő karbantartások feldolgozása"}
+  </button>
+</div>
+
+          
         </>
       )}
 
