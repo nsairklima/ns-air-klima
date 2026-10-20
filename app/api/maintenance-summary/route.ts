@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import {
+  MaintenancePaymentMethod,
+  MaintenanceReceiver,
   MaintenanceServiceType,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -13,8 +15,16 @@ type SummaryValues = {
   secondPersonTotal: number;
 };
 
-function createEmptySummary():
-  SummaryValues {
+type SummaryItem = {
+  maintenanceType: MaintenanceServiceType;
+  paymentMethod: MaintenancePaymentMethod | null;
+  receivedBy: MaintenanceReceiver | null;
+  appliedPrice: number;
+  firstPersonAmount: number;
+  secondPersonAmount: number;
+};
+
+function createEmptySummary(): SummaryValues {
   return {
     count: 0,
     totalRevenue: 0,
@@ -23,475 +33,263 @@ function createEmptySummary():
   };
 }
 
-function calculateSummary(
-  items: Array<{
-    maintenanceType:
-      MaintenanceServiceType;
-
-    paymentMethod:
-      | "CASH"
-      | "TRANSFER"
-      | null;
-
-    receivedBy:
-      | "FIRST_PERSON"
-      | "SECOND_PERSON"
-      | null;
-
-    appliedPrice: number;
-    firstPersonAmount: number;
-    secondPersonAmount: number;
-  }>
-) {
-  const wash =
-    createEmptySummary();
-
-  const disinfection =
-    createEmptySummary();
+function calculateSummary(items: SummaryItem[]) {
+  const wash = createEmptySummary();
+  const disinfection = createEmptySummary();
 
   let cashReceivedByFirstPerson = 0;
-
   let transferReceivedBySecondPerson = 0;
-
   let missingPaymentMethodCount = 0;
-
   let missingPaymentMethodAmount = 0;
 
   for (const item of items) {
     const target =
-      item.maintenanceType ===
-      MaintenanceServiceType.WASH
+      item.maintenanceType === MaintenanceServiceType.WASH
         ? wash
         : disinfection;
 
     target.count += 1;
+    target.totalRevenue += item.appliedPrice;
+    target.firstPersonTotal += item.firstPersonAmount;
+    target.secondPersonTotal += item.secondPersonAmount;
 
-    target.totalRevenue +=
-      item.appliedPrice;
-
-    target.firstPersonTotal +=
-      item.firstPersonAmount;
-
-    target.secondPersonTotal +=
-      item.secondPersonAmount;
-
-    /*
-     * Készpénznél a teljes összeg
-     * az 1. főhöz érkezett.
-     */
     if (
-      item.paymentMethod ===
-        "CASH" &&
-      item.receivedBy ===
-        "FIRST_PERSON"
+      item.paymentMethod === MaintenancePaymentMethod.CASH &&
+      item.receivedBy === MaintenanceReceiver.FIRST_PERSON
     ) {
-      cashReceivedByFirstPerson +=
-        item.appliedPrice;
+      cashReceivedByFirstPerson += item.appliedPrice;
     }
 
-    /*
-     * Átutalásnál a teljes összeg
-     * a 2. főhöz érkezett.
-     */
     if (
-      item.paymentMethod ===
-        "TRANSFER" &&
-      item.receivedBy ===
-        "SECOND_PERSON"
+      item.paymentMethod === MaintenancePaymentMethod.TRANSFER &&
+      item.receivedBy === MaintenanceReceiver.SECOND_PERSON
     ) {
-      transferReceivedBySecondPerson +=
-        item.appliedPrice;
+      transferReceivedBySecondPerson += item.appliedPrice;
     }
 
-    /*
-     * A régebbi, még fizetési mód
-     * nélküli tételeket külön számoljuk.
-     */
-    if (
-      !item.paymentMethod ||
-      !item.receivedBy
-    ) {
+    if (!item.paymentMethod || !item.receivedBy) {
       missingPaymentMethodCount += 1;
-
-      missingPaymentMethodAmount +=
-        item.appliedPrice;
+      missingPaymentMethodAmount += item.appliedPrice;
     }
   }
 
   const total = {
-    count:
-      wash.count +
-      disinfection.count,
-
-    totalRevenue:
-      wash.totalRevenue +
-      disinfection.totalRevenue,
-
+    count: wash.count + disinfection.count,
+    totalRevenue: wash.totalRevenue + disinfection.totalRevenue,
     firstPersonTotal:
-      wash.firstPersonTotal +
-      disinfection.firstPersonTotal,
-
+      wash.firstPersonTotal + disinfection.firstPersonTotal,
     secondPersonTotal:
-      wash.secondPersonTotal +
-      disinfection.secondPersonTotal,
+      wash.secondPersonTotal + disinfection.secondPersonTotal,
   };
 
+  const receivedTotal =
+    cashReceivedByFirstPerson + transferReceivedBySecondPerson;
+
   const firstPersonBalance =
-    cashReceivedByFirstPerson -
-    total.firstPersonTotal;
+    cashReceivedByFirstPerson - total.firstPersonTotal;
 
   const secondPersonBalance =
-    transferReceivedBySecondPerson -
-    total.secondPersonTotal;
+    transferReceivedBySecondPerson - total.secondPersonTotal;
 
   let settlementDirection:
     | "FIRST_PAYS_SECOND"
     | "SECOND_PAYS_FIRST"
     | "SETTLED"
-    | "INCOMPLETE" =
-      "SETTLED";
+    | "INCOMPLETE" = "SETTLED";
 
   let settlementAmount = 0;
 
-  if (
-    missingPaymentMethodCount > 0
-  ) {
-    settlementDirection =
-      "INCOMPLETE";
-  } else if (
-    firstPersonBalance > 0
-  ) {
-    settlementDirection =
-      "FIRST_PAYS_SECOND";
-
-    settlementAmount =
-      firstPersonBalance;
-  } else if (
-    firstPersonBalance < 0
-  ) {
-    settlementDirection =
-      "SECOND_PAYS_FIRST";
-
-    settlementAmount =
-      Math.abs(
-        firstPersonBalance
-      );
+  if (missingPaymentMethodCount > 0) {
+    settlementDirection = "INCOMPLETE";
+  } else if (firstPersonBalance > 0) {
+    settlementDirection = "FIRST_PAYS_SECOND";
+    settlementAmount = firstPersonBalance;
+  } else if (firstPersonBalance < 0) {
+    settlementDirection = "SECOND_PAYS_FIRST";
+    settlementAmount = Math.abs(firstPersonBalance);
   }
 
   return {
     wash,
-
     disinfection,
-
     total,
-
     received: {
-      firstPerson:
-        cashReceivedByFirstPerson,
-
-      secondPerson:
-        transferReceivedBySecondPerson,
-
-      total:
-        cashReceivedByFirstPerson +
-        transferReceivedBySecondPerson,
+      firstPerson: cashReceivedByFirstPerson,
+      secondPerson: transferReceivedBySecondPerson,
+      total: receivedTotal,
     },
-
     balances: {
-      firstPerson:
-        firstPersonBalance,
-
-      secondPerson:
-        secondPersonBalance,
+      firstPerson: firstPersonBalance,
+      secondPerson: secondPersonBalance,
     },
-
     settlement: {
-      direction:
-        settlementDirection,
-
-      amount:
-        settlementAmount,
+      direction: settlementDirection,
+      amount: settlementAmount,
     },
-
     paymentValidation: {
       missingPaymentMethodCount,
-
       missingPaymentMethodAmount,
-
-      isComplete:
-        missingPaymentMethodCount ===
-        0,
+      isComplete: missingPaymentMethodCount === 0,
     },
   };
 }
 
 export async function GET() {
   try {
-    /*
-     * Megkeressük az aktív időszakot.
-     *
-     * Aktív az az időszak, amelynek
-     * nincs lezárási dátuma.
-     */
     let activePeriod =
-      await prisma
-        .maintenanceSettlementPeriod
-        .findFirst({
-          where: {
-            endedAt: null,
-          },
-
-          orderBy: {
+      await prisma.maintenanceSettlementPeriod.findFirst({
+        where: {
+          endedAt: null,
+        },
+        orderBy: [
+          {
             startedAt: "desc",
           },
-        });
+          {
+            id: "desc",
+          },
+        ],
+      });
 
-    /*
-     * Ha valamiért még nincs aktív
-     * időszak, automatikusan létrehozzuk.
-     *
-     * Ez nem reset, ezért nem készül
-     * PERIOD_RESET naplóbejegyzés.
-     */
     if (!activePeriod) {
       activePeriod =
-        await prisma
-          .maintenanceSettlementPeriod
-          .create({
-            data: {
-              startedAt:
-                new Date(),
-            },
-          });
+        await prisma.maintenanceSettlementPeriod.create({
+          data: {
+            startedAt: new Date(),
+          },
+        });
     }
 
-    /*
-     * Lekérjük az aktív időszak összes
-     * elszámolási tételét.
-     */
     const activeItems =
-      await prisma
-        .maintenanceSettlementItem
-        .findMany({
-          where: {
-            periodId:
-              activePeriod.id,
+      await prisma.maintenanceSettlementItem.findMany({
+        where: {
+          periodId: activePeriod.id,
+        },
+        orderBy: [
+          {
+            completedAt: "desc",
           },
-
-          orderBy: [
-            {
-              completedAt: "desc",
-            },
-            {
-              id: "desc",
-            },
-          ],
-
-          include: {
-            price: true,
+          {
+            id: "desc",
           },
-        });
+        ],
+        include: {
+          price: true,
+        },
+      });
 
-    const activeSummary =
-      calculateSummary(activeItems);
+    const activeSummary = calculateSummary(activeItems);
 
-    /*
-     * Aktuális árak lekérése.
-     *
-     * Típusonként a legújabb érvényességi
-     * dátumú ár lesz az aktuális.
-     */
-    const allPrices =
-      await prisma
-        .maintenancePrice
-        .findMany({
-          orderBy: [
-            {
-              validFrom: "desc",
-            },
-            {
-              id: "desc",
-            },
-          ],
-        });
+    const allPrices = await prisma.maintenancePrice.findMany({
+      orderBy: [
+        {
+          validFrom: "desc",
+        },
+        {
+          id: "desc",
+        },
+      ],
+    });
 
     const currentWashPrice =
       allPrices.find(
         (price) =>
-          price.maintenanceType ===
-          MaintenanceServiceType.WASH
+          price.maintenanceType === MaintenanceServiceType.WASH
       ) || null;
 
     const currentDisinfectionPrice =
       allPrices.find(
         (price) =>
           price.maintenanceType ===
-          MaintenanceServiceType
-            .DISINFECTION
+          MaintenanceServiceType.DISINFECTION
       ) || null;
 
-    /*
-     * Korábbi, már lezárt időszakok.
-     */
     const closedPeriods =
-      await prisma
-        .maintenanceSettlementPeriod
-        .findMany({
-          where: {
-            endedAt: {
-              not: null,
-            },
+      await prisma.maintenanceSettlementPeriod.findMany({
+        where: {
+          endedAt: {
+            not: null,
           },
-
-          orderBy: {
-            endedAt: "desc",
+        },
+        orderBy: {
+          endedAt: "desc",
+        },
+        include: {
+          items: {
+            orderBy: [
+              {
+                completedAt: "desc",
+              },
+              {
+                id: "desc",
+              },
+            ],
           },
+        },
+      });
 
-          include: {
-            items: {
-              orderBy: [
-                {
-                  completedAt:
-                    "desc",
-                },
-                {
-                  id: "desc",
-                },
-              ],
-            },
-          },
-        });
+    const periodHistory = closedPeriods.map((period) => ({
+      id: period.id,
+      startedAt: period.startedAt,
+      endedAt: period.endedAt,
+      createdAt: period.createdAt,
+      summary: calculateSummary(period.items),
+    }));
 
-    /*
-     * A lezárt időszakokhoz is
-     * kiszámítjuk az összesítést.
-     */
-    const periodHistory =
-      closedPeriods.map(
-        (period) => {
-          return {
-            id: period.id,
+    const auditLogs = await prisma.maintenanceAuditLog.findMany({
+      orderBy: [
+        {
+          createdAt: "desc",
+        },
+        {
+          id: "desc",
+        },
+      ],
+    });
 
-            startedAt:
-              period.startedAt,
-
-            endedAt:
-              period.endedAt,
-
-            createdAt:
-              period.createdAt,
-
-            summary:
-              calculateSummary(
-                period.items
-              ),
-          };
-        }
-      );
-
-    /*
-     * A legutóbbi naplóbejegyzések.
-     *
-     * Az összes bejegyzést visszaadjuk,
-     * hogy minden korábbi változás
-     * visszakereshető legyen.
-     */
-    const auditLogs =
-      await prisma
-        .maintenanceAuditLog
-        .findMany({
-          orderBy: [
-            {
-              createdAt: "desc",
-            },
-            {
-              id: "desc",
-            },
-          ],
-        });
-
-    /*
-     * Biztonsági ellenőrzés:
-     *
-     * az első és második személy teljes
-     * összegének egyeznie kell az összes
-     * bevétellel.
-     */
     const distributedTotal =
-      activeSummary.total
-        .firstPersonTotal +
-      activeSummary.total
-        .secondPersonTotal;
+      activeSummary.total.firstPersonTotal +
+      activeSummary.total.secondPersonTotal;
 
     const distributionIsValid =
-      distributedTotal ===
-      activeSummary.total
-        .totalRevenue;
+      distributedTotal === activeSummary.total.totalRevenue;
 
     return NextResponse.json(
       {
         activePeriod: {
           id: activePeriod.id,
-
-          startedAt:
-            activePeriod.startedAt,
-
-          endedAt:
-            activePeriod.endedAt,
-
-          createdAt:
-            activePeriod.createdAt,
+          startedAt: activePeriod.startedAt,
+          endedAt: activePeriod.endedAt,
+          createdAt: activePeriod.createdAt,
         },
-
         currentPrices: {
-          WASH:
-            currentWashPrice,
-
-          DISINFECTION:
-            currentDisinfectionPrice,
+          WASH: currentWashPrice,
+          DISINFECTION: currentDisinfectionPrice,
         },
-
         summary: {
-          wash:
-            activeSummary.wash,
-
-          disinfection:
-            activeSummary
-              .disinfection,
-
-          total:
-            activeSummary.total,
-
+          wash: activeSummary.wash,
+          disinfection: activeSummary.disinfection,
+          total: activeSummary.total,
+          received: activeSummary.received,
+          balances: activeSummary.balances,
+          settlement: activeSummary.settlement,
+          paymentValidation: activeSummary.paymentValidation,
           validation: {
             distributedTotal,
-
-            expectedTotal:
-              activeSummary.total
-                .totalRevenue,
-
+            expectedTotal: activeSummary.total.totalRevenue,
             difference:
-              distributedTotal -
-              activeSummary.total
-                .totalRevenue,
-
-            isValid:
-              distributionIsValid,
+              distributedTotal - activeSummary.total.totalRevenue,
+            isValid: distributionIsValid,
           },
         },
-
         items: activeItems,
-
-        previousPeriods:
-          periodHistory,
-
+        previousPeriods: periodHistory,
         auditLogs,
       },
       {
         status: 200,
-
         headers: {
-          "Cache-Control":
-            "no-store, no-cache, must-revalidate",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
         },
       }
     );
@@ -503,13 +301,9 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        error:
-          "A karbantartási összesítő lekérése nem sikerült.",
-
+        error: "A karbantartási összesítő lekérése nem sikerült.",
         details:
-          error instanceof Error
-            ? error.message
-            : String(error),
+          error instanceof Error ? error.message : String(error),
       },
       {
         status: 500,
