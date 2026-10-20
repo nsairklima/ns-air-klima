@@ -27,6 +27,17 @@ function calculateSummary(
   items: Array<{
     maintenanceType:
       MaintenanceServiceType;
+
+    paymentMethod:
+      | "CASH"
+      | "TRANSFER"
+      | null;
+
+    receivedBy:
+      | "FIRST_PERSON"
+      | "SECOND_PERSON"
+      | null;
+
     appliedPrice: number;
     firstPersonAmount: number;
     secondPersonAmount: number;
@@ -38,7 +49,19 @@ function calculateSummary(
   const disinfection =
     createEmptySummary();
 
+  let cashReceivedByFirstPerson = 0;
+
+  let transferReceivedBySecondPerson = 0;
+
+  let missingPaymentMethodCount = 0;
+
+  let missingPaymentMethodAmount = 0;
+
   for (const item of items) {
+    /*
+     * Mosás vagy Fertőtlenítés
+     * összesítésének kiválasztása.
+     */
     const target =
       item.maintenanceType ===
       MaintenanceServiceType.WASH
@@ -55,8 +78,54 @@ function calculateSummary(
 
     target.secondPersonTotal +=
       item.secondPersonAmount;
+
+    /*
+     * Készpénz esetén a teljes összeg
+     * az 1. főhöz érkezett.
+     */
+    if (
+      item.paymentMethod === "CASH" &&
+      item.receivedBy ===
+        "FIRST_PERSON"
+    ) {
+      cashReceivedByFirstPerson +=
+        item.appliedPrice;
+    }
+
+    /*
+     * Átutalás esetén a teljes összeg
+     * a 2. főhöz érkezett.
+     */
+    if (
+      item.paymentMethod ===
+        "TRANSFER" &&
+      item.receivedBy ===
+        "SECOND_PERSON"
+    ) {
+      transferReceivedBySecondPerson +=
+        item.appliedPrice;
+    }
+
+    /*
+     * A régi tételeknél még hiányozhat
+     * a fizetési mód vagy a pénz fogadója.
+     * Ezeket nem osztjuk be találomra.
+     */
+    if (
+      !item.paymentMethod ||
+      !item.receivedBy
+    ) {
+      missingPaymentMethodCount += 1;
+
+      missingPaymentMethodAmount +=
+        item.appliedPrice;
+    }
   }
 
+  /*
+   * Az időszak teljes darabszáma
+   * és teljes bevétele.
+   */
   const total = {
     count:
       wash.count +
@@ -75,10 +144,145 @@ function calculateSummary(
       disinfection.secondPersonTotal,
   };
 
-  return {
-    wash,
-    disinfection,
-    total,
+  /*
+   * Mennyinek kellene az 1. főnél lennie
+   * a járandósága alapján, és ténylegesen
+   * mennyi érkezett hozzá készpénzben.
+   */
+  const firstPersonBalance =
+    cashReceivedByFirstPerson -
+    total.firstPersonTotal;
+
+  /*
+   * Mennyinek kellene a 2. főnél lennie
+   * a járandósága alapján, és ténylegesen
+   * mennyi érkezett hozzá utalással.
+   */
+  const secondPersonBalance =
+    transferReceivedBySecondPerson -
+    total.secondPersonTotal;
+
+  let settlementDirection:
+    | "FIRST_PAYS_SECOND"
+    | "SECOND_PAYS_FIRST"
+    | "SETTLED"
+    | "INCOMPLETE" =
+      "SETTLED";
+
+  let settlementAmount = 0;
+
+  /*
+   * Ha van olyan régi tétel, amelynél
+   * nincs fizetési mód, nem állapítunk
+   * meg végleges tartozást.
+   */
+  if (
+    missingPaymentMethodCount > 0
+  ) {
+    settlementDirection =
+      "INCOMPLETE";
+  } else if (
+    firstPersonBalance > 0
+  ) {
+    /*
+     * Az 1. főnél több pénz van,
+     * mint amennyi neki jár.
+     */
+    settlementDirection =
+      "FIRST_PAYS_SECOND";
+
+    settlementAmount =
+      firstPersonBalance;
+  } else if (
+    firstPersonBalance < 0
+  ) {
+    /*
+     * Az 1. főnél kevesebb pénz van,
+     * mint amennyi neki jár.
+     */
+    settlementDirection =
+      "SECOND_PAYS_FIRST";
+
+    settlementAmount =
+      Math.abs(
+        firstPersonBalance
+      );
+  }
+
+ return {
+  wash,
+  disinfection,
+  total,
+
+  received: {
+    firstPerson:
+      cashReceivedByFirstPerson,
+
+    secondPerson:
+      transferReceivedBySecondPerson,
+
+    total:
+      cashReceivedByFirstPerson +
+      transferReceivedBySecondPerson,
+  },
+
+  balances: {
+    firstPerson:
+      firstPersonBalance,
+
+    secondPerson:
+      secondPersonBalance,
+  },
+
+  settlement: {
+    direction:
+      settlementDirection,
+
+    amount:
+      settlementAmount,
+  },
+};
+
+    /*
+     * Pozitív érték:
+     * az adott személynél több van,
+     * mint amennyi neki jár.
+     *
+     * Negatív érték:
+     * az adott személynek még kapnia kell.
+     */
+    balances: {
+      firstPerson:
+        firstPersonBalance,
+
+      secondPerson:
+        secondPersonBalance,
+    },
+
+    /*
+     * Ki fizet kinek, és mennyit.
+     */
+    settlement: {
+      direction:
+        settlementDirection,
+
+      amount:
+        settlementAmount,
+    },
+
+    /*
+     * Régi, fizetési mód nélküli
+     * elszámolási tételek.
+     */
+    paymentValidation: {
+      missingPaymentMethodCount,
+
+      missingPaymentMethodAmount,
+
+      isComplete:
+        missingPaymentMethodCount ===
+        0,
+    },
   };
 }
 
