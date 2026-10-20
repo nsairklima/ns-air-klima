@@ -47,9 +47,39 @@ type SettlementItem = {
 
 type PeriodSummary = {
   wash: SummaryBlock;
+
   disinfection: SummaryBlock;
+
   total: SummaryBlock;
+
+  received: {
+    firstPerson: number;
+    secondPerson: number;
+    total: number;
+  };
+
+  balances: {
+    firstPerson: number;
+    secondPerson: number;
+  };
+
+  settlement: {
+    direction:
+      | "FIRST_PAYS_SECOND"
+      | "SECOND_PAYS_FIRST"
+      | "SETTLED"
+      | "INCOMPLETE";
+
+    amount: number;
+  };
+
+  paymentValidation: {
+    missingPaymentMethodCount: number;
+    missingPaymentMethodAmount: number;
+    isComplete: boolean;
+  };
 };
+
 
 type PreviousPeriod = {
   id: number;
@@ -1350,6 +1380,306 @@ export default function MaintenanceSummaryPage() {
                   )
                 )}`}
           </div>
+
+          {/* TÉNYLEGESEN BEÉRKEZETT PÉNZ */}
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: "12px",
+    marginBottom: "18px",
+  }}
+>
+  <div
+    style={{
+      padding: "16px",
+      borderRadius: "12px",
+      background: "white",
+      border: "2px solid #16a34a",
+    }}
+  >
+    <div
+      style={{
+        marginBottom: "10px",
+        color: "#15803d",
+        fontWeight: "bold",
+        fontSize: "16px",
+      }}
+    >
+      💵 1. főhöz beérkezett készpénz
+    </div>
+
+    <strong
+      style={{
+        fontSize: "21px",
+        color: "#14532d",
+      }}
+    >
+      {formatCurrency(
+        summary.received.firstPerson
+      )}
+    </strong>
+  </div>
+
+  <div
+    style={{
+      padding: "16px",
+      borderRadius: "12px",
+      background: "white",
+      border: "2px solid #2563eb",
+    }}
+  >
+    <div
+      style={{
+        marginBottom: "10px",
+        color: "#1d4ed8",
+        fontWeight: "bold",
+        fontSize: "16px",
+      }}
+    >
+      🏦 2. főhöz beérkezett átutalás
+    </div>
+
+    <strong
+      style={{
+        fontSize: "21px",
+        color: "#1e3a8a",
+      }}
+    >
+      {formatCurrency(
+        summary.received.secondPerson
+      )}
+    </strong>
+  </div>
+
+  <div
+    style={{
+      padding: "16px",
+      borderRadius: "12px",
+      background: "white",
+      border: "2px solid #64748b",
+    }}
+  >
+    <div
+      style={{
+        marginBottom: "10px",
+        color: "#334155",
+        fontWeight: "bold",
+        fontSize: "16px",
+      }}
+    >
+      💰 Beérkezett összesen
+    </div>
+
+    <strong
+      style={{
+        fontSize: "21px",
+        color: "#0f172a",
+      }}
+    >
+      {formatCurrency(
+        summary.received.total
+      )}
+    </strong>
+  </div>
+</div>
+
+{/* EGYMÁS KÖZÖTTI RENDEZÉS */}
+<div
+  style={{
+    padding: "16px",
+    marginBottom: "18px",
+    borderRadius: "12px",
+    background:
+      summary.settlement.direction ===
+      "SETTLED"
+        ? "#dcfce7"
+        : summary.settlement.direction ===
+            "INCOMPLETE"
+          ? "#fef3c7"
+          : "#eff6ff",
+    border:
+      summary.settlement.direction ===
+      "SETTLED"
+        ? "2px solid #16a34a"
+        : summary.settlement.direction ===
+            "INCOMPLETE"
+          ? "2px solid #f59e0b"
+          : "2px solid #2563eb",
+    color: "#0f172a",
+  }}
+>
+  <h3
+    style={{
+      margin: "0 0 12px",
+      fontSize: "18px",
+    }}
+  >
+    🤝 Egymás közötti elszámolás
+  </h3>
+
+  <div
+    style={{
+      marginBottom: "6px",
+    }}
+  >
+    1. főnek jár:
+    {" "}
+    <strong>
+      {formatCurrency(
+        summary.total.firstPersonTotal
+      )}
+    </strong>
+  </div>
+
+  <div
+    style={{
+      marginBottom: "6px",
+    }}
+  >
+    1. főhöz ténylegesen beérkezett:
+    {" "}
+    <strong>
+      {formatCurrency(
+        summary.received.firstPerson
+      )}
+    </strong>
+  </div>
+
+  <div
+    style={{
+      marginBottom: "12px",
+    }}
+  >
+    2. főnek jár:
+    {" "}
+    <strong>
+      {formatCurrency(
+        summary.total.secondPersonTotal
+      )}
+    </strong>
+  </div>
+
+  <div
+    style={{
+      marginBottom: "12px",
+    }}
+  >
+    2. főhöz ténylegesen beérkezett:
+    {" "}
+    <strong>
+      {formatCurrency(
+        summary.received.secondPerson
+      )}
+    </strong>
+  </div>
+
+  {summary.settlement.direction ===
+    "FIRST_PAYS_SECOND" && (
+    <div
+      style={{
+        padding: "12px",
+        borderRadius: "8px",
+        background: "#dbeafe",
+        color: "#1e3a8a",
+        fontWeight: "bold",
+        fontSize: "17px",
+      }}
+    >
+      Az 1. fő fizet a 2. főnek:
+      {" "}
+      {formatCurrency(
+        summary.settlement.amount
+      )}
+    </div>
+  )}
+
+  {summary.settlement.direction ===
+    "SECOND_PAYS_FIRST" && (
+    <div
+      style={{
+        padding: "12px",
+        borderRadius: "8px",
+        background: "#dbeafe",
+        color: "#1e3a8a",
+        fontWeight: "bold",
+        fontSize: "17px",
+      }}
+    >
+      A 2. fő fizet az 1. főnek:
+      {" "}
+      {formatCurrency(
+        summary.settlement.amount
+      )}
+    </div>
+  )}
+
+  {summary.settlement.direction ===
+    "SETTLED" && (
+    <div
+      style={{
+        padding: "12px",
+        borderRadius: "8px",
+        background: "#bbf7d0",
+        color: "#166534",
+        fontWeight: "bold",
+        fontSize: "17px",
+      }}
+    >
+      ✅ Nincs egymás között rendezendő
+      összeg.
+    </div>
+  )}
+
+  {summary.settlement.direction ===
+    "INCOMPLETE" && (
+    <div
+      style={{
+        padding: "12px",
+        borderRadius: "8px",
+        background: "#fde68a",
+        color: "#92400e",
+        fontWeight: "bold",
+      }}
+    >
+      ⚠️ Az elszámolás még nem végleges.
+
+      <div
+        style={{
+          marginTop: "6px",
+          fontWeight: "normal",
+        }}
+      >
+        Fizetési mód nélküli tételek:
+        {" "}
+        <strong>
+          {
+            summary.paymentValidation
+              .missingPaymentMethodCount
+          }{" "}
+          db
+        </strong>
+      </div>
+
+      <div
+        style={{
+          marginTop: "4px",
+          fontWeight: "normal",
+        }}
+      >
+        Érintett összeg:
+        {" "}
+        <strong>
+          {formatCurrency(
+            summary.paymentValidation
+              .missingPaymentMethodAmount
+          )}
+        </strong>
+      </div>
+    </div>
+  )}
+</div>
 
           <div
             style={{
