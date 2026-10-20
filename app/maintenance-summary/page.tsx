@@ -1,19 +1,15 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-type MaintenanceType =
-  | "WASH"
-  | "DISINFECTION";
+type MaintenanceType = "WASH" | "DISINFECTION";
+type PaymentMethod = "CASH" | "TRANSFER" | null;
+type Receiver = "FIRST_PERSON" | "SECOND_PERSON" | null;
+type Tab = "summary" | "prices" | "items" | "periods" | "logs";
 
 type Price = {
   id: number;
-  maintenanceType:
-    MaintenanceType;
+  maintenanceType: MaintenanceType;
   totalPrice: number;
   firstPersonAmount: number;
   secondPersonAmount: number;
@@ -34,8 +30,9 @@ type SettlementItem = {
   machineIndex: number;
   clientName: string | null;
   machineName: string;
-  maintenanceType:
-    MaintenanceType;
+  maintenanceType: MaintenanceType;
+  paymentMethod: PaymentMethod;
+  receivedBy: Receiver;
   appliedPrice: number;
   firstPersonAmount: number;
   secondPersonAmount: number;
@@ -47,39 +44,20 @@ type SettlementItem = {
 
 type PeriodSummary = {
   wash: SummaryBlock;
-
   disinfection: SummaryBlock;
-
   total: SummaryBlock;
-
-  received: {
-    firstPerson: number;
-    secondPerson: number;
-    total: number;
-  };
-
-  balances: {
-    firstPerson: number;
-    secondPerson: number;
-  };
-
-  settlement: {
-    direction:
-      | "FIRST_PAYS_SECOND"
-      | "SECOND_PAYS_FIRST"
-      | "SETTLED"
-      | "INCOMPLETE";
-
+  received?: { firstPerson: number; secondPerson: number; total: number };
+  balances?: { firstPerson: number; secondPerson: number };
+  settlement?: {
+    direction: "FIRST_PAYS_SECOND" | "SECOND_PAYS_FIRST" | "SETTLED" | "INCOMPLETE";
     amount: number;
   };
-
-  paymentValidation: {
+  paymentValidation?: {
     missingPaymentMethodCount: number;
     missingPaymentMethodAmount: number;
     isComplete: boolean;
   };
 };
-
 
 type PreviousPeriod = {
   id: number;
@@ -100,45 +78,20 @@ type AuditLog = {
 };
 
 type SummaryResponse = {
-  activePeriod: {
-    id: number;
-    startedAt: string;
-    endedAt: string | null;
-    createdAt: string;
-  };
-
-  currentPrices: {
-    WASH: Price | null;
-    DISINFECTION:
-      Price | null;
-  };
-
+  activePeriod: { id: number; startedAt: string; endedAt: string | null; createdAt: string };
+  currentPrices: { WASH: Price | null; DISINFECTION: Price | null };
   summary: PeriodSummary & {
-    validation: {
-      distributedTotal: number;
-      expectedTotal: number;
-      difference: number;
-      isValid: boolean;
-    };
+    validation: { distributedTotal: number; expectedTotal: number; difference: number; isValid: boolean };
   };
-
   items: SettlementItem[];
-
-  previousPeriods:
-    PreviousPeriod[];
-
+  previousPeriods: PreviousPeriod[];
   auditLogs: AuditLog[];
 };
 
-type PriceFormState = {
-  totalPrice: string;
-  firstPersonAmount: string;
-  secondPersonAmount: string;
-};
-
-type CorrectionState = {
-  maintenanceType:
-    MaintenanceType;
+type PriceForm = { totalPrice: string; firstPersonAmount: string; secondPersonAmount: string };
+type CorrectionForm = {
+  maintenanceType: MaintenanceType;
+  paymentMethod: "CASH" | "TRANSFER";
   machineName: string;
   appliedPrice: string;
   firstPersonAmount: string;
@@ -147,2433 +100,283 @@ type CorrectionState = {
   reason: string;
 };
 
-const emptyPriceForm:
-  PriceFormState = {
-    totalPrice: "",
-    firstPersonAmount: "",
-    secondPersonAmount: "",
-  };
+const emptyPrice: PriceForm = { totalPrice: "", firstPersonAmount: "", secondPersonAmount: "" };
+const card = { background: "#fff", borderRadius: 12, padding: 12, color: "#0f172a" } as const;
+const inputStyle = { width: "100%", boxSizing: "border-box" as const, padding: "9px 10px", marginTop: 4, border: "1px solid #cbd5e1", borderRadius: 8, background: "#fff", color: "#0f172a" };
 
-function formatCurrency(
-  value: number
-): string {
-  return (
-    value.toLocaleString(
-      "hu-HU"
-    ) + " Ft"
-  );
+function money(value: number | undefined | null) {
+  return `${Number(value || 0).toLocaleString("hu-HU")} Ft`;
 }
-
-function formatDate(
-  value:
-    | string
-    | null
-    | undefined
-): string {
-  if (!value) {
-    return "-";
-  }
-
-  const parsedDate =
-    new Date(value);
-
-  if (
-    Number.isNaN(
-      parsedDate.getTime()
-    )
-  ) {
-    return value;
-  }
-
-  return parsedDate.toLocaleString(
-    "hu-HU"
-  );
+function date(value?: string | null) {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString("hu-HU");
 }
-
-function toDateTimeLocal(
-  value: string
-): string {
-  const parsedDate =
-    new Date(value);
-
-  if (
-    Number.isNaN(
-      parsedDate.getTime()
-    )
-  ) {
-    return "";
-  }
-
-  const offset =
-    parsedDate.getTimezoneOffset();
-
-  const localDate =
-    new Date(
-      parsedDate.getTime() -
-        offset * 60 * 1000
-    );
-
-  return localDate
-    .toISOString()
-    .slice(0, 16);
+function localDate(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
-
-function parseAmount(
-  value: string
-): number {
-  const normalizedValue =
-    value.replace(
-      /[^0-9-]/g,
-      ""
-    );
-
-  if (!normalizedValue) {
-    return 0;
-  }
-
-  const parsedValue =
-    Number(normalizedValue);
-
-  return Number.isFinite(
-    parsedValue
-  )
-    ? parsedValue
-    : 0;
+function amount(value: string) {
+  const cleaned = value.replace(/[^0-9-]/g, "");
+  return cleaned ? Number(cleaned) || 0 : 0;
 }
-
-function getTypeLabel(
-  maintenanceType:
-    MaintenanceType
-): string {
-  return maintenanceType ===
-    "WASH"
-    ? "Mosás"
-    : "Fertőtlenítés";
+function typeLabel(value: MaintenanceType) {
+  return value === "WASH" ? "Mosás" : "Fertőtlenítés";
 }
-
-function getEventLabel(
-  eventType: string
-): string {
-  switch (eventType) {
-    case "PRICE_CREATED":
-      return "Új ár";
-
-    case "SETTLEMENT_ITEM_CREATED":
-      return "Elszámolási tétel";
-
-    case "PERIOD_RESET":
-      return "Időszak lezárása";
-
-    case "SETTLEMENT_ITEM_ADJUSTED":
-      return "Kézi korrekció";
-
-    case "SETTLEMENT_ITEM_VOIDED":
-      return "Érvénytelenítés";
-
-    default:
-      return eventType;
-  }
+function eventLabel(value: string) {
+  return ({ PRICE_CREATED: "Új ár", SETTLEMENT_ITEM_CREATED: "Elszámolási tétel", PERIOD_RESET: "Időszak lezárása", SETTLEMENT_ITEM_ADJUSTED: "Kézi korrekció", SETTLEMENT_ITEM_VOIDED: "Érvénytelenítés" } as Record<string, string>)[value] || value;
 }
 
 export default function MaintenanceSummaryPage() {
-  const [
-    data,
-    setData,
-  ] =
-    useState<SummaryResponse | null>(
-      null
-    );
+  const [data, setData] = useState<SummaryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [tab, setTab] = useState<Tab>("summary");
+  const [washForm, setWashForm] = useState<PriceForm>({ ...emptyPrice });
+  const [disinfectionForm, setDisinfectionForm] = useState<PriceForm>({ ...emptyPrice });
+  const [resetReason, setResetReason] = useState("");
+  const [correctionItem, setCorrectionItem] = useState<SettlementItem | null>(null);
+  const [correction, setCorrection] = useState<CorrectionForm | null>(null);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
-
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
-
-  const [
-    statusMessage,
-    setStatusMessage,
-  ] = useState("");
-
-  const [
-    statusType,
-    setStatusType,
-  ] = useState<
-    "success" | "error"
-  >("success");
-
-  const [
-    activeTab,
-    setActiveTab,
-  ] = useState<
-    | "summary"
-    | "prices"
-    | "items"
-    | "periods"
-    | "logs"
-  >("summary");
-
-  const [
-    washForm,
-    setWashForm,
-  ] =
-    useState<PriceFormState>({
-      ...emptyPriceForm,
-    });
-
-  const [
-    disinfectionForm,
-    setDisinfectionForm,
-  ] =
-    useState<PriceFormState>({
-      ...emptyPriceForm,
-    });
-
-  const [
-    resetReason,
-    setResetReason,
-  ] = useState("");
-
-  const [
-    correctionItem,
-    setCorrectionItem,
-  ] =
-    useState<SettlementItem | null>(
-      null
-    );
-
-  const [
-    correctionForm,
-    setCorrectionForm,
-  ] =
-    useState<CorrectionState | null>(
-      null
-    );
-
-  const loadSummary =
-    useCallback(async () => {
-      setLoading(true);
-
-      try {
-        const response =
-          await fetch(
-            "/api/maintenance-summary",
-            {
-              cache: "no-store",
-            }
-          );
-
-        const responseData =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            responseData.error ||
-              responseData.details ||
-              "Az összesítő betöltése nem sikerült."
-          );
-        }
-
-        setData(responseData);
-
-        const washPrice =
-          responseData
-            .currentPrices
-            ?.WASH;
-
-        const disinfectionPrice =
-          responseData
-            .currentPrices
-            ?.DISINFECTION;
-
-        if (washPrice) {
-          setWashForm({
-            totalPrice: String(
-              washPrice.totalPrice
-            ),
-
-            firstPersonAmount:
-              String(
-                washPrice
-                  .firstPersonAmount
-              ),
-
-            secondPersonAmount:
-              String(
-                washPrice
-                  .secondPersonAmount
-              ),
-          });
-        }
-
-        if (
-          disinfectionPrice
-        ) {
-          setDisinfectionForm({
-            totalPrice: String(
-              disinfectionPrice
-                .totalPrice
-            ),
-
-            firstPersonAmount:
-              String(
-                disinfectionPrice
-                  .firstPersonAmount
-              ),
-
-            secondPersonAmount:
-              String(
-                disinfectionPrice
-                  .secondPersonAmount
-              ),
-          });
-        }
-      } catch (error) {
-        setStatusType("error");
-
-        setStatusMessage(
-          error instanceof Error
-            ? error.message
-            : "Az összesítő betöltése nem sikerült."
-        );
-      } finally {
-        setLoading(false);
-      }
-    }, []);
-
-  useEffect(() => {
-    loadSummary();
-  }, [loadSummary]);
-
-  const savePrice = async (
-    maintenanceType:
-      MaintenanceType,
-    form:
-      PriceFormState
-  ) => {
-    const totalPrice =
-      parseAmount(
-        form.totalPrice
-      );
-
-    const firstPersonAmount =
-      parseAmount(
-        form.firstPersonAmount
-      );
-
-    const secondPersonAmount =
-      parseAmount(
-        form.secondPersonAmount
-      );
-
-    if (
-      firstPersonAmount +
-        secondPersonAmount !==
-      totalPrice
-    ) {
-      const difference =
-        firstPersonAmount +
-        secondPersonAmount -
-        totalPrice;
-
-      setStatusType("error");
-
-      setStatusMessage(
-        difference > 0
-          ? `Az elosztás ${formatCurrency(
-              difference
-            )} összeggel meghaladja a teljes árat.`
-          : `Az elosztás ${formatCurrency(
-              Math.abs(difference)
-            )} összeggel kevesebb a teljes árnál.`
-      );
-
-      return;
-    }
-
-    setSaving(true);
-    setStatusMessage("");
-
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const response =
-        await fetch(
-          "/api/maintenance-summary/prices",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify({
-              maintenanceType,
-              totalPrice,
-              firstPersonAmount,
-              secondPersonAmount,
-            }),
-          }
-        );
-
-      const responseData =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          responseData.details ||
-            responseData.error ||
-            "Az ár mentése nem sikerült."
-        );
-      }
-
-      setStatusType("success");
-
-      setStatusMessage(
-        responseData.message ||
-          "Az új ár sikeresen elmentve."
-      );
-
-      await loadSummary();
+      const response = await fetch("/api/maintenance-summary", { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.details || body.error || "Az összesítő betöltése nem sikerült.");
+      setData(body);
+      if (body.currentPrices?.WASH) setWashForm({ totalPrice: String(body.currentPrices.WASH.totalPrice), firstPersonAmount: String(body.currentPrices.WASH.firstPersonAmount), secondPersonAmount: String(body.currentPrices.WASH.secondPersonAmount) });
+      if (body.currentPrices?.DISINFECTION) setDisinfectionForm({ totalPrice: String(body.currentPrices.DISINFECTION.totalPrice), firstPersonAmount: String(body.currentPrices.DISINFECTION.firstPersonAmount), secondPersonAmount: String(body.currentPrices.DISINFECTION.secondPersonAmount) });
     } catch (error) {
-      setStatusType("error");
-
-      setStatusMessage(
-        error instanceof Error
-          ? error.message
-          : "Az ár mentése nem sikerült."
-      );
+      setStatus({ type: "error", text: error instanceof Error ? error.message : "Betöltési hiba." });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const resetPeriod =
-    async () => {
-      if (
-        resetReason.trim()
-          .length < 5
-      ) {
-        setStatusType("error");
+  useEffect(() => { load(); }, [load]);
 
-        setStatusMessage(
-          "Add meg a reset indokát legalább 5 karakterben."
-        );
-
-        return;
-      }
-
-      if (
-        !window.confirm(
-          "Biztosan lezárod az aktuális elszámolási időszakot? A régi adatok megmaradnak, az új számláló nulláról indul."
-        )
-      ) {
-        return;
-      }
-
-      setSaving(true);
-      setStatusMessage("");
-
-      try {
-        const response =
-          await fetch(
-            "/api/maintenance-summary/reset",
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body: JSON.stringify({
-                reason:
-                  resetReason.trim(),
-              }),
-            }
-          );
-
-        const responseData =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            responseData.details ||
-              responseData.error ||
-              "Az időszak lezárása nem sikerült."
-          );
-        }
-
-        setResetReason("");
-
-        setStatusType("success");
-
-        setStatusMessage(
-          responseData.message ||
-            "Az új elszámolási időszak elindult."
-        );
-
-        await loadSummary();
-      } catch (error) {
-        setStatusType("error");
-
-        setStatusMessage(
-          error instanceof Error
-            ? error.message
-            : "Az időszak lezárása nem sikerült."
-        );
-      } finally {
-        setSaving(false);
-      }
+  const summary = useMemo(() => {
+    if (!data) return null;
+    return {
+      ...data.summary,
+      received: data.summary.received ?? { firstPerson: 0, secondPerson: 0, total: 0 },
+      balances: data.summary.balances ?? { firstPerson: 0, secondPerson: 0 },
+      settlement: data.summary.settlement ?? { direction: "INCOMPLETE" as const, amount: 0 },
+      paymentValidation: data.summary.paymentValidation ?? { missingPaymentMethodCount: 0, missingPaymentMethodAmount: 0, isComplete: false },
     };
+  }, [data]);
 
-  const backfillExistingTasks =
-  async () => {
-    if (
-      !window.confirm(
-        "Biztosan feldolgozod a meglévő teljesített karbantartásokat? A már teljes elszámolási tételeket a rendszer nem írja felül."
-      )
-    ) {
+  async function savePrice(maintenanceType: MaintenanceType, form: PriceForm) {
+    const totalPrice = amount(form.totalPrice);
+    const firstPersonAmount = amount(form.firstPersonAmount);
+    const secondPersonAmount = amount(form.secondPersonAmount);
+    if (firstPersonAmount + secondPersonAmount !== totalPrice) {
+      setStatus({ type: "error", text: "A két személy része nem egyezik meg a teljes árral." });
       return;
     }
-
     setSaving(true);
-    setStatusMessage("");
-
     try {
-      const response =
-        await fetch(
-          "/api/maintenance-summary/backfill",
-          {
-            method: "POST",
-          }
-        );
-
-      const responseData =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          responseData.details ||
-            responseData.error ||
-            "A visszatöltés nem sikerült."
-        );
-      }
-
-      const result =
-        responseData.result;
-
-      setStatusType("success");
-
-      setStatusMessage(
-        `Visszatöltés kész. Új tételek: ${
-          result.createdItemCount
-        } db. Kiegészített meglévő tételek: ${
-          result.completedExistingItemCount
-        } db. Hibák: ${
-          result.errorCount
-        } db.`
-      );
-
-      await loadSummary();
+      const response = await fetch("/api/maintenance-summary/prices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ maintenanceType, totalPrice, firstPersonAmount, secondPersonAmount }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.details || body.error || "Az ár mentése nem sikerült.");
+      setStatus({ type: "success", text: body.message || "Az új ár elmentve." });
+      await load();
     } catch (error) {
-      setStatusType("error");
+      setStatus({ type: "error", text: error instanceof Error ? error.message : "Mentési hiba." });
+    } finally { setSaving(false); }
+  }
 
-      setStatusMessage(
-        error instanceof Error
-          ? error.message
-          : "A visszatöltés nem sikerült."
-      );
-    } finally {
-      setSaving(false);
+  async function resetPeriod() {
+    if (resetReason.trim().length < 5) {
+      setStatus({ type: "error", text: "A reset indoka legalább 5 karakter legyen." });
+      return;
     }
-  };
+    if (!window.confirm("Biztosan lezárod az aktuális időszakot? A korábbi adatok megmaradnak.")) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/maintenance-summary/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: resetReason.trim() }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.details || body.error || "A lezárás nem sikerült.");
+      setResetReason("");
+      setStatus({ type: "success", text: body.message || "Új időszak indult." });
+      await load();
+    } catch (error) {
+      setStatus({ type: "error", text: error instanceof Error ? error.message : "Reset hiba." });
+    } finally { setSaving(false); }
+  }
 
-  const openCorrection = (
-    item: SettlementItem
-  ) => {
+  async function backfillExistingTasks() {
+    if (!window.confirm("Biztosan feldolgozod a meglévő teljesített karbantartásokat?")) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/maintenance-summary/backfill", { method: "POST" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.details || body.error || "A visszatöltés nem sikerült.");
+      const result = body.result || {};
+      setStatus({ type: "success", text: `Visszatöltés kész. Új tételek: ${result.createdItemCount || 0} db. Kiegészített tételek: ${result.completedExistingItemCount || 0} db. Hibák: ${result.errorCount || 0} db.` });
+      await load();
+    } catch (error) {
+      setStatus({ type: "error", text: error instanceof Error ? error.message : "Visszatöltési hiba." });
+    } finally { setSaving(false); }
+  }
+
+  function openCorrection(item: SettlementItem) {
     setCorrectionItem(item);
-
-    setCorrectionForm({
-      maintenanceType:
-        item.maintenanceType,
-
-      machineName:
-        item.machineName,
-
-      appliedPrice:
-        String(
-          item.appliedPrice
-        ),
-
-      firstPersonAmount:
-        String(
-          item.firstPersonAmount
-        ),
-
-      secondPersonAmount:
-        String(
-          item.secondPersonAmount
-        ),
-
-      completedAt:
-        toDateTimeLocal(
-          item.completedAt
-        ),
-
+    setCorrection({
+      maintenanceType: item.maintenanceType,
+      paymentMethod: item.paymentMethod === "TRANSFER" ? "TRANSFER" : "CASH",
+      machineName: item.machineName,
+      appliedPrice: String(item.appliedPrice),
+      firstPersonAmount: String(item.firstPersonAmount),
+      secondPersonAmount: String(item.secondPersonAmount),
+      completedAt: localDate(item.completedAt),
       reason: "",
     });
-  };
-
-  const saveCorrection =
-    async () => {
-      if (
-        !correctionItem ||
-        !correctionForm
-      ) {
-        return;
-      }
-
-      const appliedPrice =
-        parseAmount(
-          correctionForm
-            .appliedPrice
-        );
-
-      const firstPersonAmount =
-        parseAmount(
-          correctionForm
-            .firstPersonAmount
-        );
-
-      const secondPersonAmount =
-        parseAmount(
-          correctionForm
-            .secondPersonAmount
-        );
-
-      if (
-        firstPersonAmount +
-          secondPersonAmount !==
-        appliedPrice
-      ) {
-        setStatusType("error");
-
-        setStatusMessage(
-          "A két személy része nem egyezik meg a teljes árral."
-        );
-
-        return;
-      }
-
-      if (
-        correctionForm.reason
-          .trim().length < 5
-      ) {
-        setStatusType("error");
-
-        setStatusMessage(
-          "A korrekció indoklása legalább 5 karakter legyen."
-        );
-
-        return;
-      }
-
-      setSaving(true);
-
-      try {
-        const response =
-          await fetch(
-            `/api/maintenance-summary/items/${correctionItem.id}`,
-            {
-              method: "PATCH",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body: JSON.stringify({
-                maintenanceType:
-                  correctionForm
-                    .maintenanceType,
-
-                machineName:
-                  correctionForm
-                    .machineName,
-
-                appliedPrice,
-
-                firstPersonAmount,
-
-                secondPersonAmount,
-
-                completedAt:
-                  correctionForm
-                    .completedAt,
-
-                reason:
-                  correctionForm
-                    .reason.trim(),
-              }),
-            }
-          );
-
-        const responseData =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            responseData.details ||
-              responseData.error ||
-              "A korrekció mentése nem sikerült."
-          );
-        }
-
-        setCorrectionItem(null);
-        setCorrectionForm(null);
-
-        setStatusType("success");
-
-        setStatusMessage(
-          responseData.message ||
-            "A korrekció sikeresen elmentve."
-        );
-
-        await loadSummary();
-      } catch (error) {
-        setStatusType("error");
-
-        setStatusMessage(
-          error instanceof Error
-            ? error.message
-            : "A korrekció mentése nem sikerült."
-        );
-      } finally {
-        setSaving(false);
-      }
-    };
-
-  if (loading && !data) {
-    return (
-      <main
-        style={{
-          maxWidth: "1200px",
-          margin: "30px auto",
-          padding: "20px",
-          fontFamily:
-            "Arial, sans-serif",
-        }}
-      >
-        Elszámolás betöltése...
-      </main>
-    );
   }
 
-  if (!data) {
-    return (
-      <main
-        style={{
-          maxWidth: "1200px",
-          margin: "30px auto",
-          padding: "20px",
-          fontFamily:
-            "Arial, sans-serif",
-        }}
-      >
-        <h1>
-          Karbantartási
-          elszámolás
-        </h1>
-
-        <div
-          style={{
-            padding: "14px",
-            background: "#fee2e2",
-            color: "#991b1b",
-            borderRadius: "10px",
-          }}
-        >
-          {statusMessage ||
-            "Az adatok nem tölthetők be."}
-        </div>
-      </main>
-    );
+  async function saveCorrection() {
+    if (!correctionItem || !correction) return;
+    const appliedPrice = amount(correction.appliedPrice);
+    const firstPersonAmount = amount(correction.firstPersonAmount);
+    const secondPersonAmount = amount(correction.secondPersonAmount);
+    if (firstPersonAmount + secondPersonAmount !== appliedPrice) {
+      setStatus({ type: "error", text: "A két személy része nem egyezik meg a teljes árral." });
+      return;
+    }
+    if (correction.reason.trim().length < 5) {
+      setStatus({ type: "error", text: "A korrekció indoka legalább 5 karakter legyen." });
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/maintenance-summary/items/${correctionItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...correction, appliedPrice, firstPersonAmount, secondPersonAmount, reason: correction.reason.trim() }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.details || body.error || "A korrekció nem sikerült.");
+      setCorrectionItem(null);
+      setCorrection(null);
+      setStatus({ type: "success", text: body.message || "A korrekció elmentve." });
+      await load();
+    } catch (error) {
+      setStatus({ type: "error", text: error instanceof Error ? error.message : "Korrekciós hiba." });
+    } finally { setSaving(false); }
   }
 
-  const summary = {
-  ...data.summary,
+  if (loading && !data) return <main style={{ padding: 20, color: "#fff" }}>Elszámolás betöltése...</main>;
+  if (!data || !summary) return <main style={{ padding: 20, color: "#fff" }}>{status?.text || "Az adatok nem tölthetők be."}</main>;
 
-  received:
-    data.summary.received ?? {
-      firstPerson: 0,
-      secondPerson: 0,
-      total: 0,
-    },
+  function SummaryCard({ title, value, color }: { title: string; value: SummaryBlock; color: string }) {
+    return <div style={{ ...card, border: `2px solid ${color}`, fontSize: 13, lineHeight: 1.5 }}>
+      <strong style={{ color, fontSize: 14 }}>{title}</strong>
+      <div>Darabszám: <b>{value.count} db</b></div>
+      <div>Teljes bevétel: <b>{money(value.totalRevenue)}</b></div>
+      <div>1. fő része: <b>{money(value.firstPersonTotal)}</b></div>
+      <div>2. fő része: <b>{money(value.secondPersonTotal)}</b></div>
+    </div>;
+  }
 
-  balances:
-    data.summary.balances ?? {
-      firstPerson: 0,
-      secondPerson: 0,
-    },
+  function PriceCard({ type, title, form, setForm, current, color }: { type: MaintenanceType; title: string; form: PriceForm; setForm: (form: PriceForm) => void; current: Price | null; color: string }) {
+    const valid = amount(form.firstPersonAmount) + amount(form.secondPersonAmount) === amount(form.totalPrice);
+    return <div style={{ ...card, border: `2px solid ${color}` }}>
+      <h3 style={{ margin: "0 0 8px", color }}>{title}</h3>
+      {current && <div style={{ marginBottom: 8, fontSize: 12 }}>Jelenlegi ár: <b>{money(current.totalPrice)}</b><br />Érvényes: {date(current.validFrom)}</div>}
+      {(["totalPrice", "firstPersonAmount", "secondPersonAmount"] as const).map((field) => <label key={field} style={{ display: "block", marginBottom: 8 }}>
+        <b>{field === "totalPrice" ? "Teljes ár" : field === "firstPersonAmount" ? "1. fő része" : "2. fő része"}:</b>
+        <input type="number" min="0" value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} style={inputStyle} />
+      </label>)}
+      <div style={{ padding: 8, marginBottom: 8, borderRadius: 8, background: valid ? "#dcfce7" : "#fee2e2", color: valid ? "#166534" : "#991b1b", fontSize: 12, fontWeight: 700 }}>{valid ? "✅ Az elosztás pontos." : "⚠️ A két rész nem egyezik a teljes árral."}</div>
+      <button type="button" disabled={saving || !valid} onClick={() => savePrice(type, form)} style={{ width: "100%", padding: 9, border: 0, borderRadius: 8, background: saving || !valid ? "#94a3b8" : color, color: "#fff", fontWeight: 700 }}>Új árverzió mentése</button>
+    </div>;
+  }
 
-  settlement:
-    data.summary.settlement ?? {
-      direction: "INCOMPLETE" as const,
-      amount: 0,
-    },
-
-  paymentValidation:
-    data.summary.paymentValidation ?? {
-      missingPaymentMethodCount: 0,
-      missingPaymentMethodAmount: 0,
-      isComplete: false,
-    },
-};
-
-  const renderSummaryCard = (
-    title: string,
-    block: SummaryBlock,
-    color: string
-  ) => (
-    <div
-      style={{
-        padding: "16px",
-        borderRadius: "12px",
-        background: "white",
-        border: `2px solid ${color}`,
-        boxShadow:
-          "0 2px 8px rgba(0,0,0,0.07)",
-      }}
-    >
-      <div
-        style={{
-          marginBottom: "12px",
-          color,
-          fontWeight: "bold",
-          fontSize: "17px",
-        }}
-      >
-        {title}
-      </div>
-
-      <div>
-        Darabszám:{" "}
-        <strong>
-          {block.count} db
-        </strong>
-      </div>
-
-      <div>
-        Teljes bevétel:{" "}
-        <strong>
-          {formatCurrency(
-            block.totalRevenue
-          )}
-        </strong>
-      </div>
-
-      <div>
-        1. fő része:{" "}
-        <strong>
-          {formatCurrency(
-            block.firstPersonTotal
-          )}
-        </strong>
-      </div>
-
-      <div>
-        2. fő része:{" "}
-        <strong>
-          {formatCurrency(
-            block.secondPersonTotal
-          )}
-        </strong>
-      </div>
-    </div>
-  );
-
-  const renderPriceForm = (
-    maintenanceType:
-      MaintenanceType,
-    title: string,
-    form: PriceFormState,
-    setForm: (
-      value: PriceFormState
-    ) => void,
-    currentPrice:
-      Price | null,
-    color: string
-  ) => {
-    const totalPrice =
-      parseAmount(
-        form.totalPrice
-      );
-
-    const firstPersonAmount =
-      parseAmount(
-        form.firstPersonAmount
-      );
-
-    const secondPersonAmount =
-      parseAmount(
-        form.secondPersonAmount
-      );
-
-    const distributedTotal =
-      firstPersonAmount +
-      secondPersonAmount;
-
-    const difference =
-      distributedTotal -
-      totalPrice;
-
-    const isValid =
-      totalPrice >= 0 &&
-      firstPersonAmount >= 0 &&
-      secondPersonAmount >= 0 &&
-      distributedTotal ===
-        totalPrice;
-
-    return (
-      <div
-        style={{
-          background: "white",
-          padding: "16px",
-          borderRadius: "12px",
-          border: `2px solid ${color}`,
-        }}
-      >
-        <h3
-          style={{
-            marginTop: 0,
-            color,
-          }}
-        >
-          {title}
-        </h3>
-
-        {currentPrice && (
-          <div
-            style={{
-              marginBottom: "12px",
-              padding: "10px",
-              background: "#f8fafc",
-              borderRadius: "8px",
-              fontSize: "13px",
-            }}
-          >
-            Jelenlegi ár:{" "}
-            <strong>
-              {formatCurrency(
-                currentPrice
-                  .totalPrice
-              )}
-            </strong>
-            <br />
-            Érvényes ettől:{" "}
-            {formatDate(
-              currentPrice.validFrom
-            )}
-          </div>
-        )}
-
-        <label
-          style={{
-            display: "block",
-            marginBottom: "10px",
-          }}
-        >
-          <strong>
-            Teljes ár:
-          </strong>
-
-          <input
-            type="number"
-            min="0"
-            value={
-              form.totalPrice
-            }
-            onChange={(event) =>
-              setForm({
-                ...form,
-                totalPrice:
-                  event.target.value,
-              })
-            }
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginTop: "4px",
-              boxSizing:
-                "border-box",
-              borderRadius: "8px",
-              border:
-                "1px solid #cbd5e1",
-            }}
-          />
-        </label>
-
-        <label
-          style={{
-            display: "block",
-            marginBottom: "10px",
-          }}
-        >
-          <strong>
-            1. fő része:
-          </strong>
-
-          <input
-            type="number"
-            min="0"
-            value={
-              form.firstPersonAmount
-            }
-            onChange={(event) =>
-              setForm({
-                ...form,
-                firstPersonAmount:
-                  event.target.value,
-              })
-            }
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginTop: "4px",
-              boxSizing:
-                "border-box",
-              borderRadius: "8px",
-              border:
-                "1px solid #cbd5e1",
-            }}
-          />
-        </label>
-
-        <label
-          style={{
-            display: "block",
-            marginBottom: "10px",
-          }}
-        >
-          <strong>
-            2. fő része:
-          </strong>
-
-          <input
-            type="number"
-            min="0"
-            value={
-              form.secondPersonAmount
-            }
-            onChange={(event) =>
-              setForm({
-                ...form,
-                secondPersonAmount:
-                  event.target.value,
-              })
-            }
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginTop: "4px",
-              boxSizing:
-                "border-box",
-              borderRadius: "8px",
-              border:
-                "1px solid #cbd5e1",
-            }}
-          />
-        </label>
-
-        <div
-          style={{
-            padding: "10px",
-            marginBottom: "10px",
-            borderRadius: "8px",
-            background: isValid
-              ? "#dcfce7"
-              : "#fee2e2",
-            color: isValid
-              ? "#166534"
-              : "#991b1b",
-            fontWeight: "bold",
-            fontSize: "13px",
-          }}
-        >
-          {isValid
-            ? "✅ A két rész pontosan megegyezik a teljes árral."
-            : difference > 0
-              ? `⚠️ Az elosztás ${formatCurrency(
-                  difference
-                )} összeggel több.`
-              : `⚠️ Az elosztás ${formatCurrency(
-                  Math.abs(
-                    difference
-                  )
-                )} összeggel kevesebb.`}
-        </div>
-
-        <button
-          type="button"
-          disabled={
-            saving ||
-            !isValid
-          }
-          onClick={() =>
-            savePrice(
-              maintenanceType,
-              form
-            )
-          }
-          style={{
-            width: "100%",
-            padding: "11px",
-            border: "none",
-            borderRadius: "8px",
-            background:
-              saving ||
-              !isValid
-                ? "#94a3b8"
-                : color,
-            color: "white",
-            fontWeight: "bold",
-            cursor:
-              saving ||
-              !isValid
-                ? "not-allowed"
-                : "pointer",
-          }}
-        >
-          Új árverzió mentése
-        </button>
-      </div>
-    );
-  };
-
-  return (
-    <main
-      style={{
-        maxWidth: "1200px",
-        margin: "20px auto",
-        padding: "16px",
-        fontFamily:
-          "Arial, sans-serif",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent:
-            "space-between",
-          alignItems: "center",
-          gap: "10px",
-          marginBottom: "16px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-         <h1
-  style={{
-    margin: "0 0 5px",
-    fontSize: "25px",
-    color: "#ffffff",
-    lineHeight: 1.2,
-  }}
->
-  💰 Karbantartási elszámolás
-</h1>
-
-
-        <div
-  style={{
-    color: "#cbd5e1",
-    fontSize: "13px",
-  }}
->
-            Aktuális időszak
-            kezdete:{" "}
-            {formatDate(
-              data.activePeriod
-                .startedAt
-            )}
-          </div>
-        </div>
-
-        <a
-          href="/tasks"
-          style={{
-            padding: "9px 14px",
-            background: "#334155",
-            color: "white",
-            borderRadius: "8px",
-            textDecoration: "none",
-            fontWeight: "bold",
-          }}
-        >
-          ← Vissza a munkákhoz
-        </a>
-      </div>
-
-      {statusMessage && (
-        <div
-          style={{
-            padding: "12px",
-            marginBottom: "14px",
-            borderRadius: "8px",
-            background:
-              statusType ===
-              "success"
-                ? "#dcfce7"
-                : "#fee2e2",
-            color:
-              statusType ===
-              "success"
-                ? "#166534"
-                : "#991b1b",
-            fontWeight: "bold",
-          }}
-        >
-          {statusMessage}
-        </div>
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          gap: "6px",
-          flexWrap: "wrap",
-          marginBottom: "16px",
-        }}
-      >
-        {[
-          [
-            "summary",
-            "📊 Összesítő",
-          ],
-          [
-            "prices",
-            "💵 Árak",
-          ],
-          [
-            "items",
-            "🧾 Tételek",
-          ],
-          [
-            "periods",
-            "📁 Korábbi időszakok",
-          ],
-          [
-            "logs",
-            "📋 Napló",
-          ],
-        ].map(
-          ([tabKey, label]) => (
-            <button
-              key={tabKey}
-              type="button"
-              onClick={() =>
-                setActiveTab(
-                  tabKey as typeof activeTab
-                )
-              }
-              style={{
-                padding:
-                  "9px 12px",
-                border: "none",
-                borderRadius:
-                  "8px",
-                background:
-                  activeTab ===
-                  tabKey
-                    ? "#2563eb"
-                    : "#e2e8f0",
-                color:
-                  activeTab ===
-                  tabKey
-                    ? "white"
-                    : "#0f172a",
-                fontWeight:
-                  "bold",
-                cursor:
-                  "pointer",
-              }}
-            >
-              {label}
-            </button>
-          )
-        )}
-      </div>
-
-      {activeTab ===
-        "summary" && (
-        <>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(230px, 1fr))",
-              gap: "12px",
-              marginBottom: "18px",
-            }}
-          >
-            {renderSummaryCard(
-              "🧼 Mosás",
-              summary.wash,
-              "#2563eb"
-            )}
-
-            {renderSummaryCard(
-              "🧴 Fertőtlenítés",
-              summary.disinfection,
-              "#7c3aed"
-            )}
-
-            {renderSummaryCard(
-              "💰 Összesen",
-              summary.total,
-              "#16a34a"
-            )}
-          </div>
-
-          <div
-            style={{
-              padding: "14px",
-              background:
-                summary.validation
-                  .isValid
-                  ? "#dcfce7"
-                  : "#fee2e2",
-              color:
-                summary.validation
-                  .isValid
-                  ? "#166534"
-                  : "#991b1b",
-              borderRadius: "10px",
-              fontWeight: "bold",
-              marginBottom: "18px",
-            }}
-          >
-            {summary.validation
-              .isValid
-              ? "✅ A személyenkénti bevételek összege megegyezik a teljes bevétellel."
-              : `⚠️ Eltérés: ${formatCurrency(
-                  Math.abs(
-                    summary
-                      .validation
-                      .difference
-                  )
-                )}`}
-          </div>
-
-          {/* TÉNYLEGESEN BEÉRKEZETT PÉNZ */}
-<div
-  style={{
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: "12px",
-    marginBottom: "18px",
-  }}
->
-  <div
-    style={{
-      padding: "16px",
-      borderRadius: "12px",
-      background: "white",
-      border: "2px solid #16a34a",
-    }}
-  >
-    <div
-      style={{
-        marginBottom: "10px",
-        color: "#15803d",
-        fontWeight: "bold",
-        fontSize: "16px",
-      }}
-    >
-      💵 1. főhöz beérkezett készpénz
+  return <main style={{ maxWidth: 1200, margin: "8px auto", padding: 10, fontFamily: "Arial, sans-serif", boxSizing: "border-box" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+      <div><h1 style={{ margin: "0 0 4px", fontSize: 20, color: "#fff" }}>💰 Karbantartási elszámolás</h1><div style={{ color: "#cbd5e1", fontSize: 12 }}>Aktuális időszak: {date(data.activePeriod.startedAt)}</div></div>
+      <a href="/tasks" style={{ padding: "8px 12px", background: "#334155", color: "#fff", borderRadius: 8, textDecoration: "none", fontWeight: 700 }}>← Vissza</a>
     </div>
 
-    <strong
-      style={{
-        fontSize: "21px",
-        color: "#14532d",
-      }}
-    >
-      {formatCurrency(
-        summary.received.firstPerson
-      )}
-    </strong>
-  </div>
+    {status && <div style={{ padding: 10, marginBottom: 10, borderRadius: 8, background: status.type === "success" ? "#dcfce7" : "#fee2e2", color: status.type === "success" ? "#166534" : "#991b1b", fontWeight: 700 }}>{status.text}</div>}
 
-  <div
-    style={{
-      padding: "16px",
-      borderRadius: "12px",
-      background: "white",
-      border: "2px solid #2563eb",
-    }}
-  >
-    <div
-      style={{
-        marginBottom: "10px",
-        color: "#1d4ed8",
-        fontWeight: "bold",
-        fontSize: "16px",
-      }}
-    >
-      🏦 2. főhöz beérkezett átutalás
+    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
+      {([ ["summary", "📊 Összesítő"], ["prices", "💵 Árak"], ["items", "🧾 Tételek"], ["periods", "📁 Időszakok"], ["logs", "📋 Napló"] ] as [Tab, string][]).map(([key, label]) => <button key={key} type="button" onClick={() => setTab(key)} style={{ padding: "7px 10px", border: 0, borderRadius: 7, background: tab === key ? "#2563eb" : "#e2e8f0", color: tab === key ? "#fff" : "#0f172a", fontWeight: 700, fontSize: 12 }}>{label}</button>)}
     </div>
 
-    <strong
-      style={{
-        fontSize: "21px",
-        color: "#1e3a8a",
-      }}
-    >
-      {formatCurrency(
-        summary.received.secondPerson
-      )}
-    </strong>
-  </div>
-
-  <div
-    style={{
-      padding: "16px",
-      borderRadius: "12px",
-      background: "white",
-      border: "2px solid #64748b",
-    }}
-  >
-    <div
-      style={{
-        marginBottom: "10px",
-        color: "#334155",
-        fontWeight: "bold",
-        fontSize: "16px",
-      }}
-    >
-      💰 Beérkezett összesen
-    </div>
-
-    <strong
-      style={{
-        fontSize: "21px",
-        color: "#0f172a",
-      }}
-    >
-      {formatCurrency(
-        summary.received.total
-      )}
-    </strong>
-  </div>
-</div>
-
-{/* EGYMÁS KÖZÖTTI RENDEZÉS */}
-<div
-  style={{
-    padding: "16px",
-    marginBottom: "18px",
-    borderRadius: "12px",
-    background:
-      summary.settlement.direction ===
-      "SETTLED"
-        ? "#dcfce7"
-        : summary.settlement.direction ===
-            "INCOMPLETE"
-          ? "#fef3c7"
-          : "#eff6ff",
-    border:
-      summary.settlement.direction ===
-      "SETTLED"
-        ? "2px solid #16a34a"
-        : summary.settlement.direction ===
-            "INCOMPLETE"
-          ? "2px solid #f59e0b"
-          : "2px solid #2563eb",
-    color: "#0f172a",
-  }}
->
-  <h3
-    style={{
-      margin: "0 0 12px",
-      fontSize: "18px",
-    }}
-  >
-    🤝 Egymás közötti elszámolás
-  </h3>
-
-  <div
-    style={{
-      marginBottom: "6px",
-    }}
-  >
-    1. főnek jár:
-    {" "}
-    <strong>
-      {formatCurrency(
-        summary.total.firstPersonTotal
-      )}
-    </strong>
-  </div>
-
-  <div
-    style={{
-      marginBottom: "6px",
-    }}
-  >
-    1. főhöz ténylegesen beérkezett:
-    {" "}
-    <strong>
-      {formatCurrency(
-        summary.received.firstPerson
-      )}
-    </strong>
-  </div>
-
-  <div
-    style={{
-      marginBottom: "12px",
-    }}
-  >
-    2. főnek jár:
-    {" "}
-    <strong>
-      {formatCurrency(
-        summary.total.secondPersonTotal
-      )}
-    </strong>
-  </div>
-
-  <div
-    style={{
-      marginBottom: "12px",
-    }}
-  >
-    2. főhöz ténylegesen beérkezett:
-    {" "}
-    <strong>
-      {formatCurrency(
-        summary.received.secondPerson
-      )}
-    </strong>
-  </div>
-
-  {summary.settlement.direction ===
-    "FIRST_PAYS_SECOND" && (
-    <div
-      style={{
-        padding: "12px",
-        borderRadius: "8px",
-        background: "#dbeafe",
-        color: "#1e3a8a",
-        fontWeight: "bold",
-        fontSize: "17px",
-      }}
-    >
-      Az 1. fő fizet a 2. főnek:
-      {" "}
-      {formatCurrency(
-        summary.settlement.amount
-      )}
-    </div>
-  )}
-
-  {summary.settlement.direction ===
-    "SECOND_PAYS_FIRST" && (
-    <div
-      style={{
-        padding: "12px",
-        borderRadius: "8px",
-        background: "#dbeafe",
-        color: "#1e3a8a",
-        fontWeight: "bold",
-        fontSize: "17px",
-      }}
-    >
-      A 2. fő fizet az 1. főnek:
-      {" "}
-      {formatCurrency(
-        summary.settlement.amount
-      )}
-    </div>
-  )}
-
-  {summary.settlement.direction ===
-    "SETTLED" && (
-    <div
-      style={{
-        padding: "12px",
-        borderRadius: "8px",
-        background: "#bbf7d0",
-        color: "#166534",
-        fontWeight: "bold",
-        fontSize: "17px",
-      }}
-    >
-      ✅ Nincs egymás között rendezendő
-      összeg.
-    </div>
-  )}
-
-  {summary.settlement.direction ===
-    "INCOMPLETE" && (
-    <div
-      style={{
-        padding: "12px",
-        borderRadius: "8px",
-        background: "#fde68a",
-        color: "#92400e",
-        fontWeight: "bold",
-      }}
-    >
-      ⚠️ Az elszámolás még nem végleges.
-
-      <div
-        style={{
-          marginTop: "6px",
-          fontWeight: "normal",
-        }}
-      >
-        Fizetési mód nélküli tételek:
-        {" "}
-        <strong>
-          {
-            summary.paymentValidation
-              .missingPaymentMethodCount
-          }{" "}
-          db
-        </strong>
+    {tab === "summary" && <>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 8, marginBottom: 10 }}>
+        <SummaryCard title="🧼 Mosás" value={summary.wash} color="#2563eb" />
+        <SummaryCard title="🧴 Fertőtlenítés" value={summary.disinfection} color="#7c3aed" />
+        <SummaryCard title="💰 Összesen" value={summary.total} color="#16a34a" />
       </div>
 
-      <div
-        style={{
-          marginTop: "4px",
-          fontWeight: "normal",
-        }}
-      >
-        Érintett összeg:
-        {" "}
-        <strong>
-          {formatCurrency(
-            summary.paymentValidation
-              .missingPaymentMethodAmount
-          )}
-        </strong>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 8, marginBottom: 10 }}>
+        <div style={{ ...card, border: "2px solid #16a34a" }}><b>💵 1. főhöz készpénz</b><div style={{ fontSize: 18, fontWeight: 800 }}>{money(summary.received.firstPerson)}</div></div>
+        <div style={{ ...card, border: "2px solid #2563eb" }}><b>🏦 2. főhöz átutalás</b><div style={{ fontSize: 18, fontWeight: 800 }}>{money(summary.received.secondPerson)}</div></div>
+        <div style={{ ...card, border: "2px solid #64748b" }}><b>💰 Beérkezett összesen</b><div style={{ fontSize: 18, fontWeight: 800 }}>{money(summary.received.total)}</div></div>
       </div>
-    </div>
-  )}
-</div>
 
-          <div
-            style={{
-              padding: "16px",
-              background: "#fff7ed",
-              border:
-                "1px solid #fdba74",
-              borderRadius: "12px",
-            }}
-          >
-            <h3
-              style={{
-                marginTop: 0,
-              }}
-            >
-              🔄 Új elszámolási
-              időszak
-            </h3>
-
-            <p
-              style={{
-                fontSize: "13px",
-              }}
-            >
-              A korábbi tételek és
-              bevételek megmaradnak.
-              Csak az aktuális
-              számláló indul újra
-              nulláról.
-            </p>
-
-            <input
-              type="text"
-              value={resetReason}
-              onChange={(event) =>
-                setResetReason(
-                  event.target.value
-                )
-              }
-              placeholder="A reset indoka..."
-              style={{
-                width: "100%",
-                padding: "10px",
-                boxSizing:
-                  "border-box",
-                border:
-                  "1px solid #fdba74",
-                borderRadius: "8px",
-                marginBottom: "10px",
-              }}
-            />
-
-            <button
-              type="button"
-              disabled={saving}
-              onClick={
-                resetPeriod
-              }
-              style={{
-                padding:
-                  "10px 14px",
-                border: "none",
-                borderRadius:
-                  "8px",
-                background:
-                  "#ea580c",
-                color: "white",
-                fontWeight:
-                  "bold",
-                cursor:
-                  "pointer",
-              }}
-            >
-              Aktuális időszak
-              lezárása
-            </button>
-          </div>
-
-{/* MEGLÉVŐ KARBANTARTÁSOK VISSZATÖLTÉSE */}
-<div
-  style={{
-    marginTop: "14px",
-    padding: "16px",
-    background: "#eff6ff",
-    border: "1px solid #60a5fa",
-    borderRadius: "12px",
-  }}
->
-  <h3
-    style={{
-      margin: "0 0 8px",
-      color: "#1e3a8a",
-    }}
-  >
-    🔄 Meglévő munkák visszatöltése
-  </h3>
-
-  <p
-    style={{
-      margin: "0 0 12px",
-      fontSize: "13px",
-      color: "#334155",
-      lineHeight: 1.5,
-    }}
-  >
-    Feldolgozza a meglévő, teljesített
-    karbantartásokat. A hiányzó elszámolási
-    tételeket létrehozza, a fizetési mód
-    nélküli tételeket pedig naplózva
-    kiegészíti.
-  </p>
-
-  <button
-    type="button"
-    disabled={saving}
-    onClick={backfillExistingTasks}
-    style={{
-      padding: "10px 14px",
-      border: "none",
-      borderRadius: "8px",
-      background: saving
-        ? "#94a3b8"
-        : "#2563eb",
-      color: "white",
-      fontWeight: "bold",
-      cursor: saving
-        ? "not-allowed"
-        : "pointer",
-    }}
-  >
-    {saving
-      ? "Feldolgozás..."
-      : "Meglévő karbantartások feldolgozása"}
-  </button>
-</div>
-
-          
-        </>
-      )}
-
-      {activeTab ===
-        "prices" && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "14px",
-          }}
-        >
-          {renderPriceForm(
-            "WASH",
-            "🧼 Mosás ára",
-            washForm,
-            setWashForm,
-            data.currentPrices
-              .WASH,
-            "#2563eb"
-          )}
-
-          {renderPriceForm(
-            "DISINFECTION",
-            "🧴 Fertőtlenítés ára",
-            disinfectionForm,
-            setDisinfectionForm,
-            data.currentPrices
-              .DISINFECTION,
-            "#7c3aed"
-          )}
+      <div style={{ ...card, marginBottom: 10, border: `2px solid ${summary.settlement.direction === "INCOMPLETE" ? "#f59e0b" : summary.settlement.direction === "SETTLED" ? "#16a34a" : "#2563eb"}` }}>
+        <h3 style={{ margin: "0 0 6px", fontSize: 15 }}>🤝 Egymás közötti elszámolás</h3>
+        <div>1. főnek jár: <b>{money(summary.total.firstPersonTotal)}</b>, beérkezett: <b>{money(summary.received.firstPerson)}</b></div>
+        <div>2. főnek jár: <b>{money(summary.total.secondPersonTotal)}</b>, beérkezett: <b>{money(summary.received.secondPerson)}</b></div>
+        <div style={{ marginTop: 8, fontWeight: 800 }}>
+          {summary.settlement.direction === "FIRST_PAYS_SECOND" && `Az 1. fő fizet a 2. főnek: ${money(summary.settlement.amount)}`}
+          {summary.settlement.direction === "SECOND_PAYS_FIRST" && `A 2. fő fizet az 1. főnek: ${money(summary.settlement.amount)}`}
+          {summary.settlement.direction === "SETTLED" && "✅ Nincs rendezendő összeg."}
+          {summary.settlement.direction === "INCOMPLETE" && `⚠️ Hiányos: ${summary.paymentValidation.missingPaymentMethodCount} tételnél nincs fizetési mód (${money(summary.paymentValidation.missingPaymentMethodAmount)}).`}
         </div>
-      )}
+      </div>
 
-      {activeTab ===
-        "items" && (
-        <div>
-          {data.items.length ===
-          0 ? (
-            <div
-              style={{
-                padding: "20px",
-                background: "#f1f5f9",
-                borderRadius:
-                  "10px",
-                textAlign:
-                  "center",
-              }}
-            >
-              Az aktuális
-              időszakban még nincs
-              elszámolási tétel.
-            </div>
-          ) : (
-            data.items.map(
-              (item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    background:
-                      "white",
-                    border:
-                      "1px solid #cbd5e1",
-                    borderLeft:
-                      item.maintenanceType ===
-                      "WASH"
-                        ? "5px solid #2563eb"
-                        : "5px solid #7c3aed",
-                    borderRadius:
-                      "10px",
-                    padding:
-                      "12px",
-                    marginBottom:
-                      "9px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      justifyContent:
-                        "space-between",
-                      gap: "10px",
-                      flexWrap:
-                        "wrap",
-                    }}
-                  >
-                    <strong>
-                      {getTypeLabel(
-                        item.maintenanceType
-                      )}
-                    </strong>
-
-                    <span>
-                      {formatCurrency(
-                        item.appliedPrice
-                      )}
-                    </span>
-                  </div>
-
-                  <div>
-                    Munka: #
-                    {item.taskId}
-                  </div>
-
-                  <div>
-                    Ügyfél:{" "}
-                    {item.clientName ||
-                      "-"}
-                  </div>
-
-                  <div>
-                    Gép:{" "}
-                    {item.machineName}
-                  </div>
-
-                  <div>
-                    1. fő:{" "}
-                    {formatCurrency(
-                      item.firstPersonAmount
-                    )}
-                  </div>
-
-                  <div>
-                    2. fő:{" "}
-                    {formatCurrency(
-                      item.secondPersonAmount
-                    )}
-                  </div>
-
-                  <div>
-                    Teljesítve:{" "}
-                    {formatDate(
-                      item.completedAt
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openCorrection(
-                        item
-                      )
-                    }
-                    style={{
-                      marginTop:
-                        "8px",
-                      padding:
-                        "7px 10px",
-                      border:
-                        "none",
-                      borderRadius:
-                        "7px",
-                      background:
-                        "#f59e0b",
-                      color:
-                        "white",
-                      fontWeight:
-                        "bold",
-                      cursor:
-                        "pointer",
-                    }}
-                  >
-                    ✏️ Kézi
-                    korrekció
-                  </button>
-                </div>
-              )
-            )
-          )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 8, alignItems: "stretch" }}>
+        <div style={{ ...card, background: "#fff7ed", border: "1px solid #fdba74", boxShadow: "0 3px 10px rgba(15,23,42,.1)" }}>
+          <h3 style={{ margin: "0 0 7px", color: "#9a3412", fontSize: 15 }}>🔄 Új elszámolási időszak</h3>
+          <p style={{ margin: "0 0 10px", color: "#7c2d12", fontSize: 12 }}>A korábbi adatok megmaradnak, az új számláló nulláról indul.</p>
+          <input value={resetReason} onChange={(e) => setResetReason(e.target.value)} placeholder="A reset indoka..." style={{ ...inputStyle, marginBottom: 8 }} />
+          <button type="button" disabled={saving} onClick={resetPeriod} style={{ width: "100%", padding: 9, border: 0, borderRadius: 8, background: saving ? "#94a3b8" : "#ea580c", color: "#fff", fontWeight: 700 }}>{saving ? "Művelet folyamatban..." : "Aktuális időszak lezárása"}</button>
         </div>
-      )}
 
-      {activeTab ===
-        "periods" && (
-        <div>
-          {data.previousPeriods
-            .length === 0 ? (
-            <div
-              style={{
-                padding: "20px",
-                background: "#f1f5f9",
-                borderRadius:
-                  "10px",
-              }}
-            >
-              Még nincs lezárt
-              elszámolási időszak.
-            </div>
-          ) : (
-            data.previousPeriods.map(
-              (period) => (
-                <div
-                  key={period.id}
-                  style={{
-                    padding:
-                      "14px",
-                    background:
-                      "white",
-                    border:
-                      "1px solid #cbd5e1",
-                    borderRadius:
-                      "10px",
-                    marginBottom:
-                      "10px",
-                  }}
-                >
-                  <strong>
-                    Időszak #
-                    {period.id}
-                  </strong>
-
-                  <div>
-                    {formatDate(
-                      period.startedAt
-                    )}{" "}
-                    –{" "}
-                    {formatDate(
-                      period.endedAt
-                    )}
-                  </div>
-
-                  <div>
-                    Mosás:{" "}
-                    {
-                      period.summary
-                        .wash.count
-                    }{" "}
-                    db
-                  </div>
-
-                  <div>
-                    Fertőtlenítés:{" "}
-                    {
-                      period.summary
-                        .disinfection
-                        .count
-                    }{" "}
-                    db
-                  </div>
-
-                  <div>
-                    Teljes bevétel:{" "}
-                    <strong>
-                      {formatCurrency(
-                        period.summary
-                          .total
-                          .totalRevenue
-                      )}
-                    </strong>
-                  </div>
-
-                  <div>
-                    1. fő:{" "}
-                    {formatCurrency(
-                      period.summary
-                        .total
-                        .firstPersonTotal
-                    )}
-                  </div>
-
-                  <div>
-                    2. fő:{" "}
-                    {formatCurrency(
-                      period.summary
-                        .total
-                        .secondPersonTotal
-                    )}
-                  </div>
-                </div>
-              )
-            )
-          )}
+        <div style={{ ...card, background: "#eff6ff", border: "1px solid #60a5fa", boxShadow: "0 3px 10px rgba(15,23,42,.1)" }}>
+          <h3 style={{ margin: "0 0 7px", color: "#1e3a8a", fontSize: 15 }}>🔄 Meglévő munkák visszatöltése</h3>
+          <p style={{ margin: "0 0 10px", color: "#334155", fontSize: 12 }}>A hiányzó tételeket létrehozza, a fizetési mód nélküli tételeket naplózva kiegészíti.</p>
+          <button type="button" disabled={saving} onClick={backfillExistingTasks} style={{ width: "100%", padding: 9, border: 0, borderRadius: 8, background: saving ? "#94a3b8" : "#2563eb", color: "#fff", fontWeight: 700 }}>{saving ? "Feldolgozás..." : "Meglévő karbantartások feldolgozása"}</button>
         </div>
-      )}
+      </div>
+    </>}
 
-      {activeTab ===
-        "logs" && (
-        <div>
-          {data.auditLogs.length ===
-          0 ? (
-            <div
-              style={{
-                padding: "20px",
-                background: "#f1f5f9",
-                borderRadius:
-                  "10px",
-              }}
-            >
-              Még nincs naplózott
-              esemény.
-            </div>
-          ) : (
-            data.auditLogs.map(
-              (log) => (
-                <details
-                  key={log.id}
-                  style={{
-                    padding:
-                      "12px",
-                    background:
-                      "white",
-                    border:
-                      "1px solid #cbd5e1",
-                    borderRadius:
-                      "9px",
-                    marginBottom:
-                      "8px",
-                  }}
-                >
-                  <summary
-                    style={{
-                      cursor:
-                        "pointer",
-                      fontWeight:
-                        "bold",
-                    }}
-                  >
-                    {getEventLabel(
-                      log.eventType
-                    )}{" "}
-                    ·{" "}
-                    {formatDate(
-                      log.createdAt
-                    )}
-                  </summary>
+    {tab === "prices" && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 12 }}>
+      <PriceCard type="WASH" title="🧼 Mosás ára" form={washForm} setForm={setWashForm} current={data.currentPrices.WASH} color="#2563eb" />
+      <PriceCard type="DISINFECTION" title="🧴 Fertőtlenítés ára" form={disinfectionForm} setForm={setDisinfectionForm} current={data.currentPrices.DISINFECTION} color="#7c3aed" />
+    </div>}
 
-                  <div
-                    style={{
-                      marginTop:
-                        "10px",
-                    }}
-                  >
-                    {log.description ||
-                      "-"}
+    {tab === "items" && <div>{data.items.length === 0 ? <div style={card}>Nincs elszámolási tétel.</div> : data.items.map((item) => <div key={item.id} style={{ ...card, marginBottom: 8, borderLeft: `5px solid ${item.maintenanceType === "WASH" ? "#2563eb" : "#7c3aed"}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}><b>{typeLabel(item.maintenanceType)}</b><b>{money(item.appliedPrice)}</b></div>
+      <div>Munka: #{item.taskId} · Ügyfél: {item.clientName || "-"}</div>
+      <div>Gép: {item.machineName}</div>
+      <div>Fizetés: {item.paymentMethod === "CASH" ? "Készpénz → 1. fő" : item.paymentMethod === "TRANSFER" ? "Átutalás → 2. fő" : "Nincs megadva"}</div>
+      <div>1. fő: {money(item.firstPersonAmount)} · 2. fő: {money(item.secondPersonAmount)}</div>
+      <div>Teljesítve: {date(item.completedAt)}</div>
+      <button type="button" onClick={() => openCorrection(item)} style={{ marginTop: 8, padding: "7px 10px", border: 0, borderRadius: 7, background: "#f59e0b", color: "#fff", fontWeight: 700 }}>✏️ Kézi korrekció</button>
+    </div>)}</div>}
 
-                    <pre
-                      style={{
-                        marginTop:
-                          "10px",
-                        padding:
-                          "10px",
-                        borderRadius:
-                          "8px",
-                        background:
-                          "#f8fafc",
-                        whiteSpace:
-                          "pre-wrap",
-                        wordBreak:
-                          "break-word",
-                        fontSize:
-                          "11px",
-                        overflowX:
-                          "auto",
-                      }}
-                    >
-                      {JSON.stringify(
-                        log.details,
-                        null,
-                        2
-                      )}
-                    </pre>
-                  </div>
-                </details>
-              )
-            )
-          )}
-        </div>
-      )}
+    {tab === "periods" && <div>{data.previousPeriods.length === 0 ? <div style={card}>Még nincs lezárt időszak.</div> : data.previousPeriods.map((period) => <div key={period.id} style={{ ...card, marginBottom: 8 }}><b>Időszak #{period.id}</b><div>{date(period.startedAt)} – {date(period.endedAt)}</div><div>Mosás: {period.summary.wash.count} db · Fertőtlenítés: {period.summary.disinfection.count} db</div><div>Teljes bevétel: <b>{money(period.summary.total.totalRevenue)}</b></div></div>)}</div>}
 
-      {correctionItem &&
-        correctionForm && (
-        <div
-          onClick={() => {
-            setCorrectionItem(
-              null
-            );
+    {tab === "logs" && <div>{data.auditLogs.length === 0 ? <div style={card}>Még nincs naplózott esemény.</div> : data.auditLogs.map((log) => <details key={log.id} style={{ ...card, marginBottom: 8 }}><summary style={{ cursor: "pointer", fontWeight: 700 }}>{eventLabel(log.eventType)} · {date(log.createdAt)}</summary><div style={{ marginTop: 8 }}>{log.description || "-"}<pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", background: "#f8fafc", padding: 8, borderRadius: 8, fontSize: 11 }}>{JSON.stringify(log.details, null, 2)}</pre></div></details>)}</div>}
 
-            setCorrectionForm(
-              null
-            );
-          }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 5000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent:
-              "center",
-            padding: "15px",
-            background:
-              "rgba(0,0,0,0.65)",
-          }}
-        >
-          <div
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-            style={{
-              width: "100%",
-              maxWidth: "520px",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              padding: "18px",
-              boxSizing:
-                "border-box",
-              borderRadius:
-                "12px",
-              background: "white",
-            }}
-          >
-            <h2
-              style={{
-                marginTop: 0,
-              }}
-            >
-              Kézi korrekció
-            </h2>
-
-            <label
-              style={{
-                display: "block",
-                marginBottom:
-                  "10px",
-              }}
-            >
-              Típus:
-
-              <select
-                value={
-                  correctionForm
-                    .maintenanceType
-                }
-                onChange={(
-                  event
-                ) =>
-                  setCorrectionForm({
-                    ...correctionForm,
-                    maintenanceType:
-                      event.target
-                        .value as MaintenanceType,
-                  })
-                }
-                style={{
-                  width:
-                    "100%",
-                  padding:
-                    "10px",
-                  marginTop:
-                    "4px",
-                }}
-              >
-                <option value="WASH">
-                  Mosás
-                </option>
-
-                <option value="DISINFECTION">
-                  Fertőtlenítés
-                </option>
-              </select>
-            </label>
-
-            {[
-              [
-                "machineName",
-                "Gép neve",
-              ],
-              [
-                "appliedPrice",
-                "Teljes ár",
-              ],
-              [
-                "firstPersonAmount",
-                "1. fő része",
-              ],
-              [
-                "secondPersonAmount",
-                "2. fő része",
-              ],
-            ].map(
-              ([field, label]) => (
-                <label
-                  key={field}
-                  style={{
-                    display:
-                      "block",
-                    marginBottom:
-                      "10px",
-                  }}
-                >
-                  {label}:
-
-                  <input
-                    type={
-                      field ===
-                      "machineName"
-                        ? "text"
-                        : "number"
-                    }
-                    value={
-                      correctionForm[
-                        field as keyof CorrectionState
-                      ]
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      setCorrectionForm({
-                        ...correctionForm,
-                        [field]:
-                          event
-                            .target
-                            .value,
-                      })
-                    }
-                    style={{
-                      width:
-                        "100%",
-                      padding:
-                        "10px",
-                      marginTop:
-                        "4px",
-                      boxSizing:
-                        "border-box",
-                    }}
-                  />
-                </label>
-              )
-            )}
-
-            <label
-              style={{
-                display: "block",
-                marginBottom:
-                  "10px",
-              }}
-            >
-              Megvalósult
-              időpont:
-
-              <input
-                type="datetime-local"
-                value={
-                  correctionForm
-                    .completedAt
-                }
-                onChange={(
-                  event
-                ) =>
-                  setCorrectionForm({
-                    ...correctionForm,
-                    completedAt:
-                      event.target
-                        .value,
-                  })
-                }
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  marginTop: "4px",
-                  boxSizing:
-                    "border-box",
-                }}
-              />
-            </label>
-
-            <label
-              style={{
-                display: "block",
-                marginBottom:
-                  "12px",
-              }}
-            >
-              Korrekció indoka:
-
-              <textarea
-                value={
-                  correctionForm
-                    .reason
-                }
-                onChange={(
-                  event
-                ) =>
-                  setCorrectionForm({
-                    ...correctionForm,
-                    reason:
-                      event.target
-                        .value,
-                  })
-                }
-                rows={3}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  marginTop: "4px",
-                  boxSizing:
-                    "border-box",
-                }}
-              />
-            </label>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-              }}
-            >
-              <button
-                type="button"
-                disabled={saving}
-                onClick={
-                  saveCorrection
-                }
-                style={{
-                  flex: 1,
-                  padding:
-                    "11px",
-                  border: "none",
-                  borderRadius:
-                    "8px",
-                  background:
-                    "#16a34a",
-                  color:
-                    "white",
-                  fontWeight:
-                    "bold",
-                  cursor:
-                    "pointer",
-                }}
-              >
-                Korrekció mentése
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCorrectionItem(
-                    null
-                  );
-
-                  setCorrectionForm(
-                    null
-                  );
-                }}
-                style={{
-                  padding:
-                    "11px",
-                  border: "none",
-                  borderRadius:
-                    "8px",
-                  background:
-                    "#64748b",
-                  color:
-                    "white",
-                  fontWeight:
-                    "bold",
-                  cursor:
-                    "pointer",
-                }}
-              >
-                Mégsem
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </main>
-  );
+    {correctionItem && correction && <div onClick={() => { setCorrectionItem(null); setCorrection(null); }} style={{ position: "fixed", inset: 0, zIndex: 5000, display: "flex", alignItems: "center", justifyContent: "center", padding: 15, background: "rgba(0,0,0,.65)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...card, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" }}>
+        <h2 style={{ marginTop: 0 }}>Kézi korrekció</h2>
+        <label style={{ display: "block", marginBottom: 8 }}>Típus:<select value={correction.maintenanceType} onChange={(e) => setCorrection({ ...correction, maintenanceType: e.target.value as MaintenanceType })} style={inputStyle}><option value="WASH">Mosás</option><option value="DISINFECTION">Fertőtlenítés</option></select></label>
+        <label style={{ display: "block", marginBottom: 8 }}>Fizetési mód:<select value={correction.paymentMethod} onChange={(e) => setCorrection({ ...correction, paymentMethod: e.target.value as "CASH" | "TRANSFER" })} style={inputStyle}><option value="CASH">Készpénz → 1. fő</option><option value="TRANSFER">Átutalás → 2. fő</option></select></label>
+        {([ ["machineName", "Gép neve"], ["appliedPrice", "Teljes ár"], ["firstPersonAmount", "1. fő része"], ["secondPersonAmount", "2. fő része"] ] as [keyof CorrectionForm, string][]).map(([field, label]) => <label key={field} style={{ display: "block", marginBottom: 8 }}>{label}:<input type={field === "machineName" ? "text" : "number"} value={correction[field]} onChange={(e) => setCorrection({ ...correction, [field]: e.target.value })} style={inputStyle} /></label>)}
+        <label style={{ display: "block", marginBottom: 8 }}>Megvalósult időpont:<input type="datetime-local" value={correction.completedAt} onChange={(e) => setCorrection({ ...correction, completedAt: e.target.value })} style={inputStyle} /></label>
+        <label style={{ display: "block", marginBottom: 10 }}>Korrekció indoka:<textarea rows={3} value={correction.reason} onChange={(e) => setCorrection({ ...correction, reason: e.target.value })} style={inputStyle} /></label>
+        <div style={{ display: "flex", gap: 8 }}><button type="button" disabled={saving} onClick={saveCorrection} style={{ flex: 1, padding: 10, border: 0, borderRadius: 8, background: "#16a34a", color: "#fff", fontWeight: 700 }}>Mentés</button><button type="button" onClick={() => { setCorrectionItem(null); setCorrection(null); }} style={{ padding: 10, border: 0, borderRadius: 8, background: "#64748b", color: "#fff", fontWeight: 700 }}>Mégsem</button></div>
+      </div>
+    </div>}
+  </main>;
 }
