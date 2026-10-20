@@ -958,8 +958,9 @@ let settlementSyncError:
         taskType: type,
         clientName: name,
         machines,
-        machineDetails,
-        completedAt,
+       machineDetails,
+paymentMethod,
+completedAt,
       });
 
     console.log(
