@@ -1,5 +1,7 @@
 import {
   MaintenanceAuditEventType,
+  MaintenancePaymentMethod,
+  MaintenanceReceiver,
   MaintenanceServiceType,
   Prisma,
 } from "@prisma/client";
@@ -20,6 +22,10 @@ type SyncMaintenanceSettlementParams = {
   clientName: string;
   machines: string[];
   machineDetails: MachineDetail[];
+  paymentMethod:
+  | "keszpenz"
+  | "atutalas"
+  | null;
   completedAt: string | Date | null;
 };
 
@@ -138,8 +144,9 @@ export async function syncMaintenanceSettlement({
   taskType,
   clientName,
   machines,
-  machineDetails,
-  completedAt,
+ machineDetails,
+paymentMethod,
+completedAt,
 }: SyncMaintenanceSettlementParams):
   Promise<SettlementSyncResult> {
   const result:
@@ -172,6 +179,42 @@ export async function syncMaintenanceSettlement({
    */
   const completedAtDate =
     parseCompletedAt(completedAt);
+
+  let settlementPaymentMethod:
+  MaintenancePaymentMethod | null =
+    null;
+
+let receivedBy:
+  MaintenanceReceiver | null =
+    null;
+
+if (paymentMethod === "keszpenz") {
+  settlementPaymentMethod =
+    MaintenancePaymentMethod.CASH;
+
+  receivedBy =
+    MaintenanceReceiver.FIRST_PERSON;
+} else if (
+  paymentMethod === "atutalas"
+) {
+  settlementPaymentMethod =
+    MaintenancePaymentMethod.TRANSFER;
+
+  receivedBy =
+    MaintenanceReceiver.SECOND_PERSON;
+}
+
+if (
+  !settlementPaymentMethod ||
+  !receivedBy
+) {
+  return {
+    ...result,
+    skipped: true,
+    skipReason:
+      "Nincs kiválasztva fizetési mód. Készpénz vagy átutalás megadása szükséges.",
+  };
+}
 
   if (!completedAtDate) {
     return {
@@ -401,6 +444,11 @@ export async function syncMaintenanceSettlement({
 
                     maintenanceType,
 
+paymentMethod:
+  settlementPaymentMethod,
+
+receivedBy,
+                    
                     appliedPrice:
                       applicablePrice
                         .totalPrice,
@@ -458,6 +506,11 @@ export async function syncMaintenanceSettlement({
                     machineName,
 
                     maintenanceType,
+
+                    paymentMethod:
+  settlementPaymentMethod,
+
+receivedBy,
 
                     maintenanceTypeLabel:
                       getMaintenanceTypeLabel(
