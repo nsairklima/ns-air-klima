@@ -842,8 +842,35 @@ export default function MaintenanceSummaryPage() {
     );
   }
 
-  const summary =
-    data.summary;
+  const summary = {
+  ...data.summary,
+
+  received:
+    data.summary.received ?? {
+      firstPerson: 0,
+      secondPerson: 0,
+      total: 0,
+    },
+
+  balances:
+    data.summary.balances ?? {
+      firstPerson: 0,
+      secondPerson: 0,
+    },
+
+  settlement:
+    data.summary.settlement ?? {
+      direction: "INCOMPLETE" as const,
+      amount: 0,
+    },
+
+  paymentValidation:
+    data.summary.paymentValidation ?? {
+      missingPaymentMethodCount: 0,
+      missingPaymentMethodAmount: 0,
+      isComplete: false,
+    },
+};
 
   const renderSummaryCard = (
     title: string,
