@@ -186,6 +186,15 @@ enum MaintenanceServiceType {
   WASH
   DISINFECTION
 }
+enum MaintenancePaymentMethod {
+  CASH
+  TRANSFER
+}
+
+enum MaintenanceReceiver {
+  FIRST_PERSON
+  SECOND_PERSON
+}
 
 enum MaintenanceAuditEventType {
   PRICE_CREATED
@@ -228,8 +237,10 @@ model MaintenanceSettlementItem {
   machineIndex       Int
   clientName         String?
   machineName        String
-  maintenanceType    MaintenanceServiceType
-  appliedPrice       Int
+ maintenanceType    MaintenanceServiceType
+paymentMethod      MaintenancePaymentMethod?
+receivedBy         MaintenanceReceiver?
+appliedPrice       Int
   firstPersonAmount  Int
   secondPersonAmount Int
   completedAt        DateTime
@@ -245,6 +256,8 @@ model MaintenanceSettlementItem {
   @@index([priceId])
   @@index([completedAt])
   @@index([maintenanceType])
+@@index([paymentMethod])
+@@index([receivedBy])
   @@index([clientName])
 }
 
