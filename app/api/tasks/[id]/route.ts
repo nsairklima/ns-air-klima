@@ -1079,9 +1079,13 @@ try {
       taskType: type,
       clientName: name,
       machines,
-      machineDetails:
-        finalMachineDetails,
-      completedAt,
+ machineDetails:
+  finalMachineDetails,
+
+paymentMethod:
+  finalPaymentMethod,
+
+completedAt,
     });
 
   console.log(
