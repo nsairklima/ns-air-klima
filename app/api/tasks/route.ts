@@ -7,6 +7,7 @@ import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
+import { syncMaintenanceSettlement } from "@/lib/maintenanceSettlement";
 
 export const dynamic = "force-dynamic";
 
@@ -936,7 +937,48 @@ if (
     );
   }
 }
+let settlementSyncResult:
+  Awaited<
+    ReturnType<
+      typeof syncMaintenanceSettlement
+    >
+  > | null = null;
 
+let settlementSyncError:
+  string | null = null;
+
+    if (
+  newTaskId !== null &&
+  newTaskId !== undefined
+) {
+  try {
+    settlementSyncResult =
+      await syncMaintenanceSettlement({
+        taskId: Number(newTaskId),
+        taskType: type,
+        clientName: name,
+        machines,
+        machineDetails,
+        completedAt,
+      });
+
+    console.log(
+      "Új munka karbantartási elszámolása:",
+      settlementSyncResult
+    );
+  } catch (settlementError) {
+    settlementSyncError =
+      settlementError instanceof Error
+        ? settlementError.message
+        : String(settlementError);
+
+    console.error(
+      "Az új munka elszámolása nem sikerült:",
+      settlementError
+    );
+  }
+}
+    
 let emailSent = false;
 
 
@@ -1219,34 +1261,108 @@ let emailSent = false;
         " A címhez nem érkezett koordináta.";
     }
 
+if (
+  settlementSyncResult
+    ?.createdItems.length
+) {
+  message +=
+    ` ${settlementSyncResult.createdItems.length} karbantartási tétel bekerült az elszámolásba.`;
+}
+
+if (
+  settlementSyncResult
+    ?.alreadyExistingItems.length
+) {
+  message +=
+    ` ${settlementSyncResult.alreadyExistingItems.length} tétel már korábban szerepelt az elszámolásban.`;
+}
+
+if (
+  settlementSyncResult
+    ?.skippedItems.length
+) {
+  message +=
+    ` ${settlementSyncResult.skippedItems.length} gép elszámolása kimaradt.`;
+}
+
+if (
+  settlementSyncResult?.skipped &&
+  settlementSyncResult.skipReason
+) {
+  message +=
+    ` Elszámolás nem készült: ${settlementSyncResult.skipReason}`;
+}
+
+if (settlementSyncError) {
+  message +=
+    ` A munka létrejött, de az elszámolás nem sikerült: ${settlementSyncError}`;
+}
+    
     if (emailSent) {
       message +=
         " Az értesítő email elküldve.";
     }
 
-   return NextResponse.json({
+ return NextResponse.json({
   message,
+
   taskId: newTaskId,
+
   machines,
-       machineDetails,
+
+  machineDetails,
+
   paymentMethod,
+
   machinesAddedToClient:
     machineSyncResult.createdMachines,
+
   machinesAlreadyExisted:
     machineSyncResult.existingMachines,
-    
-      clientCreated:
-        clientSyncResult.created,
-      clientId:
-        clientSyncResult.clientId ||
-        null,
-      clientMatchReason:
-        clientSyncResult.reason,
-      emailSent,
-      latitude,
-      longitude,
-      driveLinks: imageUrls,
-    });
+
+  clientCreated:
+    clientSyncResult.created,
+
+  clientId:
+    clientSyncResult.clientId ||
+    null,
+
+  clientMatchReason:
+    clientSyncResult.reason,
+
+  settlement: {
+    createdItems:
+      settlementSyncResult
+        ?.createdItems || [],
+
+    alreadyExistingItems:
+      settlementSyncResult
+        ?.alreadyExistingItems || [],
+
+    skippedItems:
+      settlementSyncResult
+        ?.skippedItems || [],
+
+    skipped:
+      settlementSyncResult
+        ?.skipped || false,
+
+    skipReason:
+      settlementSyncResult
+        ?.skipReason || null,
+
+    error:
+      settlementSyncError,
+  },
+
+  emailSent,
+
+  latitude,
+
+  longitude,
+
+  driveLinks: imageUrls,
+});
   } catch (error: any) {
     console.error(
       "Munka mentési hiba:",
