@@ -2411,7 +2411,7 @@ const handleGalleryTouchEnd = () => {
               )}
 
               <div>
-                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Típus:</label>
+                <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Munka típusa:</label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as "telepites" | "karbantartas")}
