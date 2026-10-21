@@ -2848,23 +2848,74 @@ const handleGalleryTouchEnd = () => {
               alignItems: "stretch",
             }}
           >
-            <input
-              type="text"
-              placeholder="🔍 Keresés név, cím, telefon, email, megjegyzés, státusz vagy azonosító alapján..."
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              style={{
-                width: "100%",
-                minWidth: 0,
-                padding: "10px 12px",
-                borderRadius: "10px",
-                border: "1px solid #4b5563",
-                boxSizing: "border-box",
-                fontSize: "14px",
-                background: "#1f2937",
-                color: "white",
-              }}
-            />
+           <div
+  style={{
+    position: "relative",
+    width: "100%",
+    marginBottom: "12px",
+  }}
+>
+  <input
+    type="text"
+    placeholder="🔍 Keresés név, cím, telefon, email, megjegyzés, státusz vagy azonosító alapján..."
+    value={searchQuery}
+    onChange={(event) =>
+      setSearchQuery(
+        event.target.value
+      )
+    }
+    style={{
+      width: "100%",
+      padding: searchQuery
+        ? "10px 42px 10px 12px"
+        : "10px 12px",
+      borderRadius: "10px",
+      border:
+        "1px solid #4b5563",
+      boxSizing: "border-box",
+      fontSize: "14px",
+      background: "#1f2937",
+      color: "white",
+      outline: "none",
+    }}
+  />
+
+  {searchQuery && (
+    <button
+      type="button"
+      onClick={() =>
+        setSearchQuery("")
+      }
+      aria-label="Keresés törlése"
+      title="Keresés törlése"
+      style={{
+        position: "absolute",
+        top: "50%",
+        right: "8px",
+        transform:
+          "translateY(-50%)",
+        width: "28px",
+        height: "28px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent:
+          "center",
+        padding: 0,
+        border:
+          "1px solid #64748b",
+        borderRadius: "50%",
+        background: "#374151",
+        color: "#f8fafc",
+        fontSize: "17px",
+        fontWeight: "bold",
+        lineHeight: 1,
+        cursor: "pointer",
+      }}
+    >
+      ×
+    </button>
+  )}
+</div>
 
             <div
               style={{
