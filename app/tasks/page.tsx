@@ -945,12 +945,20 @@ export default function TasksPage() {
   const [statusType, setStatusType] = useState<"success" | "warning">("success");
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
-  const [filterInvoice, setFilterInvoice] = useState<
+const [filterType, setFilterType] = useState<
+  "all" | "telepites" | "karbantartas"
+>("all");
+
+const [filterStatus, setFilterStatus] = useState<
+  "all" | "folyamatban" | "kesz" | "nincsIdopont"
+>("all");
+
+const [filterInvoice, setFilterInvoice] = useState<
   "all" | "igen" | "nem"
 >("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [scheduledDateFilter, setScheduledDateFilter] = useState("");
+
+const [searchQuery, setSearchQuery] = useState("");
+const [scheduledDateFilter, setScheduledDateFilter] = useState("");
   const [showMap, setShowMap] = useState(false);
 
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
