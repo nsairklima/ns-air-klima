@@ -946,9 +946,9 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [filterType, setFilterType] = useState<"all" | "telepites" | "karbantartas">("all");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "folyamatban" | "kesz" | "nincsIdopont"
-  >("all");
+  const [filterInvoice, setFilterInvoice] = useState<
+  "all" | "igen" | "nem"
+>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [scheduledDateFilter, setScheduledDateFilter] = useState("");
   const [showMap, setShowMap] = useState(false);
@@ -1706,6 +1706,23 @@ const handleGalleryTouchEnd = () => {
     ) {
       return false;
     }
+    if (filterInvoice !== "all") {
+  const machineDetails = Array.isArray(task.machineDetails)
+    ? task.machineDetails
+    : [];
+
+  const hasInvoiceRequired = machineDetails.some(
+    (detail) => detail?.warranty === true
+  );
+
+  if (filterInvoice === "igen" && !hasInvoiceRequired) {
+    return false;
+  }
+
+  if (filterInvoice === "nem" && hasInvoiceRequired) {
+    return false;
+  }
+}
 
     if (scheduledDateFilter) {
       const taskScheduledDate = task.scheduled_at
@@ -3202,6 +3219,98 @@ const handleGalleryTouchEnd = () => {
                 </div>
               </button>
             </div>
+
+<div
+  style={{
+    fontSize: "11px",
+    fontWeight: "bold",
+    color: "#d1d5db",
+    marginTop: "12px",
+    marginBottom: "8px",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+  }}
+>
+  Számla szükséges
+</div>
+
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: "6px",
+  }}
+>
+  <button
+    type="button"
+    onClick={() => setFilterInvoice("all")}
+    style={{
+      padding: "8px",
+      borderRadius: "8px",
+      border:
+        filterInvoice === "all"
+          ? "2px solid #95a5a6"
+          : "1px solid #4b5563",
+      cursor: "pointer",
+      background:
+        filterInvoice === "all"
+          ? "#95a5a6"
+          : "#34495e",
+      color: "white",
+      fontWeight: "bold",
+      fontSize: "11px",
+    }}
+  >
+    📋 Mind
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setFilterInvoice("igen")}
+    style={{
+      padding: "8px",
+      borderRadius: "8px",
+      border:
+        filterInvoice === "igen"
+          ? "2px solid #22c55e"
+          : "1px solid #4b5563",
+      cursor: "pointer",
+      background:
+        filterInvoice === "igen"
+          ? "#16a34a"
+          : "#34495e",
+      color: "white",
+      fontWeight: "bold",
+      fontSize: "11px",
+    }}
+  >
+    🧾 Igen
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setFilterInvoice("nem")}
+    style={{
+      padding: "8px",
+      borderRadius: "8px",
+      border:
+        filterInvoice === "nem"
+          ? "2px solid #ef4444"
+          : "1px solid #4b5563",
+      cursor: "pointer",
+      background:
+        filterInvoice === "nem"
+          ? "#dc2626"
+          : "#34495e",
+      color: "white",
+      fontWeight: "bold",
+      fontSize: "11px",
+    }}
+  >
+    Nem
+  </button>
+</div>
+            
           </div>
         </div>
 
