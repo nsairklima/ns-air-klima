@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  MaintenanceAuditEventType,
   MaintenancePaymentMethod,
   MaintenanceReceiver,
   MaintenanceServiceType,
@@ -23,6 +24,81 @@ type SummaryItem = {
   firstPersonAmount: number;
   secondPersonAmount: number;
 };
+
+type OrphanSettlementId = {
+  id: number;
+};
+
+async function removeDeletedTaskSettlements() {
+  const orphanIds = await prisma.$queryRaw<OrphanSettlementId[]>`
+    SELECT settlement."id"
+    FROM "MaintenanceSettlementItem" settlement
+    LEFT JOIN "Task" task
+      ON task."id" = settlement."taskId"
+    WHERE task."id" IS NULL
+  `;
+
+  if (orphanIds.length === 0) {
+    return 0;
+  }
+
+  const ids = orphanIds.map((item) => item.id);
+
+  const orphanItems =
+    await prisma.maintenanceSettlementItem.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+
+  await prisma.$transaction(async (transaction) => {
+    for (const item of orphanItems) {
+      await transaction.maintenanceAuditLog.create({
+        data: {
+          eventType:
+            MaintenanceAuditEventType.SETTLEMENT_ITEM_VOIDED,
+          entityType: "MaintenanceSettlementItem",
+          entityId: item.id,
+          description:
+            "Törölt munkához tartozó elszámolási tétel automatikusan eltávolítva.",
+          details: {
+            correctionType: "ORPHAN_SETTLEMENT_CLEANUP",
+            reason: "A kapcsolódó Task rekord már nem létezik.",
+            settlementItem: {
+              id: item.id,
+              taskId: item.taskId,
+              machineIndex: item.machineIndex,
+              clientName: item.clientName,
+              machineName: item.machineName,
+              maintenanceType: item.maintenanceType,
+              paymentMethod: item.paymentMethod,
+              receivedBy: item.receivedBy,
+              appliedPrice: item.appliedPrice,
+              firstPersonAmount: item.firstPersonAmount,
+              secondPersonAmount: item.secondPersonAmount,
+              completedAt: item.completedAt.toISOString(),
+              periodId: item.periodId,
+              priceId: item.priceId,
+              createdAt: item.createdAt.toISOString(),
+            },
+          },
+        },
+      });
+    }
+
+    await transaction.maintenanceSettlementItem.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+  });
+
+  return orphanItems.length;
+}
 
 function createEmptySummary(): SummaryValues {
   return {
@@ -136,6 +212,19 @@ function calculateSummary(items: SummaryItem[]) {
 
 export async function GET() {
   try {
+    /*
+     * Védelmi takarítás: ha egy Task már nem létezik,
+     * a hozzá tartozó elszámolási tétel nem számíthat bele.
+     */
+    const removedOrphanItems =
+      await removeDeletedTaskSettlements();
+
+    if (removedOrphanItems > 0) {
+      console.log(
+        `${removedOrphanItems} törölt munkához tartozó elszámolási tétel eltávolítva.`
+      );
+    }
+
     let activePeriod =
       await prisma.maintenanceSettlementPeriod.findFirst({
         where: {
