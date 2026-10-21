@@ -3124,291 +3124,144 @@ const handleGalleryTouchEnd = () => {
             style={{
               background: "#1f2937",
               borderRadius: "10px",
-              padding: "12px",
+              padding: "8px",
               border: "1px solid #374151",
               boxShadow: "0 1px 4px rgba(0,0,0,0.20)",
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: "8px",
             }}
           >
-            <div
+            <label
               style={{
-                fontSize: "11px",
-                fontWeight: "bold",
-                color: "#d1d5db",
-                marginBottom: "8px",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+                minWidth: 0,
               }}
             >
-              Típus
-            </div>
+              <span style={{ fontSize: "10px", fontWeight: "bold", color: "#d1d5db" }}>
+                Típus
+              </span>
+              <select
+                value={filterType}
+                onChange={(event) =>
+                  setFilterType(
+                    event.target.value as "all" | "telepites" | "karbantartas"
+                  )
+                }
+                style={{
+                  width: "100%",
+                  minWidth: 0,
+                  padding: "7px 5px",
+                  borderRadius: "7px",
+                  border: "1px solid #4b5563",
+                  background: "#34495e",
+                  color: "white",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="all">Összes ({tasks.length})</option>
+                <option value="telepites">
+                  Telepítés ({tasks.filter((task) => task.type === "telepites").length})
+                </option>
+                <option value="karbantartas">
+                  Karbantartás ({tasks.filter((task) => task.type === "karbantartas").length})
+                </option>
+              </select>
+            </label>
 
-            <div
+            <label
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "6px",
-                marginBottom: "12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+                minWidth: 0,
               }}
             >
-              <button
-                onClick={() => setFilterType("all")}
+              <span style={{ fontSize: "10px", fontWeight: "bold", color: "#d1d5db" }}>
+                Státusz
+              </span>
+              <select
+                value={filterStatus}
+                onChange={(event) =>
+                  setFilterStatus(
+                    event.target.value as
+                      | "all"
+                      | "folyamatban"
+                      | "kesz"
+                      | "nincsIdopont"
+                  )
+                }
                 style={{
-                  padding: "8px",
-                  borderRadius: "8px",
-                  border: filterType === "all" ? "2px solid #1abc9c" : "1px solid #4b5563",
-                  cursor: "pointer",
-                  background: filterType === "all" ? "#1abc9c" : "#34495e",
+                  width: "100%",
+                  minWidth: 0,
+                  padding: "7px 5px",
+                  borderRadius: "7px",
+                  border: "1px solid #4b5563",
+                  background: "#34495e",
                   color: "white",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  boxSizing: "border-box",
                 }}
               >
-                <div style={{ fontSize: "11px", fontWeight: "600" }}>📋 Összes</div>
-                <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>{tasks.length}</div>
-              </button>
+                <option value="all">Minden</option>
+                <option value="folyamatban">
+                  Folyamatban ({tasks.filter((task) => !task.completed_at).length})
+                </option>
+                <option value="kesz">
+                  Kész ({tasks.filter((task) => task.completed_at).length})
+                </option>
+                <option value="nincsIdopont">
+                  Nincs időpont ({tasks.filter((task) => !task.scheduled_at).length})
+                </option>
+              </select>
+            </label>
 
-              <button
-                onClick={() => setFilterType("telepites")}
-                style={{
-                  padding: "8px",
-                  borderRadius: "8px",
-                  border: filterType === "telepites" ? "2px solid #3498db" : "1px solid #4b5563",
-                  cursor: "pointer",
-                  background: filterType === "telepites" ? "#3498db" : "#34495e",
-                  color: "white",
-                }}
-              >
-                <div style={{ fontSize: "11px", fontWeight: "600" }}>🛠️ Telepítés</div>
-                <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>
-                  {tasks.filter((t) => t.type === "telepites").length}
-                </div>
-              </button>
-
-              <button
-                onClick={() => setFilterType("karbantartas")}
-                style={{
-                  padding: "8px",
-                  borderRadius: "8px",
-                  border: filterType === "karbantartas" ? "2px solid #f39c12" : "1px solid #4b5563",
-                  cursor: "pointer",
-                  background: filterType === "karbantartas" ? "#f39c12" : "#34495e",
-                  color: "white",
-                }}
-              >
-                <div style={{ fontSize: "11px", fontWeight: "600" }}>🧹 Karbant.</div>
-                <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>
-                  {tasks.filter((t) => t.type === "karbantartas").length}
-                </div>
-              </button>
-            </div>
-
-            <div
+            <label
               style={{
-                fontSize: "11px",
-                fontWeight: "bold",
-                color: "#d1d5db",
-                marginBottom: "8px",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+                minWidth: 0,
               }}
             >
-              Státusz
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "6px",
-              }}
-            >
-              <button
-                onClick={() => setFilterStatus("all")}
+              <span style={{ fontSize: "10px", fontWeight: "bold", color: "#d1d5db" }}>
+                Számla
+              </span>
+              <select
+                value={filterInvoice}
+                onChange={(event) =>
+                  setFilterInvoice(
+                    event.target.value as
+                      | "all"
+                      | "igen"
+                      | "kiszamlazva"
+                      | "nem"
+                  )
+                }
                 style={{
-                  padding: "8px",
-                  borderRadius: "8px",
-                  border: filterStatus === "all" ? "2px solid #95a5a6" : "1px solid #4b5563",
-                  cursor: "pointer",
-                  background: filterStatus === "all" ? "#95a5a6" : "#34495e",
+                  width: "100%",
+                  minWidth: 0,
+                  padding: "7px 5px",
+                  borderRadius: "7px",
+                  border: "1px solid #4b5563",
+                  background: "#34495e",
                   color: "white",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  boxSizing: "border-box",
                 }}
               >
-                <div style={{ fontSize: "11px", fontWeight: "600" }}>📊 Minden</div>
-                <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>{tasks.length}</div>
-              </button>
-
-              <button
-                onClick={() => setFilterStatus("folyamatban")}
-                style={{
-                  padding: "8px",
-                  borderRadius: "8px",
-                  border: filterStatus === "folyamatban" ? "2px solid #f39c12" : "1px solid #4b5563",
-                  cursor: "pointer",
-                  background: filterStatus === "folyamatban" ? "#f39c12" : "#34495e",
-                  color: "white",
-                }}
-              >
-                <div style={{ fontSize: "11px", fontWeight: "600" }}>⏳ Foly.</div>
-                <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>
-                  {tasks.filter((t) => !t.completed_at).length}
-                </div>
-              </button>
-
-              <button
-                onClick={() => setFilterStatus("kesz")}
-                style={{
-                  padding: "8px",
-                  borderRadius: "8px",
-                  border: filterStatus === "kesz" ? "2px solid #2ecc71" : "1px solid #4b5563",
-                  cursor: "pointer",
-                  background: filterStatus === "kesz" ? "#2ecc71" : "#34495e",
-                  color: "white",
-                }}
-              >
-                <div style={{ fontSize: "11px", fontWeight: "600" }}>✅ Kész</div>
-                <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>
-                  {tasks.filter((t) => t.completed_at).length}
-                </div>
-              </button>
-
-              <button
-                onClick={() => setFilterStatus("nincsIdopont")}
-                style={{
-                  padding: "8px",
-                  borderRadius: "8px",
-                  border:
-                    filterStatus === "nincsIdopont"
-                      ? "2px solid #8b5cf6"
-                      : "1px solid #4b5563",
-                  cursor: "pointer",
-                  background:
-                    filterStatus === "nincsIdopont"
-                      ? "#8b5cf6"
-                      : "#34495e",
-                  color: "white",
-                }}
-              >
-                <div style={{ fontSize: "11px", fontWeight: "600" }}>
-                  🚫 Nincs időpont
-                </div>
-                <div style={{ fontSize: "15px", fontWeight: "bold", marginTop: "2px" }}>
-                  {tasks.filter((t) => !t.scheduled_at).length}
-                </div>
-              </button>
-            </div>
-
-<div
-  style={{
-    fontSize: "11px",
-    fontWeight: "bold",
-    color: "#d1d5db",
-    marginTop: "12px",
-    marginBottom: "8px",
-    textTransform: "uppercase",
-    letterSpacing: "1px",
-  }}
->
-  Számla szükséges
-</div>
-
-<div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: "6px",
-  }}
->
-  <button
-    type="button"
-    onClick={() => setFilterInvoice("all")}
-    style={{
-      padding: "8px",
-      borderRadius: "8px",
-      border:
-        filterInvoice === "all"
-          ? "2px solid #95a5a6"
-          : "1px solid #4b5563",
-      cursor: "pointer",
-      background:
-        filterInvoice === "all"
-          ? "#95a5a6"
-          : "#34495e",
-      color: "white",
-      fontWeight: "bold",
-      fontSize: "11px",
-    }}
-  >
-    📋 Mind
-  </button>
-
-  <button
-    type="button"
-    onClick={() => setFilterInvoice("igen")}
-    style={{
-      padding: "8px",
-      borderRadius: "8px",
-      border:
-        filterInvoice === "igen"
-          ? "2px solid #22c55e"
-          : "1px solid #4b5563",
-      cursor: "pointer",
-      background:
-        filterInvoice === "igen"
-          ? "#16a34a"
-          : "#34495e",
-      color: "white",
-      fontWeight: "bold",
-      fontSize: "11px",
-    }}
-  >
-    🧾 Igen
-  </button>
-
-  <button
-    type="button"
-    onClick={() => setFilterInvoice("kiszamlazva")}
-    style={{
-      padding: "8px",
-      borderRadius: "8px",
-      border:
-        filterInvoice === "kiszamlazva"
-          ? "2px solid #60a5fa"
-          : "1px solid #4b5563",
-      cursor: "pointer",
-      background:
-        filterInvoice === "kiszamlazva"
-          ? "#2563eb"
-          : "#34495e",
-      color: "white",
-      fontWeight: "bold",
-      fontSize: "11px",
-    }}
-  >
-    ✅ Kiszámlázva
-  </button>
-
-  <button
-    type="button"
-    onClick={() => setFilterInvoice("nem")}
-    style={{
-      padding: "8px",
-      borderRadius: "8px",
-      border:
-        filterInvoice === "nem"
-          ? "2px solid #ef4444"
-          : "1px solid #4b5563",
-      cursor: "pointer",
-      background:
-        filterInvoice === "nem"
-          ? "#dc2626"
-          : "#34495e",
-      color: "white",
-      fontWeight: "bold",
-      fontSize: "11px",
-    }}
-  >
-    Nem
-  </button>
-</div>
-            
+                <option value="all">Mind</option>
+                <option value="igen">Szükséges</option>
+                <option value="kiszamlazva">Kiszámlázva</option>
+                <option value="nem">Nem kell</option>
+              </select>
+            </label>
           </div>
         </div>
 
