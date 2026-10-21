@@ -9,6 +9,7 @@ type MachineDetail = {
     | "fertotlenites"
     | "";
   warranty: boolean | null;
+  invoiced: boolean;
 };
 
 type Task = {
@@ -925,6 +926,7 @@ export default function TasksPage() {
     {
       maintenanceType: "",
       warranty: null,
+      invoiced: false,
     },
   ]);
 
@@ -954,7 +956,7 @@ const [filterStatus, setFilterStatus] = useState<
 >("all");
 
 const [filterInvoice, setFilterInvoice] = useState<
-  "all" | "igen" | "nem"
+  "all" | "igen" | "kiszamlazva" | "nem"
 >("all");
 
 const [searchQuery, setSearchQuery] = useState("");
@@ -1366,6 +1368,7 @@ const handleGalleryTouchEnd = () => {
               machineDetails[index] || {
                 maintenanceType: "",
                 warranty: null,
+                invoiced: false,
               };
 
             return {
@@ -1377,6 +1380,7 @@ const handleGalleryTouchEnd = () => {
                     : "",
                 warranty:
                   detail.warranty,
+                invoiced: detail.invoiced === true,
               } as MachineDetail,
             };
           })
@@ -1594,9 +1598,12 @@ const handleGalleryTouchEnd = () => {
               warranty = false;
             }
 
+            const invoiced = savedDetail?.invoiced === true;
+
             return {
               maintenanceType,
               warranty,
+              invoiced,
             };
           }
         );
@@ -1723,7 +1730,15 @@ const handleGalleryTouchEnd = () => {
     (detail) => detail?.warranty === true
   );
 
+  const hasInvoicedMachine = machineDetails.some(
+    (detail) => detail?.invoiced === true
+  );
+
   if (filterInvoice === "igen" && !hasInvoiceRequired) {
+    return false;
+  }
+
+  if (filterInvoice === "kiszamlazva" && !hasInvoicedMachine) {
     return false;
   }
 
@@ -2203,6 +2218,20 @@ const handleGalleryTouchEnd = () => {
                     </div>
                   )}
 
+                {Array.isArray(viewingTask.machineDetails) &&
+                  viewingTask.machineDetails.some(
+                    (detail) => detail?.warranty === true
+                  ) && (
+                    <div>
+                      <strong>📋 Számla:</strong>{" "}
+                      {viewingTask.machineDetails.some(
+                        (detail) => detail?.invoiced === true
+                      )
+                        ? "✅ Ki van számlázva"
+                        : "⏳ Számlázás szükséges"}
+                    </div>
+                  )}
+
                 {/* KÉPEK MEGJELENÍTÉSE RÉSZLETEKBEN */}
                 {Array.isArray(viewingTask.images) && viewingTask.images.length > 0 && (
                   <div style={{ marginTop: "8px" }}>
@@ -2459,6 +2488,7 @@ const handleGalleryTouchEnd = () => {
                   const detail = machineDetails[index] || {
                     maintenanceType: "",
                     warranty: null,
+                    invoiced: false,
                   };
 
                   return (
@@ -2591,6 +2621,42 @@ const handleGalleryTouchEnd = () => {
                             Nem
                           </label>
                         </div>
+
+                        {detail.warranty === true && (
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              marginTop: "10px",
+                              padding: "9px 10px",
+                              border: detail.invoiced
+                                ? "2px solid #2563eb"
+                                : "1px solid #d1d5db",
+                              borderRadius: "8px",
+                              background: detail.invoiced
+                                ? "#eff6ff"
+                                : "white",
+                              cursor: "pointer",
+                              fontSize: "13px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={detail.invoiced === true}
+                              onChange={(event) => {
+                                const updated = [...machineDetails];
+                                updated[index] = {
+                                  ...detail,
+                                  invoiced: event.target.checked,
+                                };
+                                setMachineDetails(updated);
+                              }}
+                            />
+                            ✅ Ki van számlázva
+                          </label>
+                        )}
                       </div>
                     </div>
                   );
@@ -2600,7 +2666,7 @@ const handleGalleryTouchEnd = () => {
                   type="button"
                   onClick={() => {
                     setMachines([...machines, ""]);
-                    setMachineDetails([...machineDetails, { maintenanceType: "", warranty: null }]);
+                    setMachineDetails([...machineDetails, { maintenanceType: "", warranty: null, invoiced: false }]);
                   }}
                   style={{
                     padding: "10px 14px",
@@ -3245,7 +3311,7 @@ const handleGalleryTouchEnd = () => {
 <div
   style={{
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(4, 1fr)",
     gap: "6px",
   }}
 >
@@ -3293,6 +3359,29 @@ const handleGalleryTouchEnd = () => {
     }}
   >
     🧾 Igen
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setFilterInvoice("kiszamlazva")}
+    style={{
+      padding: "8px",
+      borderRadius: "8px",
+      border:
+        filterInvoice === "kiszamlazva"
+          ? "2px solid #60a5fa"
+          : "1px solid #4b5563",
+      cursor: "pointer",
+      background:
+        filterInvoice === "kiszamlazva"
+          ? "#2563eb"
+          : "#34495e",
+      color: "white",
+      fontWeight: "bold",
+      fontSize: "11px",
+    }}
+  >
+    ✅ Kiszámlázva
   </button>
 
   <button
