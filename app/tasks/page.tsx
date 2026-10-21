@@ -1024,12 +1024,13 @@ const galleryHadMultipleTouches =
     setCompletedAt("");
     setMachines([""]);
 
-    setMachineDetails([
-      {
-        maintenanceType: "",
-        warranty: null,
-      },
-    ]);
+setMachineDetails([
+  {
+    maintenanceType: "",
+    warranty: null,
+    invoiced: false,
+  },
+]);
 
     setPaymentMethod(null);
     setPhotos([]);
