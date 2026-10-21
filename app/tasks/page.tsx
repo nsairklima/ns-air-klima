@@ -1376,7 +1376,7 @@ const handleGalleryTouchEnd = () => {
               machine: cleanMachine,
               detail: {
                 maintenanceType:
-                  type === "karbantartas"
+                  type === "karbantartas" && completedAt
                     ? detail.maintenanceType
                     : "",
                 warranty:
@@ -2546,7 +2546,7 @@ const handleGalleryTouchEnd = () => {
                         )}
                       </div>
 
-                      {type === "karbantartas" && (
+                      {type === "karbantartas" && completedAt && (
                         <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #e5e7eb" }}>
                           <div style={{ marginBottom: "7px", fontSize: "13px", fontWeight: "bold" }}>🧼 Karbantartás típusa:</div>
                           <div style={{ display: "flex", gap: "8px" }}>
@@ -2583,10 +2583,6 @@ const handleGalleryTouchEnd = () => {
 
                      <div
   style={{
-    display:
-      type === "karbantartas"
-        ? "block"
-        : "none",
     marginTop: "12px",
     paddingTop: "10px",
     borderTop: "1px solid #e5e7eb",
