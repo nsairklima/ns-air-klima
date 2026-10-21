@@ -961,6 +961,13 @@ const [filterInvoice, setFilterInvoice] = useState<
 
 const [searchQuery, setSearchQuery] = useState("");
 const [scheduledDateFilter, setScheduledDateFilter] = useState("");
+const [sortOrder, setSortOrder] = useState<
+  | "default"
+  | "scheduledAsc"
+  | "scheduledDesc"
+  | "completedAsc"
+  | "completedDesc"
+>("default");
   const [showMap, setShowMap] = useState(false);
 
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -1788,6 +1795,30 @@ const handleGalleryTouchEnd = () => {
     return true;
   });
 
+  const sortedTasks = [...filteredTasks].sort((firstTask, secondTask) => {
+    if (sortOrder === "default") return 0;
+
+    const useScheduledDate =
+      sortOrder === "scheduledAsc" || sortOrder === "scheduledDesc";
+    const firstDate = useScheduledDate
+      ? firstTask.scheduled_at
+      : firstTask.completed_at;
+    const secondDate = useScheduledDate
+      ? secondTask.scheduled_at
+      : secondTask.completed_at;
+
+    if (!firstDate && !secondDate) return 0;
+    if (!firstDate) return 1;
+    if (!secondDate) return -1;
+
+    const firstTime = new Date(firstDate.replace(" ", "T")).getTime();
+    const secondTime = new Date(secondDate.replace(" ", "T")).getTime();
+    const ascending =
+      sortOrder === "scheduledAsc" || sortOrder === "completedAsc";
+
+    return ascending ? firstTime - secondTime : secondTime - firstTime;
+  });
+
   return (
     <div style={{ display: "contents" }}>
       {editingPhotoIndex !== null && photos[editingPhotoIndex] ? (
@@ -1977,10 +2008,16 @@ const handleGalleryTouchEnd = () => {
           .search-calendar-row {
             grid-template-columns: minmax(0, 1fr) minmax(210px, 260px);
           }
+          .task-filter-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+          }
 
           @media (max-width: 699px) {
             .search-calendar-row {
               grid-template-columns: 1fr !important;
+            }
+            .task-filter-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
             }
           } 
           @media (min-width: 600px) {
@@ -3108,7 +3145,7 @@ const handleGalleryTouchEnd = () => {
               fontSize: "16px",
             }}
           >
-            📊 Találatok száma: {filteredTasks.length}
+            📊 Találatok száma: {sortedTasks.length}
             {scheduledDateFilter && (
               <span style={{ marginLeft: "8px", color: "#93c5fd", fontSize: "13px" }}>
                 📅 {scheduledDateFilter}
@@ -3117,6 +3154,7 @@ const handleGalleryTouchEnd = () => {
           </div>
 
           <div
+            className="task-filter-grid"
             style={{
               background: "#1f2937",
               borderRadius: "10px",
@@ -3124,7 +3162,6 @@ const handleGalleryTouchEnd = () => {
               border: "1px solid #374151",
               boxShadow: "0 1px 4px rgba(0,0,0,0.20)",
               display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
               gap: "8px",
             }}
           >
@@ -3258,6 +3295,50 @@ const handleGalleryTouchEnd = () => {
                 <option value="nem">Nem kell</option>
               </select>
             </label>
+
+            <label
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+                minWidth: 0,
+              }}
+            >
+              <span style={{ fontSize: "10px", fontWeight: "bold", color: "#d1d5db" }}>
+                Sorrend
+              </span>
+              <select
+                value={sortOrder}
+                onChange={(event) =>
+                  setSortOrder(
+                    event.target.value as
+                      | "default"
+                      | "scheduledAsc"
+                      | "scheduledDesc"
+                      | "completedAsc"
+                      | "completedDesc"
+                  )
+                }
+                style={{
+                  width: "100%",
+                  minWidth: 0,
+                  padding: "7px 5px",
+                  borderRadius: "7px",
+                  border: "1px solid #4b5563",
+                  background: "#34495e",
+                  color: "white",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="default">Alapértelmezett</option>
+                <option value="scheduledAsc">Tervezett: legrégebbi elöl</option>
+                <option value="scheduledDesc">Tervezett: legújabb elöl</option>
+                <option value="completedAsc">Megvalósult: legrégebbi elöl</option>
+                <option value="completedDesc">Megvalósult: legújabb elöl</option>
+              </select>
+            </label>
           </div>
         </div>
 
@@ -3283,7 +3364,7 @@ const handleGalleryTouchEnd = () => {
 
         {showMap && (
           <TasksMap
-            tasks={filteredTasks}
+            tasks={sortedTasks}
             onTaskSelect={(taskId) => {
               setShowMap(false);
               setSelectedTaskId(taskId);
@@ -3304,12 +3385,12 @@ const handleGalleryTouchEnd = () => {
 
         {/* LISTA KÁRTYÁK */}
         <div className="cards-grid">
-          {filteredTasks.length === 0 ? (
+          {sortedTasks.length === 0 ? (
             <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "#666", background: "#f9f9f9", borderRadius: "10px" }}>
               Nincs találat a megadott feltételek alapján.
             </div>
           ) : (
-            filteredTasks.map((task) => {
+            sortedTasks.map((task) => {
               const isTelepites = task.type === "telepites";
               const borderColor = isTelepites ? "#34495e" : "#d35400";
 
