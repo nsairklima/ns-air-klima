@@ -3141,7 +3141,7 @@ const handleGalleryTouchEnd = () => {
               }}
             >
               <span style={{ fontSize: "10px", fontWeight: "bold", color: "#d1d5db" }}>
-                Típus
+                Munka típusa
               </span>
               <select
                 value={filterType}
