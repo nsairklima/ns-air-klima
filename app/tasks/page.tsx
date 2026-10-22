@@ -3154,194 +3154,46 @@ const handleGalleryTouchEnd = () => {
           </div>
 
           <div
-            className="task-filter-grid"
             style={{
               background: "#1f2937",
               borderRadius: "10px",
-              padding: "8px",
+              padding: "7px",
               border: "1px solid #374151",
               boxShadow: "0 1px 4px rgba(0,0,0,0.20)",
-              display: "grid",
-              gap: "8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "7px",
             }}
           >
-            <label
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-                minWidth: 0,
-              }}
-            >
-              <span style={{ fontSize: "10px", fontWeight: "bold", color: "#d1d5db" }}>
-                Munka típusa
-              </span>
-              <select
-                value={filterType}
-                onChange={(event) =>
-                  setFilterType(
-                    event.target.value as "all" | "telepites" | "karbantartas"
-                  )
-                }
-                style={{
-                  width: "100%",
-                  minWidth: 0,
-                  padding: "7px 5px",
-                  borderRadius: "7px",
-                  border: "1px solid #4b5563",
-                  background: "#34495e",
-                  color: "white",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="all">Összes ({tasks.length})</option>
-                <option value="telepites">
-                  Telepítés ({tasks.filter((task) => task.type === "telepites").length})
-                </option>
-                <option value="karbantartas">
-                  Karbantartás ({tasks.filter((task) => task.type === "karbantartas").length})
-                </option>
-              </select>
-            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "4px" }}>
+              <button type="button" onClick={() => setFilterType("all")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterType === "all" ? "2px solid #2dd4bf" : "1px solid #4b5563", background: filterType === "all" ? "#0f766e" : "#34495e" }}>📋 Összes</button>
+              <button type="button" onClick={() => setFilterType("telepites")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterType === "telepites" ? "2px solid #60a5fa" : "1px solid #4b5563", background: filterType === "telepites" ? "#2563eb" : "#34495e" }}>🛠️ Telepítés</button>
+              <button type="button" onClick={() => setFilterType("karbantartas")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterType === "karbantartas" ? "2px solid #fbbf24" : "1px solid #4b5563", background: filterType === "karbantartas" ? "#d97706" : "#34495e" }}>🧹 Karbant.</button>
+            </div>
 
-            <label
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-                minWidth: 0,
-              }}
-            >
-              <span style={{ fontSize: "10px", fontWeight: "bold", color: "#d1d5db" }}>
-                Státusz
-              </span>
-              <select
-                value={filterStatus}
-                onChange={(event) =>
-                  setFilterStatus(
-                    event.target.value as
-                      | "all"
-                      | "folyamatban"
-                      | "kesz"
-                      | "nincsIdopont"
-                  )
-                }
-                style={{
-                  width: "100%",
-                  minWidth: 0,
-                  padding: "7px 5px",
-                  borderRadius: "7px",
-                  border: "1px solid #4b5563",
-                  background: "#34495e",
-                  color: "white",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="all">Minden</option>
-                <option value="folyamatban">
-                  Folyamatban ({tasks.filter((task) => !task.completed_at).length})
-                </option>
-                <option value="kesz">
-                  Kész ({tasks.filter((task) => task.completed_at).length})
-                </option>
-                <option value="nincsIdopont">
-                  Nincs időpont ({tasks.filter((task) => !task.scheduled_at).length})
-                </option>
-              </select>
-            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "4px" }}>
+              <button type="button" onClick={() => setFilterStatus("all")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterStatus === "all" ? "2px solid #cbd5e1" : "1px solid #4b5563", background: filterStatus === "all" ? "#64748b" : "#34495e" }}>📊 Mind</button>
+              <button type="button" onClick={() => setFilterStatus("folyamatban")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterStatus === "folyamatban" ? "2px solid #fbbf24" : "1px solid #4b5563", background: filterStatus === "folyamatban" ? "#d97706" : "#34495e" }}>⏳ Foly.</button>
+              <button type="button" onClick={() => setFilterStatus("kesz")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterStatus === "kesz" ? "2px solid #4ade80" : "1px solid #4b5563", background: filterStatus === "kesz" ? "#16a34a" : "#34495e" }}>✅ Kész</button>
+              <button type="button" onClick={() => setFilterStatus("nincsIdopont")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterStatus === "nincsIdopont" ? "2px solid #a78bfa" : "1px solid #4b5563", background: filterStatus === "nincsIdopont" ? "#7c3aed" : "#34495e" }}>🚫 Nincs időp.</button>
+            </div>
 
-            <label
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-                minWidth: 0,
-              }}
-            >
-              <span style={{ fontSize: "10px", fontWeight: "bold", color: "#d1d5db" }}>
-                Számla
-              </span>
-              <select
-                value={filterInvoice}
-                onChange={(event) =>
-                  setFilterInvoice(
-                    event.target.value as
-                      | "all"
-                      | "igen"
-                      | "kiszamlazva"
-                      | "nem"
-                  )
-                }
-                style={{
-                  width: "100%",
-                  minWidth: 0,
-                  padding: "7px 5px",
-                  borderRadius: "7px",
-                  border: "1px solid #4b5563",
-                  background: "#34495e",
-                  color: "white",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="all">Mind</option>
-                <option value="igen">Szükséges</option>
-                <option value="kiszamlazva">Kiszámlázva</option>
-                <option value="nem">Nem kell</option>
-              </select>
-            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "4px" }}>
+              <button type="button" onClick={() => setFilterInvoice("all")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterInvoice === "all" ? "2px solid #cbd5e1" : "1px solid #4b5563", background: filterInvoice === "all" ? "#64748b" : "#34495e" }}>🧾 Mind</button>
+              <button type="button" onClick={() => setFilterInvoice("igen")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterInvoice === "igen" ? "2px solid #fbbf24" : "1px solid #4b5563", background: filterInvoice === "igen" ? "#d97706" : "#34495e" }}>📋 Kell</button>
+              <button type="button" onClick={() => setFilterInvoice("kiszamlazva")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterInvoice === "kiszamlazva" ? "2px solid #60a5fa" : "1px solid #4b5563", background: filterInvoice === "kiszamlazva" ? "#2563eb" : "#34495e" }}>✅ Számlázva</button>
+              <button type="button" onClick={() => setFilterInvoice("nem")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: filterInvoice === "nem" ? "2px solid #f87171" : "1px solid #4b5563", background: filterInvoice === "nem" ? "#dc2626" : "#34495e" }}>Nem kell</button>
+            </div>
 
-            <label
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-                minWidth: 0,
-              }}
-            >
-              <span style={{ fontSize: "10px", fontWeight: "bold", color: "#d1d5db" }}>
-                Sorrend
-              </span>
-              <select
-                value={sortOrder}
-                onChange={(event) =>
-                  setSortOrder(
-                    event.target.value as
-                      | "default"
-                      | "scheduledAsc"
-                      | "scheduledDesc"
-                      | "completedAsc"
-                      | "completedDesc"
-                  )
-                }
-                style={{
-                  width: "100%",
-                  minWidth: 0,
-                  padding: "7px 5px",
-                  borderRadius: "7px",
-                  border: "1px solid #4b5563",
-                  background: "#34495e",
-                  color: "white",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="default">Alapértelmezett</option>
-                <option value="scheduledAsc">Tervezett: legrégebbi elöl</option>
-                <option value="scheduledDesc">Tervezett: legújabb elöl</option>
-                <option value="completedAsc">Megvalósult: legrégebbi elöl</option>
-                <option value="completedDesc">Megvalósult: legújabb elöl</option>
-              </select>
-            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "4px" }}>
+              <button type="button" onClick={() => setSortOrder("default")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: sortOrder === "default" ? "2px solid #cbd5e1" : "1px solid #4b5563", background: sortOrder === "default" ? "#64748b" : "#34495e" }}>↕ Alap</button>
+              <button type="button" onClick={() => setSortOrder("scheduledAsc")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: sortOrder === "scheduledAsc" ? "2px solid #60a5fa" : "1px solid #4b5563", background: sortOrder === "scheduledAsc" ? "#2563eb" : "#34495e" }}>📅 Terv ↑</button>
+              <button type="button" onClick={() => setSortOrder("scheduledDesc")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: sortOrder === "scheduledDesc" ? "2px solid #60a5fa" : "1px solid #4b5563", background: sortOrder === "scheduledDesc" ? "#2563eb" : "#34495e" }}>📅 Terv ↓</button>
+              <button type="button" onClick={() => setSortOrder("completedAsc")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: sortOrder === "completedAsc" ? "2px solid #4ade80" : "1px solid #4b5563", background: sortOrder === "completedAsc" ? "#16a34a" : "#34495e" }}>✅ Kész ↑</button>
+              <button type="button" onClick={() => setSortOrder("completedDesc")} style={{ padding: "5px 7px", borderRadius: "6px", cursor: "pointer", color: "white", fontSize: "10px", fontWeight: "bold", lineHeight: 1.15, minHeight: "30px", border: sortOrder === "completedDesc" ? "2px solid #4ade80" : "1px solid #4b5563", background: sortOrder === "completedDesc" ? "#16a34a" : "#34495e" }}>✅ Kész ↓</button>
+            </div>
           </div>
         </div>
-
         {/* TÉRKÉP NÉZET VÁLTÓ */}
         <div style={{ marginBottom: "20px" }}>
           <button
