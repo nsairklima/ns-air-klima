@@ -575,7 +575,7 @@ if (machineDetailsRaw) {
 
         return {
           maintenanceType:
-            taskType === "karbantartas"
+            Type === "karbantartas"
               ? maintenanceType
               : "",
 
