@@ -236,9 +236,7 @@ export async function GET() {
                 warranty:
                   detail.warranty,
 
-                invoiced:
-                  detail?.invoiced === true ||
-                  detail?.invoiced === "true",
+                invoiced: Boolean(detail?.invoiced),
               };
             }
           );
