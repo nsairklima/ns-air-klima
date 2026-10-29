@@ -13,6 +13,7 @@ type MachineDetail = {
     | "fertotlenites"
     | "";
   warranty: boolean | null;
+  invoiced: boolean;
 };
 
 export async function GET() {
@@ -121,9 +122,15 @@ export async function GET() {
                         ? false
                         : null;
 
+                const invoiced =
+                  detail?.invoiced === true
+                    ? true
+                    : false;
+
                 return {
                   maintenanceType,
                   warranty,
+                  invoiced,
                 };
               }
             );
@@ -173,9 +180,15 @@ export async function GET() {
                             ? false
                             : null;
 
+                    const invoiced =
+                      detail?.invoiced === true
+                        ? true
+                        : false;
+
                     return {
                       maintenanceType,
                       warranty,
+                      invoiced,
                     };
                   }
                 );
@@ -206,6 +219,7 @@ export async function GET() {
                   maintenanceType:
                     "",
                   warranty: null,
+                  invoiced: false,
                 };
               }
 
@@ -219,6 +233,9 @@ export async function GET() {
 
                 warranty:
                   detail.warranty,
+
+                invoiced:
+                  detail.invoiced === true,
               };
             }
           );
