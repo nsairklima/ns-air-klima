@@ -1742,6 +1742,10 @@ const handleGalleryTouchEnd = () => {
     (detail) => detail?.invoiced === true
   );
 
+  const hasUninvoicedWarranty = machineDetails.some(
+        (detail) => detail?.warranty === true && !detail?.invoiced
+      );
+
   if (filterInvoice === "igen" && !hasInvoiceRequired) {
     return false;
   }
