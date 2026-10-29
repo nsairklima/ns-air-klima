@@ -1307,6 +1307,7 @@ const machinesEmailHtml =
                   maintenanceType:
                     "",
                   warranty: null,
+                  invoiced: false,
                 };
 
 
