@@ -40,6 +40,7 @@ type MachineDetail = {
     | "fertotlenites"
     | "";
   warranty: boolean | null;
+  invoiced: boolean; 
 };
 
 function cleanText(value: unknown): string {
@@ -567,13 +568,20 @@ if (machineDetailsRaw) {
               warranty = false;
             }
 
-            return {
-              maintenanceType:
-                type === "karbantartas"
-                  ? maintenanceType
-                  : "",
-              warranty,
-            };
+       let invoiced = false;
+        if (detail?.invoiced === true) {
+          invoiced = true;
+        }
+
+        return {
+          maintenanceType:
+            taskType === "karbantartas"
+              ? maintenanceType
+              : "",
+
+          warranty,
+          invoiced, // <-- EZT IS ADD HOZZÁ
+        };
           }
         );
     }
