@@ -603,6 +603,7 @@ machineDetails = machines.map(
       machineDetails[index] || {
         maintenanceType: "",
         warranty: null,
+        invoiced: false,
       }
     );
   }
