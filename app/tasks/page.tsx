@@ -1729,35 +1729,41 @@ const handleGalleryTouchEnd = () => {
     ) {
       return false;
     }
-    if (filterInvoice !== "all") {
-  const machineDetails = Array.isArray(task.machineDetails)
-    ? task.machineDetails
-    : [];
+   if (filterInvoice !== "all") {
+      const machineDetails = Array.isArray(task.machineDetails)
+        ? task.machineDetails
+        : [];
 
-  const hasInvoiceRequired = machineDetails.some(
-    (detail) => detail?.warranty === true
-  );
-
-  const hasInvoicedMachine = machineDetails.some(
-    (detail) => detail?.invoiced === true
-  );
-
-  const hasUninvoicedWarranty = machineDetails.some(
+      // Kell számla, de MÉG NINCS kiszámlázva (a kapcsoló kikapcsolva)
+      const hasUninvoicedWarranty = machineDetails.some(
         (detail) => detail?.warranty === true && !detail?.invoiced
       );
 
-  if (filterInvoice === "igen" && !hasInvoiceRequired) {
-    return false;
-  }
+      // Van olyan gép, ami KI VAN SZÁMLÁZVA (a kapcsoló bekapcsolva)
+      const hasInvoicedMachine = machineDetails.some(
+        (detail) => detail?.warranty === true && detail?.invoiced === true
+      );
 
-  if (filterInvoice === "kiszamlazva" && !hasInvoicedMachine) {
-    return false;
-  }
+      // Bármelyik géphez kell számla
+      const hasInvoiceRequired = machineDetails.some(
+        (detail) => detail?.warranty === true
+      );
 
-  if (filterInvoice === "nem" && hasInvoiceRequired) {
-    return false;
-  }
-}
+      // „Számla kell” gomb: Csak azokat mutatja, ahol kell számla, de még nincsenek kiszámlázva
+      if (filterInvoice === "igen" && !hasUninvoicedWarranty) {
+        return false;
+      }
+
+      // „Számlázva” gomb: Csak azokat mutatja, ahol a kapcsoló be van kapcsolva
+      if (filterInvoice === "kiszamlazva" && !hasInvoicedMachine) {
+        return false;
+      }
+
+      // „Nem kell” gomb: Csak azokat mutatja, ahol egyáltalán nincs szükség számlára (warranty !== true)
+      if (filterInvoice === "nem" && hasInvoiceRequired) {
+        return false;
+      }
+    }
 
     if (scheduledDateFilter) {
       const taskScheduledDate = task.scheduled_at
@@ -2660,40 +2666,82 @@ const handleGalleryTouchEnd = () => {
                           </label>
                         </div>
 
-                        {detail.warranty === true && (
-                          <label
+                       {detail.warranty === true && (
+                          <div
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: "8px",
+                              justifyContent: "space-between",
                               marginTop: "10px",
-                              padding: "9px 10px",
-                              border: detail.invoiced
-                                ? "2px solid #2563eb"
-                                : "1px solid #d1d5db",
+                              padding: "10px 12px",
+                              border: "1px solid #d1d5db",
                               borderRadius: "8px",
-                              background: detail.invoiced
-                                ? "#eff6ff"
-                                : "white",
-                              cursor: "pointer",
-                              fontSize: "13px",
-                              fontWeight: "bold",
+                              background: detail.invoiced ? "#eff6ff" : "white",
+                              transition: "background 0.2s ease",
                             }}
                           >
-                            <input
-                              type="checkbox"
-                              checked={detail.invoiced === true}
-                              onChange={(event) => {
-                                const updated = [...machineDetails];
-                                updated[index] = {
-                                  ...detail,
-                                  invoiced: event.target.checked,
-                                };
-                                setMachineDetails(updated);
+                            <span style={{ fontSize: "13px", fontWeight: "bold", color: "#374151" }}>
+                              ✅ Ki van számlázva
+                            </span>
+
+                            {/* Modern csúszó kapcsoló (Toggle Switch) */}
+                            <label
+                              style={{
+                                position: "relative",
+                                display: "inline-block",
+                                width: "48px",
+                                height: "24px",
+                                cursor: "pointer",
+                                margin: 0,
                               }}
-                            />
-                            ✅ Ki van számlázva
-                          </label>
+                            >
+                              <input
+                                type="checkbox"
+                                checked={detail.invoiced === true}
+                                onChange={(event) => {
+                                  const updated = [...machineDetails];
+                                  updated[index] = {
+                                    ...detail,
+                                    invoiced: event.target.checked,
+                                  };
+                                  setMachineDetails(updated);
+                                }}
+                                style={{
+                                  opacity: 0,
+                                  width: 0,
+                                  height: 0,
+                                }}
+                              />
+                              <span
+                                style={{
+                                  position: "absolute",
+                                  cursor: "pointer",
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  backgroundColor: detail.invoiced ? "#2563eb" : "#cbd5e1",
+                                  transition: "background-color 0.3s ease",
+                                  borderRadius: "24px",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    position: "absolute",
+                                    content: "''",
+                                    height: "18px",
+                                    width: "18px",
+                                    left: detail.invoiced ? "27px" : "3px",
+                                    bottom: "3px",
+                                    backgroundColor: "white",
+                                    transition: "left 0.3s ease",
+                                    borderRadius: "50%",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                  }}
+                                />
+                              </span>
+                            </label>
+                          </div>
                         )}
                       </div>
                     </div>
