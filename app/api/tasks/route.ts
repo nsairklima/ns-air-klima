@@ -1036,6 +1036,7 @@ let emailSent = false;
                   maintenanceType:
                     "",
                   warranty: null,
+                  invoiced: false,
                 };
 
             const maintenanceRow =
