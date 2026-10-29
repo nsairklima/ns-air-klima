@@ -123,7 +123,8 @@ export async function GET() {
                         : null;
 
                 const invoiced =
-                  detail?.invoiced === true
+                  detail?.invoiced === true ||
+                  detail?.invoiced === "true"
                     ? true
                     : false;
 
@@ -181,7 +182,8 @@ export async function GET() {
                             : null;
 
                     const invoiced =
-                      detail?.invoiced === true
+                      detail?.invoiced === true ||
+                      detail?.invoiced === "true"
                         ? true
                         : false;
 
@@ -195,7 +197,7 @@ export async function GET() {
             }
           } catch (error) {
             console.error(
-              `A(z) ${task.id}. munka gépadatai nem dolgozhatók fel:`,
+              `A(z) ${task.id}. gépadatai nem dolgozhatók fel:`,
               error
             );
 
@@ -235,7 +237,8 @@ export async function GET() {
                   detail.warranty,
 
                 invoiced:
-                  detail.invoiced === true,
+                  detail?.invoiced === true ||
+                  detail?.invoiced === "true",
               };
             }
           );
