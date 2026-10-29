@@ -1076,6 +1076,7 @@ const finalMachineDetails:
         return {
           maintenanceType: "",
           warranty: null,
+          invoiced: false,
         };
       }
 
@@ -1090,7 +1091,7 @@ const finalMachineDetails:
           detail.warranty,
 
         invoiced:
-          detail.invoiced === true, // <-- EZT IS ADD HOZZÁ
+          detail.invoiced === true, 
       };
     });
 
