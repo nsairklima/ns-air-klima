@@ -38,6 +38,7 @@ type MachineDetail = {
     | "fertotlenites"
     | "";
   warranty: boolean | null;
+  invoiced: boolean;
 };
 
 
@@ -161,18 +162,19 @@ function parseMachineDetails(
         }
 
 
+    let invoiced = false;
+        if (detail?.invoiced === true) {
+          invoiced = true;
+        }
+
         return {
-          /*
-           * Mosás vagy fertőtlenítés csak
-           * karbantartási munkánál marad meg.
-           */
           maintenanceType:
             taskType === "karbantartas"
               ? maintenanceType
               : "",
 
-
           warranty,
+          invoiced, // <-- EZT IS ADD HOZZÁ
         };
       }
     );
@@ -931,9 +933,15 @@ if (currentTasks[0].machineDetails) {
                   : null;
 
 
+           const invoiced =
+              detail?.invoiced === true
+                ? true
+                : false;
+
             return {
               maintenanceType,
               warranty,
+              invoiced, // <-- EZT IS ADD HOZZÁ
             };
           }
         );
@@ -1072,15 +1080,17 @@ const finalMachineDetails:
       }
 
 
-      return {
+    return {
         maintenanceType:
           type === "karbantartas"
             ? detail.maintenanceType
             : "",
 
-
         warranty:
           detail.warranty,
+
+        invoiced:
+          detail.invoiced === true, // <-- EZT IS ADD HOZZÁ
       };
     });
 
