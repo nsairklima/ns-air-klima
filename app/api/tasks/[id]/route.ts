@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { v2 as cloudinary } from "cloudinary";
 import nodemailer from "nodemailer";
+import { MaintenanceAuditEventType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { syncMaintenanceSettlement } from "@/lib/maintenanceSettlement";
 
@@ -687,42 +688,97 @@ export async function DELETE(
     `;
 
 
-    if (existingTask.length > 0 && existingTask[0].images) {
-      let images: string[] = [];
+    let imagesToDelete: string[] = [];
 
+    if (existingTask.length === 0) {
+      return NextResponse.json(
+        { error: "A munka nem található." },
+        { status: 404 }
+      );
+    }
 
+    if (existingTask[0].images) {
       try {
-        images =
+        imagesToDelete =
           typeof existingTask[0].images === "string"
             ? JSON.parse(existingTask[0].images)
             : existingTask[0].images;
+
+        if (!Array.isArray(imagesToDelete)) imagesToDelete = [];
       } catch {
-        images = [];
-      }
-
-
-      for (const imageUrl of images) {
-        const publicId = getPublicIdFromUrl(imageUrl);
-        if (!publicId) continue;
-
-
-        try {
-          await cloudinary.uploader.destroy(publicId);
-        } catch (error) {
-          console.error("Hiba a kép Cloudinary törlésekor:", error);
-        }
+        imagesToDelete = [];
       }
     }
 
 
-    await sql`
-      DELETE FROM "Task"
-      WHERE "id" = ${taskId}
-    `;
+    const numericTaskId = Number(taskId);
+
+    if (!Number.isInteger(numericTaskId) || numericTaskId <= 0) {
+      return NextResponse.json(
+        { error: "Érvénytelen munkaazonosító." },
+        { status: 400 }
+      );
+    }
+
+    await prisma.$transaction(async (transaction) => {
+      const settlementItems =
+        await transaction.maintenanceSettlementItem.findMany({
+          where: { taskId: numericTaskId },
+        });
+
+      for (const item of settlementItems) {
+        await transaction.maintenanceAuditLog.create({
+          data: {
+            eventType: MaintenanceAuditEventType.SETTLEMENT_ITEM_VOIDED,
+            entityType: "MaintenanceSettlementItem",
+            entityId: item.id,
+            description:
+              "A munka törlése miatt az elszámolási tétel is törölve lett.",
+            details: {
+              correctionType: "TASK_DELETED",
+              reason: "A kapcsolódó munka törölve lett.",
+              settlementItem: {
+                id: item.id,
+                taskId: item.taskId,
+                machineIndex: item.machineIndex,
+                machineName: item.machineName,
+                maintenanceType: item.maintenanceType,
+                appliedPrice: item.appliedPrice,
+                firstPersonAmount: item.firstPersonAmount,
+                secondPersonAmount: item.secondPersonAmount,
+                completedAt: item.completedAt,
+                periodId: item.periodId,
+                priceId: item.priceId,
+              },
+            },
+          },
+        });
+      }
+
+      await transaction.maintenanceSettlementItem.deleteMany({
+        where: { taskId: numericTaskId },
+      });
+
+      await transaction.task.delete({
+        where: { id: numericTaskId },
+      });
+    });
+
+    for (const imageUrl of imagesToDelete) {
+      const publicId = getPublicIdFromUrl(imageUrl);
+      if (!publicId) continue;
+
+      try {
+        await cloudinary.uploader.destroy(publicId);
+      } catch (error) {
+        console.error("Hiba a kép Cloudinary törlésekor:", error);
+      }
+    }
 
 
     return NextResponse.json({
-      message: "Sikeres törlés és fájlok eltávolítása",
+      message:
+        "Sikeres törlés: a munka, az elszámolási tételek és a kapcsolódó képek feldolgozva.",
     });
   } catch (error: any) {
     console.error("Törlési hiba:", error);
