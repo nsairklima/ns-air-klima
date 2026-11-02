@@ -1,3 +1,4 @@
+
 import {
   MaintenanceAuditEventType,
   MaintenancePaymentMethod,
@@ -167,6 +168,30 @@ function auditSnapshot(item: {
   };
 }
 
+async function findSettlementPeriodForDate(completedAt: Date) {
+  const exactPeriod = await prisma.maintenanceSettlementPeriod.findFirst({
+    where: {
+      startedAt: { lte: completedAt },
+      OR: [
+        { endedAt: null },
+        { endedAt: { gte: completedAt } },
+      ],
+    },
+    orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+  });
+
+  if (exactPeriod) return exactPeriod;
+
+  const firstPeriod = await prisma.maintenanceSettlementPeriod.findFirst({
+    orderBy: [{ startedAt: "asc" }, { id: "asc" }],
+  });
+
+  // A rendszer bevezetése előtti munkák az első elszámolási időszakhoz tartoznak.
+  if (firstPeriod && completedAt < firstPeriod.startedAt) return firstPeriod;
+
+  return null;
+}
+
 export async function syncMaintenanceSettlement({
   taskId,
   taskType,
@@ -258,18 +283,17 @@ export async function syncMaintenanceSettlement({
     };
   }
 
-  let activePeriod = await prisma.maintenanceSettlementPeriod.findFirst({
-    where: { endedAt: null },
-    orderBy: [{ startedAt: "desc" }, { id: "desc" }],
-  });
+  const settlementPeriod =
+    await findSettlementPeriodForDate(completedAtDate);
 
-  if (!activePeriod) {
-    activePeriod = await prisma.maintenanceSettlementPeriod.create({
-      data: { startedAt: new Date() },
-    });
+  if (!settlementPeriod) {
+    result.skipped = true;
+    result.skipReason =
+      "A teljesítés dátumához nem tartozik elszámolási időszak.";
+    return result;
   }
 
-  const activePeriodId = activePeriod.id;
+  const settlementPeriodId = settlementPeriod.id;
 
   const existingItems = await prisma.maintenanceSettlementItem.findMany({
     where: { taskId },
@@ -426,7 +450,7 @@ export async function syncMaintenanceSettlement({
               firstPersonAmount: applicablePrice.firstPersonAmount,
               secondPersonAmount: applicablePrice.secondPersonAmount,
               completedAt: completedAtDate,
-              periodId: activePeriodId,
+              periodId: settlementPeriodId,
               priceId: applicablePrice.id,
             },
           });
@@ -474,6 +498,7 @@ export async function syncMaintenanceSettlement({
       existingItem.firstPersonAmount !== applicablePrice.firstPersonAmount ||
       existingItem.secondPersonAmount !== applicablePrice.secondPersonAmount ||
       existingItem.priceId !== applicablePrice.id ||
+      existingItem.periodId !== settlementPeriodId ||
       existingItem.completedAt.getTime() !== completedAtDate.getTime();
 
     if (!hasChanges) {
@@ -498,6 +523,7 @@ export async function syncMaintenanceSettlement({
           firstPersonAmount: applicablePrice.firstPersonAmount,
           secondPersonAmount: applicablePrice.secondPersonAmount,
           completedAt: completedAtDate,
+          periodId: settlementPeriodId,
           priceId: applicablePrice.id,
         },
       });
