@@ -1,0 +1,63 @@
+name: Export project to one file
+
+on:
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create project.txt
+        shell: bash
+        run: |
+          OUTPUT="project.txt"
+
+          echo "PROJECT EXPORT" > "$OUTPUT"
+          echo "===============" >> "$OUTPUT"
+          echo "" >> "$OUTPUT"
+
+          find . -type f \
+            -not -path "./.git/*" \
+            -not -path "./node_modules/*" \
+            -not -path "./.next/*" \
+            -not -path "./dist/*" \
+            -not -path "./build/*" \
+            -not -path "./coverage/*" \
+            -not -path "./public/*" \
+            -not -path "./.vercel/*" \
+            -not -name ".env" \
+            -not -name ".env.*" \
+            -not -name "*.png" \
+            -not -name "*.jpg" \
+            -not -name "*.jpeg" \
+            -not -name "*.gif" \
+            -not -name "*.webp" \
+            -not -name "*.ico" \
+            -not -name "*.pdf" \
+            -not -name "*.zip" \
+            -not -name "*.woff" \
+            -not -name "*.woff2" \
+            -not -name "*.ttf" \
+            -not -name "*.lock" \
+            -not -name "project.txt" \
+            -not -path "./.github/workflows/export-project.yml" \
+            -print0 | sort -z | while IFS= read -r -d '' file
+          do
+            echo "" >> "$OUTPUT"
+            echo "============================================================" >> "$OUTPUT"
+            echo "FILE: ${file#./}" >> "$OUTPUT"
+            echo "============================================================" >> "$OUTPUT"
+            echo "" >> "$OUTPUT"
+            cat "$file" >> "$OUTPUT"
+            echo "" >> "$OUTPUT"
+          done
+
+      - name: Upload project.txt
+        uses: actions/upload-artifact@v4
+        with:
+          name: complete-project
+          path: project.txt
