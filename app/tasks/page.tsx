@@ -2596,7 +2596,21 @@ const handleGalleryTouchEnd = () => {
                       {type === "karbantartas" && completedAt && (
                         <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #e5e7eb" }}>
                           <div style={{ marginBottom: "7px", fontSize: "13px", fontWeight: "bold" }}>🧼 Karbantartás típusa:</div>
-                          <div style={{ display: "flex", gap: "8px" }}>
+                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 10px", border: detail.maintenanceType === "" ? "2px solid #64748b" : "1px solid #d1d5db", borderRadius: "8px", background: detail.maintenanceType === "" ? "#f1f5f9" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>
+                              <input
+                                type="radio"
+                                name={`form-maintenance-${index}`}
+                                checked={detail.maintenanceType === ""}
+                                onChange={() => {
+                                  const updated = [...machineDetails];
+                                  updated[index] = { ...detail, maintenanceType: "" };
+                                  setMachineDetails(updated);
+                                }}
+                              />
+                              Egyik sem
+                            </label>
+
                             <label style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 10px", border: detail.maintenanceType === "mosas" ? "2px solid #2563eb" : "1px solid #d1d5db", borderRadius: "8px", background: detail.maintenanceType === "mosas" ? "#eff6ff" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>
                               <input
                                 type="radio"
