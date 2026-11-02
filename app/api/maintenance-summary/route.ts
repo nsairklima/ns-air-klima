@@ -143,7 +143,13 @@ function calculateSummary(items: SummaryItem[]) {
       transferReceivedBySecondPerson += item.appliedPrice;
     }
 
-    if (!item.paymentMethod || !item.receivedBy) {
+    const hasValidPaymentPair =
+      (item.paymentMethod === MaintenancePaymentMethod.CASH &&
+        item.receivedBy === MaintenanceReceiver.FIRST_PERSON) ||
+      (item.paymentMethod === MaintenancePaymentMethod.TRANSFER &&
+        item.receivedBy === MaintenanceReceiver.SECOND_PERSON);
+
+    if (!hasValidPaymentPair) {
       missingPaymentMethodCount += 1;
       missingPaymentMethodAmount += item.appliedPrice;
     }
