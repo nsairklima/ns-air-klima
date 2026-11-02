@@ -1465,13 +1465,25 @@ const handleGalleryTouchEnd = () => {
 
       if (data.clientCreated) {
         setStatusType("success");
-        message += " 👤 Új ügyfél automatikusan létrehozva.";
+        message += " 👤 Új ügyfél automatikusan létrehozva az Ügyfelek között.";
       } else if (data.clientMatchReason === "missing-name") {
         setStatusType("warning");
         message += " ⚠️ Ügyfél nem készült, mert nincs megadva név.";
       } else {
         setStatusType("warning");
-        message += " ⚠️ Az ügyfél már létezett.";
+
+        const clientMatchText: Record<string, string> = {
+          "existing-email": "azonos e-mail-cím alapján",
+          "existing-phone": "azonos telefonszám alapján",
+          "existing-name-address": "azonos név és cím alapján",
+          "existing-name": "azonos név alapján",
+        };
+
+        const matchText =
+          clientMatchText[data.clientMatchReason] ||
+          "a meglévő ügyféladatok alapján";
+
+        message += ` 👤 Az ügyfél már létezett (${matchText}), ezért nem jött létre új ügyfél.`;
       }
 
       if (!latitude || !longitude) {
@@ -2419,6 +2431,30 @@ const handleGalleryTouchEnd = () => {
             )}
           </div>
 
+          {statusMessage && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                marginBottom: "10px",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                background:
+                  statusType === "success" ? "#dcfce7" : "#fef9c3",
+                color:
+                  statusType === "success" ? "#166534" : "#854d0e",
+                border:
+                  statusType === "success"
+                    ? "1px solid #86efac"
+                    : "1px solid #fde047",
+                fontWeight: "bold",
+                fontSize: "14px",
+              }}
+            >
+              {statusMessage}
+            </div>
+          )}
+
           {!isFormOpen ? (
             <button
               type="button"
@@ -2439,24 +2475,6 @@ const handleGalleryTouchEnd = () => {
             </button>
           ) : (
             <form onSubmit={handleSubmit} className="form-grid">
-              {statusMessage && (
-                <div
-                  style={{
-                    gridColumn: "1 / -1",
-                    padding: "8px 10px",
-                    borderRadius: "8px",
-                    background:
-                      statusType === "success" ? "#dcfce7" : "#fef9c3",
-                    color:
-                      statusType === "success" ? "#166534" : "#854d0e",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                  }}
-                >
-                  {statusMessage}
-                </div>
-              )}
-
               <div>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Munka típusa:</label>
                 <select
