@@ -12,6 +12,7 @@ type PriceRequestBody = {
   totalPrice?: unknown;
   firstPersonAmount?: unknown;
   secondPersonAmount?: unknown;
+  validFrom?: unknown;
 };
 
 function parseWholeNumber(
@@ -41,6 +42,12 @@ function parseWholeNumber(
   }
 
   return parsedValue;
+}
+
+function parseValidFrom(value: unknown): Date | null {
+  if (typeof value !== "string" || value.trim() === "") return null;
+  const parsed = new Date(`${value.trim()}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function parseMaintenanceType(
@@ -196,6 +203,15 @@ export async function POST(
       parseWholeNumber(
         body.secondPersonAmount
       );
+
+    const validFrom = parseValidFrom(body.validFrom);
+
+    if (!validFrom) {
+      return NextResponse.json(
+        { error: "Az érvényesség kezdő dátuma kötelező." },
+        { status: 400 }
+      );
+    }
 
     if (!maintenanceType) {
       return NextResponse.json(
@@ -353,6 +369,7 @@ export async function POST(
                   totalPrice,
                   firstPersonAmount,
                   secondPersonAmount,
+                  validFrom,
                 },
               });
 
