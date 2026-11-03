@@ -88,7 +88,7 @@ type SummaryResponse = {
   auditLogs: AuditLog[];
 };
 
-type PriceForm = { totalPrice: string; firstPersonAmount: string; secondPersonAmount: string; validFrom: string };
+type PriceForm = { totalPrice: string; firstPersonAmount: string; secondPersonAmount: string };
 type CorrectionForm = {
   maintenanceType: MaintenanceType;
   paymentMethod: "CASH" | "TRANSFER";
@@ -100,7 +100,7 @@ type CorrectionForm = {
   reason: string;
 };
 
-const emptyPrice: PriceForm = { totalPrice: "", firstPersonAmount: "", secondPersonAmount: "", validFrom: new Date().toISOString().slice(0, 10) };
+const emptyPrice: PriceForm = { totalPrice: "", firstPersonAmount: "", secondPersonAmount: "" };
 const card = { background: "#fff", borderRadius: 12, padding: 12, color: "#0f172a" } as const;
 const inputStyle = { width: "100%", boxSizing: "border-box" as const, padding: "9px 10px", marginTop: 4, border: "1px solid #cbd5e1", borderRadius: 8, background: "#fff", color: "#0f172a" };
 
@@ -147,8 +147,8 @@ export default function MaintenanceSummaryPage() {
       const body = await response.json();
       if (!response.ok) throw new Error(body.details || body.error || "Az összesítő betöltése nem sikerült.");
       setData(body);
-      if (body.currentPrices?.WASH) setWashForm({ totalPrice: String(body.currentPrices.WASH.totalPrice), firstPersonAmount: String(body.currentPrices.WASH.firstPersonAmount), secondPersonAmount: String(body.currentPrices.WASH.secondPersonAmount), validFrom: new Date().toISOString().slice(0, 10) });
-      if (body.currentPrices?.DISINFECTION) setDisinfectionForm({ totalPrice: String(body.currentPrices.DISINFECTION.totalPrice), firstPersonAmount: String(body.currentPrices.DISINFECTION.firstPersonAmount), secondPersonAmount: String(body.currentPrices.DISINFECTION.secondPersonAmount), validFrom: new Date().toISOString().slice(0, 10) });
+      if (body.currentPrices?.WASH) setWashForm({ totalPrice: String(body.currentPrices.WASH.totalPrice), firstPersonAmount: String(body.currentPrices.WASH.firstPersonAmount), secondPersonAmount: String(body.currentPrices.WASH.secondPersonAmount) });
+      if (body.currentPrices?.DISINFECTION) setDisinfectionForm({ totalPrice: String(body.currentPrices.DISINFECTION.totalPrice), firstPersonAmount: String(body.currentPrices.DISINFECTION.firstPersonAmount), secondPersonAmount: String(body.currentPrices.DISINFECTION.secondPersonAmount) });
     } catch (error) {
       setStatus({ type: "error", text: error instanceof Error ? error.message : "Betöltési hiba." });
     } finally {
@@ -179,7 +179,7 @@ export default function MaintenanceSummaryPage() {
     }
     setSaving(true);
     try {
-      const response = await fetch("/api/maintenance-summary/prices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ maintenanceType, totalPrice, firstPersonAmount, secondPersonAmount, validFrom: form.validFrom }) });
+      const response = await fetch("/api/maintenance-summary/prices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ maintenanceType, totalPrice, firstPersonAmount, secondPersonAmount }) });
       const body = await response.json();
       if (!response.ok) throw new Error(body.details || body.error || "Az ár mentése nem sikerült.");
       setStatus({ type: "success", text: body.message || "Az új ár elmentve." });
@@ -239,9 +239,26 @@ export default function MaintenanceSummaryPage() {
 
   async function saveCorrection() {
     if (!correctionItem || !correction) return;
+    const rawAmounts = [
+      correction.appliedPrice,
+      correction.firstPersonAmount,
+      correction.secondPersonAmount,
+    ];
+
+    if (rawAmounts.some((value) => value.trim() === "")) {
+      setStatus({ type: "error", text: "A teljes árat és mindkét személy részét ki kell tölteni." });
+      return;
+    }
+
     const appliedPrice = amount(correction.appliedPrice);
     const firstPersonAmount = amount(correction.firstPersonAmount);
     const secondPersonAmount = amount(correction.secondPersonAmount);
+
+    if (appliedPrice < 0 || firstPersonAmount < 0 || secondPersonAmount < 0) {
+      setStatus({ type: "error", text: "Negatív összeg nem adható meg." });
+      return;
+    }
+
     if (firstPersonAmount + secondPersonAmount !== appliedPrice) {
       setStatus({ type: "error", text: "A két személy része nem egyezik meg a teljes árral." });
       return;
@@ -257,8 +274,23 @@ export default function MaintenanceSummaryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...correction, appliedPrice, firstPersonAmount, secondPersonAmount, reason: correction.reason.trim() }),
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.details || body.error || "A korrekció nem sikerült.");
+      const responseText = await response.text();
+      let body: any = {};
+
+      try {
+        body = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        body = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          body.details ||
+          body.error ||
+          responseText ||
+          `A korrekció nem sikerült (${response.status}).`
+        );
+      }
       setCorrectionItem(null);
       setCorrection(null);
       setStatus({ type: "success", text: body.message || "A korrekció elmentve." });
@@ -286,10 +318,6 @@ export default function MaintenanceSummaryPage() {
     return <div style={{ ...card, border: `2px solid ${color}` }}>
       <h3 style={{ margin: "0 0 8px", color }}>{title}</h3>
       {current && <div style={{ marginBottom: 8, fontSize: 12 }}>Jelenlegi ár: <b>{money(current.totalPrice)}</b><br />Érvényes: {date(current.validFrom)}</div>}
-      <label style={{ display: "block", marginBottom: 8 }}>
-        <b>Érvényes ettől:</b>
-        <input type="date" value={form.validFrom} onChange={(e) => setForm({ ...form, validFrom: e.target.value })} style={inputStyle} />
-      </label>
       {(["totalPrice", "firstPersonAmount", "secondPersonAmount"] as const).map((field) => <label key={field} style={{ display: "block", marginBottom: 8 }}>
         <b>{field === "totalPrice" ? "Teljes ár" : field === "firstPersonAmount" ? "1. fő része" : "2. fő része"}:</b>
         <input type="number" min="0" value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} style={inputStyle} />
