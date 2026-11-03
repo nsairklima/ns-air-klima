@@ -282,11 +282,13 @@ export async function GET(request: Request) {
         orderBy: [{ completedAt: "desc" }, { id: "desc" }],
       });
 
-    const availableYears = Array.from(
-      new Set(
-        allSettlementItems.map((item) => item.completedAt.getFullYear())
+    const availableYears: number[] = Array.from<number>(
+      new Set<number>(
+        allSettlementItems.map((item): number =>
+          item.completedAt.getFullYear()
+        )
       )
-    ).sort((a, b) => b - a);
+    ).sort((a: number, b: number): number => b - a);
 
     const selectedYear =
       Number.isInteger(requestedYear) && availableYears.includes(requestedYear)
