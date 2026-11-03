@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   MaintenanceAuditEventType,
+  MaintenancePaymentMethod,
+  MaintenanceReceiver,
   MaintenanceServiceType,
 } from "@prisma/client";
 
@@ -10,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 type CorrectionRequestBody = {
   maintenanceType?: unknown;
+  paymentMethod?: unknown;
   machineName?: unknown;
   appliedPrice?: unknown;
   firstPersonAmount?: unknown;
@@ -106,6 +109,35 @@ function parseDate(
   )
     ? null
     : parsedDate;
+}
+
+function parsePaymentMethod(value: unknown): {
+  paymentMethod: MaintenancePaymentMethod;
+  receivedBy: MaintenanceReceiver;
+} | null {
+  if (
+    value === MaintenancePaymentMethod.CASH ||
+    value === "CASH" ||
+    value === "keszpenz"
+  ) {
+    return {
+      paymentMethod: MaintenancePaymentMethod.CASH,
+      receivedBy: MaintenanceReceiver.FIRST_PERSON,
+    };
+  }
+
+  if (
+    value === MaintenancePaymentMethod.TRANSFER ||
+    value === "TRANSFER" ||
+    value === "atutalas"
+  ) {
+    return {
+      paymentMethod: MaintenancePaymentMethod.TRANSFER,
+      receivedBy: MaintenanceReceiver.SECOND_PERSON,
+    };
+  }
+
+  return null;
 }
 
 function getMaintenanceTypeLabel(
@@ -222,6 +254,23 @@ export async function PATCH(
         {
           status: 400,
         }
+      );
+    }
+
+    const paymentData =
+      body.paymentMethod === undefined
+        ? existingItem.paymentMethod && existingItem.receivedBy
+          ? {
+              paymentMethod: existingItem.paymentMethod,
+              receivedBy: existingItem.receivedBy,
+            }
+          : null
+        : parsePaymentMethod(body.paymentMethod);
+
+    if (!paymentData) {
+      return NextResponse.json(
+        { error: "Érvénytelen fizetési mód." },
+        { status: 400 }
       );
     }
 
@@ -376,6 +425,10 @@ export async function PATCH(
         maintenanceType ||
       existingItem.machineName !==
         machineName ||
+      existingItem.paymentMethod !==
+        paymentData.paymentMethod ||
+      existingItem.receivedBy !==
+        paymentData.receivedBy ||
       existingItem.appliedPrice !==
         appliedPrice ||
       existingItem
@@ -422,6 +475,8 @@ export async function PATCH(
                 data: {
                   machineName,
                   maintenanceType,
+                  paymentMethod: paymentData.paymentMethod,
+                  receivedBy: paymentData.receivedBy,
                   appliedPrice,
                   firstPersonAmount,
                   secondPersonAmount,
@@ -477,6 +532,12 @@ export async function PATCH(
                         existingItem
                           .maintenanceType,
 
+                      paymentMethod:
+                        existingItem.paymentMethod,
+
+                      receivedBy:
+                        existingItem.receivedBy,
+
                       appliedPrice:
                         existingItem
                           .appliedPrice,
@@ -528,6 +589,12 @@ export async function PATCH(
                       maintenanceType:
                         updatedItem
                           .maintenanceType,
+
+                      paymentMethod:
+                        updatedItem.paymentMethod,
+
+                      receivedBy:
+                        updatedItem.receivedBy,
 
                       appliedPrice:
                         updatedItem
@@ -588,6 +655,22 @@ export async function PATCH(
                               after:
                                 updatedItem
                                   .maintenanceType,
+                            }
+                          : null,
+
+                      paymentMethod:
+                        existingItem.paymentMethod !== updatedItem.paymentMethod
+                          ? {
+                              before: existingItem.paymentMethod,
+                              after: updatedItem.paymentMethod,
+                            }
+                          : null,
+
+                      receivedBy:
+                        existingItem.receivedBy !== updatedItem.receivedBy
+                          ? {
+                              before: existingItem.receivedBy,
+                              after: updatedItem.receivedBy,
                             }
                           : null,
 
