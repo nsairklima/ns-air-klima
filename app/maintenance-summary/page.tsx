@@ -303,8 +303,8 @@ export default function MaintenanceSummaryPage() {
   if (!data || !summary) return <main style={{ padding: 20, color: "#fff" }}>{status?.text || "Az adatok nem tölthetők be."}</main>;
 
   function SummaryCard({ title, value, color }: { title: string; value: SummaryBlock; color: string }) {
-    return <div style={{ ...card, border: `2px solid ${color}`, fontSize: 13, lineHeight: 1.5 }}>
-      <strong style={{ color, fontSize: 14 }}>{title}</strong>
+    return <div className="current-summary-card" style={{ ...card, border: `2px solid ${color}`, fontSize: 13, lineHeight: 1.5 }}>
+      <strong className="current-summary-title" style={{ color, fontSize: 14 }}>{title}</strong>
       <div>Darabszám: <b>{value.count} db</b></div>
       <div>Teljes bevétel: <b>{money(value.totalRevenue)}</b></div>
       <div>1. fő része: <b>{money(value.firstPersonTotal)}</b></div>
@@ -403,25 +403,25 @@ export default function MaintenanceSummaryPage() {
 
     {status && <div style={{ padding: 10, marginBottom: 10, borderRadius: 8, background: status.type === "success" ? "#dcfce7" : "#fee2e2", color: status.type === "success" ? "#166534" : "#991b1b", fontWeight: 700 }}>{status.text}</div>}
 
-    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
-      {([ ["summary", "📊 Összesítő"], ["prices", "💵 Árak"], ["items", "🧾 Tételek"], ["periods", "📁 Időszakok"], ["logs", "📋 Napló"] ] as [Tab, string][]).map(([key, label]) => <button key={key} type="button" onClick={() => setTab(key)} style={{ padding: "7px 10px", border: 0, borderRadius: 7, background: tab === key ? "#2563eb" : "#e2e8f0", color: tab === key ? "#fff" : "#0f172a", fontWeight: 700, fontSize: 12 }}>{label}</button>)}
+    <div className="summary-tabs" style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
+      {([ ["summary", "📊 Összesítő"], ["prices", "💵 Árak"], ["items", "🧾 Tételek"], ["periods", "📁 Időszakok"], ["logs", "📋 Napló"] ] as [Tab, string][]).map(([key, label]) => <button className="summary-tab-button" key={key} type="button" onClick={() => setTab(key)} style={{ padding: "7px 10px", border: 0, borderRadius: 7, background: tab === key ? "#2563eb" : "#e2e8f0", color: tab === key ? "#fff" : "#0f172a", fontWeight: 700, fontSize: 12 }}>{label}</button>)}
     </div>
 
     {tab === "summary" && <>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 8, marginBottom: 10 }}>
+      <div className="current-summary-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 8, marginBottom: 10 }}>
         <SummaryCard title="🧼 Mosás" value={summary.wash} color="#2563eb" />
         <SummaryCard title="🧴 Fertőtlenítés" value={summary.disinfection} color="#7c3aed" />
         <SummaryCard title="💰 Összesen" value={summary.total} color="#16a34a" />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 8, marginBottom: 10 }}>
-        <div style={{ ...card, border: "2px solid #16a34a" }}><b>💵 1. főhöz készpénz</b><div style={{ fontSize: 18, fontWeight: 800 }}>{money(summary.received.firstPerson)}</div></div>
-        <div style={{ ...card, border: "2px solid #2563eb" }}><b>🏦 2. főhöz átutalás</b><div style={{ fontSize: 18, fontWeight: 800 }}>{money(summary.received.secondPerson)}</div></div>
-        <div style={{ ...card, border: "2px solid #64748b" }}><b>💰 Beérkezett összesen</b><div style={{ fontSize: 18, fontWeight: 800 }}>{money(summary.received.total)}</div></div>
+      <div className="received-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 8, marginBottom: 10 }}>
+        <div className="received-card" style={{ ...card, border: "2px solid #16a34a" }}><b>💵 1. főhöz készpénz</b><div className="received-value" style={{ fontSize: 18, fontWeight: 800 }}>{money(summary.received.firstPerson)}</div></div>
+        <div className="received-card" style={{ ...card, border: "2px solid #2563eb" }}><b>🏦 2. főhöz átutalás</b><div className="received-value" style={{ fontSize: 18, fontWeight: 800 }}>{money(summary.received.secondPerson)}</div></div>
+        <div className="received-card" style={{ ...card, border: "2px solid #64748b" }}><b>💰 Beérkezett összesen</b><div className="received-value" style={{ fontSize: 18, fontWeight: 800 }}>{money(summary.received.total)}</div></div>
       </div>
 
-      <div style={{ ...card, marginBottom: 10, border: `2px solid ${summary.settlement.direction === "INCOMPLETE" ? "#f59e0b" : summary.settlement.direction === "SETTLED" ? "#16a34a" : "#2563eb"}` }}>
-        <h3 style={{ margin: "0 0 6px", fontSize: 15 }}>🤝 Egymás közötti elszámolás</h3>
+      <div className="settlement-card" style={{ ...card, marginBottom: 10, border: `2px solid ${summary.settlement.direction === "INCOMPLETE" ? "#f59e0b" : summary.settlement.direction === "SETTLED" ? "#16a34a" : "#2563eb"}` }}>
+        <h3 className="settlement-title" style={{ margin: "0 0 6px", fontSize: 15 }}>🤝 Egymás közötti elszámolás</h3>
         <div>1. főnek jár: <b>{money(summary.total.firstPersonTotal)}</b>, beérkezett: <b>{money(summary.received.firstPerson)}</b></div>
         <div>2. főnek jár: <b>{money(summary.total.secondPersonTotal)}</b>, beérkezett: <b>{money(summary.received.secondPerson)}</b></div>
         <div style={{ marginTop: 8, fontWeight: 800 }}>
@@ -432,15 +432,15 @@ export default function MaintenanceSummaryPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 8, alignItems: "stretch" }}>
-        <div style={{ ...card, background: "#fff7ed", border: "1px solid #fdba74", boxShadow: "0 3px 10px rgba(15,23,42,.1)" }}>
+      <div className="summary-actions-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 8, alignItems: "stretch" }}>
+        <div className="summary-action-card" style={{ ...card, background: "#fff7ed", border: "1px solid #fdba74", boxShadow: "0 3px 10px rgba(15,23,42,.1)" }}>
           <h3 style={{ margin: "0 0 7px", color: "#9a3412", fontSize: 15 }}>🔄 Új elszámolási időszak</h3>
           <p style={{ margin: "0 0 10px", color: "#7c2d12", fontSize: 12 }}>A korábbi adatok megmaradnak, az új számláló nulláról indul.</p>
           <input value={resetReason} onChange={(e) => setResetReason(e.target.value)} placeholder="A reset indoka..." style={{ ...inputStyle, marginBottom: 8 }} />
           <button type="button" disabled={saving} onClick={resetPeriod} style={{ width: "100%", padding: 9, border: 0, borderRadius: 8, background: saving ? "#94a3b8" : "#ea580c", color: "#fff", fontWeight: 700 }}>{saving ? "Művelet folyamatban..." : "Aktuális időszak lezárása"}</button>
         </div>
 
-        <div style={{ ...card, background: "#eff6ff", border: "1px solid #60a5fa", boxShadow: "0 3px 10px rgba(15,23,42,.1)" }}>
+        <div className="summary-action-card" style={{ ...card, background: "#eff6ff", border: "1px solid #60a5fa", boxShadow: "0 3px 10px rgba(15,23,42,.1)" }}>
           <h3 style={{ margin: "0 0 7px", color: "#1e3a8a", fontSize: 15 }}>🔄 Meglévő munkák visszatöltése</h3>
           <p style={{ margin: "0 0 10px", color: "#334155", fontSize: 12 }}>A hiányzó tételeket létrehozza, a fizetési mód nélküli tételeket naplózva kiegészíti.</p>
           <button type="button" disabled={saving} onClick={backfillExistingTasks} style={{ width: "100%", padding: 9, border: 0, borderRadius: 8, background: saving ? "#94a3b8" : "#2563eb", color: "#fff", fontWeight: 700 }}>{saving ? "Feldolgozás..." : "Meglévő karbantartások feldolgozása"}</button>
@@ -535,6 +535,115 @@ export default function MaintenanceSummaryPage() {
           line-height: 1.15;
           text-overflow: ellipsis;
           white-space: nowrap;
+        }
+
+        .summary-tabs {
+          display: grid !important;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 4px !important;
+          margin-bottom: 7px !important;
+        }
+
+        .summary-tab-button {
+          min-width: 0;
+          padding: 6px 2px !important;
+          font-size: 10px !important;
+          line-height: 1.1;
+        }
+
+        .current-summary-grid,
+        .received-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: 5px !important;
+          margin-bottom: 6px !important;
+        }
+
+        .current-summary-card,
+        .received-card {
+          min-width: 0;
+          padding: 6px !important;
+          border-width: 1px !important;
+          border-radius: 7px !important;
+          font-size: 10px !important;
+          line-height: 1.25 !important;
+        }
+
+        .current-summary-title {
+          display: block;
+          margin-bottom: 2px;
+          font-size: 11px !important;
+        }
+
+        .current-summary-card > div {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .received-card > b {
+          display: block;
+          overflow: hidden;
+          font-size: 10px;
+          line-height: 1.15;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .received-value {
+          margin-top: 3px;
+          overflow: hidden;
+          font-size: 13px !important;
+          line-height: 1.1;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .settlement-card {
+          margin-bottom: 6px !important;
+          padding: 7px !important;
+          border-width: 1px !important;
+          font-size: 11px;
+          line-height: 1.3;
+        }
+
+        .settlement-title {
+          margin-bottom: 3px !important;
+          font-size: 12px !important;
+        }
+
+        .settlement-card > div:last-child {
+          margin-top: 4px !important;
+        }
+
+        .summary-actions-grid {
+          grid-template-columns: 1fr 1fr !important;
+          gap: 5px !important;
+        }
+
+        .summary-action-card {
+          padding: 7px !important;
+          border-radius: 7px !important;
+        }
+
+        .summary-action-card h3 {
+          margin-bottom: 4px !important;
+          font-size: 12px !important;
+        }
+
+        .summary-action-card p {
+          display: none;
+        }
+
+        .summary-action-card input {
+          min-height: 33px !important;
+          padding: 5px 7px !important;
+          margin-bottom: 5px !important;
+          font-size: 12px !important;
+        }
+
+        .summary-action-card button {
+          padding: 7px !important;
+          font-size: 11px !important;
         }
       }
     `}</style>
