@@ -139,6 +139,10 @@ export default function MaintenanceSummaryPage() {
   const [resetReason, setResetReason] = useState("");
   const [correctionItem, setCorrectionItem] = useState<SettlementItem | null>(null);
   const [correction, setCorrection] = useState<CorrectionForm | null>(null);
+  const [correctionMessage, setCorrectionMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -224,6 +228,7 @@ export default function MaintenanceSummaryPage() {
   }
 
   function openCorrection(item: SettlementItem) {
+    setCorrectionMessage(null);
     setCorrectionItem(item);
     setCorrection({
       maintenanceType: item.maintenanceType,
@@ -238,7 +243,10 @@ export default function MaintenanceSummaryPage() {
   }
 
   async function saveCorrection() {
-    if (!correctionItem || !correction) return;
+    if (!correctionItem || !correction || saving) return;
+
+    setCorrectionMessage(null);
+
     const rawAmounts = [
       correction.appliedPrice,
       correction.firstPersonAmount,
@@ -246,7 +254,10 @@ export default function MaintenanceSummaryPage() {
     ];
 
     if (rawAmounts.some((value) => value.trim() === "")) {
-      setStatus({ type: "error", text: "A teljes árat és mindkét személy részét ki kell tölteni." });
+      setCorrectionMessage({
+        type: "error",
+        text: "A teljes árat és mindkét személy részét ki kell tölteni.",
+      });
       return;
     }
 
@@ -255,25 +266,56 @@ export default function MaintenanceSummaryPage() {
     const secondPersonAmount = amount(correction.secondPersonAmount);
 
     if (appliedPrice < 0 || firstPersonAmount < 0 || secondPersonAmount < 0) {
-      setStatus({ type: "error", text: "Negatív összeg nem adható meg." });
+      setCorrectionMessage({
+        type: "error",
+        text: "Negatív összeg nem adható meg.",
+      });
       return;
     }
 
     if (firstPersonAmount + secondPersonAmount !== appliedPrice) {
-      setStatus({ type: "error", text: "A két személy része nem egyezik meg a teljes árral." });
-      return;
-    }
-    if (correction.reason.trim().length < 5) {
-      setStatus({ type: "error", text: "A korrekció indoka legalább 5 karakter legyen." });
-      return;
-    }
-    setSaving(true);
-    try {
-      const response = await fetch(`/api/maintenance-summary/items/${correctionItem.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...correction, appliedPrice, firstPersonAmount, secondPersonAmount, reason: correction.reason.trim() }),
+      setCorrectionMessage({
+        type: "error",
+        text: "A két személy része nem egyezik meg a teljes árral.",
       });
+      return;
+    }
+
+    if (!correction.completedAt.trim()) {
+      setCorrectionMessage({
+        type: "error",
+        text: "A megvalósult időpont megadása kötelező.",
+      });
+      return;
+    }
+
+    if (correction.reason.trim().length < 5) {
+      setCorrectionMessage({
+        type: "error",
+        text: "A korrekció indoka legalább 5 karakter legyen.",
+      });
+      return;
+    }
+
+    setSaving(true);
+    setCorrectionMessage({ type: "success", text: "Mentés folyamatban..." });
+
+    try {
+      const response = await fetch(
+        `/api/maintenance-summary/items/${correctionItem.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...correction,
+            appliedPrice,
+            firstPersonAmount,
+            secondPersonAmount,
+            reason: correction.reason.trim(),
+          }),
+        }
+      );
+
       const responseText = await response.text();
       let body: any = {};
 
@@ -286,18 +328,34 @@ export default function MaintenanceSummaryPage() {
       if (!response.ok) {
         throw new Error(
           body.details ||
-          body.error ||
-          responseText ||
-          `A korrekció nem sikerült (${response.status}).`
+            body.error ||
+            responseText ||
+            `A korrekció nem sikerült (${response.status}).`
         );
       }
+
+      setStatus({
+        type: "success",
+        text: body.message || "A korrekció elmentve.",
+      });
+      setCorrectionMessage({
+        type: "success",
+        text: body.message || "A korrekció elmentve.",
+      });
+
+      await load();
       setCorrectionItem(null);
       setCorrection(null);
-      setStatus({ type: "success", text: body.message || "A korrekció elmentve." });
-      await load();
+      setCorrectionMessage(null);
     } catch (error) {
-      setStatus({ type: "error", text: error instanceof Error ? error.message : "Korrekciós hiba." });
-    } finally { setSaving(false); }
+      const message =
+        error instanceof Error ? error.message : "Korrekciós hiba.";
+
+      setCorrectionMessage({ type: "error", text: message });
+      setStatus({ type: "error", text: message });
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading && !data) return <main style={{ padding: 20, color: "#fff" }}>Elszámolás betöltése...</main>;
@@ -407,7 +465,54 @@ export default function MaintenanceSummaryPage() {
         {([ ["machineName", "Gép neve"], ["appliedPrice", "Teljes ár"], ["firstPersonAmount", "1. fő része"], ["secondPersonAmount", "2. fő része"] ] as [keyof CorrectionForm, string][]).map(([field, label]) => <label key={field} style={{ display: "block", marginBottom: 8 }}>{label}:<input type={field === "machineName" ? "text" : "number"} value={correction[field]} onChange={(e) => setCorrection({ ...correction, [field]: e.target.value })} style={inputStyle} /></label>)}
         <label style={{ display: "block", marginBottom: 8 }}>Megvalósult időpont:<input type="datetime-local" value={correction.completedAt} onChange={(e) => setCorrection({ ...correction, completedAt: e.target.value })} style={inputStyle} /></label>
         <label style={{ display: "block", marginBottom: 10 }}>Korrekció indoka:<textarea rows={3} value={correction.reason} onChange={(e) => setCorrection({ ...correction, reason: e.target.value })} style={inputStyle} /></label>
-        <div style={{ display: "flex", gap: 8 }}><button type="button" disabled={saving} onClick={saveCorrection} style={{ flex: 1, padding: 10, border: 0, borderRadius: 8, background: "#16a34a", color: "#fff", fontWeight: 700 }}>Mentés</button><button type="button" onClick={() => { setCorrectionItem(null); setCorrection(null); }} style={{ padding: 10, border: 0, borderRadius: 8, background: "#64748b", color: "#fff", fontWeight: 700 }}>Mégsem</button></div>
+        {correctionMessage && (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              marginBottom: 10,
+              padding: "9px 10px",
+              borderRadius: 8,
+              background: correctionMessage.type === "success" ? "#dcfce7" : "#fee2e2",
+              color: correctionMessage.type === "success" ? "#166534" : "#991b1b",
+              fontWeight: 700,
+              fontSize: 13,
+            }}
+          >
+            {correctionMessage.text}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void saveCorrection()}
+            style={{
+              flex: 1,
+              padding: 10,
+              border: 0,
+              borderRadius: 8,
+              background: saving ? "#94a3b8" : "#16a34a",
+              color: "#fff",
+              fontWeight: 700,
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+          >
+            {saving ? "Mentés..." : "Mentés"}
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => {
+              setCorrectionItem(null);
+              setCorrection(null);
+              setCorrectionMessage(null);
+            }}
+            style={{ padding: 10, border: 0, borderRadius: 8, background: "#64748b", color: "#fff", fontWeight: 700 }}
+          >
+            Mégsem
+          </button>
+        </div>
       </div>
     </div>}
   </main>;
