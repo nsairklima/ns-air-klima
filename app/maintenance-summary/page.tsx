@@ -332,16 +332,16 @@ export default function MaintenanceSummaryPage() {
       <a href="/tasks" style={{ padding: "8px 12px", background: "#334155", color: "#fff", borderRadius: 8, textDecoration: "none", fontWeight: 700 }}>← Vissza</a>
     </div>
 
-    <section style={{ ...card, marginBottom: 10, border: "2px solid #38bdf8", background: "#f0f9ff" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+    <section className="overview-section" style={{ ...card, marginBottom: 10, border: "2px solid #38bdf8", background: "#f0f9ff" }}>
+      <div className="overview-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 17 }}>📊 Összesített karbantartási adatok</h2>
-          <div style={{ marginTop: 3, fontSize: 12, color: "#475569" }}>
+          <h2 className="overview-title" style={{ margin: 0, fontSize: 17 }}>📊 Összesített karbantartási adatok</h2>
+          <div className="overview-subtitle" style={{ marginTop: 3, fontSize: 12, color: "#475569" }}>
             A lezárt és az aktuális időszakok adatai együtt
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="overview-filters" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <label style={{ fontSize: 12, fontWeight: 700 }}>
             Év
             <select
@@ -373,30 +373,30 @@ export default function MaintenanceSummaryPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 8 }}>
-        <div style={{ padding: 10, borderRadius: 9, background: "#dbeafe" }}>
-          <div style={{ fontSize: 11, color: "#475569" }}>Összes tétel</div>
-          <b style={{ fontSize: 20 }}>{data.overview.itemCount} db</b>
+      <div className="overview-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 8 }}>
+        <div className="overview-card" style={{ padding: 10, borderRadius: 9, background: "#dbeafe" }}>
+          <div className="overview-card-label" style={{ fontSize: 11, color: "#475569" }}>Összes tétel</div>
+          <b className="overview-card-value overview-card-value-large" style={{ fontSize: 20 }}>{data.overview.itemCount} db</b>
         </div>
-        <div style={{ padding: 10, borderRadius: 9, background: "#dcfce7" }}>
-          <div style={{ fontSize: 11, color: "#475569" }}>Mosás</div>
-          <b style={{ fontSize: 20 }}>{data.overview.summary.wash.count} db</b>
+        <div className="overview-card" style={{ padding: 10, borderRadius: 9, background: "#dcfce7" }}>
+          <div className="overview-card-label" style={{ fontSize: 11, color: "#475569" }}>Mosás</div>
+          <b className="overview-card-value overview-card-value-large" style={{ fontSize: 20 }}>{data.overview.summary.wash.count} db</b>
         </div>
-        <div style={{ padding: 10, borderRadius: 9, background: "#f3e8ff" }}>
-          <div style={{ fontSize: 11, color: "#475569" }}>Fertőtlenítés</div>
-          <b style={{ fontSize: 20 }}>{data.overview.summary.disinfection.count} db</b>
+        <div className="overview-card" style={{ padding: 10, borderRadius: 9, background: "#f3e8ff" }}>
+          <div className="overview-card-label" style={{ fontSize: 11, color: "#475569" }}>Fertőtlenítés</div>
+          <b className="overview-card-value overview-card-value-large" style={{ fontSize: 20 }}>{data.overview.summary.disinfection.count} db</b>
         </div>
-        <div style={{ padding: 10, borderRadius: 9, background: "#fef3c7" }}>
-          <div style={{ fontSize: 11, color: "#475569" }}>Teljes bevétel</div>
-          <b style={{ fontSize: 20 }}>{money(data.overview.summary.total.totalRevenue)}</b>
+        <div className="overview-card" style={{ padding: 10, borderRadius: 9, background: "#fef3c7" }}>
+          <div className="overview-card-label" style={{ fontSize: 11, color: "#475569" }}>Teljes bevétel</div>
+          <b className="overview-card-value overview-card-value-large" style={{ fontSize: 20 }}>{money(data.overview.summary.total.totalRevenue)}</b>
         </div>
-        <div style={{ padding: 10, borderRadius: 9, background: "#e0f2fe" }}>
-          <div style={{ fontSize: 11, color: "#475569" }}>1. fő része</div>
-          <b style={{ fontSize: 17 }}>{money(data.overview.summary.total.firstPersonTotal)}</b>
+        <div className="overview-card" style={{ padding: 10, borderRadius: 9, background: "#e0f2fe" }}>
+          <div className="overview-card-label" style={{ fontSize: 11, color: "#475569" }}>1. fő része</div>
+          <b className="overview-card-value" style={{ fontSize: 17 }}>{money(data.overview.summary.total.firstPersonTotal)}</b>
         </div>
-        <div style={{ padding: 10, borderRadius: 9, background: "#fae8ff" }}>
-          <div style={{ fontSize: 11, color: "#475569" }}>2. fő része</div>
-          <b style={{ fontSize: 17 }}>{money(data.overview.summary.total.secondPersonTotal)}</b>
+        <div className="overview-card" style={{ padding: 10, borderRadius: 9, background: "#fae8ff" }}>
+          <div className="overview-card-label" style={{ fontSize: 11, color: "#475569" }}>2. fő része</div>
+          <b className="overview-card-value" style={{ fontSize: 17 }}>{money(data.overview.summary.total.secondPersonTotal)}</b>
         </div>
       </div>
     </section>
@@ -466,6 +466,78 @@ export default function MaintenanceSummaryPage() {
     {tab === "periods" && <div>{data.previousPeriods.length === 0 ? <div style={card}>Még nincs lezárt időszak.</div> : data.previousPeriods.map((period) => <div key={period.id} style={{ ...card, marginBottom: 8 }}><b>Időszak #{period.id}</b><div>{date(period.startedAt)} – {date(period.endedAt)}</div><div>Mosás: {period.summary.wash.count} db · Fertőtlenítés: {period.summary.disinfection.count} db</div><div>Teljes bevétel: <b>{money(period.summary.total.totalRevenue)}</b></div></div>)}</div>}
 
     {tab === "logs" && <div>{data.auditLogs.length === 0 ? <div style={card}>Még nincs naplózott esemény.</div> : data.auditLogs.map((log) => <details key={log.id} style={{ ...card, marginBottom: 8 }}><summary style={{ cursor: "pointer", fontWeight: 700 }}>{eventLabel(log.eventType)} · {date(log.createdAt)}</summary><div style={{ marginTop: 8 }}>{log.description || "-"}<pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", background: "#f8fafc", padding: 8, borderRadius: 8, fontSize: 11 }}>{JSON.stringify(log.details, null, 2)}</pre></div></details>)}</div>}
+
+    <style jsx>{`
+      @media (max-width: 600px) {
+        .overview-section {
+          padding: 8px !important;
+          margin-bottom: 7px !important;
+          border-width: 1px !important;
+        }
+
+        .overview-header {
+          gap: 6px !important;
+          margin-bottom: 7px !important;
+        }
+
+        .overview-title {
+          font-size: 14px !important;
+        }
+
+        .overview-subtitle {
+          display: none;
+        }
+
+        .overview-filters {
+          width: 100%;
+          display: grid !important;
+          grid-template-columns: 1fr 1fr;
+          gap: 6px !important;
+        }
+
+        .overview-filters label {
+          font-size: 11px !important;
+        }
+
+        .overview-filters select {
+          width: 100% !important;
+          min-height: 34px !important;
+          padding: 5px 7px !important;
+          margin-top: 2px !important;
+          font-size: 13px !important;
+        }
+
+        .overview-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: 5px !important;
+        }
+
+        .overview-card {
+          min-width: 0;
+          padding: 6px !important;
+          border-radius: 7px !important;
+        }
+
+        .overview-card-label {
+          overflow: hidden;
+          font-size: 9px !important;
+          line-height: 1.15;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .overview-card-value,
+        .overview-card-value-large {
+          display: block;
+          overflow: hidden;
+          margin-top: 2px;
+          font-size: 13px !important;
+          line-height: 1.15;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+    `}</style>
 
     {correctionItem && correction && <div onClick={() => { setCorrectionItem(null); setCorrection(null); }} style={{ position: "fixed", inset: 0, zIndex: 5000, display: "flex", alignItems: "center", justifyContent: "center", padding: 15, background: "rgba(0,0,0,.65)" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ ...card, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" }}>
