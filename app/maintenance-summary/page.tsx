@@ -303,13 +303,46 @@ export default function MaintenanceSummaryPage() {
   if (!data || !summary) return <main style={{ padding: 20, color: "#fff" }}>{status?.text || "Az adatok nem tölthetők be."}</main>;
 
   function SummaryCard({ title, value, color }: { title: string; value: SummaryBlock; color: string }) {
-    return <div className="current-summary-card" style={{ ...card, border: `2px solid ${color}`, fontSize: 13, lineHeight: 1.5 }}>
-      <strong className="current-summary-title" style={{ color, fontSize: 14 }}>{title}</strong>
-      <div>Darabszám: <b>{value.count} db</b></div>
-      <div>Teljes bevétel: <b>{money(value.totalRevenue)}</b></div>
-      <div>1. fő része: <b>{money(value.firstPersonTotal)}</b></div>
-      <div>2. fő része: <b>{money(value.secondPersonTotal)}</b></div>
-    </div>;
+    const cleanTitle = title.replace(/^\S+\s*/, "");
+
+    return (
+      <div
+        className="current-summary-card"
+        style={{ ...card, border: `2px solid ${color}` }}
+      >
+        <div className="current-summary-heading">
+          <span
+            className="current-summary-dot"
+            aria-hidden="true"
+            style={{ background: color }}
+          />
+          <strong className="current-summary-title" style={{ color }}>
+            {cleanTitle}
+          </strong>
+        </div>
+
+        <div className="current-summary-count">
+          {value.count}
+          <span> db</span>
+        </div>
+
+        <div className="current-summary-revenue">
+          <span>Bevétel</span>
+          <b>{money(value.totalRevenue)}</b>
+        </div>
+
+        <div className="current-summary-split">
+          <div>
+            <span>1. fő</span>
+            <b>{money(value.firstPersonTotal)}</b>
+          </div>
+          <div>
+            <span>2. fő</span>
+            <b>{money(value.secondPersonTotal)}</b>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   function PriceCard({ type, title, form, setForm, current, color }: { type: MaintenanceType; title: string; form: PriceForm; setForm: (form: PriceForm) => void; current: Price | null; color: string }) {
@@ -564,18 +597,94 @@ export default function MaintenanceSummaryPage() {
           padding: 6px !important;
           border-width: 1px !important;
           border-radius: 7px !important;
-          font-size: 10px !important;
-          line-height: 1.25 !important;
+        }
+
+        .current-summary-card {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          text-align: left;
+        }
+
+        .current-summary-heading {
+          display: flex;
+          min-width: 0;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .current-summary-dot {
+          width: 7px;
+          height: 7px;
+          flex: 0 0 7px;
+          border-radius: 999px;
         }
 
         .current-summary-title {
-          display: block;
-          margin-bottom: 2px;
+          min-width: 0;
+          overflow: hidden;
           font-size: 11px !important;
+          line-height: 1.1;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        .current-summary-card > div {
+        .current-summary-count {
+          font-size: 17px;
+          font-weight: 800;
+          line-height: 1;
+        }
+
+        .current-summary-count span {
+          font-size: 9px;
+          font-weight: 700;
+        }
+
+        .current-summary-revenue {
+          display: flex;
+          min-width: 0;
+          flex-direction: column;
+          padding: 4px 0;
+          border-top: 1px solid #e2e8f0;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .current-summary-revenue span,
+        .current-summary-split span {
+          color: #64748b;
+          font-size: 8px;
+          line-height: 1.1;
+        }
+
+        .current-summary-revenue b {
           overflow: hidden;
+          margin-top: 1px;
+          font-size: 11px;
+          line-height: 1.1;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .current-summary-split {
+          display: grid;
+          min-width: 0;
+          grid-template-columns: 1fr;
+          gap: 3px;
+        }
+
+        .current-summary-split > div {
+          display: flex;
+          min-width: 0;
+          align-items: center;
+          justify-content: space-between;
+          gap: 3px;
+        }
+
+        .current-summary-split b {
+          overflow: hidden;
+          font-size: 9px;
+          line-height: 1.1;
+          text-align: right;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
