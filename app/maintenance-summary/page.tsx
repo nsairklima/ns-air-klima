@@ -176,10 +176,6 @@ export default function MaintenanceSummaryPage() {
       const body = await response.json();
       if (!response.ok) throw new Error(body.details || body.error || "Az összesítő betöltése nem sikerült.");
       setData(body);
-      if (body.overview) {
-        setOverviewYear(body.overview.selectedYear);
-        setOverviewMonth(body.overview.selectedMonth);
-      }
       if (body.currentPrices?.WASH) setWashForm({ totalPrice: String(body.currentPrices.WASH.totalPrice), firstPersonAmount: String(body.currentPrices.WASH.firstPersonAmount), secondPersonAmount: String(body.currentPrices.WASH.secondPersonAmount) });
       if (body.currentPrices?.DISINFECTION) setDisinfectionForm({ totalPrice: String(body.currentPrices.DISINFECTION.totalPrice), firstPersonAmount: String(body.currentPrices.DISINFECTION.firstPersonAmount), secondPersonAmount: String(body.currentPrices.DISINFECTION.secondPersonAmount) });
     } catch (error) {
@@ -187,9 +183,11 @@ export default function MaintenanceSummaryPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [overviewYear, overviewMonth]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const summary = useMemo(() => {
     if (!data) return null;
