@@ -1,0 +1,65 @@
+name: Full Neon database backup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Create and verify PostgreSQL backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Create backup directory
+        run: mkdir -p backup
+
+      - name: Create PostgreSQL backup
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DIRECT_DATABASE_URL }}
+        run: |
+          docker run --rm \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -v "$PWD/backup:/backup" \
+            postgres:17 \
+            pg_dump \
+              --format=custom \
+              --verbose \
+              --no-owner \
+              --no-privileges \
+              --dbname="$DATABASE_URL" \
+              --file=/backup/ns-air-klima-database.backup
+
+      - name: Verify backup archive
+        run: |
+          docker run --rm \
+            -v "$PWD/backup:/backup" \
+            postgres:17 \
+            pg_restore \
+              --list \
+              /backup/ns-air-klima-database.backup \
+              > backup/pg-restore-list.txt
+
+      - name: Create SHA-256 checksum
+        run: |
+          cd backup
+          sha256sum ns-air-klima-database.backup > ns-air-klima-database.sha256
+
+      - name: Show backup file information
+        run: |
+          ls -lh backup
+          echo "Objects found in backup:"
+          wc -l backup/pg-restore-list.txt
+
+      - name: Upload verified backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: ns-air-klima-full-database-backup
+          path: |
+            backup/ns-air-klima-database.backup
+            backup/ns-air-klima-database.sha256
+            backup/pg-restore-list.txt
+          retention-days: 3
+          if-no-files-found: error
